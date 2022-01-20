@@ -1,0 +1,170 @@
+---
+title: Preview Environments with GitHub
+description: Create a preview environment for your application using Okteto Cloud and GitHub Actions
+sidebar_label: GitHub
+id: preview-environments-github
+---
+
+import Image from '@theme/Image';
+
+This section will show you how to automatically create a preview environment for your applications using Okteto Cloud and GitHub Actions.
+
+## Pre-Requisites
+- An [Okteto Cloud account](https://cloud.okteto.com)
+- A [GitHub account](https://github.com)
+
+For this tutorial, we'll be using [this application](https://github.com/okteto/movies).
+
+## Step 1: Fork the Repository
+
+Start by forking the [movies](https://github.com/okteto/movies) repository with your GitHub account.
+
+## Step 2: Create the GitHub Workflow
+
+To create the preview environments, we will use our [GitHub Actions for Okteto Cloud](https://github.com/okteto/actions).
+
+Creating a preview environment requires performing the following steps:
+
+1. Log into Okteto Cloud.
+1. Deploy a preview environment in Okteto Cloud.
+1. Update the PR with the URL of the preview environment.
+
+The sample repository configured to use [the workflow described above](https://github.com/okteto/movies/blob/main/.github/workflows/preview.yaml).
+If you want to use this on for your repositories, all you need to do is to create a `.github/workflow` folder in the root of your repo, and save your workflow file in it.
+
+The workflow file to create the preview environments for Okteto Cloud users looks like this:
+
+```yaml
+# file: .github/workflows/preview.yaml
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Context
+      uses: okteto/context@latest
+      with:
+        token: ${{ secrets.OKTETO_TOKEN }}
+
+    - name: Deploy preview environment
+      uses: okteto/deploy-preview@latest
+      env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: pr-${{ github.event.number }}-cindylopez
+        timeout: 15m
+```
+
+### Preview Environments for Okteto Enterprise Users
+
+To configure preview environments for [Okteto Enterprise](https://okteto.com/enterprise/), you need to specify the url of your Okteto Enterprise instance as
+a parameter in the `context` action:
+
+```yaml
+# file: .github/workflows/preview.yaml
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Context
+      uses: okteto/context@latest
+      with:
+        token: ${{ secrets.OKTETO_TOKEN }}
+        url: https://okteto.example.com
+
+    - name: Deploy preview environment
+      uses: okteto/deploy-preview@latest
+      env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: pr-${{ github.event.number }}
+        scope: global
+        timeout: 15m
+
+```
+
+In Okteto Enterprise, you have access to two different scopes for preview environments:
+-  `personal`, where the only one who has access to the environment is the logged user.
+-  `global`, where all cluster members have access to it and do not need to have the user's name at the end of the preview environment name. Only  administrators cancreate a preview environment with global scope.
+
+## Step 3: Configure your Okteto API Token
+
+If you noticed, the workflow uses the `secrets:OKTETO_TOKEN`. We do this, so we don't have to commit the token into our repo. Before you run this workflow you need to create the `OKTETO_TOKEN` secret in your repository, with your personal access token as the value.
+
+[Follow the process in this guide to create a personal access token](https://okteto.com/docs/cloud/personal-access-tokens/).
+
+Learn more about repository secrets in [GitHub's official documentation](https://help.github.com/en/github/automating-your-workflow-with-github-actions/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables).
+
+## Step 4: Open a Pull Request
+
+Once your changes are in your repository, go ahead and open a new pull request. GitHub will receive the event, and it will start your workflow. You can see the workflow's status and logs in the `checks` section of the pull request.
+
+<p align="center"><Image src="/docs/cloud/preview-environments/images/check.png"alt="checks section of pull request" width="650" /></p>
+
+## Step 5: See your changes live
+
+After a few seconds, the workflow will update the pull request with the URL of your preview environment. Click on it to see the changes in real-time.
+
+<p align="center"><Image src="/docs/cloud/preview-environments/images/message.png" alt="preview environment message with URL" width="650" /></p>
+
+Every time the branch is updated, the same workflow will run, automatically updating the preview environment.
+
+## Step 6: Cleanup
+
+The sample repo also includes a workflow [to cleanup the preview environments](https://github.com/okteto/movies/blob/main/.github/workflows/preview-closed.yaml) once the pull request is closed. We recommend you follow this pattern to remove the preview environment after merging a pull request automatically.
+
+```yaml
+# file: .github/workflows/preview-closed.yaml
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  closed:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Context
+      uses: okteto/context@latest
+      with:
+        token: ${{ secrets.OKTETO_TOKEN }}
+
+    - name: Destroy preview environment
+      uses: okteto/destroy-preview@latest
+      with:
+        name: pr-${{ github.event.number }}-cindylopez
+```
+
+For Okteto Enterprise users:
+
+```yaml
+# file: .github/workflows/preview-closed.yaml
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  closed:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Context
+      uses: okteto/context@latest
+      with:
+        url: ${{secrets.OKTETO_URL}}
+        token: ${{ secrets.OKTETO_TOKEN }}
+
+    - name: Destroy preview environment
+      uses: okteto/destroy-preview@latest
+      with:
+        name: pr-${{ github.event.number }}
+```

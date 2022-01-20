@@ -1,0 +1,68 @@
+---
+title: Development Environments
+description: Configure development environments as code, side by side with your application
+sidebar_label: Development Environments
+id: development-environment
+---
+
+One of the advantages of using Okteto is the ability to configure development environments as code, side by side with your application.
+
+Instead of having to keep a wiki with a never-ending list of tools, dependencies, and scripts to install and run, you just have to clone your repository, deploy your application, and run `okteto up` to start developing in seconds.
+
+## Getting started
+
+At a high level, a development environment is a Docker container that contains:
+
+- One or more language runtimes (e.g python, ruby, node)
+- SDKs for your language runtime (e.g JDK, python-dev)
+- Binary dependencies (e.g. openssl, git)
+- Tools to manage and install dependencies (e.g. pip, bundler, yarn)
+- Tools to run your tests and analyze your code (e.g nosetest, pylint)
+- Your source code
+
+When you run the `okteto init` command on a local repository, `okteto` will analyze your source code and will guess the main programming language you're using.
+Based on this, it will select a base development container configuration and create a default `okteto.yml` for you.
+
+For example, if your repository is mostly `golang`, it will look like this:
+
+```yaml
+name: dev
+image: golang:alpine
+volumes:
+  - /go/pkg/
+  - /root/.cache/go-build/
+forward:
+  - 8080:8080
+```
+
+Out of the box, Okteto maintains pre-configured development images in this [GitHub repository](https://github.com/okteto/devenv) for the following languages:
+
+- dotnetcore
+- golang
+- java
+- node
+- php
+- python
+- ruby
+- rust
+
+## Create your own
+
+The default development images are a great way to start.
+They use the latest official docker image for your language runtime and include the most common developer tools and a custom bash prompt.
+But they might not have everything you need. Your team might need to support a very specific version of your runtime, or you might need some extra tooling available.
+
+Do the following to create your own development image:
+
+1. Create a Dockerfile
+1. Pick a base image
+1. Add your extra dependencies, tools, and files
+1. Build your image, tag it, and push it to your docker registry
+1. Update the `image` key in your `okteto.yml` with your new image
+
+Besides following [Docker's best practices](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/), we also recommend the following:
+
+- Create the docker image in CI, so it's clear how and when it was built
+- Pin all your dependencies, so there aren't any surprises
+- Keep the Dockerfile in your repository, next to your code
+- When using [multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/), use your development image as the builder stage, so that you have the same tools and images in dev than in CI/CD

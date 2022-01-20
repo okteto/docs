@@ -1,0 +1,56 @@
+---
+title: Okteto Registry
+description: The Okteto Registry allows every Okteto namespace to have its own space to store its container images
+sidebar_label: Container Registry
+id: registry
+---
+
+The Okteto Registry allows every Okteto namespace to have its own space to store its container images.
+
+## Authentication
+
+You can use both the `docker` client or the [okteto CLI](/docs/getting-started/installation/) to build and push images to the Okteto Registry.
+
+If you're using the Okteto CLI, run `okteto context` and select the Okteto Cloud option. This command will download the required tokens and certificates required to push and pull images to the Okteto Registry.
+
+If you're using `docker`, you'll need to run the login command:
+
+```
+docker login registry.cloud.okteto.net
+```
+
+The `username` is the email you use with Okteto Cloud or your GitHub Username.
+The `password` is your Okteto API token. You can [retrieve it from here](https://cloud.okteto.com/#/settings/setup).
+
+
+## Push images into the Okteto Registry
+
+The Okteto CLI is automatically configured to interact with the Okteto Registry. Just make sure that you're using the registry URL with your Okteto namespace.
+
+```console
+okteto build -t registry.cloud.okteto.net/cindy/hello-world:golang .
+```
+
+When using the Okteto CLI, you can use the notation `okteto.dev` to refer to images in your namespace.
+For example, `okteto.dev/hello-world:golang` expands to `registry.cloud.okteto.net/cindy/hello-world:golang` for the user `cindy` and expands to `registry.cloud.okteto.net/tom/hello-world:golang` for the user `tom`.
+
+You can also use any standard tool to build and push container images into the Okteto Registry, like the `docker` client.
+
+```console
+docker build -t registry.cloud.okteto.net/cindy/hello-world:golang .
+docker push registry.cloud.okteto.net/cindy/hello-world:golang
+```
+
+Your image should follow the following scheme, where `<namespace>` is a valid Okteto Cloud namespace.
+
+```
+registry.cloud.okteto.net/<namespace>/<image>:<tag>
+```
+
+## Use images from the Okteto Registry
+
+Any image pushed into the Okteto Registry is private. You'll need to authenticate with the registry before pulling an image.
+
+Namespaces in Okteto Cloud are automatically allowed to pull images that belong to their namespace automatically. If your application uses images from the Okteto Registry, it'll be able to pull container images without any extra configuration.
+
+To pull an image from a different namespace, you'll need to create and configure the required `imagePullSecrets` as outlined [here](/docs/reference/faqs/#how-to-use-private-images).
