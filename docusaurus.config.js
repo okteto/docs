@@ -175,7 +175,7 @@ module.exports = {
     ['@docusaurus/plugin-client-redirects', {
       fromExtensions: ['html'],
       redirects: [{
-        to: '/getting-started/',
+        to: '/welcome/overview/',
         from: ['/']
       }, {
         to: '/enterprise/install/overview/',

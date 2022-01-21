@@ -5,62 +5,54 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-module.exports = {
+ module.exports = {
   docs: {
-    'Okteto CLI': [
-      'getting-started/installation',
-      'reference/cli',
-      'reference/manifest',
-      'reference/stacks',
-      'reference/development-environment',
-      'reference/file-synchronization',
-      'reference/ssh-server',
-      'reference/faqs',
-      'reference/known-issues',
-    ],
-    'Okteto Cloud': [
-      'cloud',
+    'Welcome': [
+      'welcome/overview',
       'getting-started',
+    ],
+    'Dev Environments': [
+      'reference/development-environment',
+      'getting-started/installation',
+      'cloud',
       {
         "type": "category",
-        "label": "Deploy Methods",
+        "label": "Deploying",
         "items": [
-          {
-            "type": "category",
-            "label": "Deploy from Git",
-            "items": [
-              'cloud/deploy-from-git',
-              'cloud/okteto-pipeline',
-              'cloud/secrets',
-              'cloud/develop-on-okteto-button',
-              'cloud/private-repositories',
-            ]
-          },
+          'cloud/deploy-from-git',
+          // 'cloud/develop-on-okteto-button',
+          'cloud/private-repositories',
           'cloud/deploy-from-helm',
-          'cloud/deploy-from-terminal',
+          // 'cloud/deploy-from-terminal',
         ]
       },
+      'cloud/okteto-pipeline',
+      'cloud/secrets',
       {
         "type": "category",
-        "label": "Preview Environments",
+        "label": "Exposing Your Application",
         "items": [
-          'cloud/preview-environments/preview-environments',
-          'cloud/preview-environments/preview-environments-github',
-          'cloud/preview-environments/preview-environments-gitlab',
+          'cloud/ssl',
+          'cloud/private-endpoints',
+          'cloud/custom-domains',
         ]
       },
-      'cloud/ssl',
-      'cloud/private-endpoints',
-      'cloud/custom-domains',
       'cloud/build',
       'cloud/registry',
       'cloud/namespaces',
-      'cloud/multitenancy',
       'cloud/credentials',
-      'cloud/github-actions',
       'cloud/personal-access-tokens',
+      // 'cloud/multitenancy',
+      'reference/file-synchronization',
+      'reference/ssh-server',
     ],
-    'Okteto Enterprise': [
+    'Preview Environments': [
+      'cloud/preview-environments/preview-environments',
+      'cloud/preview-environments/preview-environments-github',
+      'cloud/preview-environments/preview-environments-gitlab',
+      // 'cloud/github-actions',
+    ],
+    'Okteto Self-Hosted': [
       'enterprise',
       {
         "type": "category",
@@ -94,6 +86,13 @@ module.exports = {
         ]
       },
     ],
+    'References': [
+      'reference/cli',
+      'reference/manifest',
+      'reference/stacks',
+      'reference/faqs',
+      'reference/known-issues',
+    ],
     'Tutorials': [
       'tutorials/getting-started-with-pipelines',
       'tutorials/getting-started-with-divert',
@@ -111,18 +110,18 @@ module.exports = {
       'samples/python',
       'samples/ruby',
       'samples/more'
-    ],
-    'Use Cases': [
-      'use-cases/ephemeral-development-environments',
-      'use-cases/sharable-preview-environments',
-      'use-cases/docker-compose',
-      'use-cases/speed-up-computer',
-      'use-cases/hot-reloading',
-      'use-cases/divert',
-      'use-cases/okteto-cli-without-account',
-      'use-cases/kubernetes-without-devops',
-      'use-cases/test-environments',
-      'use-cases/sales-team-demos',
     ]
+    // 'Use Cases': [
+    //   'use-cases/ephemeral-development-environments',
+    //   'use-cases/sharable-preview-environments',
+    //   'use-cases/docker-compose',
+    //   'use-cases/speed-up-computer',
+    //   'use-cases/hot-reloading',
+    //   'use-cases/divert',
+    //   'use-cases/okteto-cli-without-account',
+    //   'use-cases/kubernetes-without-devops',
+    //   'use-cases/test-environments',
+    //   'use-cases/sales-team-demos',
+    // ]
   },
 };
