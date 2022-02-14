@@ -1,0 +1,109 @@
+---
+title: Using Development Environments
+description: In this section, we'll see how you can start using your development environment.
+sidebar_label: Using Development Environments
+id: using-dev-envs
+---
+
+We set up everything in the [previous section](/docs/getting-started) of the getting started guide. In this section, let's do the fun bits of developing our application in a development environment. We will be using the [movies app](https://github.com/okteto/movies), but feel free to use any other application after you've [configured it](/docs/getting-started/#getting-your-application-ready).
+
+## One Command To Rule Them All
+
+Yup, you really need one command to launch your dev environment.
+
+PROBLEM HERE - WE NEED TO DO UP AFTER GOING INTO THE API DIRECTORY. BUT IF WE DO THAT THEN FROTNEND WON'T GET DEPLOYED
+
+```
+okteto up
+```
+
+```console
+ i  Using cindy @ cloud.okteto.com as context
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Namespace: cindy
+    Name:      api
+    Forward:   8080 -> 8080
+               9229 -> 9229
+
+Welcome to your development container. Happy coding!
+cindy:api src>
+```
+
+Let's understand what happens when you run this. `okteto up` first checks if your application is deployed to the context you [specified] or not. Since this is the first time we ran it, our application was not deployed, and hence it deployed it for us. The next time you run `okteto up`, you'll not see the deployment happening.
+
+Once Okteto CLI has confirmed that your application has been deployed, it starts a development environment for you. This dev environment relies on a development container that replaces the container running in the deployed instance of your application.
+
+A file synchronization service is started to keep the changes you make to your code locally up-to-date with your development container. Once your dev container has started, a remote shell is launched for you - this means you can now develop and test your deployed application exactly as if it were on your local machine!
+
+Once the dev environment is up, we need to start our application as if we were developing on the local machine itself. For the movies app we chose, this can be done using:
+
+```console
+cindy:api src> yarn start
+```
+
+```console
+yarn run v1.19.1
+$ nodemon server.js
+[nodemon] 1.19.2
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching dir(s): *.*
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+## Development Time!
+
+Once you deploy your application, you can visit the endpoints shown on the Okteto Cloud dashboard to view it.
+
+<p align="center">
+  <Image
+    src="/docs/images/endpoints.png"
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+Looking at the movies app we deployed, something doesn't look right here, does it?
+
+<p align="center">
+  <Image
+    src="/docs/images/ui-movies.png"
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+The list of movies is the same as Cindy's list. Let's fix that.
+
+Open your favorite IDE on your local machine and edit line 43 in `server.js` to:
+
+```javascript
+  db.collection('watching').find().toArray( (err, results) =>{
+```
+
+Now save your changes and go back and refresh the browser. Okteto will automatically synchronize your changes to your development container. Take a look at the development container shell and notice how the changes are detected by `nodemon` and automatically hot reloaded.
+
+```console
+[nodemon] restarting due to changes...
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+See the magic?
+
+REPLACE WITH FIXED IMAGE
+
+<p align="center">
+  <Image
+    src="/docs/images/ui-movies.png"
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+Okteto's Development Environment allowed the changes you made to your code locally to reflect immediately on the deployed version of your application. Gone are the troubles of committing and waiting for long CI builds to see how your changes would look in production!
+
+## Next Steps
+
+Now that you know how you get started with Development Environments, you might want to go have a look at Okteto's [Preview Environments](/docs/cloud/preview-environments/preview-environments) too. These enable teams to generate a sharable URL containing the deployed application with changes for each pull request made to a repository!

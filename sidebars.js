@@ -10,6 +10,7 @@
     'Welcome': [
       'welcome/overview',
       'getting-started',
+      'using-dev-envs',
     ],
     'Dev Environments': [
       'reference/development-environment',
