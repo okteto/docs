@@ -10,7 +10,14 @@
     'Welcome': [
       'welcome/overview',
       'getting-started',
-      'using-dev-envs',
+      {
+        "type": "category",
+        "label": "Getting Started Guide",
+        "items": [
+          'getting-started',
+          'using-dev-envs',
+        ]
+      },
     ],
     'Dev Environments': [
       'reference/development-environment',
