@@ -9,7 +9,6 @@
   docs: {
     'Welcome': [
       'welcome/overview',
-      'getting-started',
       {
         "type": "category",
         "label": "Getting Started Guide",
