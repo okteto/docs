@@ -12,7 +12,7 @@
       'getting-started',
     ],
     'Dev Environments': [
-      'reference/development-environment',
+      'reference/development-environments',
       'getting-started/installation',
       'cloud',
       {
@@ -26,7 +26,6 @@
           // 'cloud/deploy-from-terminal',
         ]
       },
-      'cloud/okteto-pipeline',
       'cloud/secrets',
       {
         "type": "category",
@@ -89,15 +88,13 @@
     'References': [
       'reference/cli',
       'reference/manifest',
-      'reference/stacks',
+      'reference/compose',
       'reference/faqs',
       'reference/known-issues',
     ],
     'Tutorials': [
-      'tutorials/getting-started-with-pipelines',
-      'tutorials/getting-started-with-divert',
-      'tutorials/repos',
-      'tutorials/stacks-getting-started',
+      'tutorials/getting-started-with-okteto',
+      'tutorials/compose-getting-started',
       'tutorials/preview-environments',
       'tutorials/webpack'
     ],

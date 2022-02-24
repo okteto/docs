@@ -12,18 +12,50 @@ Note that your Git repository needs to be configured with an [Okteto Pipeline](/
 Read the Okteto Pipeline [getting started guide](/docs/tutorials/getting-started-with-pipelines/) to learn how to create an Okteto Pipeline for your Git repository. -->
 
 ## Prerequisites
-When you deploy a Git repository, Okteto Cloud will analyze the source code of your Git repository, looking for clues on how to deploy your application.
+
+When you deploy a Git repository, Okteto will analyze the source code of your Git repository, looking for clues on how to deploy your development environment.
 
 Okteto will look for deployment manifests in the following order:
 
+1. [Okteto Manifest](/docs/reference/manifest/) file: if your repository has an `okteto.yml` or `.okteto/okteto.yml` file, Okteto will detect it and run `okteto deploy --build` on the manifest file.
+1. [Okteto Pipeline](/docs/cloud/okteto-pipeline/) file (**deprecated**): if your repository has an `okteto-pipeline.yml` or `.okteto/okteto-pipeline.yml` file, Okteto will detect it and run `okteto deploy` on the pipeline manifest file.
+1. [Docker Compose](/docs/reference/compose/) file: if your repository has a `okteto-compose.yaml` or `docker-compose.yaml` file, Okteto will detect it and run `okteto deploy --build` on this file.
 1. [Helm Chart](https://helm.sh/docs/topics/charts/): if your repository has a `chart`, `charts`, `helm/chart`, or `helm/charts` directory with a `Chart.yaml` file in it, Okteto will detect the chart and run `helm upgrade --install` on it.
 1. [Kubernetes manifests](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/) folder: if your repository has a `manifests`, `kubernetes`, or `k8s` folder, Okteto will detect it and run `kubectl apply` on the folder.
 1. [Kubernetes manifests](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/) file: if your repository has a `manifests.yaml`, `kubernetes.yaml`, or `k8s.yaml` file, Okteto will detect it and run `kubectl apply` on the manifest file.
-1. [Okteto Stacks](/docs/reference/stacks/) file: if your repository has a `okteto-stack.yaml` file, Okteto will detect it and run `okteto stack deploy --build` on this file.
-1. [Docker-compose](https://docs.docker.com/compose/) file: if your repository has a `docker-compose.yaml`, Okteto will detect it and run `okteto stack deploy --build` on this file.
-1. [Okteto Manifest](/docs/reference/manifest/) file: if your repository has an `okteto.yml` or `.okteto/okteto.yml` file, Okteto will detect it and run `okteto push` on the manifest file.
 
-If Okteto is not able to detect how to deploy your application, or you want to have more control over it, you can setup an [Okteto Pipeline](/docs/cloud/okteto-pipeline/) by adding a `okteto-pipeline.yml` or `.okteto/okteto-pipeline.yml` file to the root of your repository.
+### Built-in tools
+
+Okteto will run an installation job that clones your Git repository, checks out the selected branch, and executes the sequence of `deploy` commands. The job will fail if any of the commands in the `deploy` list fails.
+
+The installation job will run in a Debian Linux container with the following tools preinstalled:
+
+- `bash`
+- `bazel`
+- `cue`
+- `curl`
+- `envsubst`
+- `git`
+- `helm`
+- `kubectl`
+- `kustomize`
+- `make`
+- `okteto`
+- `openssh`
+- `wait-for-it`
+
+The installation job container is automatically configured with credentials to use the above tools on the namespace where your development environment is deployed.
+
+> Are we missing any binaries you use? File [an issue here](https://github.com/okteto/cloud-feedback/issues/new) and we will do our best to make it available.
+
+### Built-in Environment Variables
+The installation job also populates the following environment variables. You can refer to this in your `deploy` commands if needed:
+
+- `OKTETO_NAMESPACE`: the namespace where your development environment is going to be deployed.
+- `OKTETO_GIT_BRANCH`: the name of the Git branch currently being deployed.
+- `OKTETO_GIT_COMMIT`: the SHA1 hash of the last commit of the branch.
+- `OKTETO_REGISTRY_URL`: the url of the [Okteto Registry](/docs/cloud/registry/).
+- `BUILDKIT_HOST`: the address of the [Okteto Cloud buildkit instance](/docs/cloud/build/). You can use it to build your images with any CLI tool that supports Buildkit builds.
 
 ## Deploy
 
@@ -36,36 +68,37 @@ Type the URL for the Movies App repo (https://github.com/okteto/movies), pick a 
 When you deploy a Git repository, Okteto Cloud will analyze your repo and automatically deploy it.
 In the example above, Okteto will install the chart of the Movies App with Helm.
 
-> Check the [Configuration section](/docs/cloud/okteto-pipeline/) to learn more about Okteto's auto deployment capabilities, and how to customize this with a `okteto-pipeline.yml` file.
+> Check the [Okteto Manifest](/docs/reference/manifest/) to learn more about how to configure your development environment deployment with an `okteto.yml` file.
 
-As soon as your application is deployed, you'll see its state in the UI. The UI will be automatically updated as the different components are created. Your application will be ready to go once it reaches the `Success` state.
+As soon as your development environment is deployed, you'll see its state in the UI. The UI will be automatically updated as the different components are created.
+Your development environment will be ready to go once it reaches the `Success` state.
 
 <p align="center"><Image src="/docs/cloud/images/ui-movies-git.png" alt="UI of the movies app" width="850" /></p>
 
 ## Redeploy
 
-Click the **Redeploy** button on the right of your application.
+Click the **Redeploy** button on the right of your development environment.
 
 A dialog will open where you can modify the branch to redeploy:
 
 <p align="center"><Image src="/docs/cloud/images/redeploy-git.png" alt="Redeploy in git" width="600" /></p>
 
-Click **Deploy** and your applications will be updated with the source code of the given branch. This action will follow the same [Okteto Pipeline](/docs/cloud/okteto-pipeline/) as the [Deploy](#Deploy) action.
+Click **Deploy** and your development environment will be updated with the source code of the given branch.
 
 ## Destroy
 
-You can also destroy your application with a single click.
+You can also destroy your development environment with a single click.
 
-Go back to the extended menu of your application and click the **Destroy** button.
-A confirmation dialog will pop up. Click on **Destroy** and your application and all of the resources created for it will be gone:
+Go back to the extended menu of your development environment and click the **Destroy** button.
+A confirmation dialog will pop up. Click on **Destroy** and your development environment and all of the resources created for it will be gone:
 
 <p align="center"><Image src="/docs/cloud/images/destroy-git.png" alt="Destroy application" width="450" /></p>
 
-You won't be able to recover resources after the application has been destroyed, so back up any sensitive data before running this action.
+You won't be able to recover resources after the development environment has been destroyed, so back up any sensitive data before running this action.
 
 ## Variables
 
-When you deploy from Git, you can add Variables that will be available as environment variables during the execution of the pipeline.
+When you deploy from Git, you can add Variables that will be available as environment variables during the deployment of your development environment.
 
 ## Adding a Develop on Okteto Button
 
@@ -77,8 +110,6 @@ Use this instead of writing a never-ending list of manual steps on how to deploy
 Here's an example button that deploys [the Movies App](https://github.com/okteto/movies) on Okteto Cloud.
 
 [![Develop on Okteto](https://okteto.com/develop-okteto.svg)](https://cloud.okteto.com/#/deploy?repository=https://github.com/okteto/movies)
-
-The only requirements for creating the button are that your application be deployed in Okteto Cloud, and that the application's source code is hosted in a public Git repository.
 
 ### Adding the Develop on Okteto button
 
@@ -124,9 +155,9 @@ And here's the equivalent content as HTML if you prefer that:
 
 ### Parameters
 
-You can parametrize your deployment using the following parameters:
+You can parametrize your development environment deployment using the following parameters:
 
 - `repository`: The repository to be deployed.  If it's not present, Okteto will automatically infer it using the referer header, if available.
 - `branch`: The repository branch to be deployed. If not included, it will use the default branch of the repository.
 - `vars`: It allows you to specify a list of variables that will be available as environment variables during the deployment. It is optional. .e.g `vars=[{"name":"THEME","value":"dark"},{"name":"LANG","value":"en"}]`. This would generate 2 environment variables avaible on your deployment: `THEME=dark` and `LANG=en`. It has to be URL encoded.
-- `filename`: The location of  the [Okteto pipeline file](/docs/cloud/okteto-pipeline/#customize-the-okteto-pipeline) relative to the root of the repository. If not included, it will default to `okteto-pipeline.yaml`.
+- `filename`: The location of  the [Okteto Manifest](/docs/reference/manifest) relative to the root of the repository.

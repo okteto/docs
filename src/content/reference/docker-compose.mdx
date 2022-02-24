@@ -1,12 +1,12 @@
 ---
-title: Stacks Manifest Reference
-description: Stacks allows you to deploy applications on Kubernetes using docker-compose files.
-sidebar_label: Stack Manifest Reference
-id: stacks
+title: Docker Compose Reference
+description: Okteto allows you to develop applications using docker-compose files
+sidebar_label: Docker Compose Reference
+id: compose
 ---
 
-Okteto Stacks are for developers who don't want to deal with the complexities of Kubernetes manifests.
-Okteto Stacks implement and extend the [Compose Specification](https://github.com/compose-spec/compose-spec) to make it easy to deploy containers in Kubernetes.
+Docker Compose are for developers who don't want to deal with the complexities of Kubernetes manifests.
+Okteto implements and extends the [Compose Specification](https://github.com/compose-spec/compose-spec) to make it easy to develop Docker Compose applications in Kubernetes.
 
 ## Example
 
@@ -15,8 +15,13 @@ services:
   vote:
     build: vote
     scale: 2
+    environment:
+      - FLASK_ENV=development
+    command: python app.py
     ports:
       - 8080:8080
+    volumes:
+      - ./vote:/src
 
   redis:
     image: redis
@@ -35,7 +40,7 @@ The equivalent Kubernetes manifests would have more than 300 lines of yaml!
 
 ### services ([object], optional)
 
-Define the services that make up your Okteto Stack.
+Define the services that make up your Docker Compose application.
 
 ```yaml
 services:
@@ -58,7 +63,8 @@ We summarize the most relevant ones below:
 
 #### build ([string|object], optional)
 
-Indicate how to build the image of this service when running `okteto stack deploy --build`. The value is the path to the build context:
+Indicate how to build the image of this service when running `okteto build` or `okteto deploy --build`.
+The value is the path to the build context:
 
 ```yaml
 build: vote
@@ -66,7 +72,7 @@ build: vote
 
 It can also be an object with these fields:
 
-- `context`: the build context. When the value supplied is a relative path, it is interpreted as relative to the location of the Okteto Stack manifest file (default: `.`)
+- `context`: the build context. When the value supplied is a relative path, it is interpreted as relative to the location of the Docker Compose file (default: `.`)
 - `dockerfile`: the path to the Dockerfile. It is a relative path to the build context (default: `Dockerfile`)
 - `target`: build the specified stage as defined inside the Dockerfile. See the multi-stage build [Docker official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on, which can be helpful for secret or machine-specific values.
@@ -81,7 +87,8 @@ build:
     - ENV2=$VALUE
 ```
 
-`okteto stack deploy --build` builds a new docker image, pushes it to the registry and redeploys your containers. By default, it builds the images using the [Okteto Build Service](/docs/cloud/build/). Set the variable `BUILDKIT_HOST` if you want to use your own BuildKit instance.
+`okteto deploy --build` builds a new docker image, pushes it to the registry and redeploys your containers.
+By default, it builds the images using the [Okteto Build Service](/docs/cloud/build/). Set the variable `BUILDKIT_HOST` if you want to use your own BuildKit instance.
 
 #### cap_add ([string], optional)
 
@@ -161,7 +168,8 @@ entrypoint: ["yarn", "start"]
 #### env_file (string, optional)
 
 Add environment variables from a file to the containers of a service.
-Environment variables declared in the [environment section](/docs/reference/stacks/#environment-string-required) override these values. This also holds true if those values are empty or undefined.
+Environment variables declared in the [environment section](/docs/reference/compose/#environment-string-required) override these values.
+This also holds true if those values are empty or undefined.
 
 ```yaml
 env_file: .env
@@ -190,10 +198,10 @@ environment:
 The container image of each service.
 
 ```yaml
-image: okteto/vote:stacks
+image: okteto/vote:compose
 ```
 
-If [`build`](https://okteto.com/docs/reference/stacks/#build-stringobject-optional) is defined, `image` is optional. Otherwise, it's required.
+If [`build`](https://okteto.com/docs/reference/compose/#build-stringobject-optional) is defined, `image` is optional. Otherwise, it's required.
 
 #### labels ([string], optional)
 
@@ -220,7 +228,7 @@ ports:
   - 8080:8080
 ```
 
-In you need need to configure HTTPS routes, use [endpoints](/docs/reference/stacks/#endpoints-object-optional) instead of configuring an NGINX container in your Docker Compose file.
+In you need need to configure HTTPS routes, use [endpoints](/docs/reference/compose/#endpoints-object-optional) instead of configuring an NGINX container in your Docker Compose file.
 
 The following ports are never made public:
 
@@ -248,7 +256,7 @@ The following ports are never made public:
 | Ruby debugger | 1234 |
 | Python debugger | 4444,5678 |
 
-In you need make these ports public, you can use [endpoints](/docs/reference/stacks/#endpoints-object-optional).
+In you need make these ports public, you can use [endpoints](/docs/reference/compose/#endpoints-object-optional).
 
 #### scale (int, optional)
 
@@ -293,7 +301,8 @@ If the restart policy is other than always, the service will be translated to a 
 
 #### stop_grace_period (duration|int, optional)
 
-Specify how long to wait when attempting to stop a container before sending SIGKILL. If no unit of time is given, the system will interpret the number in seconds.
+Specify how long to wait when attempting to stop a container before sending SIGKILL.
+If no unit of time is given, the system will interpret the number in seconds.
 
 ```yaml
 stop_grace_period: 10s
@@ -309,7 +318,7 @@ volumes:
   - redis:/data
 ```
 
-The volume `redis` must be defined in the [volumes section](/docs/reference/stacks/#volumes-object-optional).
+The volume `redis` must be defined in the [volumes section](/docs/reference/compose/#volumes-object-optional).
 
 The following notation is also accepted:
 
@@ -317,6 +326,8 @@ The following notation is also accepted:
 volumes:
   - /data
 ```
+
+Host volumes are used by `okteto up` to infer the [sync paths](/docs/reference/manifest/#sync-string-required) between your local filesystem and your remote development container.
 
 #### working_dir (string, optional)
 
@@ -328,8 +339,8 @@ working_dir: "/app/code"
 
 ### volumes ([object], optional)
 
-List of volumes created by the Okteto Stack.
-Volumes are mounted on the containers of a given service by referring the volume from the [volumes field](/docs/reference/stacks/#volumes-string-optional) of the service.
+List of volumes created by the Docker Compose file.
+Volumes are mounted on the containers of a given service by referring the volume from the [volumes field](/docs/reference/compose/#volumes-string-optional) of the service.
 
 ```yaml
 volumes:
@@ -370,12 +381,12 @@ driver_opts:
 
 ## Environment variables
 
-There are multiple parts of Okteto Stacks that deal with environment variables in one sense or another.
+There are multiple parts of Docker Compose files that deal with environment variables in one sense or another.
 This section should help you find the information you need.
 
 ### Environment variable substitution
 
-It’s possible to use environment variables in your shell to populate values inside your Okteto Stack:
+It’s possible to use environment variables in your shell to populate values inside your Docker Compose file:
 
 ```yaml
 services:
@@ -387,8 +398,8 @@ If you have multiple environment variables, you can substitute them by adding th
 
 ### The .env file
 
-You can set default values for any environment variables referenced in your Okteto Stack in an environment file named `.env`.
-The `.env` file is placed at the same folder than the Okteto Stack manifest.
+You can set default values for any environment variables referenced in your Docker Compose file in an environment file named `.env`.
+The `.env` file is placed at the same folder than the Docker Compose file.
 
 For example:
 
@@ -398,20 +409,21 @@ TAG=v1.5
 ```
 
 ```console
-$ cat okteto-stack.yml
+$ cat docker-compose.yml
 services:
    web:
       image: "app:${TAG}"
 ```
 
-When you run `okteto stack deploy` the `web` container uses the image `app:v1.5`.
+When you run `okteto deploy` the `web` container uses the image `app:v1.5`.
 
 > Values in the shell take precedence over those specified in the `.env` file.
 
 
 ### extensions (object, optional)
 
-Specifies a configuration that can be used in other services using anchors. Every top-level field starting with the prefix 'x-' will be interpreted as an extension.
+Specifies a configuration that can be used in other services using anchors.
+Every top-level field starting with the prefix 'x-' will be interpreted as an extension.
 
 ```yaml
 x-function: &environment
@@ -428,9 +440,9 @@ services:
 
 ### Okteto Secrets
 
-You can also use your [Okteto Secrets](/docs/cloud/secrets/) in your Okteto Stack.
+You can also use your [Okteto Secrets](/docs/cloud/secrets/) in your Docker Compose file.
 
-For example, if your have an Okteto Secret named `PASSWORD` whose value is `change-me!`, the following Okteto Stack:
+For example, if your have an Okteto Secret named `PASSWORD` whose value is `change-me!`, the following Docker Compose file:
 
 ```yaml
 services:
@@ -440,30 +452,13 @@ services:
       - MYSQL_ROOT_PASSWORD=${PASSWORD}
 ```
 
-will use `change-me!` for the value of the `MYSQL_ROOT_PASSWORD` environment variable of the `mysql` service when you run `okteto stack deploy`.
+will use `change-me!` for the value of the `MYSQL_ROOT_PASSWORD` environment variable of the `mysql` service when you run `okteto deploy`.
 
 > Values in the shell and/or the `.env` file take precedence over those specified in Okteto Secrets.
 
 ## Okteto Cloud makes Docker Compose even more powerful!
 
-Okteto Stacks extends the Compose Specification to make it even easier for you and your team to build cloud-native applications.
-
-### name (string, optional)
-
-The name of the Okteto Stack. Used by the Okteto UI to group the resources created by this stack. Defaults to the name of the git repository.
-If the current path doesn't belong to a git repository, defaults to the name of the current folder.
-
-```yaml
-name: voting-app
-```
-
-### namespace (string, optional)
-
-The namespace where you want to deploy your Okteto Stack. If not specified, it uses the current Okteto namespace.
-
-```yaml
-namespace: development
-```
+Okteto extends the Compose Specification to make it even easier for you and your team to build cloud-native applications.
 
 ### endpoints ([object], optional)
 
@@ -480,7 +475,7 @@ endpoints:
     port: 8080
 ```
 
-The endpoint uses the name of the stack to generate a URL with the following format: https://STACK_NAME-NAMESPACE.cloud.okteto.net.
+The endpoint uses the name of the development environment to generate a URL with the following format: https://NAME-NAMESPACE.cloud.okteto.net.
 
 Each endpoint has the following properties:
 
