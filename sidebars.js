@@ -48,6 +48,7 @@
     ],
     'Preview Environments': [
       'cloud/preview-environments/preview-environments',
+      'cloud/preview-environments/dashboard',
       'cloud/preview-environments/preview-environments-github',
       'cloud/preview-environments/preview-environments-gitlab',
       // 'cloud/github-actions',
