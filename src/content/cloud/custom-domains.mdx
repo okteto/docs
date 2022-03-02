@@ -89,6 +89,38 @@ custom-dns   myapp.com      104.155.138.215,104.197.238.82,104.198.241.5,35.224.
 
 We recommend you use this approach instead of hard-coding the host name in your manifests to keep them portable across namespaces.
 
+## Docker compose applications
+
+If you deployment is powered by a docker compose manifest, add a label to the service you want to configure a custom domain as shown below:
+
+```yaml
+services:
+  fastapi:
+    build: .
+    replicas: 1
+    ports:
+      - 8080:8080
+    environment:
+      - DB_HOST=postgres://pguser:pgpass@postgres:5432/pgdb
+      - secret=dev
+    labels:
+      dev.okteto.com/auto-ingress: "true"
+  postgresql:
+    image: bitnami/postgresql:latest
+    ports:
+      - 5432
+    environment:
+      - POSTGRES_USER=pguser
+      - POSTGRES_PASSWORD=pgpass
+      - POSTGRES_DB=pgdb
+    volumes:
+      - data:/bitnami/postgresql
+volumes:
+  data:
+
+```
+
+
 ## Configure your DNS
 
 In order to use your custom domain in Okteto, you'll need to point your custom DNS to `$NAMESPACE.cloud.okteto.net`.

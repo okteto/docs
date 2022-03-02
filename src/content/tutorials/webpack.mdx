@@ -14,6 +14,7 @@ import TabItem from '@theme/TabItem';
 In order to make your app reachable outside the container `webpack-dev-server` must be
 configured to use `0.0.0.0` as host.
 
+
 #### webpack.config.js
 ```js {4}
   module.exports = {
@@ -23,6 +24,55 @@ configured to use `0.0.0.0` as host.
     }
   };
 ```
+
+### Enable Hot Module Replacement
+
+If you want to use the Webpack [Hot Module Replacement](https://webpack.js.org/concepts/hot-module-replacement/)
+feature to hot reload changes while using the development server, you need to enable it and set the
+socket port to `443`.
+
+<Tabs
+  defaultValue="webpack5"
+  values={[
+    { label: 'Webpack 5', value: 'webpack5', },
+    { label: 'Webpack 4', value: 'webpack4', },
+  ]}
+>
+<TabItem value="webpack5">
+
+#### webpack.config.js
+```js {5,8}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      hot: true,
+      client: {
+        webSocketURL: {
+          port: 443
+        }
+      }
+    }
+  };
+```
+
+</TabItem>
+<TabItem value="webpack4">
+
+#### webpack.config.js
+```js {5,6}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      hot: true,
+      sockPort: 443
+    }
+  };
+```
+
+</TabItem>
+</Tabs>
 
 ### Host check configuration
 
@@ -81,8 +131,17 @@ Webpack uses the file system to get notified of file changes and enable features
 You might experience file watching issues if your docker image is not compatible with webpack's
 file system subsystem. If that's your case, enable the `polling` option:
 
+<Tabs
+  defaultValue="webpack5"
+  values={[
+    { label: 'Webpack 5', value: 'webpack5', },
+    { label: 'Webpack 4', value: 'webpack4', },
+  ]}
+>
+<TabItem value="webpack5">
 
-```js {6,7,8}
+#### webpack.config.js
+```js {5,6,7}
   module.exports = {
     //...
     devServer: {
@@ -93,6 +152,25 @@ file system subsystem. If that's your case, enable the `polling` option:
     }
   };
 ```
+
+</TabItem>
+<TabItem value="webpack4">
+
+#### webpack.config.js
+```js {5,6,7}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      watchOptions: {
+        poll: true // Or you can set a value in milliseconds.
+      }
+    }
+  };
+```
+
+</TabItem>
+</Tabs>
 
 Check [webpack's documentation](https://webpack.js.org/configuration/watch/#watchoptions)
 for more information about `watchOptions`.
