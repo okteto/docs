@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
- module.exports = {
+module.exports = {
   docs: {
     'Welcome': [
       'welcome/overview',
@@ -48,8 +48,15 @@
     ],
     'Preview Environments': [
       'cloud/preview-environments/preview-environments',
-      'cloud/preview-environments/dashboard',
-      'cloud/preview-environments/preview-environments-github',
+      'github',
+      {
+        "type": "category",
+        "label": "For GitHub",
+        "items": [
+          'cloud/preview-environments/dashboard',
+          'cloud/preview-environments/preview-environments-github',
+        ]
+      },
       'cloud/preview-environments/preview-environments-gitlab',
       // 'cloud/github-actions',
     ],
