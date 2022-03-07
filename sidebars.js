@@ -48,7 +48,6 @@ module.exports = {
     ],
     'Preview Environments': [
       'cloud/preview-environments/preview-environments',
-      'github',
       {
         "type": "category",
         "label": "For GitHub",
