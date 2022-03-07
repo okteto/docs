@@ -98,6 +98,7 @@ module.exports = {
       'reference/manifest',
       'reference/stacks',
       'reference/faqs',
+      'cloud/permissions',
       'reference/known-issues',
     ],
     'Tutorials': [
