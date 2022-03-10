@@ -13,6 +13,7 @@
     ],
     'Dev Environments': [
       'reference/development-environments',
+      'cloud/okteto-manifest',
       'getting-started/installation',
       'cloud',
       {
@@ -86,8 +87,22 @@
       },
     ],
     'References': [
-      'reference/cli',
-      'reference/manifest',
+      {
+        "type": "category",
+        "label": "Okteto CLI",
+        "items": [
+          'reference/cli-v1',
+          'reference/cli',
+        ]
+      },
+      {
+        "type": "category",
+        "label": "Manifest Reference",
+        "items": [
+          'reference/manifest-v1',
+          'reference/manifest',
+        ]
+      },
       'reference/compose',
       'reference/faqs',
       'reference/known-issues',

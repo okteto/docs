@@ -1,7 +1,7 @@
 ---
 title: Okteto Manifest Reference
 description: Okteto's manifest for describing development environments
-sidebar_label: Manifest Reference
+sidebar_label: v2
 id: manifest
 ---
 
@@ -60,7 +60,15 @@ Each image supports the following fields:
 - `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on.
 
-In order to build all these images run `okteto build`, or `okteto build xxx` to build a single image.
+In order to refer to these images from anyone in your [Okteto Manifest](/docs/cloud/okteto-manifets), you can use the following environment variables:
+
+- `${OKTETO_BUILD_<service>_TAG}`: SHA for the last image build at the registry
+- `${OKTETO_BUILD_<service>_REGISTRY}`: the registry URL where the image was pushed
+- `${OKTETO_BUILD_<service>_REPOSITORY}`: the name of the image that was pushed (`namespace/_<service>`)
+- `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference (using its SHA)
+
+
+You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
 
 ### context (string, optional)
 
@@ -117,14 +125,7 @@ deploy:
   - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-In order to refer to the images in the `build` section of your okteto manifest, you can use the following environment variables:
-
-- `${OKTETO_BUILD_<service>_TAG}`: SHA for the lastimage build at the registry
-- `${OKTETO_BUILD_<service>_REGISTRY}`: the registry URL where the image was pushed
-- `${OKTETO_BUILD_<service>_REPOSITORY}`: the name of the image that was pushed (`namespace/_<service>`)
-- `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference (using its SHA)
-
-You can name your commands with the following sintax:
+You can name your commands with the following syntax:
 
 ```yaml
 deploy:

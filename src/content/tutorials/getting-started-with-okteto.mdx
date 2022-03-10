@@ -181,10 +181,113 @@ You can make use of tools such as `kubectl`, `helm`, `okteto`, and `kustomize` i
 
 ## Step 5: Deployment time!
 
-In order to deploy the application, you just need to run `okteto deploy`.
+[Install]((/docs/getting-started/installation/)) the Okteto CLI and configure access to Okteto Cloud:
+
+```console
+okteto context use https://cloud.okteto.com
+```
+
+```console
+ ✓  Using context cindy @ cloud.okteto.com
+```
+
+In order to deploy your application, run the following command:
+
+```console
+okteto deploy
+```
+
+```console
+ i  Using cindy @ cloud.okteto.com as context
+ i  Images were already built. To rebuild your images run 'okteto build' or 'okteto deploy --build'
+ ✓  kubectl apply -f k8s
+ i  Endpoints available:
+  - https://hello-world-cindy.cloud.okteto.net/
+ ✓  Development environment 'go-getting-started' successfully deployed
+ i  Run 'okteto up' to activate your development container
+```
+
+and that's all, your application will be built and deployed in seconds!
+
+## Step 6: Create your Development Container
+
+Building and deploying your application for each code change can be tedious.
+In order to do that, you can configure how to live update your application while you are coding defining a development container.
+
+To do that, add the following content to your Okteto Manifest:
+
+```yaml
+dev:
+  hello-world:
+    image: okteto/golang:1
+    command: bash
+    sync:
+      - .:/usr/src/app
+```
+
+The full reference for development containers is [here](/docs/reference/manifest/#dev-object-optional).
+This is the meaning of the fields we are using here:
+
+- `image`: the image used by the development container. More information on development images [here](/docs/reference/development-environment/).
+- `command`: the start command of the development container.
+- `sync`: the folders that will be synchronized between your local machine and the development container.
+
+Now execute the following command to activate your development container:
+
+```console
+$ okteto up
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Namespace: cindy
+    Name:      hello-world
+
+Welcome to your development container. Happy coding!
+cindy:hello-world app>
+```
+
+Working in your development container is the same as working on your local machine.
+Start the application by running the following command:
+
+```console
+cindy:hello-world app> go run main.go
+```
+
+```console
+Starting hello-world server...
+```
+
+Go back to the browser, and reload the page to test that your application is running.
+
+## Step 7: Develop directly on Okteto Cloud
+
+Open the file `main.go` in your favorite local IDE and modify the response message on line 17 to be *Hello world from Okteto!*. Save your changes.
+
+```golang
+func helloServer(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hello world from Okteto!")
+}
+```
+
+Okteto will synchronize your changes to your development container.
+Cancel the execution of `go run main.go` from the development container shell by pressing `ctrl + c`.
+Rerun your application:
+
+```console
+cindy:hello-world app> go run main.go
+```
+
+```console
+Starting hello-world server...
+```
+
+Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎!
 
 ## Next steps
 
-Congratulations, you just configured **your first Okteto Manifest 🚀.
+Congratulations, you just configured **your first Okteto Manifest** 🚀.
 
 Head over to our samples for [Go](/docs/samples/golang/), [ASP.NET](/docs/samples/aspnetcore), [Java](/docs/samples/java/), [Node.js](/docs/samples/node), [PHP](/docs/samples/php/), [Python](/docs/samples/python/), or [Ruby](/docs/samples/ruby/) to see how to use Okteto to live-update your application with different programming languages and **debuggers**.
