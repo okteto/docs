@@ -533,6 +533,78 @@ _--file_ | (string) |  The path to the manifest file  (default "okteto.yml") |
 _--namespace_ | (string) |  The Kubernetes namespace to use (defaults to the current kube config namespace) |
 _--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
 
+### stack
+
+Stack management commands
+
+```console
+$  okteto stack [command]
+```
+
+Available subcommands:
+
+#### deploy
+
+Deploy your stack
+
+```console
+$ okteto stack deploy
+```
+
+By default `okteto stack deploy` will create all the services defined in your [Stack manifest](/docs/reference/stacks/). If you only want to deploy a specific set of services, pass their names as arguments.
+
+```console
+$ okteto stack deploy [SERVICE...]
+```
+
+Once your Stack is deployed, you can run [`okteto up`](/docs/reference/cli/#up) against any of the Stack services as you do for any other Kubernetes deployment.
+
+##### Options
+
+Options | Type | Description
+:---|:---:|:---
+_--build_ | (bool) | Build images before starting any service (default `false`) |
+_--file_ | (list) | Path to the stack manifest files (defaults to `okteto-stack.yml` or `.okteto/okteto-stack.yml`)  |
+_--name_ | (string) | Overwrites the stack name |
+_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
+_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
+_--no-cache_ | (bool) | Do not use cache when building images |
+_--wait_ | (bool) | Wait until a minimum number of containers are in a ready state for every service |
+
+By default, Okteto reads two files, an `okteto-stack.yml` and an optional `okteto-stack.override.yml` file.
+If both files exist, or if `--file` refers to a list of stack manifests, stack manifests are merged.
+A manifest merge means any field defined in the second stack manifest replaces the value in the first stack manifest.
+
+If your [okteto context](/docs/reference/cli/#context) points to Okteto Cloud or an Okteto Enterprise URL, images are built using the [Okteto Build Service](/docs/cloud/build/).
+Otherwise, images are built using your local Docker daemon.
+
+#### destroy
+
+Destroy your stack
+
+```console
+$ okteto stack destroy
+```
+
+When you run `okteto stack destroy`, okteto will delete the services defined in your [Stack manifest](/docs/reference/stacks/).
+
+Persistent volumes created by your stack are not deleted to avoid accidental data loss.
+If you want to delete them, you can do it by executing `kubectl delete pvc $PVC_NAME`.
+
+##### Options
+
+Options | Type | Description
+:---|:---:|:---
+_--file_ | (list) | Path to the stack manifest files (defaults to `okteto-stack.yml` or `.okteto/okteto-stack.yml`)  |
+_--name_ | (string) | Overwrites the stack name |
+_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
+_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
+_--volumes_ | (bool) | Destroy the persistent volumes created by the stack (defaults to `false`) |
+
+By default, Okteto reads two files, an `okteto-stack.yml` and an optional `okteto-stack.override.yml` file.
+If both files exist, or if `--file` refers to a list of stack manifests, stack manifests are merged.
+A manifest merge means any field defined in the second manifest replaces the value in the first manifest.
+
 ### status
 
 Status of the file synchronization process:
