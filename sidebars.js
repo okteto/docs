@@ -13,8 +13,7 @@
     ],
     'Dev Environments': [
       'reference/development-environments',
-      'cloud/okteto-manifest',
-      'getting-started/installation',
+      'cloud/okteto-cli',
       'cloud',
       {
         "type": "category",
