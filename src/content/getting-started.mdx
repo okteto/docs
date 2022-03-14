@@ -41,11 +41,11 @@ $ scoop install okteto
 
 ### GitHub
 
-Alternatively, you can directly download the binary [from GitHub](https://github.com/okteto/okteto/releases).
+Alternatively, you can directly download the binary [from GitHub](https://github.com/okteto/okteto/releases) or build it directly from the source code.
 
 ## Configuring Okteto CLI with Okteto Cloud
 
-You'll be deploying your application on Okteto Cloud, and for this, the first thing you need to do is go and [log in](https://cloud.okteto.com). Once you've done that, you need to let Okteto CLI know that Okteto Cloud is where the development environment for your application will live. This is done by setting the context in Okteto CLI using:
+Okteto CLI works with any Kubernetes cluster to create dev environments. As part of this guide we'll be using a free cluster provided by Okteto Cloud. For this, the first thing you need to do is go and [log in](https://cloud.okteto.com). Once you've done that, you need to let Okteto CLI know that Okteto Cloud is where the development environment for your application will live. This is done by setting the context in Okteto CLI using:
 
 ```console
 $ okteto context use https://cloud.okteto.com
@@ -61,23 +61,34 @@ https://cloud.okteto.com *  rinkiyakedad          tcp://buildkit.cloud.okteto.ne
 
 ## Getting Your Application Ready
 
-Configuring your application for remote development has multiple routes based on how you currently deploy it.
+We'll be using [this] sample Movies application as part of this guide to show how you can develop your applications using Development Environments. The application consists of a React frontend and a Node.js backend API. It also contains Helm manifests which contain instructions for how to deploy it.
 
-If you're using docker-compose and already have a `docker-compose.yaml` at the root of your application's repository, you're good to go. Feel free to move on to the [next part](/docs/using-dev-envs) of the guide.
+In case you use something other than Helm to deploy your application currently, no need to worry! Okteto CLI works with almost all the common ways of deployment including docker compose manifests and Kubernetes manifests. You can read more about all supported manifests here.
 
-If you're using Helm charts, Kubernetes manifests,...[what else?] then you will need an Okteto Manifest in order to proceed. Once we run `okteto up` in the next part of this guide, Okteto CLI will automatically generate this manifest for you and help you configure it as per your application. However, if you want to create the manifest right now, you can run
+If you're using Helm or some other Kubernetes related manifests (list kustomize) then you'll need an Okteto Manifest at the root of your repository. The Okteto Manifest contains configuration for Okteto CLI to be able to launch your development environments. If you're using docker compose manifests to deploy your applciation then the Okteto Manifest is not necessary. You can howeveer still choose to create the Okteto Manigest if you want more control over your your dev environment is configured. In both cases the command to generate the Okteto Manifest for your application is:
 
 ```console
 $ okteto manifest init
 ```
+On running the above command, Okteto CLI will analyze your current deployment related manifests and create an Okteto Manigest for you. Okteto CLI tries to create the Okteto Manigest on a best-effort basis so it is recommend to take a look at the generated Manifest. It would have comments based which would help you configure the exact details for your application. 
 
-This will analyze your existing manifests and walk you through creating your Okteto Manifest based on them. `okteto up` also runs this same command for you if it doesn't find an Okteto Manifest.
+Clone the movies application and create the Okteto Manifest for it. Running the above command for the movies applciation should give you the following output:
 
-But suppose you don't have any of the above manifests in your repository. In that case, you can either write an Okteto Manifest directly for your application using the [Manifest reference](/docs/reference/manifest), or you can add either of the above-mentioned manifests (docker-compose, Helm, etc.) and proceed from there. If you need a sample application to follow through with this guide, you can use our sample [movies app](https://github.com/okteto/movies), which has all the required manifests set up.
+```console
+$ git clone https://github.com/okteto/movies.git
+$ cd movies
+$ okteto manifest init
+```
+
+```console
+Show Okteto CLI prompts
+```
+
+Suppose you don't have any of the above manifests in your repository. In that case, you can either write an Okteto Manifest directly for your application using the [Manifest reference](/docs/reference/manifest), or you can add either of the above-mentioned manifests (docker-compose, Helm, etc.) and proceed from there. 
 
 ## Next Steps
 
-Now that you have everything configured let's get to the fun bit of creating and using our development environment. In the next part, we'll develop our deployed application and see our changes reflected live!
+Now that you have everything configured let's get to the fun bit of developing our application using our development environment. In the next part, we'll develop our deployed application and see our changes reflected live!
 
 ## More Info
 
