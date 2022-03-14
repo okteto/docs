@@ -107,7 +107,6 @@
       'reference/known-issues',
     ],
     'Tutorials': [
-      'tutorials/getting-started-with-okteto',
       'tutorials/compose-getting-started',
       'tutorials/preview-environments',
       'tutorials/webpack'
