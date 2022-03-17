@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import React, {useRef, useState, useEffect} from 'react';
 
 import ThumbsUpIcon from "../../icons/ThumbsUpIcon";
 import ThumbsDownIcon from "../../icons/ThumbsDownIcon";
@@ -6,20 +6,25 @@ import ThumbsDownIcon from "../../icons/ThumbsDownIcon";
 import Button from "../../theme/Button";
 import styles from './styles.module.scss';
 
-const Feedback = (props) => {
-
+const Feedback = () => {
   const [expanded, setExpanded] = useState(false);
+  const [pageTitle, setPageTitle] = useState("");
 
   const form = useRef(null)
 
+  useEffect(() => {
+    setPageTitle(document.title)
+  }, [])
+
   const submit = e => {
     e.preventDefault();
-    console.log("Submitting");
     
     const data = {
       feedback: form.current.feedback.value,
       helpful: form.current.helpful.value,
-      pageURL: window.location.href
+      pageURL: window.location.href,
+      pageTitle,
+      submittedOn: new Date().toLocaleDateString('en-CA')
     }
 
     fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: data })
