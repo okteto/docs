@@ -13,17 +13,18 @@ const Feedback = () => {
   const form = useRef(null)
 
   useEffect(() => {
-    setPageTitle(document.title)
+    setPageTitle(document.title.replace(" | Okteto Documentation", ""))
   }, [])
 
   const submit = e => {
     e.preventDefault();
     
+    
     const data = {
       feedback: form.current.feedback.value,
       helpful: form.current.helpful.value,
-      pageURL: window.location.href.replace(" | Okteto Documentation", ""), // Remove base title
-      pageTitle,
+      pageURL: window.location.href,
+      pageTitle: pageTitle,
       submittedOn: new Date().toLocaleDateString('en-CA')
     }
 
