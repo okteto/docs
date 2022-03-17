@@ -6,8 +6,8 @@ import Feedback from '../../components/Feedback'
 export default function DocPaginatorWrapper(props) {
   return (
     <>
-      <DocPaginator {...props} />
       <Feedback />
+      <DocPaginator {...props} />
     </>
   );
 }

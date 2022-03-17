@@ -2,15 +2,17 @@ import React from 'react';
 
 import './styles.scss';
 
-const Button = ({ children, role, to, external, className, onClick, size }) => {
+const Button = ({ children, role, to, external, className, onClick, size, hidden, type }) => {
   if (role === 'button') {
     return (
-      <div
+      <button
         onClick={onClick}
         className={`Button ${className || ''} layout ${size || ''}`}
+        hidden={hidden}
+        type={type || "button"}
       >
         { children }
-      </div>
+      </button>
     );
   } else {
     return <a

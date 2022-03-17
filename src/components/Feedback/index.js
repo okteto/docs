@@ -1,11 +1,18 @@
 import React, {useRef, useState} from 'react';
 
+import ThumbsUpIcon from "../../icons/ThumbsUpIcon";
+import ThumbsDownIcon from "../../icons/ThumbsDownIcon";
+
+import Button from "../../theme/Button";
+import styles from './styles.module.scss';
+
 const Feedback = (props) => {
+
+  const [expanded, setExpanded] = useState(false);
 
   const form = useRef(null)
 
   const submit = e => {
-
     e.preventDefault();
     
     const data = {
@@ -14,24 +21,39 @@ const Feedback = (props) => {
       pageURL: window.location.href
     }
 
-    console.log(data);
-
-    fetch('/.netlify/functions/gather-feedback/', { method: 'POST', body: data })
+    fetch('http://localhost:61572/.netlify/functions/gather-feedback/', { method: 'POST', body: data })
   }
 
+  const handleRadioChange = () => {
+    setExpanded(true);
+  }
+
+  console.log(expanded);
+
   return (
-    <form ref={form} onSubmit={submit}>
-      <label>
-        <input type="radio" name="helpful" value="yes" />
-        Yes
-      </label>
-      <label>
-        <input type="radio" name="helpful" value="no" />
-        No
-      </label>
-      <textarea name="feedback"></textarea>
-      <input type="submit" name="Submit" />
-    </form>
+    <>
+      <h2 className={styles.componentTitle}>Was this page helpful?</h2>
+      <form ref={form} onSubmit={submit} className={`${styles.form} ${expanded ? styles.formExpanded : ''}`}>
+        <div className={styles.radioContainer}>
+          <div className={styles.radio}>
+            <input type="radio" name="helpful" value="yes" className={`${styles.radioInput} ${styles.radioYes}`} id="feedback-helpful-yes" onChange={handleRadioChange} />
+            <label className={styles.radioLabel} htmlFor="feedback-helpful-yes">
+              <ThumbsUpIcon />
+            </label>
+          </div>
+          <div className={styles.radio}>
+            <input type="radio" name="helpful" value="no" className={`${styles.radioInput} ${styles.radioNo}`} id="feedback-helpful-no" onChange={handleRadioChange} />
+            <label className={styles.radioLabel} htmlFor="feedback-helpful-no">
+              <ThumbsDownIcon />
+            </label>
+          </div>
+        </div>
+        <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
+        <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button">
+          Submit
+        </Button>
+      </form>
+    </>
   )
 }
 

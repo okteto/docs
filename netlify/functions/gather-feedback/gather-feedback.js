@@ -1,4 +1,5 @@
-const sanityClient = require('@sanity/client')
+const sanityClient = require('@sanity/client');
+
 const client = sanityClient({
   projectId: '6icyfeiq',
   dataset: 'production',
@@ -13,15 +14,21 @@ const handler = async (event) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   } */
 
-  console.log(event);
+  const {feedback, pageURL, helpful} = event.queryStringParameters;
+
+  const params = new URLSearchParams(event.body);
+
+  console.log(helpful);
+
+  
 
   const doc = {
     "_type": "docsFeedback",
-    "feedback": "Just testing",
+    feedback,
     "pageTitle": "Testing!",
-    "pageURL": "https://www.okteto.com/docs/reference/development-environment/",
+    pageURL,
     "submittedOn": "2022-03-15",
-    "helpful": "yes",
+    helpful
   }
 
   return client
