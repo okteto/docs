@@ -14,6 +14,7 @@ const Feedback = (props) => {
 
   const submit = e => {
     e.preventDefault();
+    console.log("Submitting");
     
     const data = {
       feedback: form.current.feedback.value,
@@ -21,14 +22,12 @@ const Feedback = (props) => {
       pageURL: window.location.href
     }
 
-    fetch('/.netlify/functions/gather-feedback/', { method: 'POST', body: data })
+    fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: data })
   }
 
   const handleRadioChange = () => {
     setExpanded(true);
   }
-
-  console.log(expanded);
 
   return (
     <>
