@@ -9,6 +9,7 @@ import styles from './styles.module.scss';
 const Feedback = () => {
   const [expanded, setExpanded] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
+  const [submitted, setSubmitted] = useState(true);
 
   const form = useRef(null)
 
@@ -18,8 +19,7 @@ const Feedback = () => {
 
   const submit = e => {
     e.preventDefault();
-    
-    
+
     const data = {
       feedback: form.current.feedback.value,
       helpful: form.current.helpful.value,
@@ -28,8 +28,8 @@ const Feedback = () => {
       submittedOn: new Date().toLocaleDateString('en-CA')
     }
 
-    fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(data => {
-      console.log(data);
+    fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(response => {
+      if(response.status === 200) setSubmitted(true)
     })
   }
 
@@ -55,10 +55,17 @@ const Feedback = () => {
             </label>
           </div>
         </div>
-        <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
-        <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button">
-          Submit
-        </Button>
+        {!submitted &&
+          <>
+            <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
+            <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button">
+              Submit
+            </Button>
+          </>
+        }
+        {submitted &&
+          <p className={styles.feedbackTitle}>Thanks for the feedback!</p>
+        }
       </form>
     </>
   )
