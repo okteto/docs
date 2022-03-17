@@ -22,7 +22,7 @@ const Feedback = () => {
     const data = {
       feedback: form.current.feedback.value,
       helpful: form.current.helpful.value,
-      pageURL: window.location.href,
+      pageURL: window.location.href.replace(" | Okteto Documentation", ""), // Remove base title
       pageTitle,
       submittedOn: new Date().toLocaleDateString('en-CA')
     }

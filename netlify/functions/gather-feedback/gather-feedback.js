@@ -14,21 +14,14 @@ const handler = async (event) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   } */
 
-  const {feedback, pageURL, helpful} = event.queryStringParameters;
-
-  const params = new URLSearchParams(event.body);
-
-  console.log("params", params);
-  console.log("parse", JSON.parse(event.body))
-
-  console.log("body", event.body);
+  const {feedback, pageURL, helpful, pageTitle, submittedOn} = JSON.parse(event.body);
 
   const doc = {
     "_type": "docsFeedback",
     feedback,
-    "pageTitle": "Testing!",
+    pageTitle,
     pageURL,
-    "submittedOn": "2022-03-15",
+    submittedOn,
     helpful
   }
 
