@@ -18,10 +18,10 @@ const handler = async (event) => {
 
   const params = new URLSearchParams(event.body);
 
-  console.log("body", event.body);
+  console.log("event", event);
+  console.log("Feedback", event.body.feedback);
 
-  console.log("PARAMS", params);
-  console.log("QSP", event.queryStringParameters)
+  console.log("body", event.body);
 
   const doc = {
     "_type": "docsFeedback",
