@@ -21,7 +21,7 @@ const Feedback = (props) => {
       pageURL: window.location.href
     }
 
-    fetch('http://localhost:61572/.netlify/functions/gather-feedback/', { method: 'POST', body: data })
+    fetch('/.netlify/functions/gather-feedback/', { method: 'POST', body: data })
   }
 
   const handleRadioChange = () => {
