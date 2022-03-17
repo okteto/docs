@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
- module.exports = {
+module.exports = {
   docs: {
     'Welcome': [
       'welcome/overview',
@@ -90,16 +90,16 @@
         "type": "category",
         "label": "Okteto CLI",
         "items": [
-          'reference/cli-v1',
           'reference/cli',
+          'reference/cli-v1',
         ]
       },
       {
         "type": "category",
         "label": "Manifest Reference",
         "items": [
-          'reference/manifest-v1',
           'reference/manifest',
+          'reference/manifest-v1',
         ]
       },
       'reference/compose',
