@@ -9,7 +9,7 @@ import styles from './styles.module.scss';
 const Feedback = () => {
   const [expanded, setExpanded] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
-  const [submitted, setSubmitted] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
 
   const form = useRef(null)
 
