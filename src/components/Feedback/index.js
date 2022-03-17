@@ -28,7 +28,9 @@ const Feedback = () => {
       submittedOn: new Date().toLocaleDateString('en-CA')
     }
 
-    fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) })
+    fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(data => {
+      console.log(data);
+    })
   }
 
   const handleRadioChange = () => {
