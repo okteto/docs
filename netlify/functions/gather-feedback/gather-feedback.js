@@ -18,6 +18,9 @@ const handler = async (event) => {
 
   const params = new URLSearchParams(event.body);
 
+  console.log("params", params);
+  console.log("parse", JSON.parse(event.body))
+
   console.log("body", event.body);
 
   const doc = {
