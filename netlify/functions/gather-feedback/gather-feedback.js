@@ -18,10 +18,7 @@ const handler = async (event) => {
 
   const params = new URLSearchParams(event.body);
 
-  console.log("event", event);
-  console.log("Feedback", event.body.feedback);
-
-  console.log("body", event.body);
+  console.log("body stringify", JSON.stringify(event.body));
 
   const doc = {
     "_type": "docsFeedback",
