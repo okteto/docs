@@ -4,6 +4,9 @@ This website is built using [Docusaurus 2](https://v2.docusaurus.io/), a modern 
 
 ### Installation
 
+yarn installation depends on "node" install (with brew for example: [Homebrew yarn](https://formulae.brew.sh/formula/yarn))
+You will need to have python3 installed too. 
+
 ```
 $ yarn
 ```
