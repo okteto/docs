@@ -145,6 +145,7 @@ module.exports = {
         docs: {
           path: docsContentPath,
           routeBasePath: '/',
+          breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
           include: [
             '**/*.md',
