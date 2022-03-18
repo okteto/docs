@@ -10,6 +10,7 @@ const Feedback = () => {
   const [expanded, setExpanded] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const form = useRef(null)
 
@@ -19,6 +20,8 @@ const Feedback = () => {
 
   const submit = e => {
     e.preventDefault();
+
+    setLoading(true);
 
     const data = {
       feedback: form.current.feedback.value,
@@ -30,6 +33,7 @@ const Feedback = () => {
 
     fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(response => {
       if(response.status === 200) setSubmitted(true)
+      // setLoading(false);
     })
   }
 
@@ -58,7 +62,7 @@ const Feedback = () => {
         {!submitted &&
           <>
             <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
-            <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button">
+            <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button" loading={loading}>
               Submit
             </Button>
           </>

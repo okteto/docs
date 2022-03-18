@@ -1,8 +1,9 @@
 import React from 'react';
+import SpinnerIcon from "../../icons/SpinnerIcon"
 
 import './styles.scss';
 
-const Button = ({ children, role, to, external, className, onClick, size, hidden, type }) => {
+const Button = ({ children, role, to, external, className, onClick, size, hidden, type, loading }) => {
   if (role === 'button') {
     return (
       <button
@@ -12,6 +13,7 @@ const Button = ({ children, role, to, external, className, onClick, size, hidden
         type={type || "button"}
       >
         { children }
+        {loading && <SpinnerIcon />}
       </button>
     );
   } else {
