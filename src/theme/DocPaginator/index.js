@@ -8,7 +8,7 @@ export default function DocPaginatorWrapper(props) {
   return (
     <>
       <BrowserOnly>
-        <Feedback />
+        {() => <Feedback />}
       </BrowserOnly>
       <DocPaginator {...props} />
     </>
