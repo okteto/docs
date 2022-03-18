@@ -1,4 +1,5 @@
 import React, {useRef, useState, useEffect} from 'react';
+import useIsBrowser from '@docusaurus/useIsBrowser';
 
 import ThumbsUpIcon from "../../icons/ThumbsUpIcon";
 import ThumbsDownIcon from "../../icons/ThumbsDownIcon";
@@ -9,11 +10,13 @@ import styles from './styles.module.scss';
 const SESSION_STORAGE_KEY = "OktetoDocsFeedback";
 
 const Feedback = () => {
+  const isBrowser = useIsBrowser();
+
   const [expanded, setExpanded] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState ({submitted: false, helpful: ""})
-  const [gaveFeedbackForThesePagesURLs, setGaveFeedbackForThesePagesURLs] = useState(sessionStorage.getItem(SESSION_STORAGE_KEY) || false);
+  const [gaveFeedbackForThesePagesURLs, setGaveFeedbackForThesePagesURLs] = useState(isBrowser ? sessionStorage.getItem(SESSION_STORAGE_KEY) : false);
 
   const form = useRef(null)
 
@@ -42,7 +45,9 @@ const Feedback = () => {
       submittedOn: new Date().toLocaleDateString('en-CA')
     }
 
-    handleSessionStorage({url: data.pageURL, helpful: data.helpful});
+    if(isBrowser) {
+      handleSessionStorage({url: data.pageURL, helpful: data.helpful});
+    }
 
     fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(response => {
       if(response.status === 200) setFeedback({submitted: true})
@@ -53,7 +58,7 @@ const Feedback = () => {
   const handleSessionStorage = ({url, helpful}) => {
     let pageURLs = JSON.parse(gaveFeedbackForThesePagesURLs) || [];
     pageURLs.push({url: url, helpful});
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(pageURLs));
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(pageURLs));
   }
 
   const handleRadioChange = () => {
