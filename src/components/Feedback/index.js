@@ -47,7 +47,7 @@ const Feedback = () => {
     handleSessionStorage({url: data.pageURL, helpful: data.helpful});
 
     fetch('/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(response => {
-      if(response.status === 200) setFeedback({submitted: true})
+      if(response.status === 200) setFeedback({submitted: true, helpful: data.helpful})
       setLoading(false);
     })
   }
