@@ -2,14 +2,12 @@ import React, {useRef, useState, useEffect} from 'react';
 
 import ThumbsUpIcon from "../../icons/ThumbsUpIcon";
 import ThumbsDownIcon from "../../icons/ThumbsDownIcon";
-
 import Button from "../../theme/Button";
 import styles from './styles.module.scss';
 
 const SESSION_STORAGE_KEY = "OktetoDocsFeedback";
 
 const Feedback = () => {
-  
 
   const [expanded, setExpanded] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
@@ -24,7 +22,7 @@ const Feedback = () => {
 
     if(gaveFeedbackForThesePagesURLs) {
       const pages = JSON.parse(gaveFeedbackForThesePagesURLs);
-      const currentPageFeedback = pages.find(page => page.url === window.location.href);
+      const currentPageFeedback = pages.find(page => page.url === window.location.href.split('#')[0]);
       if(currentPageFeedback) {
         setFeedback({submitted: true, helpful: currentPageFeedback.helpful})
       }
@@ -39,7 +37,7 @@ const Feedback = () => {
     const data = {
       feedback: form.current.feedback.value,
       helpful: form.current.helpful.value,
-      pageURL: window.location.href,
+      pageURL: window.location.href.split('#')[0],
       pageTitle: pageTitle,
       submittedOn: new Date().toLocaleDateString('en-CA')
     }
