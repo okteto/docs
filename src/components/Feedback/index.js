@@ -67,31 +67,33 @@ const Feedback = () => {
     <>
       <h2 className={styles.componentTitle}>Was this page helpful?</h2>
       <form ref={form} onSubmit={submit} className={`${styles.form} ${expanded || feedback.submitted ? styles.formExpanded : ''}`}>
-        <div className={styles.radioContainer}>
-          <div className={styles.radio}>
-            <input type="radio" name="helpful" value="yes" checked={feedback.helpful === "yes"} className={`${styles.radioInput} ${styles.radioYes}`} id="feedback-helpful-yes" onChange={handleRadioChange} />
-            <label className={styles.radioLabel} htmlFor="feedback-helpful-yes">
-              <ThumbsUpIcon />
-            </label>
+        <fieldset className={styles.fieldset} disabled={feedback.submitted ? "disabled" : ""}>
+          <div className={styles.radioContainer}>
+            <div className={styles.radio}>
+              <input type="radio" name="helpful" value="yes" checked={feedback.helpful === "yes"} className={`${styles.radioInput} ${styles.radioYes}`} id="feedback-helpful-yes" onChange={handleRadioChange} />
+              <label className={styles.radioLabel} htmlFor="feedback-helpful-yes">
+                <ThumbsUpIcon />
+              </label>
+            </div>
+            <div className={styles.radio}>
+              <input type="radio" name="helpful" value="no" checked={feedback.helpful === "no"} className={`${styles.radioInput} ${styles.radioNo}`} id="feedback-helpful-no" onChange={handleRadioChange} />
+              <label className={styles.radioLabel} htmlFor="feedback-helpful-no">
+                <ThumbsDownIcon />
+              </label>
+            </div>
           </div>
-          <div className={styles.radio}>
-            <input type="radio" name="helpful" value="no" checked={feedback.helpful === "no"} className={`${styles.radioInput} ${styles.radioNo}`} id="feedback-helpful-no" onChange={handleRadioChange} />
-            <label className={styles.radioLabel} htmlFor="feedback-helpful-no">
-              <ThumbsDownIcon />
-            </label>
-          </div>
-        </div>
-        {!feedback.submitted &&
-          <>
-            <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
-            <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button" loading={loading}>
-              Submit
-            </Button>
-          </>
-        }
-        {feedback.submitted &&
-          <p className={styles.feedbackTitle}>Thanks for the feedback!</p>
-        }
+          {!feedback.submitted &&
+            <>
+              <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
+              <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button" loading={loading}>
+                Submit
+              </Button>
+            </>
+          }
+          {feedback.submitted &&
+            <p className={styles.feedbackTitle}>Thanks for the feedback!</p>
+          }
+        </fieldset>
       </form>
     </>
   )
