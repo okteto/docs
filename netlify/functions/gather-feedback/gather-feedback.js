@@ -28,8 +28,7 @@ const handler = async (event) => {
     .create(doc)
     .then(res => {
       return {
-        statusCode: 200,
-        body: JSON.stringify({ message: `Hello ${res._id}` }),
+        statusCode: 200
       }
     })
     .catch(error => {
