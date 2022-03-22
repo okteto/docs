@@ -19,7 +19,9 @@ const Feedback = () => {
 
   useEffect(() => {
     setPageTitle(document.title.replace(" | Okteto Documentation", ""));
+  })
 
+  useEffect(() => {
     if(gaveFeedbackForThesePagesURLs) {
       const pages = JSON.parse(gaveFeedbackForThesePagesURLs);
       const currentPageFeedback = pages.find(page => page.url === window.location.href.split('#')[0]);
