@@ -13,6 +13,12 @@ const handler = async (event) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST",
+  };
+
   const {feedback, pageURL, helpful, pageTitle, submittedOn} = JSON.parse(event.body);
 
   const doc = {
@@ -29,7 +35,7 @@ const handler = async (event) => {
     .then(res => {
       return {
         statusCode: 200,
-        "Access-Control-Allow-Origin": "*"
+        headers
       }
     })
     .catch(error => {
