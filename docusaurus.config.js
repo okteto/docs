@@ -33,14 +33,6 @@ module.exports = {
       indexName: 'okteto',
       algoliaOptions: {}
     },
-    googleAnalytics: {
-      trackingID: 'UA-120828135-1',
-      anonymizeIP: true
-    },
-    gtag: {
-      trackingID: 'G-KSKZWJHTJZ',
-      anonymizeIP: true
-    },
     navbar: {
       title: 'Okteto',
       hideOnScroll: false,
@@ -153,6 +145,7 @@ module.exports = {
         docs: {
           path: docsContentPath,
           routeBasePath: '/',
+          breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
           include: [
             '**/*.md',
@@ -161,7 +154,15 @@ module.exports = {
         },
         theme: {
           customCss: require.resolve('./src/styles/main.scss')
-        }
+        },
+        googleAnalytics: {
+          trackingID: 'UA-120828135-1',
+          anonymizeIP: true
+        },
+        gtag: {
+          trackingID: 'G-KSKZWJHTJZ',
+          anonymizeIP: true
+        },
       }
     ]
   ],
