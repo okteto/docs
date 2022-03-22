@@ -28,7 +28,8 @@ const handler = async (event) => {
     .create(doc)
     .then(res => {
       return {
-        statusCode: 200
+        statusCode: 200,
+        "Access-Control-Allow-Origin": "*"
       }
     })
     .catch(error => {
