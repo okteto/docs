@@ -21,12 +21,26 @@ The Okteto CLI is automatically configured to interact with the Okteto Registry.
 okteto build -t okteto.dev/hello-world:golang .
 ```
 
-When using the Okteto CLI, you can use the notation `okteto.dev` to refer to images in your namespace. `okteto.dev` gets expanded to `registry.cloud.okteto.net/<okteto-cloud-namespace>`. For example, `okteto.dev/hello-world:golang` expands to `registry.cloud.okteto.net/cindy/hello-world:golang` for the namespace `cindy` and expands to `registry.cloud.okteto.net/tom/hello-world:golang` for the namespace `tom`. You can configure your current namespace using [Okteto CLI](/docs/getting-started/installation)'s [`okteto namespace`](/docs/reference/cli/#namespace) command.
+When using the Okteto CLI, you can use the notation `okteto.dev` to refer to images in your [Namespace](https://www.okteto.com/docs/cloud/namespaces/). `okteto.dev` gets expanded to `registry.cloud.okteto.net/<okteto-namespace>`. For example, `okteto.dev/hello-world:golang` expands to `registry.cloud.okteto.net/cindy/hello-world:golang` for the namespace `cindy` and expands to `registry.cloud.okteto.net/tom/hello-world:golang` for the namespace `tom`. You can configure your current namespace using [Okteto CLI](/docs/getting-started/installation)'s [`okteto namespace`](/docs/reference/cli/#namespace) command.
 
-If you prefer to use the expanded URL for the Okteto Registry, please make sure that your image names follow the following scheme, where `<namespace>` is a valid Okteto Cloud namespace.
+You can also use `okteto.dev` in your Dockerfiles when building using the [Okteto CLI](/docs/getting-started/installation/). 
 
 ```
-registry.cloud.okteto.net/<namespace>/<image>:<tag>
+# Dockerfile 
+FROM okteto.dev/hello-world:golang
+WORKDIR /app
+COPY main.go ./
+RUN go build -o /usr/local/bin/hello-world
+EXPOSE 8080
+CMD ["/usr/local/bin/hello-world"]
+```
+
+However, please note that this would not work if you try to build using `docker build` instead. In that case, you'll need to use the full expanded URL for your images.
+
+When using the expanded URL for the Okteto Registry, please make sure that your image names follow the following scheme, where `<okteto-namespace>` is a valid Okteto [Namespace](/docs/cloud/namespaces/).
+
+```
+registry.cloud.okteto.net/<okteto-namespace>/<image>:<tag>
 ```
 
 ## Use images from the Okteto Registry
