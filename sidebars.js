@@ -12,8 +12,8 @@ module.exports = {
       'getting-started',
     ],
     'Dev Environments': [
-      'reference/development-environment',
-      'getting-started/installation',
+      'reference/development-environments',
+      'cloud/okteto-cli',
       'cloud',
       {
         "type": "category",
@@ -26,7 +26,6 @@ module.exports = {
           // 'cloud/deploy-from-terminal',
         ]
       },
-      'cloud/okteto-pipeline',
       'cloud/secrets',
       {
         "type": "category",
@@ -99,7 +98,7 @@ module.exports = {
         "label": "Okteto CLI",
         "items": [
           'reference/cli',
-          'reference/cli-v2',
+          'reference/cli-v1',
         ]
       },
       {
@@ -107,19 +106,17 @@ module.exports = {
         "label": "Manifest Reference",
         "items": [
           'reference/manifest',
-          'reference/manifest-v2',
+          'reference/manifest-v1',
         ]
       },
-      'reference/stacks',
+      'reference/compose',
       'reference/faqs',
       'cloud/permissions',
       'reference/known-issues',
     ],
     'Tutorials': [
-      'tutorials/getting-started-with-pipelines',
       'tutorials/getting-started-with-divert',
-      'tutorials/repos',
-      'tutorials/stacks-getting-started',
+      'tutorials/compose-getting-started',
       'tutorials/preview-environments',
       'tutorials/webpack'
     ],

@@ -145,7 +145,6 @@ module.exports = {
         docs: {
           path: docsContentPath,
           routeBasePath: '/',
-          breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
           include: [
             '**/*.md',
@@ -179,8 +178,17 @@ module.exports = {
         to: '/welcome/overview/',
         from: ['/']
       }, {
+        to: '/reference/development-environments/',
+        from: ['/reference/development-containers/']
+      }, {
         to: '/enterprise/install/overview/',
         from: ['/enterprise/dns/']
+      }, {
+        to: '/reference/compose/',
+        from: ['/reference/stacks/']
+      }, {
+        to: '/tutorials/compose-getting-started/',
+        from: ['/tutorials/stacks-getting-started/']
       }]
     }],
     ['docusaurus-gtm-plugin', {

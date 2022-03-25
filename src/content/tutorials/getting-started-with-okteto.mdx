@@ -1,14 +1,13 @@
 ---
-title: Getting Started with Okteto Pipelines
-description: Getting Started with Okteto Pipelines
-sidebar_label: Getting Started with Okteto Pipelines
-id: getting-started-with-pipelines
+title: Getting Started with Okteto
+description: Getting Started with Okteto
+sidebar_label: Getting Started with Okteto
+id: getting-started-with-okteto
 ---
 
 import Image from '@theme/Image';
 
-This tutorial provides a step by step guide to configure an [Okteto Pipeline](/docs/cloud/okteto-pipeline/).
-Okteto Pipelines allow anyone on your team or your open source community to deploy a realistic environment for your application on Okteto Cloud in just one click.
+This tutorial provides a step by step guide to configure an [Okteto Manifest](/docs/reference/manifest/).
 
 ## Overview
 
@@ -17,16 +16,18 @@ The tutorial is composed of the following steps:
 - Step 1: Code the Hello World application
 - Step 2: Define a Dockerfile for building the Docker image of the Hello World application
 - Step 3: Create Kubernetes manifests to deploy the Hello World application on Okteto Cloud
-- Step 4: Automate the deployment of the Hello World application with an Okteto Pipeline
-- Step 5: Deployment time!
+- Step 4: Automate the deployment of the Hello World application with an Okteto Manifest
+- Step 5: Deploy your Development Environment
+- Step 6: Configure a Remote Development Container
+- Step 7: Develop on your Remote Development Container
 
 Let's get started!
 
 ## Step 1: Code the Hello World application
 
-We will use a simple Hello World application to illustrate how to configure an Okteto Pipeline.
+We will use a simple Hello World application to illustrate how to configure an Okteto Manifest.
 The Hello World application is a simple web service that responds "Hello World!" to every request.
-It is written in Go, but Okteto can be used with any application that runs on Kubernetes.
+It's written in Go, but Okteto can be used with any application that runs on Kubernetes.
 
 First, make a new directory called `hello-world` and move inside it:
 
@@ -154,50 +155,141 @@ The service manifest has four main sections:
 
 > Kubernetes manifests can get complex to manage. As your application grows, we recommend you pack your application using [Helm](https://helm.sh/).
 
-You now have everything ready to define the Okteto Pipeline of the Hello World application.
+You now have everything ready to define the Okteto Manifest of the Hello World application.
 
 > When writing your Kubernetes manifests, take into account the [multitenant Kubernetes restrictions](https://okteto.com/docs/cloud/multitenancy/) that we have in place to make Okteto Cloud a secure environment to run your applications.
 
-## Step 4: Automate the deployment of the Hello World application with an Okteto Pipeline
+## Step 4: Automate the deployment of the Hello World application with an Okteto Manifest
 
-You can automate the deployment of the Hello World application with an Okteto Pipeline to provide a one-click deployment experience for anyone in your team or your open source community.
-To define your Okteto Pipeline, create a new file `okteto-pipeline.yml` with the following content:
+You can automate the deployment of the Hello World application with an Okteto Manifest to provide a one-click deployment experience for anyone in your team or your open source community.
+To define your Okteto Manifest, create a new file `okteto.yml` with the following content:
 
 ```yaml
+build:
+  hello-world:
+     image: okteto.dev/hello-world:latest
+     context: .
+     dockerfile: Dockerfile
 deploy:
-  - okteto build -t okteto.dev/hello-world:latest
   - kubectl apply -f k8s
 ```
 
-The Okteto Pipeline manifest has a `deploy` section to define the sequence of commands to deploy the Hello World application.
+The Okteto Manifest has a `build` section to define how to build the image of my application.
 
-- The first command builds the Docker image of the Hello World application and pushes the image to the [Okteto Registry](/docs/cloud/registry/).
-Note that `okteto.dev/hello-world:latest` is expanded to the current user image space to make this instruction portable between namespaces.
+The Okteto Manifest also has a `deploy` section to define the sequence of commands to deploy the Hello World application.
+In this case, it deploys the Hello World application using `kubectl` and the Kubernetes manifests you created on Step 2.
 
-- The second command deploys the Hello World application using `kubectl` and the Kubernetes manifests you created on Step 2.
+You can make use of tools such as `kubectl`, `helm`, `okteto`, and `kustomize` in your `deploy` commands.
 
-You can make use of tools such as `kubectl`, `helm`, `okteto`, and `kustomize` in your Okteto Pipeline.
-Read the Okteto Pipeline [documentation](/docs/cloud/okteto-pipeline/) to learn more about the Okteto Pipeline yaml syntax, available tools, and environment variables that you can use as part of your Okteto Pipeline.
+## Step 5: Deploy your Development Environment
 
-## Step 5: Deployment time!
+[Install]((/docs/getting-started/installation/)) the Okteto CLI and configure access to Okteto Cloud:
 
-Log into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs).
-Click on the **Deploy** button on the top left of the Okteto Cloud dashboard, select "**Git URL**" as the source
-and type the URL of your Git repository to deploy the Hello World application:
+```console
+$ okteto context use https://cloud.okteto.com
+```
 
-<p align="center"><Image src="/docs/tutorials/images/deploy-from-git.png" alt="deploy a git repository" width="650" /></p>
+```console
+ ✓  Using context cindy @ cloud.okteto.com
+```
 
-After a few seconds, your application will be ready. You can access the Hello World application by clicking its endpoint:
+In order to deploy your application, run the following command:
 
-<Image center src="/docs/tutorials/images/okteto-hello-world-ui.png" alt="Okteto Cloud UI of Hello World app" width="850" />
+```console
+$ okteto deploy
+```
 
-> You can make the deployment experience even smoother by adding a [Develop on Okteto](/docs/cloud/develop-on-okteto-button/) button to the `README.md` file of your Git repository.
+```console
+ i  Using cindy @ cloud.okteto.com as context
+ i  Images were already built. To rebuild your images run 'okteto build' or 'okteto deploy --build'
+ ✓  kubectl apply -f k8s
+ i  Endpoints available:
+  - https://hello-world-cindy.cloud.okteto.net/
+ ✓  Development environment 'go-getting-started' successfully deployed
+ i  Run 'okteto up' to activate your development container
+```
+
+and that's all, your application will be built and deployed in seconds!
+
+## Step 6: Configure a Remote Development Container
+
+Building and deploying your application for each code change can be tedious.
+In order to do that, you can configure how to live update your application while you are coding defining a development container.
+
+To do that, add the following content to your Okteto Manifest:
+
+```yaml
+dev:
+  hello-world:
+    image: okteto/golang:1
+    command: bash
+    sync:
+      - .:/usr/src/app
+```
+
+The full reference for development containers is [here](/docs/reference/manifest/#dev-object-optional).
+This is the meaning of the fields we are using here:
+
+- `image`: the image used by the development container. More information on development images [here](/docs/reference/development-environment/).
+- `command`: the start command of the development container.
+- `sync`: the folders that will be synchronized between your local machine and the development container.
+
+Now execute the following command to activate your development container:
+
+```console
+$ okteto up
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Namespace: cindy
+    Name:      hello-world
+
+Welcome to your development container. Happy coding!
+cindy:hello-world app>
+```
+
+Working in your development container is the same as working on your local machine.
+Start the application by running the following command:
+
+```console
+cindy:hello-world app> go run main.go
+```
+
+```console
+Starting hello-world server...
+```
+
+Go back to the browser, and reload the page to test that your application is running.
+
+## Step 7: Develop on your Remote Development Container
+
+Open the file `main.go` in your favorite local IDE and modify the response message on line 17 to be *Hello world from Okteto!*. Save your changes.
+
+```golang
+func helloServer(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hello world from Okteto!")
+}
+```
+
+Okteto will synchronize your changes to your development container.
+Cancel the execution of `go run main.go` from the development container shell by pressing `ctrl + c`.
+Rerun your application:
+
+```console
+cindy:hello-world app> go run main.go
+```
+
+```console
+Starting hello-world server...
+```
+
+Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎!
 
 ## Next steps
 
-Congratulations, you just configured **your first Okteto Pipeline on Okteto Cloud** 🚀.
-
-We have covered how to deploy realistic environments for cloud-native applications in just one-click.
-The full source code used on this tutorial is available [here](https://github.com/okteto/pipeline-getting-started).
+Congratulations, you just configured **your first Okteto Manifest** 🚀.
 
 Head over to our samples for [Go](/docs/samples/golang/), [ASP.NET](/docs/samples/aspnetcore), [Java](/docs/samples/java/), [Node.js](/docs/samples/node), [PHP](/docs/samples/php/), [Python](/docs/samples/python/), or [Ruby](/docs/samples/ruby/) to see how to use Okteto to live-update your application with different programming languages and **debuggers**.
