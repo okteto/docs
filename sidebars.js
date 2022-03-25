@@ -103,7 +103,7 @@ module.exports = {
       },
       {
         "type": "category",
-        "label": "Manifest Reference",
+        "label": "Okteto Manifest",
         "items": [
           'reference/manifest',
           'reference/manifest-v1',
