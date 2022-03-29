@@ -44,6 +44,11 @@ module.exports = {
       },
       items: [
         {
+          type: 'docsVersionDropdown',
+          position: 'left',
+          dropdownActiveClassDisabled: true,
+        },
+        {
           to: 'getting-started/',
           activeBasePath: 'nothing',
           label: 'Documentation',
@@ -147,6 +152,18 @@ module.exports = {
           routeBasePath: '/',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
+          lastVersion: 'current',
+          versions: {
+            current: {
+              label: 'v2.0.0',
+              path: '/',
+            },
+            '1.0.0': {
+              label: 'v1.0.0',
+              path: '1.0.0',
+              banner: 'none',
+            },
+          },
           include: [
             '**/*.md',
             '**/*.mdx'

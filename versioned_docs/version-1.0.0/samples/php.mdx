@@ -1,0 +1,178 @@
+---
+title: Getting Started on Okteto Cloud with PHP
+description: This tutorial will show you how to create an account in Okteto Cloud and how to develop a PHP sample application
+sidebar_label: PHP
+id: php
+---
+
+import Image from '@theme/Image';
+
+[Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) gives instant access to secure Kubernetes namespaces to enable developers to code, build, and run Kubernetes applications entirely in the cloud.
+
+This tutorial will show you how to create an account in Okteto Cloud and how to develop a PHP sample application.
+
+## Prerequisites
+
+- Install the Okteto CLI (>= 1.12.13). Follow this [guide](/docs/getting-started/installation/) if you haven't done it yet.
+- Configure Access to your Okteto Cloud Namespace [using the Okteto CLI](/docs/cloud/credentials/#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto Cloud UI](/docs/cloud/credentials/#download-your-kubernetes-credentials-from-the-okteto-cloud-ui).
+
+
+## Step 1: Deploy the PHP Sample App
+
+Get a local version of the PHP Sample App by executing the following commands:
+
+```console
+$ git clone https://github.com/okteto/php-getting-started
+$ cd php-getting-started
+```
+
+The `k8s.yml` file contains the [Kubernetes manifests](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) of the PHP Sample App. Deploy a dev version of the application by executing:
+
+```console
+$ kubectl apply -f k8s.yml
+```
+
+```console
+deployment.apps "hello-world" created
+service "hello-world" created
+```
+
+Open your browser and go to the URL of the application. You can get the URL by logging into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) and clicking on the application's endpoint:
+
+<Image center src="/docs/samples/images/okteto-ui.png" alt="Okteto Cloud UI PHP" width="850" />
+
+Did you notice that you're accessing your application through an HTTPS endpoint? This is because Okteto Cloud will [automatically create them](/docs/cloud/ssl/) for you when you deploy your application. Cool no 😎?
+
+## Step 2: Create your okteto manifest
+
+To start developing on the PHP Sample App you first need to create an okteto manifest.
+With the PHP Sample App deployed, run the following command to create your [okteto manifest](/docs/reference/manifest/):
+
+```console
+$ okteto init
+```
+
+```console
+This command walks you through creating an okteto manifest.
+It only covers the most common items, and tries to guess sensible defaults.
+See https://okteto.com/docs/reference/manifest for the official documentation about the okteto manifest.
+Use the arrow keys to navigate: ↓ ↑ → ←
+Select the deployment you want to develop:
+  ▸ hello-world
+    Use default values
+```
+
+The `okteto init` command will scan the available deployments in your Kubernetes namespace and ask you to pick one.
+Select the `hello-world` deployment. It's the one we deployed on the previous step.
+
+```console
+ ✓  hello-world
+ ✓  Deployment 'hello-world' successfully analyzed
+ ✓  okteto manifest (okteto.yml) created
+ i  Run 'okteto up' to activate your development container
+```
+
+The `okteto init` command creates the following `okteto.yml` file:
+
+```yaml
+name: hello-world
+command: bash
+volumes:
+  - /root/.composer/cache
+sync:
+  - .:/app
+forward:
+  - 8080:8080
+reverse:
+  - 9000:9000
+```
+
+This file defines how to activate a development container for the PHP Sample App:
+
+- `name`: the name of the Kubernetes deployment you want to put on development mode.
+- `command`: the start command of the development container.
+- `volumes`: a list of paths in your development container to be mounted as persistent volumes. For example, this is useful to persist the Composer cache.
+- `sync`: the folders that will be synchronized between your local machine and the development container.
+- `forward`: a list of ports to forward from your development container.
+- `reverse`: a list of ports to reverse forward from your development container to your local machine
+
+Also, the `okteto init` command creates a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
+This is useful to avoid synchronizing binaries, build artifacts, or git metadata.
+
+## Step 3: Activate your development container
+
+Next, execute the following command to activate your development container:
+
+```console
+$ okteto up
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Namespace: cindy
+    Name:      hello-world
+    Name:      hello-world
+    Forward:   8080 -> 8080
+    Reverse:   9000 <- 9000
+
+Welcome to your development container. Happy coding!
+cindy:hello-world app>
+```
+
+Working in your development container is the same as working on your local machine.
+Start the application by running the following command:
+
+```console
+cindy:hello-world app> php -S 0.0.0.0:8080
+```
+
+```console
+[Tue Jan  7 01:54:59 2020] PHP 7.4.1 Development Server (http://0.0.0.0:8080) started
+```
+
+Go back to the browser, and reload the page to test that your application is running.
+
+## Step 4: Develop directly in Okteto Cloud
+
+Open the `index.php` file in your favorite local IDE and modify the response message on line 2 to be *Hello world from the cluster!*. Save your changes.
+
+```php
+<?php
+$message = "Hello World from the cluster!";
+echo($message);
+```
+
+Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build or push required 😎!
+
+## Step 4: Debug directly in Okteto Cloud
+
+Okteto enables you to debug your applications directly from your favorite IDE. Let's take a look at how that works with [PHPStorm](https://www.jetbrains.com/phpstorm/), one of the most popular IDEs for PHP development.
+
+If you haven't already, fire up PHP Storm and load this project there. Once the project is loaded, open `index.php` and set a breakpoint in `line 2`. Click on the `Start Listen PHP Debug Connections` button on the PhpStorm toolbar.
+
+Go back to your browser and reload the page. The execution will automatically halt at the breakpoint.
+
+> If this is the first time you debug this application, the IDE will ask you to confirm the source mapping configuration. Verify the values and click `ok` to continue.
+
+At this point, you're able to inspect the request object, the current values of everything, the contents of `$_SERVER` variable, etc.
+
+<Image center src="/docs/samples/images/php-halt.png" alt="debugging in Okteto Cloud with PHP" width="850" />
+
+Your code is executing in Okteto Cloud, but you can debug it from your local machine without any extra services or tools. Pretty cool no? 😉
+
+## Next steps
+
+Congratulations, you just developed **your first application in Okteto Cloud** 🚀.
+
+> Okteto lets you develop your applications directly in Kubernetes. This way you can:
+> - Eliminate integration issues by developing in a realistic environment
+> - Test your application end to end as fast as you type code
+> - No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
+
+Okteto uses the `okteto.yml` file to determine the name of your development container, the docker image to use, and where to upload your code. Check the [Okteto manifest docs](https://okteto.com/docs/reference/manifest/) to customize your development containers with your own dev tools, images, and dependencies to adapt Okteto to your own application.
+
+Ready to develop your application on Okteto Cloud? Read our [step by step tutorial](/docs/tutorials/getting-started-with-pipelines/) on how to configure an Okteto Pipeline to deploy realistic environments for your application in just one click.
+
+Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or join our [#okteto](https://kubernetes.slack.com/messages/CM1QMQGS0/) channel in the [Kubernetes community Slack](http://slack.k8s.io/) to ask questions or share your feedback.
