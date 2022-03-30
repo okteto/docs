@@ -155,12 +155,12 @@ module.exports = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: 'v2.0.0',
+              label: 'Current',
               path: '/',
             },
-            '1.0.0': {
-              label: 'v1.0.0',
-              path: '1.0.0',
+            'next': {
+              label: 'Next',
+              path: 'next',
               banner: 'none',
             },
           },
