@@ -94,22 +94,8 @@ module.exports = {
       },
     ],
     'References': [
-      {
-        "type": "category",
-        "label": "Okteto CLI",
-        "items": [
-          'reference/cli',
-          'reference/cli-v2',
-        ]
-      },
-      {
-        "type": "category",
-        "label": "Manifest Reference",
-        "items": [
-          'reference/manifest',
-          'reference/manifest-v2',
-        ]
-      },
+      'reference/cli',
+      'reference/manifest',
       'reference/stacks',
       'reference/faqs',
       'cloud/permissions',
