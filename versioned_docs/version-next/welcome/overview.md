@@ -8,14 +8,14 @@ id: overview
 Okteto is a platform to simplify the application development process by leveraging pre-configured cloud environments. This overview covers what Okteto offers and how you can get started.
 
 ## Development Environments
-Okteto's [Dev Environments](/docs/reference/development-environment) offer you a way to deploy and develop applications directly on the cloud. The traditional development workflow involves committing and pushing your changes and then waiting for the CI to build and deploy them before you can take a look. If you have to do this multiple times a day, not only is it frustrating, it is also extremely time-consuming, especially if multiple developers are using a single staging environment. 
+Okteto's [Dev Environments](/docs/next/reference/development-environments/) offer you a way to deploy and develop applications directly on the cloud. The traditional development workflow involves committing and pushing your changes and then waiting for the CI to build and deploy them before you can take a look. If you have to do this multiple times a day, not only is it frustrating, it is also extremely time-consuming, especially if multiple developers are using a single staging environment. 
 
-Dev Environments solve this exact problem by allowing you to code locally on your machine but seeing your changes live deployed on a cluster **as soon as you hit save**! You don't have to spend time configuring a bunch of things for this - Okteto takes care of that for you. If you'd like to see this in action, head right to the [Quick Start Guide](/docs/getting-started). If you're looking for more in-detail documentation, you can find that [here](/docs/reference/development-environment). 
+Dev Environments solve this exact problem by allowing you to code locally on your machine but seeing your changes live deployed on a cluster **as soon as you hit save**! You don't have to spend time configuring a bunch of things for this - Okteto takes care of that for you. If you'd like to see this in action, head right to the [Quick Start Guide](/docs/next/getting-started). If you're looking for more in-detail documentation, you can find that [here](/docs/next/reference/development-environments/). 
 
 ## Preview Environments
-Using Okteto, you can configure [Preview Environments](/docs/cloud/preview-environments/preview-environments) for your code repositories. Every pull request will then get deployed and will get its own separate sharable URL. This allows teams to browse the changes in a pull request even before it gets merged - without having to take care of any deployment-related setup. These URLs can also be shared with other stakeholders so that the review process isn't just limited to developers. 
+Using Okteto, you can configure [Preview Environments](/docs/next/cloud/preview-environments/preview-environments) for your code repositories. Every pull request will then get deployed and will get its own separate sharable URL. This allows teams to browse the changes in a pull request even before it gets merged - without having to take care of any deployment-related setup. These URLs can also be shared with other stakeholders so that the review process isn't just limited to developers. 
 
-You can learn how to configure Preview Environments by following the docs [here](/docs/cloud/preview-environments/preview-environments). 
+You can learn how to configure Preview Environments by following the docs [here](/docs/next/cloud/preview-environments/preview-environments). 
 
 ## Why Okteto?
 

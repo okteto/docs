@@ -2,7 +2,7 @@
 title: Okteto CLI
 description: Follow these steps to install the Okteto CLI, a client-side tool that works in any Kubernetes cluster
 sidebar_label: Okteto CLI
-id: installation
+id: okteto-cli
 ---
 
 [Dev Environments](/docs/reference/development-environment) allow you to develop your deployed application locally. You continue coding  in your favorite IDE and see the changes live on the deployed version of your application as soon as you hit save. Okteto CLI is an [open source](https://github.com/okteto/okteto) client-side only tool that allows you to set up Dev Environments with any Kubernetes cluster - your own, Okteto Cloud, or Okteto Self-Hosted.
