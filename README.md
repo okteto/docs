@@ -12,3 +12,26 @@ Clone the repo and then run:
 yarn
 yarn start
 ```
+
+## Ejected components
+
+Even if we try to never eject components to facilitate updating Docusaurus, sometime we need to do it to add custom functionalities. Here’s a list of component we ejected and the reasons why:
+
+<details>
+  <summary>CodeBlock</summary>
+<ul>
+<li>Add the ability to filter out `$` in code blocks when using the copy to clipboard button https://github.com/okteto/docs/blob/main/src/theme/CodeBlock/index.js#L83-L84</li>
+  </ul>
+</details>
+<details>
+  <summary>DocPaginator</summary>
+<ul>
+<li>Add our custom Give Feedback component before the pagination
+https://github.com/okteto/docs/blob/main/src/theme/DocPaginator/index.js#L10-L12</li>
+  </ul>
+</details>
+
+## Other repos maintained by the Marketing team
+
+- https://github.com/okteto/website
+- https://github.com/okteto/website-cms
