@@ -293,6 +293,10 @@ The build service. It's used in combination with `okteto build` to build contain
 - `labels`: Labels to add to the buildkit pods.
 - `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
 - `replicaCount`: The number of buildkit pods. It defaults to 1.
+- `hpa.enabled`: If the Buildkit [HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) is enabled. Defaults to `false`.
+- `hpa.min`: Minimum number of buildkit replicas. Defaults to 1.
+- `hpa.max`: Maximum number of buildkit replicas. Defaults to 2.
+- `hpa.cpu`: Percentage of the total buildkit `resources.requests.cpu` to consider a buildkit replica as overloaded. Defaults to 50%.
 - `resources`: The resources for the buildkit pods.
 - `storage.class`: The storage class of the volume attached to every buildkit pod to persist the buildkit cache.
 - `storage.size`: The size of the volume attached to every buildkit pod to persist the buildkit cache.
@@ -437,6 +441,24 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 - `resources`: The resources for the webhook pods.
 
 ## Advanced Configuration
+
+### affinities
+
+Apply default affinities to pods deployed in namespaces created by Okteto.
+
+```yaml
+affinities:
+  devPool:
+    - weight: 10
+      preference:
+        matchExpressions:
+        - key: cloud.google.com/gke-preemptible
+          operator: In
+          values:
+          - "true"
+```
+
+In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptible nodes.
 
 ### applications
 
