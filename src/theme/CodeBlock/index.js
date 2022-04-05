@@ -4,100 +4,28 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import React, {useEffect, useState, useRef} from 'react';
+import React, {isValidElement, useEffect, useState} from 'react';
 import clsx from 'clsx';
 import Highlight, {defaultProps} from 'prism-react-renderer';
 import copy from 'copy-text-to-clipboard';
-import rangeParser from 'parse-numeric-range';
-import usePrismTheme from '@theme/hooks/usePrismTheme';
 import Translate, {translate} from '@docusaurus/Translate';
+import {
+  useThemeConfig,
+  parseCodeBlockTitle,
+  parseLanguage,
+  parseLines,
+  ThemeClassNames,
+  usePrismTheme,
+} from '@docusaurus/theme-common';
 import styles from './styles.module.css';
-import {useThemeConfig} from '@docusaurus/theme-common';
-import Prism from 'prism-react-renderer/prism';
-
-const highlightLinesRangeRegex = /{([\d,-]+)}/;
-
-(typeof global !== 'undefined' ? global : window).Prism = Prism;
-require('./prism-console');
-require('prismjs/components/prism-go');
-Prism.languages.golang = Prism.languages.go;
-
-const getHighlightDirectiveRegex = (
-  languages = ['js', 'jsBlock', 'jsx', 'python', 'html'],
-) => {
-  // supported types of comments
-  const comments = {
-    js: {
-      start: '\\/\\/',
-      end: '',
-    },
-    jsBlock: {
-      start: '\\/\\*',
-      end: '\\*\\/',
-    },
-    jsx: {
-      start: '\\{\\s*\\/\\*',
-      end: '\\*\\/\\s*\\}',
-    },
-    python: {
-      start: '#',
-      end: '',
-    },
-    html: {
-      start: '<!--',
-      end: '-->',
-    },
-  }; // supported directives
-
-  const directives = [
-    'highlight-next-line',
-    'highlight-start',
-    'highlight-end',
-  ].join('|'); // to be more reliable, the opening and closing comment must match
-
-  const commentPattern = languages
-    .map(
-      (lang) =>
-        `(?:${comments[lang].start}\\s*(${directives})\\s*${comments[lang].end})`,
-    )
-    .join('|'); // white space is allowed, but otherwise it should be on it's own line
-
-  return new RegExp(`^\\s*(?:${commentPattern})\\s*$`);
-}; // select comment styles based on language
-
-const highlightDirectiveRegex = (lang) => {
-  switch (lang) {
-    case 'js':
-    case 'javascript':
-    case 'ts':
-    case 'typescript':
-      return getHighlightDirectiveRegex(['js', 'jsBlock']);
-
-    case 'jsx':
-    case 'tsx':
-      return getHighlightDirectiveRegex(['js', 'jsBlock', 'jsx']);
-
-    case 'html':
-      return getHighlightDirectiveRegex(['js', 'jsBlock', 'html']);
-
-    case 'python':
-    case 'py':
-      return getHighlightDirectiveRegex(['python']);
-
-    default:
-      // all comment types
-      return getHighlightDirectiveRegex();
-  }
-};
-
-const codeBlockTitleRegex = /(?:title=")(.*)(?:")/;
 export default function CodeBlock({
   children,
-  className: languageClassName,
+  className: blockClassName = '',
   metastring,
+  title,
+  language: languageProp,
 }) {
   const {prism} = useThemeConfig();
-  const [clipboardContent, setClipboardContent] = useState('');
   const [showCopied, setShowCopied] = useState(false);
   const [mounted, setMounted] = useState(false); // The Prism theme on SSR is always the default theme but the site theme
   // can be in a different mode. React hydration doesn't update DOM styles
@@ -109,110 +37,53 @@ export default function CodeBlock({
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+  }, []); // We still parse the metastring in case we want to support more syntax in the
+  // future. Note that MDX doesn't strip quotes when parsing metastring:
+  // "title=\"xyz\"" => title: "\"xyz\""
 
-  const target = useRef(null);
-  const button = useRef(null);
-  let highlightLines = [];
-  let codeBlockTitle = '';
-  const prismTheme = usePrismTheme(); // In case interleaved Markdown (e.g. when using CodeBlock as standalone component).
+  const codeBlockTitle = parseCodeBlockTitle(metastring) || title;
+  const prismTheme = usePrismTheme(); // <pre> tags in markdown map to CodeBlocks and they may contain JSX children.
+  // When the children is not a simple string, we just return a styled block
+  // without actually highlighting.
+
+  if (React.Children.toArray(children).some((el) => isValidElement(el))) {
+    return (
+      <Highlight
+        {...defaultProps}
+        key={String(mounted)}
+        theme={prismTheme}
+        code=""
+        language={'text'}>
+        {({className, style}) => (
+          <pre
+            /* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */
+            tabIndex={0}
+            className={clsx(
+              className,
+              styles.codeBlockStandalone,
+              'thin-scrollbar',
+              styles.codeBlockContainer,
+              blockClassName,
+              ThemeClassNames.common.codeBlock,
+            )}
+            style={style}>
+            <code className={styles.codeBlockLines}>{children}</code>
+          </pre>
+        )}
+      </Highlight>
+    );
+  } // The children is now guaranteed to be one/more plain strings
 
   const content = Array.isArray(children) ? children.join('') : children;
-
-  if (metastring && highlightLinesRangeRegex.test(metastring)) {
-    // Tested above
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const highlightLinesRange = metastring.match(highlightLinesRangeRegex)[1];
-    highlightLines = rangeParser(highlightLinesRange).filter((n) => n > 0);
-  }
-
-  if (metastring && codeBlockTitleRegex.test(metastring)) {
-    // Tested above
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    codeBlockTitle = metastring.match(codeBlockTitleRegex)[1];
-  }
-
-  let language =
-    languageClassName && // Force Prism's language union type to `any` because it does not contain all available languages
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    languageClassName.replace(/language-/, '');
-
-  if (!language && prism.defaultLanguage) {
-    language = prism.defaultLanguage;
-  } // only declaration OR directive highlight can be used for a block
-
-  let code = content.replace(/\n$/, '');
-
-  if (highlightLines.length === 0 && language !== undefined) {
-    let range = '';
-    const directiveRegex = highlightDirectiveRegex(language); // go through line by line
-
-    const lines = content.replace(/\n$/, '').split('\n');
-    let blockStart; // loop through lines
-
-    for (let index = 0; index < lines.length; ) {
-      const line = lines[index]; // adjust for 0-index
-
-      const lineNumber = index + 1;
-      const match = line.match(directiveRegex);
-
-      if (match !== null) {
-        const directive = match
-          .slice(1)
-          .reduce((final, item) => final || item, undefined);
-
-        switch (directive) {
-          case 'highlight-next-line':
-            range += `${lineNumber},`;
-            break;
-
-          case 'highlight-start':
-            blockStart = lineNumber;
-            break;
-
-          case 'highlight-end':
-            range += `${blockStart}-${lineNumber - 1},`;
-            break;
-
-          default:
-            break;
-        }
-
-        lines.splice(index, 1);
-      } else {
-        // lines without directives are unchanged
-        index += 1;
-      }
-    }
-
-    highlightLines = rangeParser(range);
-    code = lines.join('\n');
-  }
-
-  useEffect(() => {
-    let clipboardContent = code;
-    if (target.current && language === 'console') {
-      const extractInput = content => {
-        const prompt = content.querySelector('.token.prompt');
-        if (prompt) prompt.remove();
-        return content.textContent?.trim() || '';
-      };
-      const content = target.current.cloneNode(true);
-      const lines = Array.from(content.querySelectorAll('.token-line') || []);
-
-      if (lines.length > 0) {
-        let output = '';
-        for (const line of lines) {
-          output = `${output}\n${extractInput(line)}`;
-        }
-        clipboardContent = output;
-      }
-    }
-    setClipboardContent(clipboardContent);
-  }, [target.current]);
+  const language =
+    languageProp ?? parseLanguage(blockClassName) ?? prism.defaultLanguage;
+  const {highlightLines, code} = parseLines(content, metastring, language);
 
   const handleCopyCode = () => {
-    copy(clipboardContent);
+    // If the code starts with "$", remove it from the clipboard
+    const formattedCode = code.split('\n').map(line => line.charAt(0) === "$" ? line.substring(1).trim() : line).join('\n');
+    
+    copy(formattedCode);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 2000);
   };
@@ -223,25 +94,33 @@ export default function CodeBlock({
       key={String(mounted)}
       theme={prismTheme}
       code={code}
-      language={language}>
+      language={language ?? 'text'}>
       {({className, style, tokens, getLineProps, getTokenProps}) => (
-        <div className={styles.codeBlockContainer}>
+        <div
+          className={clsx(
+            styles.codeBlockContainer,
+            blockClassName,
+            {
+              [`language-${language}`]:
+                language && !blockClassName.includes(`language-${language}`),
+            },
+            ThemeClassNames.common.codeBlock,
+          )}>
           {codeBlockTitle && (
             <div style={style} className={styles.codeBlockTitle}>
               {codeBlockTitle}
             </div>
           )}
-          <div className={clsx(styles.codeBlockContent, language)} ref={target}>
-            <div
+          <div className={clsx(styles.codeBlockContent, language)}>
+            <pre
               /* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */
               tabIndex={0}
-              className={clsx(className, styles.codeBlock, 'thin-scrollbar', {
-                [styles.codeBlockWithTitle]: codeBlockTitle,
-              })}>
-              <div className={styles.codeBlockLines} style={style}>
+              className={clsx(className, styles.codeBlock, 'thin-scrollbar')}
+              style={style}>
+              <code className={styles.codeBlockLines}>
                 {tokens.map((line, i) => {
-                  if (line.length === 1 && line[0].content === '') {
-                    line[0].content = '\n'; // eslint-disable-line no-param-reassign
+                  if (line.length === 1 && line[0].content === '\n') {
+                    line[0].content = '';
                   }
 
                   const lineProps = getLineProps({
@@ -249,12 +128,12 @@ export default function CodeBlock({
                     key: i,
                   });
 
-                  if (highlightLines.includes(i + 1)) {
-                    lineProps.className = `${lineProps.className} docusaurus-highlight-code-line`;
+                  if (highlightLines.includes(i)) {
+                    lineProps.className += ' docusaurus-highlight-code-line';
                   }
 
                   return (
-                    <div key={i} {...lineProps}>
+                    <span key={i} {...lineProps}>
                       {line.map((token, key) => (
                         <span
                           key={key}
@@ -264,21 +143,21 @@ export default function CodeBlock({
                           })}
                         />
                       ))}
-                    </div>
+                      <br />
+                    </span>
                   );
                 })}
-              </div>
-            </div>
+              </code>
+            </pre>
 
             <button
-              ref={button}
               type="button"
               aria-label={translate({
                 id: 'theme.CodeBlock.copyButtonAriaLabel',
                 message: 'Copy code to clipboard',
                 description: 'The ARIA label for copy code blocks button',
               })}
-              className={clsx(styles.copyButton)}
+              className={clsx(styles.copyButton, 'clean-btn')}
               onClick={handleCopyCode}>
               {showCopied ? (
                 <Translate

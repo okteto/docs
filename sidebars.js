@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
- module.exports = {
+module.exports = {
   docs: {
     'Welcome': [
       'welcome/overview',
@@ -13,7 +13,7 @@
     ],
     'Dev Environments': [
       'reference/development-environment',
-      'getting-started/installation',
+      'cloud/okteto-cli',
       'cloud',
       {
         "type": "category",
@@ -48,7 +48,14 @@
     ],
     'Preview Environments': [
       'cloud/preview-environments/preview-environments',
-      'cloud/preview-environments/preview-environments-github',
+      {
+        "type": "category",
+        "label": "For GitHub",
+        "items": [
+          'cloud/preview-environments/dashboard',
+          'cloud/preview-environments/preview-environments-github',
+        ]
+      },
       'cloud/preview-environments/preview-environments-gitlab',
       // 'cloud/github-actions',
     ],
@@ -101,6 +108,7 @@
       'reference/manifest',
       'reference/stacks',
       'reference/faqs',
+      'cloud/permissions',
       'reference/known-issues',
     ],
     'Tutorials': [
