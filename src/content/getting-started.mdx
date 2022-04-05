@@ -11,7 +11,7 @@ import TabItem from '@theme/TabItem';
 
 Okteto's Development Environments enable you to work directly with a deployed application and see your code changes live on the cloud as soon as you hit save.
 
-These dev environments work using a combination of Okteto Cloud, which is used to deploy your application, and Okteto CLI, which is used to attach a development container to the deployed application. This guide will walk you through how you can easily get started with using dev environments.
+These Dev environments work using a combination of [Okteto Cloud](/docs/next/cloud), which is used to deploy your application, and [Okteto CLI](/docs/next/cloud/okteto-cli), which is used to launch the Dev Environment. This guide will walk you through how you can easily get started with using Dev environments.
 
 ## Installing Okteto CLI
 
@@ -45,7 +45,7 @@ Alternatively, you can directly download the binary [from GitHub](https://github
 
 ## Configuring Okteto CLI with Okteto Cloud
 
-Okteto CLI works with any Kubernetes cluster to create dev environments. As part of this guide we'll be using a free cluster provided by Okteto Cloud. For this, the first thing you need to do is go and [log in](https://cloud.okteto.com). Once you've done that, you need to let Okteto CLI know that Okteto Cloud is where the development environment for your application will live. This is done by setting the context in Okteto CLI using:
+Okteto CLI works with any Kubernetes cluster to create dev environments. As part of this guide we'll be using a free cluster provided by Okteto Cloud. For this, the first thing you need to do is go and [log in](https://cloud.okteto.com). Once you've done that, you need to let Okteto CLI know that Okteto Cloud is where the Development Environment for your application will live. This is done by setting the context in Okteto CLI using:
 
 ```console
 $ okteto context use https://cloud.okteto.com
@@ -54,42 +54,28 @@ $ okteto context use https://cloud.okteto.com
 You have the option of creating multiple [Namespaces](/docs/cloud/namespaces) in Okteto Cloud. For this guide, we'll just use the default one, which gets created when you log in. Okteto CLI should automatically pick that Namespace up after you set the context. You can confirm this by running:
 
 ```console
-$ okteto context list                                                    ✔
+$ okteto context list
+```
+```console
 Name                        Namespace             Builder                                 Registry
 https://cloud.okteto.com *  rinkiyakedad          tcp://buildkit.cloud.okteto.net:1234    registry.cloud.okteto.net
 ```
 
 ## Getting Your Application Ready
 
-We'll be using [this] sample Movies application as part of this guide to show how you can develop your applications using Development Environments. The application consists of a React frontend and a Node.js backend API. It also contains Helm manifests which contain instructions for how to deploy it.
+For Okteto CLI to know how to launch your Development Envrionment it needs a Okteto manifest. This manifest allows you to provide configuration for your Development Envrionments. Okteto CLI will analyze any existing manifests (Helm, Kubernetes, etc.) in your source code directory and help you write an Okteto manifest for your application. The Okteto manifest is necessary in all cases except if you already have a Docker compose file configured for your applciaiton.
 
-In case you use something other than Helm to deploy your application currently, no need to worry! Okteto CLI works with almost all the common ways of deployment including docker compose manifests and Kubernetes manifests. You can read more about all supported manifests here.
-
-If you're using Helm or some other Kubernetes related manifests (list kustomize) then you'll need an Okteto Manifest at the root of your repository. The Okteto Manifest contains configuration for Okteto CLI to be able to launch your development environments. If you're using docker compose manifests to deploy your applciation then the Okteto Manifest is not necessary. You can howeveer still choose to create the Okteto Manigest if you want more control over your your dev environment is configured. In both cases the command to generate the Okteto Manifest for your application is:
+If Okteto CLI can't find the Okteto manifest for your applciation, the manifest generation step will happen automatically when we launch our development environment. You can also choose to explicity generate the Okteto manifest using: 
 
 ```console
-$ okteto manifest init
-```
-On running the above command, Okteto CLI will analyze your current deployment related manifests and create an Okteto Manigest for you. Okteto CLI tries to create the Okteto Manigest on a best-effort basis so it is recommend to take a look at the generated Manifest. It would have comments based which would help you configure the exact details for your application. 
-
-Clone the movies application and create the Okteto Manifest for it. Note that creating the manifest in this step in optional. If you choose to skip it here, it will be done automatically for you in the next part of the guide when you launch your dev envrionment. Running the above command for the movies applciation should give you the following output:
-
-```console
-$ git clone https://github.com/okteto/movies.git
-$ cd movies
-$ okteto manifest init
+$ okteto init
 ```
 
-```console
-Show Okteto CLI prompts
-```
+Note that Okteto CLI tries to create the Okteto Manigest on a best-effort basis so it is recommend to take a look at the generated Manifest. It would have comments based which would help you configure the exact details for your application. 
 
-Suppose you don't have any of the above manifests in your repository. In that case, you can either write an Okteto Manifest directly for your application using the [Manifest reference](/docs/reference/manifest), or you can add either of the above-mentioned manifests (docker-compose, Helm, etc.) and proceed from there. 
+As part of this guide, we'll be fixing a bug in our sample Movies application. The application consists of a React frontend and a Node.js backend API. We'll be using two versions of this applciation to demostrate. We'll be using two different versions of this Movies applcation - one which uses Helm chart and the other which has a Docker compose file configured.
+
 
 ## Next Steps
 
-Now that you have everything configured let's get to the fun bit of developing our application using our development environment. In the next part, we'll develop our deployed application and see our changes reflected live!
-
-## More Info
-
-[add links to more relevant areas]
+Now that you have everything configured let's get to the fun bit of developing our application using our development environment. In the next part, we'll launch our Development Environment and fix a bug in the movies applciation!
