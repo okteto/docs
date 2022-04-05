@@ -86,7 +86,7 @@
         ]
       }, {
         "type": "category",
-        "label": "Guides",
+        "label": "Cloud Provider Guides",
         "items": [
           'enterprise/cloud-provider-guides',
           'enterprise/eks',
