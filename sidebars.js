@@ -95,7 +95,6 @@ module.exports = {
         "type": "category",
         "label": "Cloud Provider Guides",
         "items": [
-          'enterprise/cloud-provider-guides',
           'enterprise/eks',
           'enterprise/aks',
           'enterprise/gke',
