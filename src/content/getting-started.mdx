@@ -1,7 +1,7 @@
 ---
-title: Getting Started on Okteto Cloud in 5 minutes 
-description: Develop your Kubernetes applications in Okteto Cloud and forget about slow and tedious local development forever
-sidebar_label: Quick Start Guide
+title: Install and Configure 
+description: In this guide, we'll go over all the set up you need to do in order to get started with using development envrionments.
+sidebar_label: Install and Configure
 id: getting-started
 ---
 
@@ -9,184 +9,87 @@ import Image from '@theme/Image';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-[Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) gives instant access to secure Kubernetes namespaces to enable developers to code, build, and run Kubernetes applications entirely in the cloud.
+Okteto's Development Environments enable you to work directly with a deployed application and see your code changes live on the cloud as soon as you hit save.
 
-This tutorial will show you how to create an account in Okteto Cloud and how to develop a sample application.
+These dev environments work using a combination of Okteto Cloud, which is used to deploy your application, and Okteto CLI, which is used to attach a development container to the deployed application. This guide will walk you through how you can easily get started with using dev environments.
 
-## Step 1: Launch the Movies App
+## Installing Okteto CLI
 
-Log in to [Okteto Cloud](https://cloud.okteto.com), and click on the **Launch Dev Environment** button on the top left. A dialog will open with different options to launch your new environment. Make sure that "**Git URL**" is selected as the source.
-Type the one for the Movies App repository (https://github.com/okteto/movies), pick a branch, and click **Launch**:
+Install the Okteto CLI following these steps:
 
-<p align="center"><Image src="/docs/images/deploy.png" alt="Launch a development environment with Okteto Cloud" width="600" /></p>
-
-The [Movies App](https://github.com/okteto/movies) is a simple web app composed of: a React frontend, a Node.js api, and a mongodb database.
-When you launch a dev environment for the Movies App repository, Okteto Cloud will run the deploy pipeline defined by the `okteto-pipeline.yml` of the repository.
-In this case, the pipeline deploys the chart of the Movies App with Helm.
-
-> Check the [docs](/docs/cloud/okteto-pipeline/) to learn more about how to configure your `okteto-pipeline.yml` file.
-
-At this point, your application is deploying. It will be ready to go once its components reach the `Running` state.
-
-<p align="center"><Image src="/docs/images/ui-cloud.png" alt="Okteto Cloud UI" width="850" /></p>
-
-The Okteto Cloud dashboard is designed to be developer friendly. It gives you instant feedback about your applications logs, errors, metrics, and more.
-
-Now click on the application's endpoint of the frontend component to access the Movies App. You should see something like this:
-
-<p align="center"><Image src="/docs/images/ui-movies.png" alt="UI showing the movies app" width="850" /></p>
-
-Cool no 😎? But ooh... seems like we have a bug in our application. The list of *Movies* and the list of *Continue watching for Cindy* are the same. Let's work on a fix now!
-
-## Step 2: Install the Okteto CLI
-
-Okteto provides a local development experience for Kubernetes applications. You code locally in your favorite IDE and Okteto automatically updates your application running in Kubernetes in seconds. No commit, build, push, or deploy required.
-
->The Okteto CLI is open source, and the code is available at [GitHub](https://github.com/okteto/okteto). It's a client-side only tool that works in any Kubernetes cluster. Check it out and star it to show your support 🤗!
-
-If you haven't done it yet, install the Okteto CLI:
-
-<Tabs
-  defaultValue="mac-linux"
-  values={[
-    { label: 'MacOS / Linux', value: 'mac-linux', },
-    { label: 'Windows', value: 'windows', },
-  ]}
->
-<TabItem value="mac-linux">
+### MacOS / Linux
 
 ```console
 $ curl https://get.okteto.com -sSfL | sh
 ```
 
-</TabItem>
-<TabItem value="windows">
+You can also install via [brew](https://brew.sh/) by running:
+
+```console
+$ brew install okteto
+```
+
+### Windows
 
 Download https://downloads.okteto.com/cli/okteto.exe and add it to your `$PATH`.
 
-</TabItem>
-</Tabs>
+You can also install via [scoop](https://scoop.sh/) by running:
 
-More installation options are documented [here](/docs/cloud/okteto-cli/).
+```console
+$ scoop install okteto
+```
 
-## Step 3: Configure access to your Okteto Cloud namespace
+### GitHub
 
-The Okteto CLI can download your Kubernetes credentials from Okteto Cloud. To do this, you just need to run the context command:
+Alternatively, you can directly download the binary [from GitHub](https://github.com/okteto/okteto/releases) or build it directly from the source code.
+
+## Configuring Okteto CLI with Okteto Cloud
+
+Okteto CLI works with any Kubernetes cluster to create dev environments. As part of this guide we'll be using a free cluster provided by Okteto Cloud. For this, the first thing you need to do is go and [log in](https://cloud.okteto.com). Once you've done that, you need to let Okteto CLI know that Okteto Cloud is where the development environment for your application will live. This is done by setting the context in Okteto CLI using:
 
 ```console
 $ okteto context use https://cloud.okteto.com
 ```
 
+You have the option of creating multiple [Namespaces](/docs/cloud/namespaces) in Okteto Cloud. For this guide, we'll just use the default one, which gets created when you log in. Okteto CLI should automatically pick that Namespace up after you set the context. You can confirm this by running:
+
 ```console
- ✓  Using context cindy @ cloud.okteto.com
- i  Run 'okteto kubeconfig' to set your kubectl credentials
+$ okteto context list                                                    ✔
+Name                        Namespace             Builder                                 Registry
+https://cloud.okteto.com *  rinkiyakedad          tcp://buildkit.cloud.okteto.net:1234    registry.cloud.okteto.net
 ```
 
-The `okteto context` configures the default context for any Okteto CLI command.
-If you're not logged into Okteto Cloud yet, it also runs the login sequence.
+## Getting Your Application Ready
 
-## Step 4: Activate your development container
+We'll be using [this] sample Movies application as part of this guide to show how you can develop your applications using Development Environments. The application consists of a React frontend and a Node.js backend API. It also contains Helm manifests which contain instructions for how to deploy it.
 
-Clone the repo with the source code of the Movies App:
+In case you use something other than Helm to deploy your application currently, no need to worry! Okteto CLI works with almost all the common ways of deployment including docker compose manifests and Kubernetes manifests. You can read more about all supported manifests here.
+
+If you're using Helm or some other Kubernetes related manifests (list kustomize) then you'll need an Okteto Manifest at the root of your repository. The Okteto Manifest contains configuration for Okteto CLI to be able to launch your development environments. If you're using docker compose manifests to deploy your applciation then the Okteto Manifest is not necessary. You can howeveer still choose to create the Okteto Manigest if you want more control over your your dev environment is configured. In both cases the command to generate the Okteto Manifest for your application is:
 
 ```console
-$ git clone https://github.com/okteto/movies
+$ okteto manifest init
+```
+On running the above command, Okteto CLI will analyze your current deployment related manifests and create an Okteto Manigest for you. Okteto CLI tries to create the Okteto Manigest on a best-effort basis so it is recommend to take a look at the generated Manifest. It would have comments based which would help you configure the exact details for your application. 
+
+Clone the movies application and create the Okteto Manifest for it. Note that creating the manifest in this step in optional. If you choose to skip it here, it will be done automatically for you in the next part of the guide when you launch your dev envrionment. Running the above command for the movies applciation should give you the following output:
+
+```console
+$ git clone https://github.com/okteto/movies.git
 $ cd movies
-```
-
-And activate your development container to develop on the api component:
-
-```console
-$ cd api
-$ okteto up
+$ okteto manifest init
 ```
 
 ```console
- i  Using cindy @ cloud.okteto.com as context
- ✓  Images successfully pulled
- ✓  Files synchronized
-    Namespace: cindy
-    Name:      api
-    Forward:   8080 -> 8080
-               9229 -> 9229
-
-Welcome to your development container. Happy coding!
-cindy:api src>
+Show Okteto CLI prompts
 ```
 
-The `okteto up` command starts a [development container](/docs/reference/development-environment/) in Okteto Cloud, which means:
+Suppose you don't have any of the above manifests in your repository. In that case, you can either write an Okteto Manifest directly for your application using the [Manifest reference](/docs/reference/manifest), or you can add either of the above-mentioned manifests (docker-compose, Helm, etc.) and proceed from there. 
 
-- A [file synchronization service](/docs/reference/file-synchronization/) is created to keep your changes up-to-date between your local filesystem and your development container
-- Container ports 8080 (the application) and 9229 (the debugger) are forwarded to localhost
-- A remote shell is started in your development container. Build, test and run your application as if you were in your local machine.
+## Next Steps
 
-> All of this (and more) can be customized via the `okteto.yml` [manifest file](/docs/reference/manifest/), which lives side by side with the application source code. Use the `.stignore` file to avoid synchronizing build artifacts, git metadata, or dependencies like `node_modules`.
+Now that you have everything configured let's get to the fun bit of developing our application using our development environment. In the next part, we'll develop our deployed application and see our changes reflected live!
 
-Your development container inherits all the Kubernetes configuration of the original api deployment.
-For example, the development container receives the database password via an environment variable.
-To check it out, execute the following command in the development container shell:
+## More Info
 
-```console
-cindy:api src> env | grep MONGODB_PASSWORD
-```
-
-```console
-MONGODB_PASSWORD=Password!1@2
-```
-
-Start the api service by executing the command below in the development container shell:
-
-```console
-cindy:api src> yarn start
-```
-
-```console
-yarn run v1.19.1
-$ nodemon server.js
-[nodemon] 1.19.2
-[nodemon] to restart at any time, enter `rs`
-[nodemon] watching dir(s): *.*
-[nodemon] starting `node server.js`
-Server running on port 8080.
-```
-
-Go back to the browser and reload the Movies App. Check your development container shell and see how the traffic now goes through your development container:
-
-```console
-Server running on port 8080.
-GET /api/movies
-GET /api/watching
-```
-
-## Step 5: Development time!
-
-Let's fix the bug of the Movies App.
-Open the `server.js` file in your favorite local IDE and modify line 43 to query the `watching` collection instead of `movies`:
-
-```javascript
-  db.collection('watching').find().toArray( (err, results) =>{
-```
-
-Save your changes. Okteto will automatically synchronize your changes to your development container. Take a look at the development container shell and notice how the changes are detected by `nodemon` and automatically hot reloaded.
-
-```console
-[nodemon] restarting due to changes...
-[nodemon] starting `node server.js`
-Server running on port 8080.
-```
-
-Go back to the browser and reload the Movies App. Your code fixes were instantly applied! No commit, build, or push required 😎.
-
-## Next steps
-
-Congratulations, you just developed **your first application in Okteto Cloud** 🚀.
-
-> Okteto lets you develop your applications directly in Kubernetes. This way you can:
-> - Eliminate integration issues by developing in a realistic environment
-> - Test your application end to end as fast as you type code
-> - No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
-
-Ready to develop your application on Okteto Cloud? Read our [step by step tutorial](/docs/tutorials/getting-started-with-pipelines/) on how to configure an Okteto Pipeline to deploy realistic environments for your application in just one click.
-
-Head over to our samples for [Go](/docs/samples/golang/), [ASP.NET](/docs/samples/aspnetcore), [Java](/docs/samples/java/), [Node.js](/docs/samples/node), [PHP](/docs/samples/php/), [Python](/docs/samples/python/), or [Ruby](/docs/samples/ruby/) to see how to use Okteto to live-update your application with different programming languages and **debuggers**.
-
+[add links to more relevant areas]
