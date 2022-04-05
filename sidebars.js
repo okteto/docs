@@ -84,7 +84,17 @@
           },
           'enterprise/administration/volume-snapshots',
         ]
-      },
+      }, {
+        "type": "category",
+        "label": "Guides",
+        "items": [
+          'enterprise/cloud-provider-guides',
+          'enterprise/eks',
+          'enterprise/aks',
+          'enterprise/gke',
+          'enterprise/do',
+        ]
+      }
     ],
     'References': [
       'reference/cli',
