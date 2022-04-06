@@ -10,52 +10,99 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 
-We set up everything in the [previous section](/docs/getting-started) of the getting started guide. In this section, let's do the fun bits of developing our application in a development environment. We will continue using the Movies app we talked about in the previous section, but feel free to use any other application after you've [configured it](/docs/getting-started/#getting-your-application-ready).
+We set up everything in the [previous section](/docs/next/getting-started) of the getting started guide. In this section, let's do the fun bits of developing our application in a Development Environment. We will continue using the Movies app we talked about in the [previous section](/docs/next/getting-started/#getting-your-application-ready), but feel free to use any other application after you've [configured it](/docs/getting-started/#getting-your-application-ready).
 
 ## One Command To Rule Them All
 
 Run the follwing command to launch your development envrionment:
 
-```console
-$ cd movies
-$ okteto up
-```
-
-Based on whether you're using the Helm version of the Movies app or the Docker compose one, you'll see differnet prompts:
+Based on whether you're using the [Helm version](https://github.com/okteto/movies-with-helm) of the Movies app or the [Docker compose one](https://github.com/okteto/movies-with-compose), you'll have differnet steps to take:
 
 <Tabs>
-  <TabItem value="helm" label="Movies app with Helm" default>
-    Since we don't already have an Okteto manifest, the manifest generation will happen as part of this step. Okteto CLI will ask you before generating the manifest:
+   <TabItem value="docker" label="Movies app with Docker compose file">
+
+     ```console
+     $ git clone https://github.com/okteto/movies-with-compose
+$ cd movies-with-compose
+```
+```console
+$ okteto up
+```
+    Since we already have a Docker compose file, generating the [Okteto manifest](/docs/next/cloud/okteto-cli/#okteto-manifest) isn't compulsary. You can still choose to do that by running `okteto init` before this step if you want more configuration. Unlike the Helm version, for this one, on running `okteto up` you should directly see a prompt asking you which one of your microserices you want to develop:
+  
+    ```console
+     ✓  Development container 'api' configured successfully
+     ✓  Development container 'frontend' configured successfully
+        Select the development container you want to activate:
+        Use the arrow keys to navigate: ↓ ↑ → ←
+      ▸ api
+        frontend
+    ```
+
+    Let's go with `api` because we know there's a bug there we need to fix 🙂
+
+    Once you do that you should see Okteto CLI building the required Docker images for your microserices. When it is done building the images, it will start deploying your application to Okteto Cloud. You should see the deployed endpoints as part of the output in the CLI:
 
     ```console
-     i  Using rinkiyakedad @ cloud.okteto.com as context
+    Success! Your application will be available shortly.
+    i  Endpoints available:
+     - https://movies-with-helm-cindylopez.cloud.okteto.net/
+     - https://movies-with-helm-cindylopez.cloud.okteto.net/api
+    ```
+
+    You should be able to view your applcation when you visit these endpoints. These endpoints are also shown in the Okteto Cloud dashboard:
+
+    <p align="center">
+    <Image
+        src="/docs/images/endpoints.png"
+        alt="UI showing the movies app"
+        width="850"
+    />
+    </p>
+
+  </TabItem>
+
+  <TabItem value="helm" label="Movies app with Helm" default>
+
+    ```console
+     $ git clone https://github.com/okteto/movies-with-helm
+$ cd movies-with-helm
+```
+```console
+$ okteto up
+```
+    Since we don't already have an [Okteto manifest](/docs/next/cloud/okteto-cli/#okteto-manifest), the manifest generation will happen as part of this step. Okteto CLI will ask you before generating the manifest:
+
+    ```console
+     i  Using cindylopez @ cloud.okteto.com as context
      !  okteto manifest has no 'dev' section.
      ?  Do you want to configure okteto manifest now? [y/n]
     ```
     Press `y` to continue.
 
     In case your application images aren't already built, you'll also have the option to that as part of this step:
+
     ```console
     ? Do you need to build any of the following Dockerfiles as part of your development environment?:
     ▸ api/Dockerfile
       frontend/Dockerfile
       No, thanks!
     ```
-    The images for the Movies app haven't already been built so let's select with "api/Dockerfile" first and then "frontend/Dockerfile".
+    The images for the Movies app haven't already been built so let's select `api/Dockerfile` first and then `frontend/Dockerfile`.
 
     Once Okteto CLI is done building the images for you, it will start deploying your application to Okteto Cloud. You should see the deployed endpoints as part of the output in the CLI:
 
     ```console
     Success! Your application will be available shortly.
     i  Endpoints available:
-     - https://movies-with-helm-rinkiyakedad.cloud.okteto.net/
-     - https://movies-with-helm-rinkiyakedad.cloud.okteto.net/api
+     - https://movies-with-helm-cindylopez.cloud.okteto.net/
+     - https://movies-with-helm-cindylopez.cloud.okteto.net/api
     ```
 
     You should be able to view your applcation when you visit these endpoints. These endpoints are also shown in the Okteto Cloud dashboard:
     <p align="center">
     <Image
-        src="/docs/images/endpoints.png"
+        src="/versioned_docs/version-next/endpoints.png"
         alt="UI showing the movies app"
         width="850"
     />
@@ -73,152 +120,49 @@ Based on whether you're using the Helm version of the Movies app or the Docker c
         frontend
     ```
 
-    Let's go with `frontend` because we know there's a bug there we need to fix 🙂
+    Let's go with `api` because we know there's a bug there we need to fix 🙂
 
     ```console
  ✓  Development container 'frontend' selected
  ✓  Images successfully pulled
  ✓  Files synchronized
     Context:   cloud.okteto.com
-    Namespace: rinkiyakedad
+    Namespace: cindylopez
     Name:      frontend
     Forward:   8080 -> 80
                9229 -> 9229
 
 Welcome to your development container. Happy coding!
-rinkiyakedad:frontend app>
+cindylopez:api app>
 ```
 
-Once the dev environment is up, we need to start our application as if we would if we were developing on a local machine (excpet we're actually leveraging cloud resources!). For the Movies app we chose, this can be done using:
-
-```console
-cindy:api src> yarn install
-```
-
-```console
-yarn install v1.22.15
-[1/4] Resolving packages...
-[2/4] Fetching packages...
-info fsevents@1.2.13: The platform "linux" is incompatible with this module.
-info "fsevents@1.2.13" is an optional dependency and failed compatibility check. Excluding it from installation.
-[3/4] Linking dependencies...
-warning " > react-dom@17.0.1" has incorrect peer dependency "react@17.0.1".
-warning "webpack-dev-server > webpack-dev-middleware@3.7.2" has incorrect peer dependency "webpack@^4.0.0".
-[4/4] Building fresh packages...
-warning Your current version of Yarn is out of date. The latest version is "1.22.18", while you're on "1.22.15".
-info To upgrade, run the following command:
-$ curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
-Done in 35.05s.
-```
+Once the dev environment is up, we need to start our application as if we would if we were developing on a local machine (excpet we're actually leveraging cloud resources!). For the Movies app we chose, this can be done by running:
 
 ``console
-rinkiyakedad:frontend app> yarn start
+cindylopez:api app> yarn start
 ```
 
-```console
-yarn run v1.22.15
-$ yarn devel
-$ webpack serve
-ℹ ｢wds｣: Project is running at http://0.0.0.0:80/
-ℹ ｢wds｣: webpack output is served from undefined
-ℹ ｢wds｣: Content not from webpack is served from /usr/src/app
-Browserslist: caniuse-lite is outdated. Please run:
-npx browserslist@latest --update-db
-
-Why you should do it regularly:
-https://github.com/browserslist/browserslist#browsers-data-updating
-ℹ ｢wdm｣: assets by info 1.88 MiB [immutable]
-  asset app.b8919c0ce56ddcbe02b3.js 1.6 MiB [emitted] [immutable] (name: main)
-  asset 6a651e406cc20da9645276d70ab7d728.jpg 181 KiB [emitted] [immutable] (auxiliary name: main)
-  asset 0d01325a455e6f2344359a91f0434eb1.jpg 95.9 KiB [emitted] [immutable] (auxiliary name: main)
-asset favicon.png 2.59 KiB [emitted]
-asset index.html 353 bytes [emitted]
-runtime modules 25.9 KiB 16 modules
-modules by path ./node_modules/ 1.42 MiB 42 modules
-modules by path ./src/ 22.2 KiB
-  modules by path ./src/*.css 9.93 KiB
-    ./src/index.css 1.1 KiB [built] [code generated]
-    ./src/App.css 1.09 KiB [built] [code generated]
-    ./node_modules/css-loader/dist/cjs.js!./src/index.css 1.2 KiB [built] [code generated]
-    ./node_modules/css-loader/dist/cjs.js!./src/App.css 6.54 KiB [built] [code generated]
-  modules by path ./src/*.jsx 12.1 KiB
-    ./src/index.jsx 1.02 KiB [built] [code generated]
-    ./src/App.jsx 11.1 KiB [built] [code generated]
-  modules by path ./src/assets/images/*.jpg 160 bytes
-    ./src/assets/images/user.jpg 80 bytes [built] [code generated]
-    ./src/assets/images/movie-bg.jpg 80 bytes [built] [code generated]
-webpack 5.1.3 compiled successfully in 6252 ms
-ℹ ｢wdm｣: Compiled successfully.
-ℹ ｢wdm｣: Compiling...
-ℹ ｢wdm｣: assets by status 277 KiB [cached] 2 assets
-assets by status 1.6 MiB [emitted]
-  assets by info 1.6 MiB [immutable]
-    asset app.8573dfa6c5f46e634f10.js 1.6 MiB [emitted] [immutable] (name: main)
-    asset main.e9eb56c8e53dbefbe3ec.hot-update.js 870 bytes [emitted] [immutable] [hmr] (name: main)
-    asset e9eb56c8e53dbefbe3ec.hot-update.json 28 bytes [emitted] [immutable] [hmr]
-  asset favicon.png 2.59 KiB [emitted]
-  asset index.html 353 bytes [emitted]
-Entrypoint main 1.6 MiB (277 KiB) = app.8573dfa6c5f46e634f10.js 1.6 MiB main.e9eb56c8e53dbefbe3ec.hot-update.js 870 bytes 2 auxiliary assets
-cached modules 1.45 MiB [cached] 64 modules
-runtime modules 25.9 KiB 16 modules
-webpack 5.1.3 compiled successfully in 484 ms
-ℹ ｢wdm｣: Compiled successfully.
-```
-
-Once you do this you should see your application back up on the endpoints!
+Once you do this you should see the movie thubmnails back again on the frontend endpoint!
 
   </TabItem>
-  <TabItem value="docker" label="Movies app with Docker compose file">
-    Since we already have a Docker compose file, generating the Okteto manifest isn't compulsary. You can still choose to do that by running `okteto init` before this step if you want more configuration. Unlike the Helm version, for this one on running `okteto up` you should directly see a prompt asking you which one of your microserices you want to develop.
-  
-    ```console
-     ✓  Development container 'api' configured successfully
-     ✓  Development container 'frontend' configured successfully
-     ✓  Okteto manifest (okteto.yml) configured successfully
-        Select the development container you want to activate:
-        Use the arrow keys to navigate: ↓ ↑ → ←
-      ▸ api
-        frontend
-    ```
-
-    Let's go with `frontend` because we know there's a bug there we need to fix 🙂
-
-    Once you do that you should see Okteto CLI building the required Docker images for your microserices. When it is done building the images, it will start deploying your application to Okteto Cloud. You should see the deployed endpoints as part of the output in the CLI:
-
-    ```console
-    Success! Your application will be available shortly.
-    i  Endpoints available:
-     - https://movies-with-helm-rinkiyakedad.cloud.okteto.net/
-     - https://movies-with-helm-rinkiyakedad.cloud.okteto.net/api
-    ```
-
-    You should be able to view your applcation when you visit these endpoints. These endpoints are also shown in the Okteto Cloud dashboard:
-    <p align="center">
-    <Image
-        src="/docs/images/endpoints.png"
-        alt="UI showing the movies app"
-        width="850"
-    />
-    </p>
-
-  </TabItem>
+ 
 </Tabs>
 
 The next time you run `okteto up`, you'll not see all the steps realted to the initial setup and will be directly prompted to choose which microserice you want to develop.
 
 Behind the scenes this Dev Environment relies on a development container that replaces the container running in the deployed instance of your application.
 
-A file synchronization service is started to keep the changes you make to your code locally up-to-date with your development container. Once your dev container has started, a remote shell is launched for you - this means you can now develop and test your deployed application exactly as if it were on your local machine!
+A file synchronization service is started to keep the changes you make to your code locally up-to-date with your development container. Once your dev container has started, a remote shell is launched for you - this means you can now develop and test your deployed application exactly as if it were on your local machine! (except it's not!)
 
 
 
 ## Development Time!
 
-Looking at the Movies app we've been using, something doesn't look right here, does it?
+Looking at the frotnend endpoint for the Movies app, something doesn't look right here, does it?
 
 <p align="center">
   <Image
-    src="/docs/images/ui-movies.png"
+    src="/versioned_docs/version-next/images/ui-movies.png"
     alt="UI showing the movies app"
     width="850"
   />
@@ -242,11 +186,10 @@ Server running on port 8080.
 
 See the magic?
 
-//TODO: REPLACE WITH FIXED IMAGE
 
 <p align="center">
   <Image
-    src="/docs/images/ui-movies.png"
+    src="/versioned_docs/version-next/ui-movies-fixed.png"
     alt="UI showing the movies app"
     width="850"
   />
