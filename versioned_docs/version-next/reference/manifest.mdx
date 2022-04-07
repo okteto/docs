@@ -56,6 +56,8 @@ Each image supports the following fields:
 - `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`)
 - `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on.
+- `export_cache`: image tag for exported cache when build.
+- `cache_from`: list of images to import cache from.
 
 In order to refer to these images from anywhere in your [Okteto Manifest](/docs/next/cloud/okteto-cli/#okteto-manifest), you can use the following environment variables:
 
@@ -64,14 +66,13 @@ In order to refer to these images from anywhere in your [Okteto Manifest](/docs/
 - `${OKTETO_BUILD_<service>_REPOSITORY}`: the name of the image that was pushed (`namespace/_<service>`)
 - `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference (using its SHA)
 
-
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
 
 ### context (string, optional)
 
 The okteto context when the development environment is deployed. By default, it uses the current okteto context.
 
-For example, to force that your development environment is always created on your *minikube* context, you can define:
+For example, to force that your development environment is always created on your _minikube_ context, you can define:
 
 ```yaml
 context: minikube
@@ -197,13 +198,13 @@ Affinity allows you to constrain which nodes your development container is eligi
 affinity:
   podAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
-    - labelSelector:
-        matchExpressions:
-        - key: role
-          operator: In
-          values:
-          - web-server
-      topologyKey: kubernetes.io/hostname
+      - labelSelector:
+          matchExpressions:
+            - key: role
+              operator: In
+              values:
+                - web-server
+        topologyKey: kubernetes.io/hostname
 ```
 
 More information about affinity is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity).
@@ -239,7 +240,7 @@ Environment variables with only a key, or with a value with a `$` sign resolve t
 ```yaml
 environment:
   environment: development
-  name: user-${USER:peter}  ## will be replaced by the value of $USER or by "peter" if the the variable USER doe not exist
+  name: user-${USER:peter} ## will be replaced by the value of $USER or by "peter" if the the variable USER doe not exist
   DBPASSWORD: ## will be given the value of $DBPASSWORD if it exists
 ```
 
@@ -252,6 +253,7 @@ envFiles:
   - .env1
   - .env2
 ```
+
 Environment variables declared in the environment section override these values.
 
 #### externalVolumes ([string], optional)
@@ -302,12 +304,11 @@ Once your development container is up and running, you will be able to access th
 
 > Common uses of port forwarding are:
 >
->1. Access a service via `localhost` instead of via an ingress
->1. Remote debugging
->1. Connect to a hot reloader via a websocket
+> 1.  Access a service via `localhost` instead of via an ingress
+> 1.  Remote debugging
+> 1.  Connect to a hot reloader via a websocket
 
 If Okteto can't forward a port (typically because they are already taken), the `okteto up` command will fail with an error.
-
 
 #### initContainer (object, optional)
 
@@ -390,14 +391,13 @@ nodeSelector:
 
 More information about nodeSelector is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
-
 #### persistentVolume (object, optional)
 
 Allows you to configure the okteto persistent volume:
 
 - `enabled`: enable/disable the use of persistent volumes (default: `true`)
-- `storageClass`:  the storage class of the volume (default: the `default` storage class)
-- `size`:  the size of the okteto persistent volume (default: `2Gi`)
+- `storageClass`: the storage class of the volume (default: the `default` storage class)
+- `size`: the size of the okteto persistent volume (default: `2Gi`)
 
 ```yaml
 persistentVolume:
@@ -471,8 +471,8 @@ Once your development container is up and running, any requests to `0.0.0.0:remo
 
 > Common uses of reverse forwarding are:
 >
->1. Remote debugging
->1. Send events or logs to your local machine
+> 1.  Remote debugging
+> 1.  Send events or logs to your local machine
 
 If Okteto can't reverse forward a port (typically because they're already taken), the `okteto up` command will fail with an error.
 
@@ -500,12 +500,12 @@ securityContext:
   fsGroup: 3000
   capabilities:
     add:
-    - SYS_PTRACE
+      - SYS_PTRACE
 ```
 
 > Non-root Containers:
 >
->  If you're using a non-root container, and the runAsUser and runAsGroup values are not specified in your Kubernetes manifest, you need to set these values in your Okteto manifest. Remember to use the numeric ID in all cases, not the human readable name.
+> If you're using a non-root container, and the runAsUser and runAsGroup values are not specified in your Kubernetes manifest, you need to set these values in your Okteto manifest. Remember to use the numeric ID in all cases, not the human readable name.
 
 #### selector (map[string]string, optional)
 
@@ -514,7 +514,7 @@ They must identify a single Kubernetes deployment/statefulset.
 
 ```yaml
 selector:
-   app.kubernetes.io/name: vote
+  app.kubernetes.io/name: vote
 ```
 
 #### sync ([string], required)
