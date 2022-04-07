@@ -13,7 +13,7 @@ module.exports = {
     ],
     'Dev Environments': [
       'reference/development-environment',
-      'getting-started/installation',
+      'cloud/okteto-cli',
       'cloud',
       {
         "type": "category",

@@ -293,6 +293,10 @@ The build service. It's used in combination with `okteto build` to build contain
 - `labels`: Labels to add to the buildkit pods.
 - `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
 - `replicaCount`: The number of buildkit pods. It defaults to 1.
+- `hpa.enabled`: If the Buildkit [HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) is enabled. Defaults to `false`.
+- `hpa.min`: Minimum number of buildkit replicas. Defaults to 1.
+- `hpa.max`: Maximum number of buildkit replicas. Defaults to 2.
+- `hpa.cpu`: Percentage of the total buildkit `resources.requests.cpu` to consider a buildkit replica as overloaded. Defaults to 50%.
 - `resources`: The resources for the buildkit pods.
 - `storage.class`: The storage class of the volume attached to every buildkit pod to persist the buildkit cache.
 - `storage.size`: The size of the volume attached to every buildkit pod to persist the buildkit cache.
@@ -438,6 +442,24 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 ## Advanced Configuration
 
+### affinities
+
+Apply default affinities to pods deployed in namespaces created by Okteto.
+
+```yaml
+affinities:
+  devPool:
+    - weight: 10
+      preference:
+        matchExpressions:
+        - key: cloud.google.com/gke-preemptible
+          operator: In
+          values:
+          - "true"
+```
+
+In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptible nodes.
+
 ### applications
 
 - `repository`: The default [application repository](/docs/tutorials/repos/) for every Okteto Enterprise user. It defaults to `https://apps.okteto.com` when not specified.
@@ -449,7 +471,7 @@ applications:
 
 ### clusterRole
 
-The role Okteto assigns to every user. If empty, Okteto will create a default role.
+The namespace-scoped cluster role Okteto assigns to every user. Defaults to `cluster-admin`
 
 ```yaml
 clusterRole: "role name"
@@ -637,6 +659,17 @@ maxTerminationGracePeriodSeconds:
    enabled: true
    limit: 30
 
+### userPodAffinity
+
+Enable `userPodAffinity` to add an [inter-pod affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity) between the pods created by each user. 
+Defaults to `false`.
+
+
+```yaml
+userPodAffinity:
+  enabled: true
+```
+
 
 ### quickstarts
 
@@ -683,6 +716,8 @@ Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-qu
   - `maxPVCs`: Maximum number of persistent volume claims per namespace.
   - `maxVolumeSnapshots`: Maximum number of volume snapshots per namespace.
   - `maxIngresses`: Maximum number of ingresses per namespace
+  - `maxJobs`: Maximum number of jobs per namespace
+  - `maxCronjobs`: Maximum number of cronjobs per namespace
 - `bandwidth`: Limits the incoming/outcoming bandwidth per pod. Requires using the Okteto [NGINX Ingress Controller](/docs/enterprise/administration/configuration/#nginx-ingress).
   - `ingress`: Maximum ingress bandwidth.
   - `egress`: Maximum egress bandwidth.

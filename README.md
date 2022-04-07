@@ -1,36 +1,38 @@
-# Website
+# Okteto.com/docs
 
-This website is built using [Docusaurus 2](https://v2.docusaurus.io/), a modern static website generator.
+[![Netlify Status](https://api.netlify.com/api/v1/badges/9727b18a-8038-4a4e-91ff-95315bf76ead/deploy-status)](https://app.netlify.com/sites/okteto-docs/deploys)
 
-### Installation
+Okteto's docs site uses [Docusaurus 2](https://v2.docusaurus.io/) and is hosted on [Netlify](https://www.netlify.com/)
 
-yarn installation depends on "node" install (with brew for example: [Homebrew yarn](https://formulae.brew.sh/formula/yarn))
-You will need to have python3 installed too. 
 
-```
-$ yarn
-```
+## Setup for development
 
-### Local Development
+Clone the repo and then run: 
 
-```
-$ yarn start
+```console
+yarn
+yarn start
 ```
 
-This command starts a local development server and open up a browser window. Most changes are reflected live without having to restart the server.
+## Ejected components
 
-### Build
+Even if we try to never eject components to facilitate updating Docusaurus, sometime we need to do it to add custom functionalities. Here’s a list of component we ejected and the reasons why:
 
-```
-$ yarn build
-```
+<details>
+  <summary>CodeBlock</summary>
+<ul>
+<li>Add the ability to filter out `$` in code blocks when using the copy to clipboard button https://github.com/okteto/docs/blob/main/src/theme/CodeBlock/index.js#L83-L84</li>
+  </ul>
+</details>
+<details>
+  <summary>DocPaginator</summary>
+<ul>
+<li>Add our custom Give Feedback component before the pagination
+https://github.com/okteto/docs/blob/main/src/theme/DocPaginator/index.js#L10-L12</li>
+  </ul>
+</details>
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+## Other repos maintained by the Marketing team
 
-### Deployment
-
-```
-$ GIT_USER=<Your GitHub username> USE_SSH=true yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+- https://github.com/okteto/website
+- https://github.com/okteto/website-cms

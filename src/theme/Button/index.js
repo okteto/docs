@@ -1,16 +1,20 @@
 import React from 'react';
+import SpinnerIcon from "../../icons/SpinnerIcon"
 
 import './styles.scss';
 
-const Button = ({ children, role, to, external, className, onClick, size }) => {
+const Button = ({ children, role, to, external, className, onClick, size, hidden, type, loading }) => {
   if (role === 'button') {
     return (
-      <div
+      <button
         onClick={onClick}
         className={`Button ${className || ''} layout ${size || ''}`}
+        hidden={hidden}
+        type={type || "button"}
       >
         { children }
-      </div>
+        {loading && <SpinnerIcon />}
+      </button>
     );
   } else {
     return <a
