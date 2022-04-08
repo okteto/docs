@@ -76,6 +76,8 @@ It can also be an object with these fields:
 - `dockerfile`: the path to the Dockerfile. It is a relative path to the build context (default: `Dockerfile`)
 - `target`: build the specified stage as defined inside the Dockerfile. See the multi-stage build [Docker official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on, which can be helpful for secret or machine-specific values.
+- `export_cache`: image tag for exported cache when build.
+- `cache_from`: list of images to import cache from.
 
 ```yaml
 build:
@@ -130,7 +132,6 @@ Specify the conditions that the declared services must meet in order for the ser
 - `service_started`: Wait until the service is running.
 - `service_healthy`: Wait for one of the ports of the dependent service to be available.
 - `service_completed_successfully`: Wait until the dependent service has been successfully completed.
-
 
 ```yaml
 depends_on:
@@ -232,29 +233,29 @@ In you need need to configure HTTPS routes, use [endpoints](/docs/next/reference
 
 The following ports are never made public:
 
-| Protocol  | Port  |
-|---|---|
-| MySQL  | 3306 |
-| OracleDB  | 1521,1830 |
-| PostgreSQL   | 5432 |
-| SQL Server   | 1433,1434 |
-| MaxDB  | 7210  |
-| Neo4j  |  7473 |
-| ArangoDB  |  8529  |
-| Cassandra  | 7000,7001,9042  |
-| InfluxDB |  8086 |
-| Elasticsearch | 9200,9300 |
-| CouchDB  | 5984 |
-| MongoDB | 27017,27018,27019,28017 |
-| Redis |  6379 |
-| Riak | 8087,8088 |
-| RethinkDB | 828015,29015,28015 |
-| Solr | 7574,8983 |
-| Golang debugger | 2345  |
-| Node debugger | 5858,9229 |
-| Java debugger | 5005 |
-| Ruby debugger | 1234 |
-| Python debugger | 4444,5678 |
+| Protocol        | Port                    |
+| --------------- | ----------------------- |
+| MySQL           | 3306                    |
+| OracleDB        | 1521,1830               |
+| PostgreSQL      | 5432                    |
+| SQL Server      | 1433,1434               |
+| MaxDB           | 7210                    |
+| Neo4j           | 7473                    |
+| ArangoDB        | 8529                    |
+| Cassandra       | 7000,7001,9042          |
+| InfluxDB        | 8086                    |
+| Elasticsearch   | 9200,9300               |
+| CouchDB         | 5984                    |
+| MongoDB         | 27017,27018,27019,28017 |
+| Redis           | 6379                    |
+| Riak            | 8087,8088               |
+| RethinkDB       | 828015,29015,28015      |
+| Solr            | 7574,8983               |
+| Golang debugger | 2345                    |
+| Node debugger   | 5858,9229               |
+| Java debugger   | 5005                    |
+| Ruby debugger   | 1234                    |
+| Python debugger | 4444,5678               |
 
 In you need make these ports public, you can use [endpoints](/docs/next/reference/compose/#endpoints-object-optional).
 
@@ -284,11 +285,12 @@ deploy:
 `reservations` translates to Kubernetes `requests`.
 
 #### restart (string, optional)
+
 Defines the policy that the platform will apply on container termination.
 
- - `always/unless-stopped/any`: The default restart policy. The policy always restarts the container until its removal.
- - `none/never/no`:  The policy does not restart a container under any circumstances.
- - `on-failure`: The policy restarts a container if the exit code indicates an error.
+- `always/unless-stopped/any`: The default restart policy. The policy always restarts the container until its removal.
+- `none/never/no`: The policy does not restart a container under any circumstances.
+- `on-failure`: The policy restarts a container if the exit code indicates an error.
 
 ```yaml
 deploy:
@@ -307,7 +309,6 @@ If no unit of time is given, the system will interpret the number in seconds.
 ```yaml
 stop_grace_period: 10s
 ```
-
 
 #### volumes ([string], optional)
 
@@ -348,7 +349,6 @@ volumes:
     driver_opts:
       size: 1Gi
 ```
-
 
 Each volume has the following properties:
 
@@ -419,7 +419,6 @@ When you run `okteto deploy` the `web` container uses the image `app:v1.5`.
 
 > Values in the shell take precedence over those specified in the `.env` file.
 
-
 ### extensions (object, optional)
 
 Specifies a configuration that can be used in other services using anchors.
@@ -435,8 +434,6 @@ services:
     <<: *environment
     image: okteto.dev/example
 ```
-
-
 
 ### Okteto Secrets
 
@@ -517,10 +514,10 @@ endpoints:
   labels:
     kubernetes.io/ingress.class: nginx
   rules:
-  - path: /
-    service: frontend
-    port: 3000
-  - path: /api
-    service: backend
-    port: 8080
+    - path: /
+      service: frontend
+      port: 3000
+    - path: /api
+      service: backend
+      port: 8080
 ```
