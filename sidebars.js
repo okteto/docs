@@ -72,6 +72,15 @@ module.exports = {
           'enterprise/install/troubleshooting',
           'enterprise/install/releases',
         ]
+      }, {
+        "type": "category",
+        "label": "Cloud Provider Guides",
+        "items": [
+          'enterprise/eks',
+          'enterprise/aks',
+          'enterprise/gke',
+          'enterprise/do',
+        ]
       },
       {
         "type": "category",
@@ -90,15 +99,6 @@ module.exports = {
             ]
           },
           'enterprise/administration/volume-snapshots',
-        ]
-      }, {
-        "type": "category",
-        "label": "Cloud Provider Guides",
-        "items": [
-          'enterprise/eks',
-          'enterprise/aks',
-          'enterprise/gke',
-          'enterprise/do',
         ]
       }
     ],
