@@ -136,7 +136,13 @@ There is also an extended notation to deploy Docker Compose files and [endpoints
 deploy:
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
-  compose: docker-compose.yml
+  compose: 
+    - file: docker-compose.yml
+      services:
+        - frontend
+    - file: docker-compose.dev.yml
+      services:
+        - api
   endpoints:
     - path: /
       service: frontend
@@ -146,7 +152,7 @@ deploy:
       port: 8080
 ```
 
-or:
+or a shorthand notation:
 
 ```yaml
 deploy:
