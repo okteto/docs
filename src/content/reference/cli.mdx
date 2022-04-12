@@ -1,11 +1,10 @@
 ---
-title: Okteto CLI Reference
-description: The Okteto Command Line Interface is a unified tool to manage your development containers
-sidebar_label: Okteto CLI
+title: Okteto CLI
+description: The Okteto Command Line Interface is a unified tool to manage your development environments
 id: cli
 ---
 
-The Okteto Command Line Interface is a unified tool to manage your development containers.
+The Okteto Command Line Interface is a unified tool to manage your development environments.
 
 ## Synopsis
 
@@ -15,12 +14,11 @@ $ okteto [options] <command> <subcommand> [parameters]
 
 Use `okteto command --help` for information on a specific command. The synopsis for each command shows its parameters and their usage. Optional parameters are shown in square brackets.
 
-Options | Values
-:---|:---:
-_--loglevel_ | _debug, info, warn, error_
+| Options      |           Values           |
+| :----------- | :------------------------: |
+| _--loglevel_ | _debug, info, warn, error_ |
 
- The amount of information outputted (defaults to _warn_).
-
+The amount of information outputted (defaults to _warn_).
 
 ## Available commands
 
@@ -31,18 +29,20 @@ Enable / Disable analytics collection. Analytics are enabled by default
 ```console
 $ okteto analytics [parameters]
 ```
-Options | Description
-:---|:---
-_--disable_ | Disables analytic collection |
+
+| Options     | Description                  |
+| :---------- | :--------------------------- |
+| _--disable_ | Disables analytic collection |
 
 Okteto only collects information to help us understand how our users interact with the product. We don't collect any personally identifiable information.
 
 When you use the okteto CLI, the following information is collected:
+
 - The name of the action
 - A timestamp of when it was run
 - Your version of the CLI
 - Your OS
-- An anonymous machine ID  (we use https://github.com/denisbrodbeck/machineid for this)
+- An anonymous machine ID (we use https://github.com/denisbrodbeck/machineid for this)
 - A user ID if you are currently logged in to https://cloud.okteto.com
 - An action ID (to correlate multiple actions performed during a command's execution)
 
@@ -50,27 +50,24 @@ Please reach [out to us](mailto://hello@okteto.com) if you have any questions or
 
 ### build
 
-Build an image from a Dockerfile and push it to a registry:
+Build and push the images defined in the `build` section of your okteto manifest:
 
 ```console
-$ okteto build [PATH]
+$ okteto build [service...]
 ```
 
-If your [okteto context](/docs/reference/cli/#context) points to Okteto Cloud or an Okteto Enterprise URL, images are built using the [Okteto Build Service](/docs/cloud/build/).
+If your [okteto context](/docs/reference/cli/#context) points to an Okteto URL, images are built using the [Okteto Build Service](/docs/cloud/build/).
 Otherwise, images are built using your local Docker daemon.
 
 The following flags can be used (very similar to `docker build`):
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) | The path to the `Dockerfile` file |
-_--tag_ | (string) | Name and optionally a tag in the `name:tag` format (it is automatically pushed) |
-_--target_ | (string) | Set the target build stage to build |
-_--no-cache_ | (bool) | Do not use cache when building the image (default: `false`)|
-_--cache-from_ | (string) | Cache source image (optional) |
-_--build-arg_ | (list) | Set build-time variables |
-_--secret_ | (list) | Secret files exposed to the build. Format: `id=mysecret,src=/local/secret` |
-
+| Options          |   Type   | Description                                                                |
+| :--------------- | :------: | :------------------------------------------------------------------------- |
+| _--file_         | (string) | The path to the okteto manifest                                            |
+| _--no-cache_     |  (bool)  | Do not use cache when building the image (default: `false`)                |
+| _--secret_       |  (list)  | Secret files exposed to the build. Format: `id=mysecret,src=/local/secret` |
+| _--export-cache_ | (string) | Image tag for exported cache when build (optional)                         |
+| _--cache-from_   |  (list)  | List of cache source images (optional)                                     |
 
 ### context
 
@@ -97,11 +94,11 @@ Use the arrow keys to navigate: ↓ ↑ → ←
     Create new context
 ```
 
-Options | Type | Description
-:---|:---:|:---
-_--token_ | (string) | API token for authentication. Use this when scripting or if you don't want to use browser-based authentication. |
-_--namespace_ | (string) | Namespace of your okteto context. |
-_--builder_ | (string) | URL of the builder service |
+| Options                                  |   Type   | Description                                                                                                     |
+| :--------------------------------------- | :------: | :-------------------------------------------------------------------------------------------------------------- |
+| _--token_                                | (string) | API token for authentication. Use this when scripting or if you don't want to use browser-based authentication. |
+| <em className="no-wrap">--namespace</em> | (string) | Namespace of your okteto context.                                                                               |
+| _--builder_                              | (string) | URL of the builder service                                                                                      |
 
 When you run `okteto context`, an account will be created for your own `URL` if it's the first time you set the context in.
 The CLI will exchange an authorization token with `URL` and save your API token and Okteto certificates information under `$HOME/.okteto/`.
@@ -190,17 +187,61 @@ $ okteto context use minikube
  ✓  Using context default @ minikube
 ```
 
-### doctor
+### deploy
 
-Generates a doctor file with the okteto logs:
+Deploy your development environment by running the commands specified in the `deploy` section of your okteto manifest.
+If the images in the `build` section don't exist, `okteto deploy` automatically builds and pushes all these images.
+If the repositories in the `dependencies` section haven't been deployed yet, `okteto deploy` deploys these dependencies automatically.
 
 ```console
-$ okteto doctor
+$ okteto deploy
+```
+
+##### Options
+
+| Options                                     |    Type    | Description                                                                                                                                                    |
+| :------------------------------------------ | :--------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _--build_                                   |   (bool)   | Force build of images in the `build` section (defaults to `false`)                                                                                             |
+| <em className="no-wrap">--dependencies</em> |   (bool)   | Force deployment of repositories in the `dependencies` section (defaults to `false`)                                                                           |
+| _--file_                                    |  (string)  | The location of the okteto manifest (defaults to `okteto.yml`)                                                                                                 |
+| _--name_                                    |  (string)  | The name of the development environment (defaults to the repo/folder name)                                                                                     |
+| _--namespace_                               |  (string)  | Overwrites the namespace where the development environment is deployed                                                                                         |
+| _--timeout_                                 | (duration) | The duration to wait for the development environment deployment to complete. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h (default 5m0s) |
+| _--var_                                     |   (list)   | Set a pipeline variable (can be set more than once)                                                                                                            |
+| _--wait_                                    |   (bool)   | Wait until the pipeline finishes (defaults to false)                                                                                                           |
+
+### destroy
+
+Destroy your development environment.
+It automatically destroys all the Kubernetes resources created by [okteto deploy](/docs/reference/cli/#deploy).
+If you need to destroy external resources (like s3 buckets or other Cloud resources), use the [destroy](/docs/reference/manifest/#destroy-string-optional) section of the Okteto Manifest.
+
+```console
+$ okteto destroy
+```
+
+##### Options
+
+| Options                                  |   Type   | Description                                                                                                                                             |
+| :--------------------------------------- | :------: | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| _--name_                                 | (string) | The name of the development environment (defaults to the folder name)                                                                                   |
+| <em className="no-wrap">--namespace</em> | (string) | overwrites the namespace where the development environment is deployed                                                                                  |
+| _--timeout_                              | (string) | The duration to wait for the development environment to be destroyed. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h (default 5m0s) |
+| _--volumes_                              |  (bool)  | Destroy the persistent volumes created by the development environment (defaults to `false`)                                                             |
+| _--wait_                                 |  (bool)  | Wait until the development environment is destroyed (defaults to `false`)                                                                               |
+
+### doctor
+
+Generates a doctor file with the okteto logs for a given development container:
+
+```console
+$ okteto doctor [devName]
 ```
 
 The `doctor` command should be run from the folder where you ran `okteto up`.
 
 The doctor file contains:
+
 - The `okteto.log`
 - The syncthing logs of your development container
 - A summary of your development container manifest
@@ -210,44 +251,49 @@ The doctor file is a handy way to collect all the okteto logs. Use it when filin
 
 ### down
 
-Deactivates your development container, stops the file synchronization service, and restores your previous deployment configuration
+Deactivates your development container, stops the file synchronization service, and restores your previous deployment configuration for a given development container.
 
 ```console
-$ okteto down
+$ okteto down [devName]
 ```
 
 The `down` command should be run from the same location as `okteto up`.
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) |  The path to the manifest file  (default "okteto.yml") |
-<em className="no-wrap">--namespace</em> | (string) |  The Kubernetes namespace to use (defaults to the current kube config namespace) |
-<em className="no-wrap">--context</em> | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-_--volumes_  | (bool) | Remove persistent volumes where your local folder is synched on remote |
+| Options                                  |   Type   | Description                                                             |
+| :--------------------------------------- | :------: | :---------------------------------------------------------------------- |
+| _--file_                                 | (string) | The path to the okteto manifest (default "okteto.yml")                  |
+| <em className="no-wrap">--namespace</em> | (string) | The namespace to use (defaults to the current okteto context namespace) |
+| <em className="no-wrap">--context</em>   | (string) | The context to use (defaults to the current okteto context)             |
+| _--volumes_                              |  (bool)  | Remove persistent volumes where your local folder is synched on remote  |
 
+#### endpoints
+
+List the public endpoints of your development environment.
+
+```console
+$ okteto endpoints
+```
+
+| Options    |   Type   | Description                           |
+| :--------- | :------: | :------------------------------------ |
+| _--output_ | (string) | Output format. One of: ['json', 'md'] |
 
 ### exec
 
-Executes the `COMMAND` in your development container. The command will fail if there's no active development container corresponding to the current folder
+Executes the `COMMAND` in your development container.
+The command will fail if there's no active development container corresponding to the current folder.
 
 ```console
-$ okteto exec COMMAND
-```
-
-For more complex commands we recommend using a double dash (`--`) before the command parameter.
-
-```console
-okteto exec -- COMMAND
+$ okteto exec [devName] -- COMMAND
 ```
 
 The `exec` command should be run from the same location as `okteto up`.
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) |  The path to the manifest file  (default "okteto.yml") |
-<em className="no-wrap">--namespace</em> | (string) |  The Kubernetes namespace to use (defaults to the current kube config namespace) |
-<em className="no-wrap">--context</em> | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-
+| Options                                  |   Type   | Description                                                     |
+| :--------------------------------------- | :------: | :-------------------------------------------------------------- |
+| _--file_                                 | (string) | The path to the okteto manifest (default "okteto.yml")          |
+| <em className="no-wrap">--namespace</em> | (string) | The namespace to use (defaults to the current okteto namespace) |
+| <em className="no-wrap">--context</em>   | (string) | The context to use (defaults to the current okteto context)     |
 
 ### help
 
@@ -259,17 +305,21 @@ $ okteto help
 
 ### init
 
-Automatically generates the okteto manifest file and a [`.stignore`](/docs/reference/file-synchronization#ignoring-files) file.
-Okteto will scan the current folder and will generate a default manifest file based on your programming language and platform.
+This command walks you through creating your Okteto Manifest.
+It only covers the most common items, and tries to guess sensible defaults.
+See the [Okteto Manifest documentation](/docs/reference/manifest/) for more details about the Okteto Manifest.
 
 ```console
 $ okteto init
 ```
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) |  The path to the manifest file to create (default "okteto.yml") |
-
+| Options                                  |   Type    | Description                                                                        |
+| :--------------------------------------- | :-------: | :--------------------------------------------------------------------------------- |
+| _--file_                                 | (string)  | The path to the okteto manifest to create (default "okteto.yml")                   |
+| _--replace_                              | (string)  | Replace an existing okteto manifest (default `false`)                              |
+| <em className="no-wrap">--namespace</em> | (string)  | The namespace to use (defaults to the current okteto context namespace)            |
+| <em className="no-wrap">--context</em>   | (string)  | The context to use (defaults to the current okteto context)                        |
+| _-v1_                                    | (boolean) | Use the [okteto init v1](/docs/reference/cli/#init) version (default `false`) |
 
 ### kubeconfig
 
@@ -283,48 +333,33 @@ $ okteto kubeconfig
  i  Updated kubernetes context 'cloud_okteto_com/cindy' in '/Users/cindy/.kube/config'
 ```
 
-### login
-
-Log into Okteto, and download your API token and certificates required to interact with the Okteto Build Service.
-It defaults to [Okteto Cloud](https://cloud.okteto.com), but you can specify your own Okteto URL by specifying a `URL` argument.
-
-```console
-$ okteto login [URL]
-```
-
-Options | Type | Description
-:---|:---:|:---
-_--token_ | (string) | Your Okteto API token. Use this when scripting or if you don't want to use browser-based authentication. |
-
-When you run `okteto login`, an account will be created for your own `URL` if it's the first time you log in.
-The CLI will exchange an authorization token with `URL` and save your API token and Okteto certificates information under `$HOME/.okteto/`.
-
-#### Using Environment Variables to authenticate
-
-Environment variables provide another way to specify your credentials. This is the recommended method when scripting tasks or when [creating preview environments](/docs/cloud/preview-environments/preview-environments/).
-
-The supported environment variables are:
-
-- `OKTETO_TOKEN`: Specifies the [personal access token](/docs/cloud/personal-access-tokens/) to use
-- `OKTETO_URL`: Specifies the URL of the Okteto instance to use. If missing, it defaults to *https://cloud.okteto.com*
-
 ### namespace
 
 Configure the current namespace of the okteto context.
 
 ```console
-$ okteto namespace cindy
+$ okteto namespace
+```
+
+This will prompt you to select one of your existing namespaces:
+
+```console
+Select the namespace you want to use:
+Use the arrow keys to navigate: ↓ ↑ → ←
+  ▸ cindy
+
+    Create new namespace
 ```
 
 ```console
  ✓  Using context cindy @ cloud.okteto.com
 ```
 
-`okteto namespace` with no argument prompts you to select one of your existing namespaces or to create a new one.
-
 #### create
 
 Create a namespace.
+
+> This command is only available in clusters managed by Okteto.
 
 ```console
 $ okteto namespace create test-cindy
@@ -339,6 +374,8 @@ $ okteto namespace create test-cindy
 
 Delete a namespace.
 
+> This command is only available in clusters managed by Okteto.
+
 ```console
 $ okteto namespace delete test-cindy
 ```
@@ -351,6 +388,8 @@ $ okteto namespace delete test-cindy
 
 List existing namespace.
 
+> This command is only available in clusters managed by Okteto.
+
 ```console
 $ okteto namespace list
 ```
@@ -359,6 +398,18 @@ $ okteto namespace list
 Namespace       Status
 demos-cindy     Active
 cindy *         Active
+```
+
+#### use
+
+Set the default okteto namespace.
+
+```console
+$ okteto namespace use cindy
+```
+
+```console
+ ✓  Using context cindy @ cloud.okteto.com
 ```
 
 ### pipeline
@@ -373,55 +424,55 @@ Available subcommands:
 
 #### deploy
 
-Deploy your okteto pipeline
+Runs a job in the cluster that clones your repository and executes [okteto deploy](/docs/reference/cli/#deploy) on it.
+This is equivalent to clicking the **Launch Dev Environment** button on the Okteto UI and selecting a git repository.
 
 ```console
 $ okteto pipeline deploy
 ```
 
-Run `okteto pipeline deploy` to automatically [start an Okteto pipeline](https://okteto.com/docs/cloud/okteto-pipeline/) for your `repository`. This is equivalent to clicking the `deploy` button on the Okteto UI and selecting the _Deploy from Git Repository_ option.
-
-You need to be [logged in](/docs/reference/cli/#login) to Okteto before running this command.
+You need to be [logged in](/docs/reference/cli/#context) to Okteto before running this command.
 
 ##### Options
 
-Options | Type | Description
-:---|:---:|:---
-_--branch_ | (string) | The branch to deploy (defaults to the main branch) |
-_--file_ | (string) | The location of the pipeline file. If not set, the [automatic deployment](/docs/cloud/okteto-pipeline/) rules will be applied.
-_--name_ | (string) | The name of the pipeline (defaults to the folder name) |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace)
-_--repository_ | (string) | The HTTPS url of the repository to deploy (e.g. https://github.com/okteto/movies)
-_--skip-if-exists_ | (bool) | Skip the pipeline deployment if the pipeline already exists in the namespace (defaults to `false`)
-_--timeout_ | (duration) | The duration to wait for the pipeline to complete. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h  (default 5m0s)
-_--var_ | (list) | Set a pipeline variable (can be set more than once)
-_--wait_ | (bool) | Wait until the pipeline finishes (defaults to false)
+| Options            |    Type    | Description                                                                                                                                           |
+| :----------------- | :--------: | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _--branch_         |  (string)  | The branch to deploy (defaults to the main branch)                                                                                                    |
+| _--file_           |  (string)  | The location of the okteto manifest. If not set, the [automatic deployment rules](/docs/cloud/okteto-cli/#deployment-manifests) will be applied. |
+| _--name_           |  (string)  | The name of the pipeline (defaults to the folder name)                                                                                                |
+| _--namespace_      |  (string)  | The Kubernetes namespace to use (defaults to the current kube config namespace)                                                                       |
+| _--repository_     |  (string)  | The HTTPS url of the repository to deploy (e.g. https://github.com/okteto/movies)                                                                     |
+| _--skip-if-exists_ |   (bool)   | Skip the pipeline deployment if the pipeline already exists in the namespace (defaults to `false`)                                                    |
+| _--timeout_        | (duration) | The duration to wait for the pipeline to complete. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h (default 5m0s)                  |
+| _--var_            |   (list)   | Set a pipeline variable (can be set more than once)                                                                                                   |
+| _--wait_           |   (bool)   | Wait until the pipeline finishes (defaults to false)                                                                                                  |
 
 #### destroy
 
-Destroy your okteto pipeline
+Runs a job in the cluster that clones your repository and executes [okteto destroy](/docs/reference/cli/#destroy) on it.
+This is equivalent to clicking the **Destroy** button on the Okteto UI.
 
 ```console
 $ okteto pipeline destroy
 ```
 
-Run `okteto pipeline destroy` to automatically [destroy an existing pipeline in Okteto](https://okteto.com/docs/cloud/okteto-pipeline/). This is equivalent to clicking the `destroy` button on the Okteto UI.
-
-You need to be [logged in](https://okteto.com/docs/reference/cli/#login) to Okteto before running this command.
+You need to be [logged in](/docs/reference/cli/#context) to Okteto before running this command.
 
 ##### Options
 
-Options | Type | Description
-:---|:---:|:---
-_--name_ | (string) | The name of the pipeline (defaults to the folder name) |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace)
-_--timeout_ | (string) | The duration to wait for the pipeline to be destroyed. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h  (default 5m0s)
-_--volumes_ | (bool) | Destroy the persistent volumes created by the pipeline (defaults to false)
-_--wait_ | (bool) | Wait until the pipeline is destroyed (defaults to false)
+| Options       |   Type   | Description                                                                                                                              |
+| :------------ | :------: | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| _--name_      | (string) | The name of the pipeline (defaults to the folder name)                                                                                   |
+| _--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace)                                                          |
+| _--timeout_   | (string) | The duration to wait for the pipeline to be destroyed. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h (default 5m0s) |
+| _--volumes_   |  (bool)  | Destroy the persistent volumes created by the pipeline (defaults to false)                                                               |
+| _--wait_      |  (bool)  | Wait until the pipeline is destroyed (defaults to false)                                                                                 |
 
 ### preview
 
 [Preview environment](https://okteto.com/docs/cloud/preview-environments/preview-environments/) management commands.
+
+> This command is only available in clusters managed by Okteto.
 
 ```console
 $  okteto preview [command]
@@ -435,21 +486,21 @@ Deploy an okteto preview environment.
 $ okteto preview deploy [name]
 ```
 
-Run `okteto preview deploy` to automatically deploy a preview environment for your application.
+Run `okteto preview deploy` to automatically deploy a preview environment for your branch.
 
-You need to be [logged in](/docs/reference/cli/#login) to Okteto before running this command.
+You need to be [logged in](/docs/reference/cli/#context) to Okteto before running this command.
 Only users with [admin access](/docs/enterprise/administration/dashboard/) can deploy a global preview environment.
 
-Options | Type | Description
-:---|:---:|:---
-_--branch_ | (string) | The branch to deploy (defaults to your current branch) |
-_--file_ | (string) | The location of the pipeline file. If not set, the [automatic deployment](/docs/cloud/okteto-pipeline/) rules will be applied.
-_--repository_ | (string) | The url of the repository to deploy (e.g. https://github.com/okteto/movies) (defaults to your current git configuration repo)
-_--scope_ | (string) | The scope of preview environment to create. Accepted values are ['personal', 'global']. A personal preview environment can only be accessed by its creator, while in a global preview environment all cluster users can access it. (defaults to personal) |
-_--sourceUrl_ | (string) | The HTTPS url of the pull/merge request to deploy.
-_--timeout_ | (duration) | The duration to wait for the pipeline to complete. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h  (default 5m0s)
-_--var_ | (list) | Set a pipeline variable (can be set more than once)
-_--wait_ | (bool) | Wait until the pipeline finishes (defaults to false)
+| Options                                   |    Type    | Description                                                                                                                                                                                                                                               |
+| :---------------------------------------- | :--------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _--branch_                                |  (string)  | The branch to deploy (defaults to your current branch)                                                                                                                                                                                                    |
+| _--file_                                  |  (string)  | The location of the okteto manifest. If not set, the [automatic deployment](/docs/cloud/deploy-from-git/) rules will be applied.                                                                                                                     |
+| <em className="no-wrap">--repository</em> |  (string)  |  The url of the repository to deploy (e.g. https://github.com/okteto/movies) (defaults to your current git configuration repo)                                                                                                                            |
+| _--scope_                                 |  (string)  | The scope of preview environment to create. Accepted values are ['personal', 'global']. A personal preview environment can only be accessed by its creator, while in a global preview environment all cluster users can access it. (defaults to personal) |
+| _--sourceUrl_                             |  (string)  | The HTTPS url of the pull/merge request to deploy.                                                                                                                                                                                                        |
+| _--timeout_                               | (duration) | The duration to wait for the preview deployment to complete. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h (default 5m0s)                                                                                                            |
+| _--var_                                   |   (list)   | Set a preview environment variable (can be set more than once)                                                                                                                                                                                            |
+| _--wait_                                  |   (bool)   | Wait until the preview deployment finishes (defaults to false)                                                                                                                                                                                            |
 
 #### destroy
 
@@ -461,7 +512,7 @@ $ okteto preview destroy [name]
 
 Run `okteto preview destroy` to destroy a given preview environment.
 
-You need to be [logged in](/docs/reference/cli/#login) to Okteto before running this command.
+You need to be [logged in](/docs/reference/cli/#context) to Okteto before running this command.
 Only users with administration privileges can destroy a global preview environment.
 
 #### endpoints
@@ -472,11 +523,11 @@ List the endpoints of a preview environment.
 $ okteto preview endpoints [name]
 ```
 
-You need to be [logged in](/docs/reference/cli/#login) to Okteto before running this command.
+You need to be [logged in](/docs/reference/cli/#context) to Okteto before running this command.
 
-Options | Type | Description
-:---|:---:|:---
-_--output_ | (string) | Output format. One of: ['json'] |
+| Options    |   Type   | Description                     |
+| :--------- | :------: | :------------------------------ |
+| _--output_ | (string) | Output format. One of: ['json'] |
 
 Output flag can be used to parse the endpoints and add them to your PR with a custom layout.
 
@@ -490,127 +541,31 @@ $ okteto preview list
 
 Run `okteto preview list` to get the status and scope of your preview environments.
 
-You need to be [logged in](/docs/reference/cli/#login) to Okteto before running this command.
-
-
-### push
-
-Build, push, and redeploy your source code to Kubernetes
-
-```console
-$ okteto push
-```
-
-`okteto push` builds a new docker image, pushes it to the registry, and redeploys your containers.
-If you have an active development container created by `okteto up`, it is also deactivated as part of the *push* operation.
-
-If your [okteto context](/docs/reference/cli/#context) points to Okteto Cloud or an Okteto Enterprise URL, images are built using the [Okteto Build Service](/docs/cloud/build/).
-Otherwise, images are built using your local Docker daemon.
-
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) | The path to the okteto manifest file. The manifest file indicates the deployment to push (default "okteto.yml") |
-_--tag_ | (string) | The name of the image tag to build, push, and redeploy (defaults to the original container image but using the tag `okteto`) |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
-_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-_--no-cache_ | (bool) | Do not use cache when building the image |
-
+You need to be [logged in](/docs/reference/cli/#context) to Okteto before running this command.
 
 ### restart
 
-Restarts your development pods corresponding to the `services` section of the okteto manifest.
+Restarts your development pods corresponding to the `services` section of the okteto manifest for a given development container.
 This is useful to reload configurations that cannot be hot-reloaded.
 
 ```console
-$ okteto restart
+$ okteto restart [devName]
 ```
 
 The `restart` command should be run from the same location than `okteto up`.
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) |  The path to the manifest file  (default "okteto.yml") |
-_--namespace_ | (string) |  The Kubernetes namespace to use (defaults to the current kube config namespace) |
-_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-
-### stack
-
-Stack management commands
-
-```console
-$  okteto stack [command]
-```
-
-Available subcommands:
-
-#### deploy
-
-Deploy your stack
-
-```console
-$ okteto stack deploy
-```
-
-By default `okteto stack deploy` will create all the services defined in your [Stack manifest](/docs/reference/stacks/). If you only want to deploy a specific set of services, pass their names as arguments.
-
-```console
-$ okteto stack deploy [SERVICE...]
-```
-
-Once your Stack is deployed, you can run [`okteto up`](/docs/reference/cli/#up) against any of the Stack services as you do for any other Kubernetes deployment.
-
-##### Options
-
-Options | Type | Description
-:---|:---:|:---
-_--build_ | (bool) | Build images before starting any service (default `false`) |
-_--file_ | (list) | Path to the stack manifest files (defaults to `okteto-stack.yml` or `.okteto/okteto-stack.yml`)  |
-_--name_ | (string) | Overwrites the stack name |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
-_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-_--no-cache_ | (bool) | Do not use cache when building images |
-_--wait_ | (bool) | Wait until a minimum number of containers are in a ready state for every service |
-
-By default, Okteto reads two files, an `okteto-stack.yml` and an optional `okteto-stack.override.yml` file.
-If both files exist, or if `--file` refers to a list of stack manifests, stack manifests are merged.
-A manifest merge means any field defined in the second stack manifest replaces the value in the first stack manifest.
-
-If your [okteto context](/docs/reference/cli/#context) points to Okteto Cloud or an Okteto Enterprise URL, images are built using the [Okteto Build Service](/docs/cloud/build/).
-Otherwise, images are built using your local Docker daemon.
-
-#### destroy
-
-Destroy your stack
-
-```console
-$ okteto stack destroy
-```
-
-When you run `okteto stack destroy`, okteto will delete the services defined in your [Stack manifest](/docs/reference/stacks/).
-
-Persistent volumes created by your stack are not deleted to avoid accidental data loss.
-If you want to delete them, you can do it by executing `kubectl delete pvc $PVC_NAME`.
-
-##### Options
-
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (list) | Path to the stack manifest files (defaults to `okteto-stack.yml` or `.okteto/okteto-stack.yml`)  |
-_--name_ | (string) | Overwrites the stack name |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
-_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-_--volumes_ | (bool) | Destroy the persistent volumes created by the stack (defaults to `false`) |
-
-By default, Okteto reads two files, an `okteto-stack.yml` and an optional `okteto-stack.override.yml` file.
-If both files exist, or if `--file` refers to a list of stack manifests, stack manifests are merged.
-A manifest merge means any field defined in the second manifest replaces the value in the first manifest.
+| Options       |   Type   | Description                                                     |
+| :------------ | :------: | :-------------------------------------------------------------- |
+| _--file_      | (string) | The path to the manifest file (default "okteto.yml")            |
+| _--namespace_ | (string) | The namespace to use (defaults to the current okteto namespace) |
+| _--context_   | (string) | The context to use (defaults to the current okteto context)     |
 
 ### status
 
-Status of the file synchronization process:
+Status of the file synchronization process for a given development container:
 
 ```console
-$ okteto status --info
+$ okteto status [devName] --info
 ```
 
 ```console
@@ -623,20 +578,21 @@ $ okteto status --info
 
 The `status` command should be run from the same location than `okteto up`.
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) | The path to the manifest file (default "okteto.yml") |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
-_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-_--info_ | (bool) | Show syncthing links for troubleshooting the synchronization service |
-_--watch_ | (bool) | Watch for changes |
+| Options       |   Type   | Description                                                          |
+| :------------ | :------: | :------------------------------------------------------------------- |
+| _--file_      | (string) | The path to the manifest file (default "okteto.yml")                 |
+| _--namespace_ | (string) | The namespace to use (defaults to the current okteto namespace)      |
+| _--context_   | (string) | The context to use (defaults to the current okteto context)          |
+| _--info_      |  (bool)  | Show syncthing links for troubleshooting the synchronization service |
+| _--watch_     |  (bool)  | Watch for changes                                                    |
 
 ### up
 
-Activate your development container
+Activate a development container.
+If needed, `okteto up` builds the images and runs the deploy commands defined in your [Okteto Manifest](/docs/reference/manifest/).
 
 ```console
-$ okteto up
+$ okteto up [devName]
 ```
 
 When you run `okteto up`, okteto scales to zero the specified deployment and creates a mirror deployment. The mirror deployment is a copy of the original deployment manifest with the following development-time improvements:
@@ -651,14 +607,13 @@ Therefore, the development deployment uses the same service account, environment
 
 > Run [`okteto down`](#down) to restore your original deployment.
 
-Options | Type | Description
-:---|:---:|:---
-_--file_ | (string) | The path to the manifest file (default "okteto.yml") |
-_--namespace_ | (string) | The Kubernetes namespace to use (defaults to the current kube config namespace) |
-_--context_ | (string) |  The Kubernetes context to use (defaults to the current kube config context) |
-_--build_ | (bool) | Build on-the-fly the dev image using the info provided by the 'build' okteto manifest field |
-_--pull_ | (bool) | Sets the `imagePullPolicy` to `Always` and forces the recreation of the dev environments |
-_--reset_ | (bool) | Resets the file synchronization service. Use it if the file synchronization service stops working. |
+| Options       |   Type   | Description                                                                                          |
+| :------------ | :------: | :--------------------------------------------------------------------------------------------------- |
+| _--file_      | (string) | The path to the manifest file (default "okteto.yml")                                                 |
+| _--namespace_ | (string) | The namespace to use (defaults to the current okteto namespace)                                      |
+| _--context_   | (string) | The context to use (defaults to the current okteto context)                                          |
+| _--deploy_    |  (bool)  | Force execution of the commands in the `deploy` section of the okteto manifest (defaults to `false`) |
+| _--reset_     |  (bool)  | Resets the file synchronization service. Use it if the file synchronization service stops working.   |
 
 ### version
 

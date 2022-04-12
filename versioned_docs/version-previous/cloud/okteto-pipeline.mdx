@@ -1,0 +1,63 @@
+---
+title: Configure your Okteto Pipeline
+description: How to Configure your own Okteto Pipeline
+sidebar_label: Okteto Pipeline
+id: okteto-pipeline
+---
+
+Okteto Pipelines allow you to configure how your [Git repositories](/docs/previous/cloud/deploy-from-git) get deployed to [Okteto Cloud](/docs/previous/cloud/). You might want to use them if Okteto Cloud cannot detect how to deploy your application from your [deployment manifests](/docs/previous/cloud/deploy-from-git#prerequisites) or simply when you want more control over how your application gets deployed. 
+
+### Example okteto-pipeline.yml
+
+```yaml
+icon: https://apps.okteto.com/movies/icon.png
+deploy:
+  - okteto build -t okteto.dev/api:${OKTETO_GIT_COMMIT} api
+  - okteto build -t okteto.dev/frontend:${OKTETO_GIT_COMMIT} frontend
+  - helm upgrade --install movies chart --set tag=${OKTETO_GIT_COMMIT}
+devs:
+  - api/okteto.yml
+  - frontend/okteto.yml
+```
+
+### Schema Reference
+
+- `icon`: the icon associated to your application in the Okteto Cloud Dashboard (optional).
+- `deploy`: list of commands to deploy your application in your Kubernetes namespace. It is usually a combination of `helm`, `kubectl`, and `okteto` commands.
+- `destroy`: list of commands to be executed when the pipeline is destroyed. It can be used to release any resource created outside Okteto.
+- `devs`: the paths to the okteto manifests in your Git repository. This is used to fill the hints in the *Develop* dialog of each service (optional).
+
+For example, the above example builds fresh docker images for the api and frontend components of the [Movies App](https://github.com/okteto/movies), pushes these images to the [Okteto Registry](/docs/previous/cloud/registry/) and deploys the app with Helm.
+
+### Built-in tools
+
+Okteto will run an installation job that clones your Git repository, checks out the selected branch, and executes the sequence of `deploy` commands. The job will fail if any of the commands in the `deploy` list fails.
+
+The installation job will run in a Debian Linux container with the following tools preinstalled:
+
+- `bash`
+- `bazel`
+- `cue`
+- `curl`
+- `envsubst`
+- `git`
+- `helm`
+- `kubectl`
+- `kustomize`
+- `make`
+- `okteto`
+- `openssh`
+- `wait-for-it`
+
+The installation job container is automatically configured with credentials to use the above tools on the namespace where your application is deployed.
+
+> Are we missing any binaries you use? File [an issue here](https://github.com/okteto/cloud-feedback/issues/new) and we will do our best to make it available.
+
+### Built-in Environment Variables
+The installation job also populates the following environment variables. You can refer to this in your `deploy` commands if needed:
+
+- `OKTETO_NAMESPACE`: the namespace where your application is going to be installed.
+- `OKTETO_GIT_BRANCH`: the name of the Git branch currently being deployed.
+- `OKTETO_GIT_COMMIT`: the SHA1 hash of the last commit of the branch.
+- `OKTETO_REGISTRY_URL`: the url of the [Okteto Registry](/docs/previous/cloud/registry/).
+- `BUILDKIT_HOST`: the address of the [Okteto Cloud buildkit instance](/docs/previous/cloud/build/). You can use it to build your images with any CLI tool that supports Buildkit builds.
