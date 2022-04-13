@@ -1,0 +1,44 @@
+---
+title: SSH Server
+description: Okteto runs an SSH server in your development container
+sidebar_label: SSH Server
+id: ssh-server
+---
+
+As part of enabling your development container, `okteto up` performs the following steps:
+
+- A [minimalist SSH server](https://github.com/okteto/remote) is injected into your development container
+- A port forward is created from a local port to port 22 of the development container
+- A host entry is added to your local `.ssh/config` file with the following values:
+
+```
+Host MANIFEST_NAME.okteto
+  HostName localhost
+  Port PORT
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+```
+
+> Use the [remote](/docs/0.10/reference/manifest/#remote-integer-optional) field to configure the local port where the SSH server is exposed.
+
+The SSH server is used by `okteto up` to run remote commands and forward ports from/to your development containers.
+The SSH server makes it possible to integrate your development container with IDEs that support remote development, such as [VS Code](https://marketplace.visualstudio.com/items?itemName=okteto.remote-kubernetes), [PHPStorm](https://confluence.jetbrains.com/pages/viewpage.action?pageId=57294700) or [PyCharm](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html).
+
+### Connect using SSH
+
+Once the development container is up and running, you can SSH into it with the following command:
+
+```console
+$ ssh -P PORT localhost
+```
+
+You can also SSH using the host entry added to your local SSH config:
+
+```console
+$ ssh MANIFEST_NAME.okteto
+```
+
+### Secure by default
+
+When you run `okteto up` the first time, Okteto will create a SSH key pair for you and save it at `$HOME/.okteto/id_rsa_okteto` and `$HOME/.okteto/id_rsa_okteto.pub`.
+The SSH server launched in your development container will be automatically configured to use these keys for authentication.

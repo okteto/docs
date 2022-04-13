@@ -158,9 +158,9 @@ module.exports = {
               label: 'Current',
               path: '/',
             },
-            'previous': {
-              label: 'Previous',
-              path: 'previous',
+            '0.10': {
+              label: 'EO 0.10',
+              path: '0.10',
               banner: 'none',
             },
           },
