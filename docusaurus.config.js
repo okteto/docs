@@ -159,7 +159,7 @@ module.exports = {
               path: '/',
             },
             '0.10': {
-              label: 'EO 0.10',
+              label: 'OE 0.10',
               path: '0.10',
               banner: 'none',
             },
