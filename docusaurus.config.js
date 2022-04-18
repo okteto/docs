@@ -198,6 +198,9 @@ module.exports = {
       }, {
         to: '/enterprise/install/overview/',
         from: ['/enterprise/dns/']
+      }, {
+        to: '/using-dev-envs/',
+        from: ['/tutorials/stacks-getting-started/']
       }]
     }],
     ['docusaurus-gtm-plugin', {
