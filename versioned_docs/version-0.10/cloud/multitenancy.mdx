@@ -1,0 +1,212 @@
+---
+title: Default Settings for Okteto Cloud
+description: Okteto Cloud gives you access to a Kubernetes namespace in a multi-tenant environment
+sidebar_label: Default Settings
+id: multitenancy
+---
+
+Okteto Cloud gives you access to a vanilla Kubernetes namespace in a multi-tenant environment. Okteto uses a combination of RBAC, pod security policies, resource quotas, network policies, admission controllers, and custom code to ensure that Okteto Cloud namespaces are isolated, secure, and easy to use for everyone.
+
+This document explains the limitations and restrictions most likely to affect your applications in Okteto Cloud.
+
+## Exposing services
+
+`NodePort` or `LoadBalancer` services are not supported in Okteto Cloud. Okteto Cloud automatically translates `NodePort` or `LoadBalancer` services into ingress rules. More information is [available here](/docs/0.10/cloud/ssl/).
+
+## Pod Security Policies
+
+Okteto Cloud configures [pod security policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) to limit the privileges of your applications. The following options are not allowed: `privileged`, `hostNetwork`, `allowPrivilegeEscalation`, `hostPID`, `hostIPC`. Mounting volume host paths is also not allowed.
+
+## Resource quotas
+
+The following [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) are associated to every namespace created in Okteto Cloud:
+
+### Developer Plan
+
+| Resource  | Quota  |
+|---|---|
+| Namespaces  |  5 |
+| Pods  |  10 |
+| CPUs   | 1CPU/pod with a maximum of 4CPUs/namespace  |
+| Memory   | 3Gi/pod with a maximum of 8Gi/namespace |
+| Storage  | 5Gi  |
+| Services  | 10  |
+| Secrets  | 50  |
+| Config Maps  | 50  |
+| Persistent Volume Claims  | 5  |
+| Ingress bandwidth  | 10Mi/pod |
+| Egress bandwidth  | 10Mi/pod |
+| Concurrent connections from the same IP | 20/ingress |
+| Requests accepted each second from the same IP | 20/ingress  |
+| Requests accepted each minute from the same IP | 200/ingress  |
+
+### Developer Pro Plan
+
+| Resource  | Quota  |
+|---|---|
+| Namespaces  |  10 |
+| Pods  |  20 |
+| CPUs   | 2CPUs/pod with a maximum of 8CPUs/namespace  |
+| Memory   | 6Gi/pod with a maximum of 16Gi/namespace |
+| Storage  | 20Gi  |
+| Replication Controllers  | 30  |
+| Services  | 20  |
+| Secrets  | 100  |
+| Config Maps  | 100  |
+| Persistent Volume Claims  | 10  |
+| Ingress bandwidth  | 25Mi/pod |
+| Egress bandwidth  | 25Mi/pod |
+| Concurrent connections from the same IP | 40/ingress |
+| Requests accepted each second from the same IP | 40/ingress  |
+| Requests accepted each minute from the same IP | 400/ingress  |
+
+## Network policies
+
+Okteto Cloud configures [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for each namespace. Only traffic between the pods running in your namespaces is allowed, as well as external traffic to the internet.
+
+## RBAC
+
+Okteto Cloud uses [RBAC rules](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) to limit the access to the Kubernetes API. The supported endpoints are:
+
+```yaml
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  - pods/exec
+  - pods/attach
+  - pods/portforward
+  - configmaps
+  - secrets
+  - services
+  - endpoints
+  - serviceaccounts
+  - events
+  - persistentvolumeclaims
+  - replicationcontrollers
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - limitranges
+  - namespaces
+  - namespaces/status
+  - resourcequotas
+  - resourcequotas/status
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
+  - extensions
+  resources:
+  - deployments
+  - ingresses
+  - replicasets
+  verbs:
+  - '*'
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - '*'
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - '*'
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - helm.fluxcd.io
+  resources:
+  - helmreleases
+  - helmreleases/status
+  verbs:
+  - '*'
+- apiGroups:
+  - helm.integrations.flux.weave.works
+  resources:
+  - fluxhelmreleases
+  verbs:
+  - '*'
+- apiGroups:
+  - configuration.konghq.com
+  resources:
+  - kongplugins
+  - kongconsumers
+  - kongcredentials
+  - kongingresses
+  - tcpingresses
+  verbs:
+  - '*'
+- apiGroups:
+  - openfaas.com
+  resources:
+  - functions
+  verbs:
+  - '*'
+- apiGroups:
+  - litmuschaos.io
+  resources:
+  - chaosengines
+  - chaosexperiments
+  - chaosresults
+  verbs:
+  - '*'
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - list
+  - watch
+  - get
+```
+
+You can only create `Roles` restricted to the endpoints above. `RoleBindings` can only refer to `Roles` existing on your namespaces.
