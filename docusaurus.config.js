@@ -203,8 +203,8 @@ module.exports = {
         from: ['/tutorials/stacks-getting-started/']
       },
       {
-        to: '/references/compose/',
-        from: ['/references/stacks/']
+        to: '/reference/compose/',
+        from: ['/reference/stacks/']
       }]
     }],
     ['docusaurus-gtm-plugin', {
