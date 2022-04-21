@@ -201,6 +201,10 @@ module.exports = {
       }, {
         to: '/tutorials/compose-getting-started/',
         from: ['/tutorials/stacks-getting-started/']
+      },
+      {
+        to: '/references/compose/',
+        from: ['/references/stacks/']
       }]
     }],
     ['docusaurus-gtm-plugin', {
