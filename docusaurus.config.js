@@ -199,7 +199,7 @@ module.exports = {
         to: '/enterprise/install/overview/',
         from: ['/enterprise/dns/']
       }, {
-        to: '/using-dev-envs/',
+        to: '/tutorials/compose-getting-started/',
         from: ['/tutorials/stacks-getting-started/']
       }]
     }],
