@@ -7,6 +7,15 @@ Okteto's docs site uses [Docusaurus 2](https://v2.docusaurus.io/) and is hosted 
 
 ## Setup for development
 
+### ☁️ Develop with okteto  
+
+- [Install okteto cli](https://www.okteto.com/docs/getting-started/#installing-okteto-cli)
+- [Configure okteto context for cloud](https://www.okteto.com/docs/getting-started/#configuring-okteto-cli-with-okteto-cloud)
+- Clone the repo and then run `okteto up` from the terminal
+
+You should now see the docs deployed on http://localhost:8080/docs/ 🚀
+
+### 💻 Develop locally
 Clone the repo and then run: 
 
 ```console
