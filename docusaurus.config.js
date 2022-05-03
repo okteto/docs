@@ -198,6 +198,13 @@ module.exports = {
       }, {
         to: '/enterprise/install/overview/',
         from: ['/enterprise/dns/']
+      }, {
+        to: '/tutorials/compose-getting-started/',
+        from: ['/tutorials/stacks-getting-started/']
+      },
+      {
+        to: '/reference/compose/',
+        from: ['/reference/stacks/']
       }]
     }],
     ['docusaurus-gtm-plugin', {
