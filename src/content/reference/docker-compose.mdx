@@ -194,6 +194,41 @@ environment:
   DB_HOST: postgres://${DB_HOST:-db}:${DB_PASSWORD}@postgres:5432/postgres
 ```
 
+#### healthcheck (object, optional)
+
+healthcheck declares a check that's run to determine whether or not containers for this
+service are "healthy". 
+
+- `start_period` (duration): time after the container has started before healthcheck are initiated.
+- `interval` (duration): time between a failed healthcheck and a new try.
+- `timeout` (duration): Number of seconds after which the healthcheck times out. 
+- `retries` (int): Number of retries before healthcheck fails.
+- `test` (string): defines the command the Compose implementation will run to check container health. It can be
+either a string or a list. If it's a list, the first item must be either NONE, CMD or CMD-SHELL.
+If it's a string, it's equivalent to specifying CMD-SHELL followed by that string.
+
+```yaml
+healthcheck:
+  interval: 10s
+  timeout: 10m
+  retries: 5
+  start_period: 30s
+  test: curl https://0.0.0.0:8080/readiness
+```
+
+Http healthchecks can be defined as follows:
+
+```yaml
+healthcheck:
+  interval: 10s
+  timeout: 10m
+  retries: 5
+  start_period: 30s
+  http:
+    path: /
+    port: 8080
+```
+
 #### image (string, optional)
 
 The container image of each service.
