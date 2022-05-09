@@ -98,31 +98,23 @@ module.exports = {
           title: 'Resources',
           items: [
             {
-              label: 'Pricing',
-              href: 'https://okteto.com/pricing',
-              target: '_self'
-            },
-            {
               label: 'Blog',
               href: 'https://okteto.com/blog/',
               target: '_self'
             },
             {
-              label: 'GitHub',
-              href: 'https://github.com/okteto/okteto',
-            }
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Slack',
-              href: 'https://kubernetes.slack.com/?redir=%2Fmessages%2FCM1QMQGS0%2F',
+              label: 'Community',
+              href: 'https://community.okteto.com',
+              target: '_self'
             },
             {
-              label: 'Feedback',
-              href: 'https://github.com/okteto/cloud-feedback',
+              label: 'GitHub',
+              href: 'https://github.com/okteto/okteto',
+            },
+            {
+              label: 'Pricing',
+              href: 'https://okteto.com/pricing',
+              target: '_self'
             },
           ],
         },
