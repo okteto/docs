@@ -1,0 +1,146 @@
+---
+title: Custom Domain Names for your Applications
+description: Use a custom domain name for your applications with Okteto Cloud
+sidebar_label: Custom Domain Names
+id: custom-domains
+---
+
+import Image from '@theme/Image';
+
+By default, an application deployed in Okteto Cloud will be available at its Okteto Cloud domain, which has the form `*-$NAMESPACE.cloud.okteto.net`.
+
+For example, an application called `hello` deployed in the namespace `cindylopez` will be available at `https://hello-cindylopez.cloud.okteto.net`.
+
+To make your applications available on a non-Okteto Cloud domain (for example: `myapp.com`), you can add a **custom domain to your Okteto Cloud namespace**.
+This feature is part of the Okteto Developer Pro plan. If you haven't tried it yet, [start your 14-day free trial here](https://cloud.okteto.com/#/settings/plans/pro-upgrade).
+
+Applications that use custom domains will automatically get issued a valid certificate, just like regular Okteto Cloud endpoints.
+
+> Okteto does not provide a domain registration service (for registering a custom domain name) or a DNS provider service.
+
+## Add a Custom Domain Name to your Application.
+
+Perform the following tasks to register your custom domain in your Okteto Cloud account:
+
+1. Confirm that you own the custom domain name. Need a custom domain name? You can buy one with a domain registration service.
+
+2. Register your custom domain with Okteto Cloud by [emailing us](mailto:support@okteto.com). Please include the domain, your github ID, and the namespace you want to use in the email.
+
+3. Update your DNS configuration so your custom domain points to Okteto Cloud's DNS target.
+
+## Configure your Application to use your Custom Domain
+
+Once your domain has been registered with your Okteto Cloud account, it's time to put it to use.
+
+If you're using Okteto Cloud's [auto-ingress](/docs/cloud/ssl/) or [generate the host](/docs/cloud/ssl/#let-okteto-generate-the-host) features, then there's nothing to change. Just redeploy your application, and it will automatically pick up your custom domain.
+
+For example, if your application's endpoint was `https://hello-cindylopez.cloud.okteto.net` and you added the custom domain `myapp.com`, after redeployment your application's endpoint will be `https://hello.myapp.com`.
+
+### Using your Root Domain
+
+If you want to make your application available in the root domain you provided, you'll need to make a small change to your manifests.
+
+If you're using Okteto Cloud's auto-ingress features, change the value of the `dev.okteto.com/auto-ingress` annotation in your service to the word `domain`, as shown below:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-service
+  annotations:
+    dev.okteto.com/auto-ingress: "domain"
+spec:
+  type: ClusterIP
+  ports:
+  - name: "hello-world"
+    port: 8080
+  selector:
+    app: hello-world
+```
+
+If you're creating your own ingress, change the value of the `dev.okteto.com/generate-host` annotation in your ingress to the word `domain`, as shown below:
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: hello-ingress
+  annotations:
+    dev.okteto.com/generate-host: "domain"
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: hello-world
+          servicePort: 8080
+```
+
+Okteto will automatically generate the correct host at deploy time. For example, if you added the custom domain `myapp.com` to your namespace, the ingress will be created with `myapp.com` as the host.
+
+```console
+$ kubectl get ingress custom-dns
+```
+
+```
+NAME         HOSTS          ADDRESS                                                     PORTS     AGE
+custom-dns   myapp.com      104.155.138.215,104.197.238.82,104.198.241.5,35.224.92.98   80, 443   169m
+```
+
+We recommend you use this approach instead of hard-coding the host name in your manifests to keep them portable across namespaces.
+
+## Docker compose applications
+
+If you deployment is powered by a docker compose manifest, add a label to the service you want to configure a custom domain as shown below:
+
+```yaml
+services:
+  fastapi:
+    build: .
+    replicas: 1
+    ports:
+      - 8080:8080
+    environment:
+      - DB_HOST=postgres://pguser:pgpass@postgres:5432/pgdb
+      - secret=dev
+    labels:
+      dev.okteto.com/auto-ingress: "true"
+  postgresql:
+    image: bitnami/postgresql:latest
+    ports:
+      - 5432
+    environment:
+      - POSTGRES_USER=pguser
+      - POSTGRES_PASSWORD=pgpass
+      - POSTGRES_DB=pgdb
+    volumes:
+      - data:/bitnami/postgresql
+volumes:
+  data:
+
+```
+
+
+## Configure your DNS
+
+In order to use your custom domain in Okteto, you'll need to point your custom DNS to `$NAMESPACE.cloud.okteto.net`.
+
+You usually configure a `CNAME` record with your DNS provider to point to it. We recommend you add a wildcard entry so you don't need to create an entry for every service deployed:
+
+| Record       | Name             | Target  |
+| ------------- |:-------------:| :-----:|
+| `CNAME`        | `*.myapp.com`  | `cindylopez.cloud.okteto.net`  |
+| `CNAME`        | `myapp.com`    | `cindylopez.cloud.okteto.net`  |
+
+> Consult your DNS provider's documentation for specific instructions on creating CNAME records.
+
+You can confirm your DNS is configured correctly with the `host` command, assuming your DNS changes have propagated:
+
+```
+$ host hello.myapp.com
+```
+
+```
+hello.myapp.com is an alias for cindylopez.cloud.okteto.net.
+cindylopez.cloud.okteto.net has address ...
+```
