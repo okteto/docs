@@ -44,6 +44,24 @@ module.exports = {
       },
       items: [
         {
+          href: 'https://okteto.com',
+          label: 'Product',
+          position: 'left',
+          target: '_self'
+        },
+        {
+          href: 'https://okteto.com/blog/',
+          label: 'Blog',
+          position: 'left',
+          target: '_self'
+        },
+        {
+          href: 'https://okteto.com/community/',
+          label: 'Community',
+          position: 'left',
+          target: '_self'
+        },
+        {
           type: 'docsVersionDropdown',
           position: 'right',
           dropdownActiveClassDisabled: true,
