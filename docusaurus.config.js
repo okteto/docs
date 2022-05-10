@@ -45,37 +45,9 @@ module.exports = {
       items: [
         {
           type: 'docsVersionDropdown',
-          position: 'left',
+          position: 'right',
           dropdownActiveClassDisabled: true,
         },
-        {
-          to: 'getting-started/',
-          activeBasePath: 'nothing',
-          label: 'Documentation',
-          position: 'right',
-        },
-        {
-          href: 'https://okteto.com/pricing/',
-          label: 'Pricing',
-          position: 'right',
-          target: '_self'
-        },
-        {
-          href: 'https://okteto.com/blog/',
-          label: 'Blog',
-          position: 'right',
-          target: '_self'
-        },
-        {
-          href: 'https://kubernetes.slack.com/?redir=%2Fmessages%2FCM1QMQGS0%2F',
-          label: 'Slack',
-          position: 'right',
-        },
-        {
-          href: 'https://github.com/okteto/okteto',
-          label: 'GitHub',
-          position: 'right',
-        }
       ],
     },
     footer: {
