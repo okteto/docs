@@ -91,4 +91,4 @@ Okteto Enterprise requires a DigitalOcean personal access token with read/write 
 
 ## Support
 
-If you get stuck or have any questions, feel free to reach out to us at hello@okteto.com, [Twitter](https://twitter.com/oktetohq), or [our Slack channel](https://kubernetes.slack.com/messages/CM1QMQGS0/).
+If you get stuck or have any questions, feel free to reach out to us at hello@okteto.com, [Twitter](https://twitter.com/oktetohq), or [our community](https://community.okteto.com/).
