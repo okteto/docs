@@ -21,6 +21,8 @@ When adding new documentation, it'll be helpful to keep the following things in 
 
 Discussing your changes with the maintainers before you start writing is one of the most important steps, as this sets you in the right direction before you begin. The best way to communicate this is through a detailed GitHub issue. Another way to discuss changes with maintainers is using the [#okteto](https://kubernetes.slack.com/messages/CM1QMQGS0/) channel on the Kubernetes slack.
 
+> Please note that the "OE 0.10" version of the docs has been archived, and all PRs should be made to the "Current" version only.
+
 #### Making a Pull Request
 
 The following steps will walk you through the process of opening your first pull request:
