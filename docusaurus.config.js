@@ -48,6 +48,12 @@ module.exports = {
           position: 'right',
           dropdownActiveClassDisabled: true,
         },
+        {
+          href: 'https://okteto.com/free-trial',
+          label: 'Get Free Trial',
+          position: 'right',
+          target: '_self'
+        },
       ],
     },
     footer: {
