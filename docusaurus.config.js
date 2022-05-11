@@ -45,6 +45,10 @@ module.exports = {
       },
       items: [
         {
+          type: 'search',
+          position: 'left',
+        },
+        {
           href: 'https://okteto.com',
           label: 'Product',
           position: 'left',
@@ -61,10 +65,6 @@ module.exports = {
           label: 'Community',
           position: 'left',
           target: '_self'
-        },
-        {
-          type: 'search',
-          position: 'left',
         },
         {
           type: 'docsVersionDropdown',
