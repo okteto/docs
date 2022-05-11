@@ -56,7 +56,7 @@ module.exports = {
           target: '_self'
         },
         {
-          href: 'https://okteto.com/community/',
+          href: 'https://community.okteto.com',
           label: 'Community',
           position: 'left',
           target: '_self'
