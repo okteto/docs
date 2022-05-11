@@ -1,0 +1,266 @@
+---
+title: Frequently Asked Questions (FAQs)
+description: Frequently asked questions about Okteto
+sidebar_label: FAQs
+id: faqs
+---
+
+## Can I use Okteto CLI with Minikube?
+
+Yes. Okteto CLI accelerates your development workflow regardless of where your Kubernetes cluster is running.
+
+If you can run `kubectl apply`, you can benefit from Okteto CLI.
+
+For Minikube, k3s, or similar local Kubernetes distributions, you can directly use our [open source project](https://github.com/okteto/okteto). For shared remote clusters, we recommend to install [Okteto Enterprise](https://okteto.com/enterprise/) to handle credential management, namespace isolation, or custom application catalogs, among other things.
+
+## Why is Okteto better than traditional development?
+
+Among the many advantages, Okteto allows developers to:
+
+- Reduce local setup and eliminate integration issues by developing the same way your application runs in production
+- Test your application as fast as you type code, without needing to use `docker` or `kubectl` in your inner loop cycle
+- No more CPU cycles wasted in your machine. Hardware and network just limited by the power of the cloud
+- Your development endpoints are always available. No need to expose your local machine to the internet through remote tunnels
+
+## How is Okteto different from other tools like Skaffold?
+
+Skaffold automates the workflow for building, pushing, and deploying your application. You iterate on your application source code locally and then deploy to local or remote Kubernetes clusters.
+
+Okteto's philosophy is to move development entirely to Kubernetes. The Skaffold pipeline, even though automated, is still slow. With Okteto, you code locally in your favorite IDE and Okteto automatically synchronizes your changes to your remote development environment. No commit, build, push, or deploy required.
+
+The main differences from tools like Skaffold are:
+
+- Okteto decouples deployment from development. You can deploy your application with `kubectl`, `Helm`, a serverless framework or even a CI job and use Okteto later to develop any component of your application
+- Use any docker image as your remote development environment, with your favorite tools. Okteto doesn't require you to change the way you build, debug, or deploy your applications. Since builds are executed in your remote development environment, you benefit from fast incremental builds, hot reloaders, or the dependency caching offered by your programming language. Native builds are always faster than building images and redeploying containers
+- You can integrate Okteto with your local IDE remote plugins, making it possible to execute your favorite IDE extensions and debuggers as you develop your application directly in Kubernetes
+- Okteto provides bidirectional synchronization. For example, you can execute package managers like `npm` or `pip` in your remote development environment and the changes are synchronized back to your local file system
+
+## Is Okteto compatible with Flux/ArgoCD?
+
+Okteto decouples deployment from development, making it possible to use it with tools like Flux or ArgoCD.
+
+We recommend you to stop the Flux/ArgoCD reconciliation loop while running `okteto up`. For example, add this field to your Okteto Manifest to stop the Flux reconciliation loop:
+
+```yaml
+annotations:
+  fluxcd.io/ignore: "true"
+```
+
+## How to use private images?
+
+In order to use your private registry credentials you must configure a [pull secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) and use it in your Kubernetes manifests.
+
+Alternatively, follow these steps if you want to configure your private registry credentials for your default service account:
+
+- First, create a `docker-registry` secret with your registry credentials:
+
+```console
+$ kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+```
+
+> More information on how to create `docker-registry` secrets [is available here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
+
+- Update your service account to automatically inject the registry secret when deploying resources in the namespace:
+
+```console
+$ kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "regcred"}]}'
+```
+
+> If your resources use a different `serviceAccountName`, replace `default` with that value in the command above.
+
+With this configuration, all the deployments, stateful sets, jobs, and development containers launched in your namespace will automatically use your registry credentials when pulling private images.
+
+## What types of Kubernetes services are supported in Okteto Cloud?
+
+`NodePort` or `LoadBalancer` services are not supported in Okteto Cloud. Okteto Cloud automatically translates `NodePort` or `LoadBalancer` services into ingress rules. More information is [available here](/docs/cloud/ssl/). Okteto Cloud also configures [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for each namespace. Only traffic between the pods running in your namespaces is allowed, as well as external traffic to the internet.
+
+## What resource quotas are present in Okteto Cloud Namespaces?
+
+The following [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) are associated to every namespace created in Okteto Cloud:
+
+### Developer Plan
+
+| Resource  | Quota  |
+|---|---|
+| Namespaces  |  5 |
+| Pods  |  10 |
+| CPUs   | 1CPU/pod with a maximum of 4CPUs/user  |
+| Memory   | 3Gi/pod with a maximum of 8Gi/user |
+| Storage  | 5Gi  |
+| Services  | 10  |
+| Secrets  | 50  |
+| Config Maps  | 50  |
+| Persistent Volume Claims  | 5  |
+
+
+### Developer Pro Plan
+
+| Resource  | Quota  |
+|---|---|
+| Namespaces  |  10 |
+| Pods  |  20 |
+| CPUs   | 2CPUs/pod with a maximum of 8CPUs/user  |
+| Memory   | 6Gi/pod with a maximum of 16Gi/user |
+| Storage  | 20Gi  |
+| Replication Controllers  | 30  |
+| Services  | 20  |
+| Secrets  | 100  |
+| Config Maps  | 100  |
+| Persistent Volume Claims  | 10  |
+
+
+## Are there any restrictions on applications deployed on Okteto Cloud?
+
+Okteto Cloud configures [pod security policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) to limit the privileges of your applications. The following options are not allowed: `privileged`, `hostNetwork`, `allowPrivilegeEscalation`, `hostPID`, `hostIPC`. Mounting volume host paths is also not allowed.
+
+Apart from that, Okteto Cloud also uses [RBAC rules](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) to limit the access to the Kubernetes API. The supported endpoints are:
+
+```yaml
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  - pods/exec
+  - pods/attach
+  - pods/portforward
+  - configmaps
+  - secrets
+  - services
+  - endpoints
+  - serviceaccounts
+  - events
+  - persistentvolumeclaims
+  - replicationcontrollers
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - limitranges
+  - namespaces
+  - namespaces/status
+  - resourcequotas
+  - resourcequotas/status
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
+  - extensions
+  resources:
+  - deployments
+  - ingresses
+  - replicasets
+  verbs:
+  - '*'
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - '*'
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - '*'
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - helm.fluxcd.io
+  resources:
+  - helmreleases
+  - helmreleases/status
+  verbs:
+  - '*'
+- apiGroups:
+  - helm.integrations.flux.weave.works
+  resources:
+  - fluxhelmreleases
+  verbs:
+  - '*'
+- apiGroups:
+  - configuration.konghq.com
+  resources:
+  - kongplugins
+  - kongconsumers
+  - kongcredentials
+  - kongingresses
+  - tcpingresses
+  verbs:
+  - '*'
+- apiGroups:
+  - openfaas.com
+  resources:
+  - functions
+  verbs:
+  - '*'
+- apiGroups:
+  - litmuschaos.io
+  resources:
+  - chaosengines
+  - chaosexperiments
+  - chaosresults
+  verbs:
+  - '*'
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - list
+  - watch
+  - get
+```
+
+You can only create `Roles` restricted to the endpoints above. `RoleBindings` can only refer to `Roles` existing on your namespaces.
+
+
+## Every time I make a change, tsc detects two changes:
+
+This is related to how syncthing interacts with `tsc`. Syncthing creates a temporary file and replaces the original file with the new one.
+
+To solve the problem you just add the flag `--synchronousWatchDirectory` to your `tsc` command.
