@@ -31,7 +31,8 @@ module.exports = {
       appId: 'RS9BKUCQCT',
       apiKey: 'ac5c1ba5f3d4e8eceb4ce860d568da39',
       indexName: 'okteto',
-      algoliaOptions: {}
+      algoliaOptions: {},
+      position: 'left',
     },
     navbar: {
       title: 'Okteto',
@@ -44,38 +45,39 @@ module.exports = {
       },
       items: [
         {
-          type: 'docsVersionDropdown',
+          type: 'search',
           position: 'left',
-          dropdownActiveClassDisabled: true,
         },
         {
-          to: 'getting-started/',
-          activeBasePath: 'nothing',
-          label: 'Documentation',
-          position: 'right',
-        },
-        {
-          href: 'https://okteto.com/pricing/',
-          label: 'Pricing',
-          position: 'right',
+          href: 'https://okteto.com',
+          label: 'Product',
+          position: 'left',
           target: '_self'
         },
         {
           href: 'https://okteto.com/blog/',
           label: 'Blog',
-          position: 'right',
+          position: 'left',
           target: '_self'
         },
         {
-          href: 'https://kubernetes.slack.com/?redir=%2Fmessages%2FCM1QMQGS0%2F',
-          label: 'Slack',
-          position: 'right',
+          href: 'https://community.okteto.com',
+          label: 'Community',
+          position: 'left',
+          target: '_self'
         },
         {
-          href: 'https://github.com/okteto/okteto',
-          label: 'GitHub',
+          type: 'docsVersionDropdown',
           position: 'right',
-        }
+          dropdownActiveClassDisabled: true,
+        },
+        {
+          href: 'https://okteto.com/free-trial',
+          label: 'Get Free Trial',
+          position: 'right',
+          target: '_self',
+          className: "Button teal"
+        },
       ],
     },
     footer: {
