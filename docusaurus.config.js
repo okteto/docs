@@ -31,7 +31,8 @@ module.exports = {
       appId: 'RS9BKUCQCT',
       apiKey: 'ac5c1ba5f3d4e8eceb4ce860d568da39',
       indexName: 'okteto',
-      algoliaOptions: {}
+      algoliaOptions: {},
+      position: 'left',
     },
     navbar: {
       title: 'Okteto',
@@ -62,6 +63,10 @@ module.exports = {
           target: '_self'
         },
         {
+          type: 'search',
+          position: 'left',
+        },
+        {
           type: 'docsVersionDropdown',
           position: 'right',
           dropdownActiveClassDisabled: true,
@@ -70,7 +75,8 @@ module.exports = {
           href: 'https://okteto.com/free-trial',
           label: 'Get Free Trial',
           position: 'right',
-          target: '_self'
+          target: '_self',
+          className: "Button teal"
         },
       ],
     },
