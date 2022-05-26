@@ -1,0 +1,142 @@
+---
+title: Migrating to Okteto CLI 2.0
+description: Migrating to Okteto CLI 2.0
+sidebar_label: Migrating to Okteto CLI 2.0
+id: manifest-migration
+---
+
+The launch of [Okteto CLI 2.0](https://www.okteto.com/blog/announcing-the-launch-of-okteto-cli-2-0/) provides support for [Okteto Manifest v2](/docs/reference/manifest/).
+The goal of the new manifest format is to have a single for defining the build, deployment, and development of your application.
+The v2 manifest also consolidates the various actions possible with previous versions into one command, the improved `okteto up` command.
+Previously, developers would have to run a series of commands, such as `okteto pipeline deploy` or `okteto stack deploy` and then `okteto up`.
+The choice between the use of either the `pipeline` or `stack` commands was often a tripping point for our users and introduced needless complexity.
+After a user figured this out they were still not in setup to start active development and needed to run the `okteto up` command.
+Now, with v2, a single run of `okteto up` will build images, deploy your application, and activate your development container.
+Note that there are still commands for all the intermediary operations to use when desired:
+
+- `okteto build`: builds the images defined in the Okteto manifest.
+- `okteto deploy`: deploys your dev environment.
+- `okteto deploy --build`: forces a build of the defined images before deploying the dev environment.
+- `okteto up`: activates your dev container.
+- `okteto up --deploy`: forces a redeploy of your development environment before activating your dev container.
+
+In order to facilitate the migration of a v1 Okteto manifest to v2 we will cover the following scenarios:
+- *Scenario 1* Developers with a docker-compose and a v1 manifest
+- *Scenario 2* Developers with an okteto pipeline file and a v1 manifest
+- *Scenario 3* Developers with a stack file, pipeline file and a v1 manifest
+
+
+## Scenario 1
+
+This scenario provides an example of transitioning to a v2 manifest when you are currently using a compose file and a v1 dev manifest.
+You will continue to use your compose file, as before, and will provide slight modifications to the manifest in order to index services and add a deploy section.
+
+### okteto.yml (v1)
+
+```yaml
+name: frontend
+image: okteto/node:16
+command: bash
+sync:
+  - .:/app
+```
+
+### okteto.yml (v2)
+
+```yaml
+deploy:
+  compose: docker-compose.yml
+dev:
+  frontend:
+		image: okteto/node:16
+		command: bash
+		sync:
+		  - .:/app
+```
+
+## Scenario 2
+
+With scenario 2 we demonstrate converting from an okteto pipeline and v1 manifest to a single v2 manifest.
+The example files are for a project that uses a pipeline to deploy a 3rd party PostgreSQL helm chart, build your app, and then deploy your app with a local helm chart.
+
+Conversion would be performed as follows...
+
+- Move the `deploy` section of the pipeline into a new `okteto.yml` v2 manifest.
+- Take any `okteto build` commands from that `deploy` section and create a new and separate `build` section in the v2 manifest.
+- Add all the v1 manifest instructions into indexed sections of the `dev` portion of the v2 manifest.
+
+The files used with okteto v1 are:
+
+- `okteto-pipeline.yml` -> The pipeline manifest.
+- `frontend/okteto.yml` -> The v1 okteto manifest for the frontend service.
+- `api/okteto.yml` -> The v1 okteto manifest for the api service.
+
+The result of the migration to v2 would result in a single `okteto.yml` at the root of your project.
+The example files are as follows:
+
+### v1
+
+#### okteto-pipeline.yml
+```yaml
+deploy:
+  - helm repo add bitnami https://charts.bitnami.com/bitnami
+  - helm upgrade --install postgresql bitnami/postgresql
+  - okteto build -t okteto.dev/frontend:${OKTETO_GIT_COMMIT} frontend
+  - okteto build -t okteto.dev/api:${OKTETO_GIT_COMMIT} api
+  - helm upgrade --install frontend frontend/chart --set image=okteto.dev/frontend:${OKTETO_GIT_COMMIT}
+  - helm upgrade --install api api/chart --set image=okteto.dev/api:${OKTETO_GIT_COMMIT}
+```
+
+#### frontend/okteto.yml
+```yaml
+name: frontend
+image: okteto/node:16
+command: bash
+sync:
+  - .:/app
+```
+
+#### api/okteto.yml
+```yaml
+name: api
+image: okteto/golang:1
+command: bash
+sync:
+  - .:/app
+```
+
+### v2
+
+The following variables are available within your v2 manifest in order to refer to the latest build of the images defined in the build section.
+
+- `${OKTETO_BUILD_<service>_TAG}`: SHA for the last image build at the registry
+- `${OKTETO_BUILD_<service>_REGISTRY}`: the registry URL where the image was pushed
+- `${OKTETO_BUILD_<service>_REPOSITORY}`: the name of the image that was pushed (`namespace/_<service>`)
+- `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference (using its SHA)
+
+### okteto.yml
+```yaml
+build:
+	frontend:
+		context: frontend
+	api:
+		context: api
+
+deploy:
+  - helm repo add bitnami https://charts.bitnami.com/bitnami
+	- helm upgrade --install postgresql bitnami/postgresql
+	- helm upgrade --install frontend frontend/chart --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
+	- helm upgrade --install api api/chart --set image=${OKTETO_BUILD_API_IMAGE}
+
+dev:
+	frontend:
+		image: okteto/node:16
+		command: bash
+		sync:
+		  - frontend:/app
+	api:
+		image: okteto/golang:1
+		command: bash
+		sync:
+		  - api:/app
+```

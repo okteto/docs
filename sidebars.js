@@ -115,6 +115,7 @@ module.exports = {
       "reference/known-issues"
     ],
     "Tutorials": [
+      "tutorials/manifest-migration",
       "tutorials/compose-getting-started",
       "tutorials/preview-environments",
       "tutorials/webpack"
