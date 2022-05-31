@@ -202,21 +202,10 @@ service are "healthy".
 - `start_period` (duration): Time between the start of the container and the initiation of the healthcheck.
 - `interval` (duration): Time between a failed healthcheck and a subsequent new try.
 - `timeout` (duration): Number of seconds after which the healthcheck times out. 
-- `retries` (int): Number of retries before the healthcheck fails.
-- `test` (string): defines the command the Compose implementation will run to check container health. It can be
+- `retries` (int): Number of retries before healthcheck fails.
+- `test` (string): defines the command that will run to check container health. It can be
 either a string or a list. If it's a list, the first item must be either NONE, CMD or CMD-SHELL.
 If it's a string, it's equivalent to specifying CMD-SHELL followed by that string.
-
-```yaml
-healthcheck:
-  interval: 10s
-  timeout: 10m
-  retries: 5
-  start_period: 30s
-  test: curl https://0.0.0.0:8080/readiness
-```
-
-HTTP healthchecks can be defined as follows:
 
 ```yaml
 healthcheck:
@@ -227,6 +216,17 @@ healthcheck:
   http:
     path: /
     port: 8080
+```
+
+healthchecks can also tests a command as follows:
+
+```yaml
+healthcheck:
+  interval: 10s
+  timeout: 10m
+  retries: 5
+  start_period: 30s
+  test: echo 'db.runCommand({serverStatus:1}).ok' | mongo admin -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --quiet | grep 1
 ```
 
 #### image (string, optional)
