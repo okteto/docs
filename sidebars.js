@@ -109,13 +109,13 @@ module.exports = {
     "References": [
       "reference/cli",
       "reference/manifest",
+      "reference/manifest-migration",
       "reference/compose",
       "reference/faqs",
       "cloud/permissions",
       "reference/known-issues"
     ],
     "Tutorials": [
-      "tutorials/manifest-migration",
       "tutorials/compose-getting-started",
       "tutorials/preview-environments",
       "tutorials/webpack"
