@@ -109,6 +109,7 @@ module.exports = {
     "References": [
       "reference/cli",
       "reference/manifest",
+      "reference/manifest-migration",
       "reference/compose",
       "reference/faqs",
       "cloud/permissions",
