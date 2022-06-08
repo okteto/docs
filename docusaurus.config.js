@@ -231,12 +231,12 @@ module.exports = {
         from: ['/enterprise/administration/volume-snapshots/']
       },
       {
-        to: '/enterprise/administration/certificates/',
-        from: ['/enterprise/configuration/certificates/']
+        to: '/enterprise/configuration/certificates/',
+        from: ['/enterprise/administration/certificates/']
       },
       {
-        to: '/enterprise/administration/configuration/',
-        from: ['/enterprise/configuration/configuration/']
+        to: '/enterprise/configuration/configuration/',
+        from: ['/enterprise/administration/configuration/']
       },
       
 
