@@ -61,6 +61,19 @@ module.exports = {
       },
       "cloud/preview-environments/preview-environments-gitlab"
     ],
+    "Administration": [
+      "administration/dashboard",
+      "administration/cleanup",
+      {
+        "type": "category",
+        "label": "Private Repositories",
+        "items": [
+          "administration/private-repositories/github-app",
+          "administration/private-repositories/ssh-key"
+        ]
+      },
+      "administration/volume-snapshots"
+    ],
     "Okteto Self-Hosted": [
       "enterprise",
       {
