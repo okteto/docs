@@ -101,10 +101,10 @@ module.exports = {
       },
       {
         "type": "category",
-        "label": "Administration",
+        "label": "Configuration",
         "items": [
-          "enterprise/administration/certificates",
-          "enterprise/administration/configuration"
+          "enterprise/configuration/certificates",
+          "enterprise/configuration/configuration"
         ]
       }
     ],
