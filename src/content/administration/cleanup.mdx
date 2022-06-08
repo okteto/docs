@@ -6,17 +6,18 @@ id: cleanup
 ---
 
 import Image from '@theme/Image';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import TiersList from '@theme/TiersList';
+
 
 ## Sleeping resources
 
-To automatically save resources in your cluster, you can configure Okteto Enterprise to automatically scale inactive applications and resources to zero after a period of inactivity.
-
-You can enable and customize the inactivity period via the [garbage collector's settings](/docs/enterprise/administration/configuration/#gc).
-
+To automatically save resources in your cluster, you can configure Okteto to automatically scale inactive applications and resources to zero if they haven't been used for longer than the `inactivity period`.
 
 ## Inactive Applications and Resources
 
-Okteto Enterprise considers an application or resources inactive if a user hasn't performed any of the following tasks during the inactivity period:
+Okteto considers an application or resources inactive if a user hasn't performed any of the following tasks during the `inactivity period`:
 
 - Upgrade or redeploy via the UI or the command line.
 - Launched a development container with `okteto up`.
@@ -28,9 +29,13 @@ Service accounts, config maps, secrets, or volumes you create will be unaffected
 
 Okteto's UI will notify you when there are sleeping resources in your namespace. Press the **Wake all** button to activate all sleeping resources at once.
 
-<p align="center"><Image src="/docs/enterprise/administration/images/wake.png" alt="wake a sleeping resource" width="1000" /></p>
+<p align="center"><Image src="/docs/administration/images/wake.png" alt="wake a sleeping resource" width="1000" /></p>
 
 Sleeping resources are also started if anyone visits any of the public endpoints of your application.
+
+## Delete Unused Namespaces
+
+Namespaces and all the resources and data contained within will be deleted if they are not used for longer than the `deletion period`. 
 
 ## Persistent resources
 
@@ -38,6 +43,26 @@ In case you are interested on the garbage collector but you want to skip some sp
 
 In case you want more granularity and only want to persist specific deployments or statefulsets within a namespace, you can include the label `dev.okteto.com/persistent` on those resources. In that case, the garbage collector will ignore only those specific resources while scaling down the rest of the namespace.
 
-## Delete Unused Namespaces
 
-You can also configure Okteto Enterprise to delete unused namespaces after a period of inactivity. You can enable and customize the inactivity period via the [garbage collector's settings](/docs/enterprise/administration/configuration/#gc).
+## Configuration Steps
+
+You can consult the `deletion` and `inactivity` periods in the [Admin Dashboard](/docs/administration/dashboard).
+
+<Tabs
+  defaultValue="self-hosted"
+  values={[
+    { label: 'Self-hosted', value: 'self-hosted', },
+    { label: 'SaaS', value: 'saas', },
+  ]}
+>
+<TabItem value="self-hosted">
+
+You can enable and customize the `inactivity` and `deletion` periods via the [garbage collector's settings](/docs/enterprise/administration/configuration/#gc).
+
+</TabItem>
+
+<TabItem value="saas">
+If your instance is hosted by Okteto, reach out to support@okteto.com to modify this configuration.
+</TabItem>
+</Tabs>
+
