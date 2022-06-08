@@ -103,8 +103,8 @@ module.exports = {
         "type": "category",
         "label": "Configuration",
         "items": [
-          "enterprise/configuration/certificates",
-          "enterprise/configuration/configuration"
+          "enterprise/administration/certificates",
+          "enterprise/administration/configuration"
         ]
       }
     ],
