@@ -5,7 +5,7 @@ const docsContentPath = 'src/content';
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
-  url: 'https://okteto.com',
+  url: 'https://www.okteto.com',
   baseUrl: '/docs/',
   trailingSlash: true,
   organizationName: 'okteto', // Usually your GitHub org/user name.
@@ -14,7 +14,7 @@ module.exports = {
   onBrokenLinks: 'error',
   onDuplicateRoutes: 'warn',
   customFields: {
-    image: 'https://okteto.com/docs/okteto-meta-image.png'
+    image: 'https://www.okteto.com/docs/okteto-meta-image.png'
   },
   themeConfig: {
     colorMode: {
@@ -40,7 +40,7 @@ module.exports = {
       logo: {
         alt: 'Okteto Logo',
         src: 'img/logo.svg',
-        href: 'https://okteto.com',
+        href: 'https://www.okteto.com',
         target: '_self'
       },
       items: [
@@ -49,13 +49,13 @@ module.exports = {
           position: 'left',
         },
         {
-          href: 'https://okteto.com',
+          href: 'https://www.okteto.com',
           label: 'Product',
           position: 'left',
           target: '_self'
         },
         {
-          href: 'https://okteto.com/blog/',
+          href: 'https://www.okteto.com/blog/',
           label: 'Blog',
           position: 'left',
           target: '_self'
@@ -72,7 +72,7 @@ module.exports = {
           dropdownActiveClassDisabled: true,
         },
         {
-          href: 'https://okteto.com/free-trial',
+          href: 'https://www.okteto.com/free-trial',
           label: 'Get Free Trial',
           position: 'right',
           target: '_self',
@@ -101,7 +101,7 @@ module.exports = {
           items: [
             {
               label: 'Blog',
-              href: 'https://okteto.com/blog/',
+              href: 'https://www.okteto.com/blog/',
               target: '_self'
             },
             {
@@ -115,7 +115,7 @@ module.exports = {
             },
             {
               label: 'Pricing',
-              href: 'https://okteto.com/pricing',
+              href: 'https://www.okteto.com/pricing',
               target: '_self'
             },
           ],
