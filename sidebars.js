@@ -103,19 +103,8 @@ module.exports = {
         "type": "category",
         "label": "Administration",
         "items": [
-          "enterprise/administration/dashboard",
           "enterprise/administration/certificates",
-          "enterprise/administration/configuration",
-          "enterprise/administration/cleanup",
-          {
-            "type": "category",
-            "label": "Private Repositories",
-            "items": [
-              "enterprise/administration/private-repositories/github-app",
-              "enterprise/administration/private-repositories/ssh-key"
-            ]
-          },
-          "enterprise/administration/volume-snapshots"
+          "enterprise/administration/configuration"
         ]
       }
     ],
