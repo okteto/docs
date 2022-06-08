@@ -209,7 +209,28 @@ module.exports = {
       {
         to: '/reference/compose/',
         from: ['/reference/stacks/']
-      }]
+      },
+      {
+        to: '/administration/dashboard/',
+        from: ['/enterprise/administration/dashboard/']
+      },
+      {
+        to: '/administration/cleanup/',
+        from: ['/enterprise/administration/cleanup/']
+      },
+      {
+        to: '/administration/private-repositories/github-app/',
+        from: ['/enterprise/administration/private-repositories/github-app/']
+      },
+      {
+        to: '/administration/private-repositories/ssh-key/',
+        from: ['/enterprise/administration/private-repositories/ssh-key/']
+      },
+      {
+        to: '/administration/volume-snapshots/',
+        from: ['/enterprise/administration/volume-snapshots/']
+      }
+    ]
     }],
     ['docusaurus-gtm-plugin', {
       id: 'GTM-W6RQFNT'
