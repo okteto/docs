@@ -230,16 +230,6 @@ module.exports = {
         to: '/administration/volume-snapshots/',
         from: ['/enterprise/administration/volume-snapshots/']
       },
-      {
-        to: '/enterprise/configuration/certificates/',
-        from: ['/enterprise/administration/certificates/']
-      },
-      {
-        to: '/enterprise/configuration/configuration/',
-        from: ['/enterprise/administration/configuration/']
-      },
-      
-
     ]
     }],
     ['docusaurus-gtm-plugin', {
