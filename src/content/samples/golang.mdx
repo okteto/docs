@@ -13,7 +13,7 @@ This tutorial will show you how to develop and debug a Go sample application run
 
 ## Prerequisites
 
-- Install the Okteto CLI >= 1.9.0. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
+- Install the Okteto CLI >= 2.0.0. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
 - Configure access to your Okteto Cloud Namespace [using the Okteto CLI](/docs/cloud/credentials/#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto Cloud UI](/docs/cloud/credentials/#download-your-kubernetes-credentials-from-the-okteto-cloud-ui).
 
 ## Step 1: Deploy the Go Sample App
@@ -26,6 +26,17 @@ $ cd go-getting-started
 ```
 
 At the root of the directory, you'll find the `okteto.yaml` file. This describes how to [build](/docs/reference/manifest/#build-object-optional) and [deploy](/docs/reference/manifest/#deploy-string-optional) the Go Sample App.
+
+```yaml
+build:
+  hello-world:
+    image: okteto.dev/hello-world:1.0.0
+    context: .
+
+deploy:
+  - kubectl apply -f k8s.yml
+```
+
 Deploy your development environment by executing:
 
 ```console
@@ -35,12 +46,13 @@ $ okteto deploy --build
 ```console
  i  Using cindy @ cloud.okteto.com as context
  i  Building image for service 'hello-world'
- i  Building the image 'okteto.dev/hello-world:dev' in tcp://buildkit.cloud.okteto.net:1234...
+ i  Building the image 'okteto.dev/hello-world:1.0.0' in tcp://buildkit.cloud.okteto.net:1234...
 ...
- ✓  Image 'registry.cloud.okteto.net/cindy/hello-world:dev' successfully pushed
- i  Running cat k8s-template.yml | envsubst | kubectl apply -f -
-deployment.apps/hello-world configured
-service/hello-world configured
+ ✓  Image 'registry.cloud.okteto.net/cindy/hello-world:1.0.0' successfully pushed
+ i  Running kubectl apply -f k8s.yml
+deployment.apps/hello-world created
+service/hello-world created
+ingress.networking.k8s.io/hello-world created
  ✓  Development environment 'go-getting-started' successfully deployed
  i  Run 'okteto up' to activate your development container
 ```
