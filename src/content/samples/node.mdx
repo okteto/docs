@@ -13,7 +13,7 @@ This tutorial will show you how to develop and debug a Node.js sample applicatio
 
 ## Prerequisites
 
-- Install the Okteto CLI (>= 1.12.13). Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
+- Install the Okteto CLI (>= 2.0.0). Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
 - Configure access to your Okteto Cloud Namespace [using the Okteto CLI](/docs/cloud/credentials/#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto Cloud UI](/docs/cloud/credentials/#download-your-kubernetes-credentials-from-the-okteto-cloud-ui).
 
 ## Step 1: Deploy the Node.js Sample App
@@ -25,11 +25,29 @@ $ git clone https://github.com/okteto/node-getting-started
 $ cd node-getting-started
 ```
 
-The `k8s.yml` file contains the [Kubernetes manifests](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) of the Node.js Sample App.
+At the root of the directory, you'll find the `okteto.yaml` file. This describes how to [build](/docs/reference/manifest/#build-object-optional) and [deploy](/docs/reference/manifest/#deploy-string-optional) the Node Sample App.
+
+```
+build:
+  hello-world:
+    image: okteto.dev/node-hello-world:1.0.0
+    context: .
+deploy:
+  - kubectl apply -f k8s.yml
+dev:
+  hello-world:
+    image: okteto/dev:latest
+    command: bash
+    sync:
+      - .:/usr/src/app
+    forward:
+      - 9229:9229
+```
+
 Deploy a dev version of the application by executing:
 
 ```console
-$ kubectl apply -f k8s.yml
+$ okteto deploy --build
 ```
 
 ```console
@@ -43,58 +61,7 @@ Log into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) and click on th
 
 Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto Cloud will [automatically create them](/docs/cloud/ssl/) for you when you deploy your application. Cool no 😎?
 
-## Step 2: Create your okteto manifest
-
-To start developing on the Node.js Sample App you first need to create an okteto manifest.
-With the Node.js Sample App deployed, run the following command to create your [okteto manifest](/docs/reference/manifest/):
-
-```console
-$ okteto init --v1
-```
-
-```console
-This command walks you through creating an okteto manifest.
-It only covers the most common items, and tries to guess sensible defaults.
-See https://okteto.com/docs/reference/manifest for the official documentation about the okteto manifest.
-Use the arrow keys to navigate: ↓ ↑ → ←
-Select the deployment you want to develop:
-  ▸ hello-world
-    Use default values
-```
-
-The `okteto init` command will scan the available deployments in your Kubernetes namespace and ask you to pick one.
-Select the `hello-world` deployment. It's the one we deployed on the previous step.
-
-```console
- ✓  hello-world
- ✓  Deployment 'hello-world' successfully analyzed
- ✓  okteto manifest (okteto.yml) created
- i  Run 'okteto up' to activate your development container
-```
-
-The `okteto init` command creates the following `okteto.yml` file:
-
-```yaml
-name: hello-world
-command: bash
-sync:
-  - .:/usr/src/app
-forward:
-  - 3000:3000
-  - 9229:9229
-```
-
-This file defines how to activate a development container for the Node.js Sample App:
-
-- `name`: the name of the Kubernetes deployment you want to put on development mode
-- `command`: the start command of the development container
-- `sync`: the folders that will be synchronized between your local machine and the development container
-- `forward`: a list of ports to forward from your development container
-
-Also, the `okteto init` command creates a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
-This is useful to avoid synchronizing binaries, build artifacts, git metadata, or dependencies like `node_modules`.
-
-## Step 3: Activate your development container
+## Step 2: Activate your development container
 
 Next, execute the following command to activate your development container:
 
@@ -135,7 +102,7 @@ Starting hello-world server...
 
 Go back to the browser and reload the page to test that your application is running.
 
-## Step 4: Develop directly on Okteto Cloud
+## Step 3: Develop directly on Okteto Cloud
 
 Open the `index.js` file in your favorite local IDE and modify the response message on line 5 to be *Hello world from the cluster!*. Save your changes.
 
@@ -154,7 +121,7 @@ Starting hello-world server...
 
 Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎!
 
-## Step 5: Debug directly on Okteto Cloud
+## Step 4: Debug directly on Okteto Cloud
 
 Okteto enables you to debug your applications directly from your favorite IDE.
 Let's take a look at how that works in VS Code, one of the most popular IDEs for Node development.
