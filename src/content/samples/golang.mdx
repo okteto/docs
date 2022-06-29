@@ -13,7 +13,7 @@ This tutorial will show you how to develop and debug a Go sample application run
 
 ## Prerequisites
 
-- Install the Okteto CLI >= 1.9.0. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
+- Install the latest version of the Okteto CLI. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
 - Configure access to your Okteto Cloud Namespace [using the Okteto CLI](/docs/cloud/credentials/#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto Cloud UI](/docs/cloud/credentials/#download-your-kubernetes-credentials-from-the-okteto-cloud-ui).
 
 ## Step 1: Deploy the Go Sample App
@@ -25,16 +25,36 @@ $ git clone https://github.com/okteto/go-getting-started
 $ cd go-getting-started
 ```
 
-The `k8s.yml` file contains the [Kubernetes manifests](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) of the Go Sample App.
-Deploy a dev version of the application by executing:
+At the root of the directory, you'll find the `okteto.yaml` file. This describes how to [build](/docs/reference/manifest/#build-object-optional) and [deploy](/docs/reference/manifest/#deploy-string-optional) the Go Sample App.
+
+```yaml
+build:
+  hello-world:
+    image: okteto.dev/go-hello-world:1.0.0
+    context: .
+
+deploy:
+  - kubectl apply -f k8s.yml
+```
+
+Deploy your development environment by executing:
 
 ```console
-$ kubectl apply -f k8s.yml
+$ okteto deploy --build
 ```
 
 ```console
-deployment.apps "hello-world" created
-service "hello-world" created
+ i  Using cindy @ cloud.okteto.com as context
+ i  Building image for service 'hello-world'
+ i  Building the image 'okteto.dev/go-hello-world:1.0.0' in tcp://buildkit.cloud.okteto.net:1234...
+...
+ ✓  Image 'registry.cloud.okteto.net/cindy/go-hello-world:1.0.0' successfully pushed
+ i  Running kubectl apply -f k8s.yml
+deployment.apps/hello-world created
+service/hello-world created
+ingress.networking.k8s.io/hello-world created
+ ✓  Development environment 'go-getting-started' successfully deployed
+ i  Run 'okteto up' to activate your development container
 ```
 
 Log into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) and click on the URL of the application:
@@ -43,69 +63,39 @@ Log into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) and click on th
 
 Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto Cloud will [automatically create them](/docs/cloud/ssl/) for you when you deploy your application. Cool no 😎?
 
-## Step 2: Create your okteto manifest
+## Step 2: Activate your development container
 
-To start developing on the Go Sample App you first need to create an okteto manifest.
-With the Go Sample App deployed, run the following command to create your [okteto manifest](/docs/reference/manifest/):
-
-```console
-$ okteto init --v1
-```
-
-```console
-This command walks you through creating an okteto manifest.
-It only covers the most common items, and tries to guess sensible defaults.
-See https://okteto.com/docs/reference/manifest for the official documentation about the okteto manifest.
-Use the arrow keys to navigate: ↓ ↑ → ←
-Select the deployment you want to develop:
-  ▸ hello-world
-    Use default values
-```
-
-The `okteto init` command will scan the available deployments in your Kubernetes namespace and ask you to pick one.
-Select the `hello-world` deployment. It's the one we deployed on the previous step.
-
-```console
- ✓  hello-world
- ✓  Deployment 'hello-world' successfully analyzed
- ✓  okteto manifest (okteto.yml) created
- i  Run 'okteto up' to activate your development container
-```
-
-The `okteto init` command creates the following `okteto.yml` file:
+The [dev](/docs/reference/manifest/#dev-object-optional) section defines how to activate a development container for the Go Sample App:
 
 ```yaml
-name: hello-world
-image: okteto/golang:1
-command: bash
-securityContext:
-  capabilities:
-    add:
-    - SYS_PTRACE
-volumes:
-  - /go/pkg/
-  - /root/.cache/go-build/
-sync:
-  - .:/usr/src/app
-forward:
-  - 8080:8080
-  - 2345:2345
+dev:
+  hello-world:
+    image: okteto/golang:1
+    command: bash
+    sync:
+      - .:/usr/src/app
+    volumes:
+      - /go
+      - /root/.cache
+    securityContext:
+      capabilities:
+        add:
+          - SYS_PTRACE
+    forward:
+      - 2345:2345
 ```
 
-This file defines how to activate a development container for the Go Sample App:
+The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
 
-- `name`: the name of the Kubernetes deployment you want to put on development mode.
 - `image`: the image used by the development container. More information on development images [here](/docs/reference/development-environments/).
 - `command`: the start command of the development container.
-- `securityContext`: `SYS_PTRACE` is a capability required by the Go debugger.
-- `volumes`: a list of paths in your development container to be mounted as persistent volumes. For example, this is useful to persist the Go cache.
 - `sync`: the folders that will be synchronized between your local machine and the development container.
-- `forward`: a list of ports to forward from your development container.
+- `volumes`: a list of paths in your development container to be mounted as persistent volumes. For example, this can be used to persist the Go cache.
+- `securityContext`: `SYS_PTRACE` is a capability required by the Go debugger.
+- `forward`: a list of ports to forward from your development container to locahost in your machine. This is needed to configure the Go debugger.
 
-Also, the `okteto init` command creates a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
+Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
 This is useful to avoid synchronizing binaries, build artifacts, git metadata, or dependencies like the `vendor` folder.
-
-## Step 3: Activate your development container
 
 Next, execute the following command to activate your development container:
 
@@ -114,13 +104,14 @@ $ okteto up
 ```
 
 ```console
- ✓  Persistent volume successfully attached
+ i  Using cindy @ cloud.okteto.com as context
+ i  Development environment 'go-getting-started' already deployed.
  ✓  Images successfully pulled
  ✓  Files synchronized
+    Context:   cloud.okteto.com
     Namespace: cindy
     Name:      hello-world
-    Forward:   8080 -> 8080
-               2345 -> 2345
+    Forward:   2345 -> 2345
 
 Welcome to your development container. Happy coding!
 cindy:hello-world app>
@@ -221,7 +212,5 @@ Congratulations, you just developed **your first application in Okteto Cloud** �
 > - Eliminate integration issues by developing in a realistic environment
 > - Test your application end to end as fast as you type code
 > - No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
-
-Ready to develop your application on Okteto Cloud? Read our [step by step tutorial](/docs/cloud/okteto-cli/#okteto-manifest) on how to configure an Okteto Pipeline to deploy realistic environments for your application in just one click.
 
 Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.

@@ -83,8 +83,8 @@ Our documentation uses [Docusaurus 2](https://v2.docusaurus.io/) and is hosted o
 
 Clone the repo and then run: 
 
-"`console
-yarn
+```console
+yarn install
 yarn start
 ```
 
