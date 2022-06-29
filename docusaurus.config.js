@@ -219,7 +219,7 @@ module.exports = {
         from: ['/enterprise/administration/cleanup/']
       },
       {
-        to: '/administration/private-repositories/github-app/',
+        to: '/enterprise/administration/github/',
         from: ['/enterprise/administration/private-repositories/github-app/']
       },
       {

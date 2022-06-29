@@ -104,7 +104,8 @@ module.exports = {
         "label": "Configuration",
         "items": [
           "enterprise/administration/certificates",
-          "enterprise/administration/configuration"
+          "enterprise/administration/configuration",
+          "enterprise/administration/github"
         ]
       }
     ],
