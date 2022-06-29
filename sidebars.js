@@ -72,7 +72,6 @@ module.exports = {
           "administration/private-repositories/ssh-key"
         ]
       },
-      "administration/volume-snapshots"
     ],
     "Okteto Self-Hosted": [
       "enterprise",
