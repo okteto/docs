@@ -105,7 +105,8 @@ module.exports = {
         "items": [
           "enterprise/administration/certificates",
           "enterprise/administration/configuration",
-          "enterprise/administration/github"
+          "enterprise/administration/github",
+          "enterprise/administration/volume-snapshots"
         ]
       }
     ],

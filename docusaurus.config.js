@@ -226,10 +226,6 @@ module.exports = {
         to: '/administration/private-repositories/ssh-key/',
         from: ['/enterprise/administration/private-repositories/ssh-key/']
       },
-      {
-        to: '/administration/volume-snapshots/',
-        from: ['/enterprise/administration/volume-snapshots/']
-      },
     ]
     }],
     ['docusaurus-gtm-plugin', {
