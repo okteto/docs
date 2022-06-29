@@ -15,7 +15,7 @@ Sometimes, documentation is specific to a product tier. You can add a badge besi
 Tiers is a `string` of tier separated by a space
 
 ```md
-# Page heading<TiersList tiers="Enterprise Self-host" />
+# Page heading<TiersList tiers="Scale Self-Hosted" />
 ```
 
 ## Contributors
