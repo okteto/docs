@@ -221,18 +221,43 @@ It is possible to use separate cloud providers for DNS than for storage if neede
 
 ## Okteto Enterprise Components
 
+### backend
+
+The Okteto backend component configuration
+
+- `installer`: Configuration for the pipeline installer job
+  - `annotations`: Annotations to add to the backend pods.
+  - `env`: Envvars to add to the backend pods.
+  - `labels`: Labels to add to the backend pods.
+
+```yaml
+backend:
+  installer:
+    labels:
+      my_label: myval
+    annotations:
+      my_annotation: myval
+    env:
+      - name: MY_ENV
+        val: myval
+```
+
 ### api
 
 The API service. Account and Kubernetes credentials management, namespace creation, and sharing, deployment via the catalog, etc...
 
 - `annotations`: Annotations to add to the API pods.
 - `labels`: Labels to add to the API pods.
+- `env`: Envvars to add to the API pods.
 - `replicaCount`: The number of API pods. It defaults to 2.
 - `resources`: The resources for the API pods.
 
 ```yaml
 api:
   replicaCount: 2
+  env:
+    - name: MY_ENV
+      val: myval
   resources:
     requests:
       cpu: 100m
@@ -293,6 +318,7 @@ The build service. It's used in combination with `okteto build` to build contain
 
 - `annotations`: Annotations to add to the buildkit pods.
 - `labels`: Labels to add to the buildkit pods.
+- `env`: Envvars to add to the buildkit pods.
 - `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
 - `replicaCount`: The number of buildkit pods. It defaults to 1.
 - `resources`: The resources for the buildkit pods.
@@ -303,6 +329,10 @@ The build service. It's used in combination with `okteto build` to build contain
 ```yaml
 buildkit:
   replicaCount: 1
+  env:
+    - name: MY_ENV
+      val: myval
+
   storage:
     class: ssd
     size: 180Gi
@@ -314,14 +344,23 @@ buildkit:
 The daemonset automatically configures every node of your cluster to work better with Okteto.
 
 - `annotations`: Annotations to add to the daemonset pods.
+- `env`: Envvars to add to the daemonset pods.
 - `labels`: Labels to add to the daemonset pods.
 - `image`: Container image used by the daemonset pods.
+
+```yaml
+daemonset:
+  env:
+    - name: MY_ENV
+      val: myval
+```
 
 ### frontend
 
 The frontend service serves the web application.
 
 - `annotations`: Annotations to add to the frontend pods.
+- `env`: Envvars to add to the frontend pods.
 - `labels`: Labels to add to the frontend pods.
 - `replicaCount`: The number of frontend pods. It defaults to 2.
 - `resources`: The resources for the frontend pods.
@@ -329,6 +368,9 @@ The frontend service serves the web application.
 ```yaml
 frontend:
   replicaCount: 2
+  env:
+    - name: MY_ENV
+      val: myval
   resources:
     requests:
       cpu: 100m
@@ -373,6 +415,15 @@ installer:
 The private container registry.
 
 - `annotations`: Annotations to add to the registry pods.
+- `env`: Envvars to add to the registry pods.
+
+```yaml
+registry:
+  env:
+    - name: MY_ENV
+      val: myval
+```
+
 - `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precendence over the ones defined in the [ingress](/docs/enterprise/administration/configuration/#ingress) section.
 - `ingress.tlsSecret`: TLS secret for the registry endpoint. If empty, okteto will default to the wildcard certificate created by Okteto Enterprise.
 - `labels`: Labels to add to the registry pods.
@@ -433,10 +484,23 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 - `annotations`: Annotations to add to the webhook pods.
 - `hostNetwork`: Enables or disables host networking for the webhook deployment. The default is false.
+- `env`: Envvars to add to the webhook pods.
 - `labels`: Labels to add to the webhook pods.
 - `port`: Port sets the port used for the webhook deployment. The default is 443.
 - `replicaCount`: The number of webhook pods. It defaults to 2.
 - `resources`: The resources for the webhook pods.
+
+```yaml
+webhook:
+  replicaCount: 2
+  env:
+    - name: MY_ENV
+      val: myval
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+```
 
 ## Advanced Configuration
 
