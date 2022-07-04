@@ -14,7 +14,10 @@ We set configured Okteto CLI with Okteto Cloud in the [previous section](/docs/g
 
 ## One Command To Rule Them All
 
-As part of this guide, we'll be fixing a bug in our sample Movies application. The application consists of a React frontend and a Node.js backend API. The frontend uses the REST endpoints of the backend API and loads two different lists of movies based on its response. Ideally, the application should look like this:
+As part of this guide, we'll be fixing a bug in our sample Movies application.
+The application consists of a React frontend and a Node.js backend API.
+The frontend uses the REST endpoints of the backend API and loads two different lists of movies based on its response.
+Ideally, the application should look like this:
 
 <p align="center">
   <Image
@@ -26,10 +29,11 @@ As part of this guide, we'll be fixing a bug in our sample Movies application. T
 
 But there is a bug in the backend we need to fix to get to this state 🙂
 
-We'll be using two different versions of this Movies application to demonstrate this - [one](https://github.com/okteto/movies-with-helm) which uses Helm charts, and the [other](https://github.com/okteto/movies-with-compose) which has a Docker compose file configured.
+We'll be using two different versions of this Movies application to demonstrate this.
+One [using Docker Compose](https://github.com/okteto/movies-with-compose) and another one [using Helm charts](https://github.com/okteto/movies-with-helm) to deploy the application.
 
 <Tabs>
-<TabItem value="docker" label="Movies app with Docker compose file" default>
+<TabItem value="docker" label="Movies App with Docker Compose" default>
 
 ```console
 $ git clone https://github.com/okteto/movies-with-compose
@@ -40,33 +44,29 @@ $ cd movies-with-compose
 $ okteto up
 ```
 
-Since we already have a [Docker compose file](/docs/cloud/okteto-cli/#okteto-manifest), on running `okteto up` you should directly see a prompt asking you which one of your microservices you want to develop:
+Since we already have a [Docker compose file](https://github.com/okteto/movies-with-compose/blob/main/docker-compose.yml),
+on running `okteto up` you should see Okteto CLI building the required Docker images for your microservices.
+When it's done building the images, it will start deploying your application to Okteto Cloud.
+You should see the deployed endpoints as part of the output in the CLI:
 
 ```console
-  ✓  Development container 'api' configured successfully
-  ✓  Development container 'frontend' configured successfully
-    Select the development container you want to activate:
-    Use the arrow keys to navigate: ↓ ↑ → ←
-  ▸ api
-    frontend
+ ✓  Endpoint 'movies' created
+ ✓  Volume 'data' created
+ ✓  Service 'frontend' created
+ ✓  Service 'mongodb' created
+ ✓  Service 'api' created
+ ✓  Service 'init' created
+ ✓  Service 'movies' created
+ ✓  Compose 'movies-with-compose' successfully deployed
+ i  Endpoints available:
+  - https://movies-with-compose-cindylopez.cloud.okteto.net/
 ```
 
-The Movies app only has the `api` and `frontent` microservices, which we see in the prompt. Let's go with `api` because we know there's a bug there we need to fix 🙂
-
-Once you do that, you should see Okteto CLI building the required Docker images for your microservices. When it is done building the images, it will start deploying your application to Okteto Cloud. You should see the deployed endpoints as part of the output in the CLI:
-
-```console
-Success! Your application will be available shortly.
-i  Endpoints available:
-  - https://movies-with-helm-cindylopez.cloud.okteto.net/
-  - https://movies-with-helm-cindylopez.cloud.okteto.net/api
-```
-
-You should be able to view your application when you visit these endpoints. The first endpoint serves the UI for our application, while the second one has the backend API deployed. These endpoints are also shown in the Okteto Cloud dashboard:
+These endpoints are also shown in the [Okteto Cloud dashboard](https://cloud.okteto.com/):
 
 <p align="center">
 <Image
-  src="/docs/images/next-endpoints.png"
+  src="/docs/images/compose-endpoints.png"
   alt="UI showing the movies app"
   width="850"
 />
@@ -74,7 +74,7 @@ You should be able to view your application when you visit these endpoints. The 
 
 </TabItem>
 
-<TabItem value="helm" label="Movies app with Helm">
+<TabItem value="helm" label="Movies App with Helm">
 
 ```console
 $ git clone https://github.com/okteto/movies-with-helm
@@ -84,36 +84,28 @@ $ cd movies-with-helm
 ```console
 $ okteto up
 ```
-Since we don't already have an [Okteto manifest](/docs/cloud/okteto-cli/#okteto-manifest), the manifest generation will happen as part of this step. Okteto CLI will ask you before generating the manifest:
+
+Since we already have a [Okteto manifest](https://github.com/okteto/movies-with-helm/blob/main/okteto.yml),
+on running `okteto up` you should see Okteto CLI building the required Docker images for your microservices.
+When it's done building the images, it will start deploying your application to Okteto Cloud.
+You should see the deployed endpoints as part of the output in the CLI:
 
 ```console
-  i  Using cindylopez @ cloud.okteto.com as context
-  !  okteto manifest has no 'dev' section.
-  ?  Do you want to configure okteto manifest now? [y/n]
-```
-Press `y` to continue.
-
-In case your application images aren't already built, you'll also have the option to do that as part of this step:
-
-```console
-? Do you need to build any of the following Dockerfiles as part of your development environment?:
-▸ api/Dockerfile
-  frontend/Dockerfile
-  No, thanks!
-```
-
-The images for the Movies app haven't already been built, so let's select `api/Dockerfile` first and then `frontend/Dockerfile`.
-
-Once Okteto CLI is done building the images for you, it will start deploying your application to Okteto Cloud. You should see the deployed endpoints as part of the output in the CLI:
-
-```console
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Mon Jul  4 11:15:16 2022
+NAMESPACE: pchico83
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
 Success! Your application will be available shortly.
-i  Endpoints available:
-  - https://movies-with-helm-cindylopez.cloud.okteto.net/
-  - https://movies-with-helm-cindylopez.cloud.okteto.net/api
+ i  Endpoints available:
+  - https://movies-cindylopez.cloud.okteto.net/
+  - https://movies-cindylopez.cloud.okteto.net/api
 ```
 
-You should be able to view your application when you visit these endpoints. The first endpoint serves the UI for our application, while the second one has the backend API deployed. These endpoints are also shown in the Okteto Cloud dashboard:
+These endpoints are also shown in the [Okteto Cloud dashboard](https://cloud.okteto.com/):
 
 <p align="center">
 <Image
@@ -123,49 +115,43 @@ You should be able to view your application when you visit these endpoints. The 
 />
 </p>
 
-At this point, Okteto CLI would have generated the Okteto manifest for you. You can inspect the content of the `okteto.yml` file at the root of your application and make any other [changes](/docs/reference/manifest/) you might require. 
-
-Next, you would be prompted to choose which one of your microservices you want to develop:
-
-```console
-✓  Development container 'api' configured successfully
-✓  Development container 'frontend' configured successfully
-✓  Okteto manifest (okteto.yml) configured successfully
-  Select the development container you want to activate:
-  Use the arrow keys to navigate: ↓ ↑ → ←
-▸ api
-  frontend
-```
-
-The Movies app only has the `api` and `frontent` microservices, which we see in the prompt. Let's go with `api` because we know there's a bug there we need to fix 🙂
-
-```console
-✓  Development container 'frontend' selected
-✓  Images successfully pulled
-✓  Files synchronized
-Context:   cloud.okteto.com
-Namespace: cindylopez
-Name:      frontend
-Forward:   8080 -> 80
-           9229 -> 9229
-
-Welcome to your development container. Happy coding!
-cindylopez:api app>
-```
-
-Once the Dev Environment is up, a remote shell is launched for you. We need to start our application as we would **if** we were developing on a local machine (except we are actually leveraging cloud resources!). For the Movies app we chose, this can be done by running:
-
-```console
-cindylopez:api app> yarn start
-```
-
-Once you do this, you should see the movie thumbnails back again on the frontend endpoint!
-
 </TabItem>
 
 </Tabs>
 
-The next time you run `okteto up`, you'll not see all the steps related to the initial setup and will be directly prompted to choose which microservice you want to develop. Behind the scenes, the Dev Environment will synchronize your changes everytime you save them. 
+Next, a prompt will ask for the microservice you want to develop.
+
+```console
+    Select the development container you want to activate:
+    Use the arrow keys to navigate: ↓ ↑ → ←
+  ▸ api
+    frontend
+```
+
+Let's go with `api` because we know there's a bug there we need to fix 🙂
+
+```console
+ ✓  Development container 'api' selected
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Context:   cloud.okteto.com
+    Namespace: cindylopez
+    Name:      api
+    Forward:   9229 -> 9229
+
+yarn run v1.22.19
+$ nodemon server.js
+[nodemon] 2.0.4
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,json
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+Now, you should be able to view your application when you visit their endpoints.
+Behind the scenes, the Dev Environment will synchronize your changes everytime you save them.
 
 ## Development Time!
 
