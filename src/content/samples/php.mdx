@@ -32,6 +32,10 @@ build:
   hello-world:
     image: okteto.dev/php-hello-world:1.0.0
     context: .
+  hello-world-dev:
+    image: okteto.dev/php-hello-world:dev
+    context: .
+    target: dev
 deploy:
   - kubectl apply -f k8s.yml
 ```
@@ -68,6 +72,7 @@ The [dev](/docs/reference/manifest/#dev-object-optional) section defines how to 
 ```
 dev:
   hello-world:
+    image: ${OKTETO_BUILD_HELLO_WORLD_DEV_IMAGE}
     command: bash
     sync:
       - .:/app
@@ -78,6 +83,8 @@ dev:
 ```
 
 The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+- `image`: the image used by the development container. More information on development images [here](https://www.okteto.com/docs/reference/manifest/#image-string-optional).
+- `command`: the start command of the development container.
 - `command`: the start command of the development container.
 - `sync`: the folders that will be synchronized between your local machine and the development container.
 - `reverse`: a list of ports to reverse forward from your development container to your local machine
