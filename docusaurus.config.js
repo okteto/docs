@@ -5,7 +5,7 @@ const docsContentPath = 'src/content';
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
-  url: 'https://okteto.com',
+  url: 'https://www.okteto.com',
   baseUrl: '/docs/',
   trailingSlash: true,
   organizationName: 'okteto', // Usually your GitHub org/user name.
@@ -14,7 +14,7 @@ module.exports = {
   onBrokenLinks: 'error',
   onDuplicateRoutes: 'warn',
   customFields: {
-    image: 'https://okteto.com/docs/okteto-meta-image.png'
+    image: 'https://www.okteto.com/docs/okteto-meta-image.png'
   },
   themeConfig: {
     colorMode: {
@@ -31,7 +31,8 @@ module.exports = {
       appId: 'RS9BKUCQCT',
       apiKey: 'ac5c1ba5f3d4e8eceb4ce860d568da39',
       indexName: 'okteto',
-      algoliaOptions: {}
+      algoliaOptions: {},
+      position: 'left',
     },
     navbar: {
       title: 'Okteto',
@@ -39,43 +40,44 @@ module.exports = {
       logo: {
         alt: 'Okteto Logo',
         src: 'img/logo.svg',
-        href: 'https://okteto.com',
+        href: 'https://www.okteto.com',
         target: '_self'
       },
       items: [
         {
-          type: 'docsVersionDropdown',
+          type: 'search',
           position: 'left',
+        },
+        {
+          href: 'https://www.okteto.com',
+          label: 'Product',
+          position: 'left',
+          target: '_self'
+        },
+        {
+          href: 'https://www.okteto.com/blog/',
+          label: 'Blog',
+          position: 'left',
+          target: '_self'
+        },
+        {
+          href: 'https://community.okteto.com',
+          label: 'Community',
+          position: 'left',
+          target: '_self'
+        },
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
           dropdownActiveClassDisabled: true,
         },
         {
-          to: 'getting-started/',
-          activeBasePath: 'nothing',
-          label: 'Documentation',
+          href: 'https://www.okteto.com/free-trial',
+          label: 'Get Free Trial',
           position: 'right',
+          target: '_self',
+          className: "Button teal"
         },
-        {
-          href: 'https://okteto.com/pricing/',
-          label: 'Pricing',
-          position: 'right',
-          target: '_self'
-        },
-        {
-          href: 'https://okteto.com/blog/',
-          label: 'Blog',
-          position: 'right',
-          target: '_self'
-        },
-        {
-          href: 'https://kubernetes.slack.com/?redir=%2Fmessages%2FCM1QMQGS0%2F',
-          label: 'Slack',
-          position: 'right',
-        },
-        {
-          href: 'https://github.com/okteto/okteto',
-          label: 'GitHub',
-          position: 'right',
-        }
       ],
     },
     footer: {
@@ -98,31 +100,23 @@ module.exports = {
           title: 'Resources',
           items: [
             {
-              label: 'Pricing',
-              href: 'https://okteto.com/pricing',
+              label: 'Blog',
+              href: 'https://www.okteto.com/blog/',
               target: '_self'
             },
             {
-              label: 'Blog',
-              href: 'https://okteto.com/blog/',
+              label: 'Community',
+              href: 'https://community.okteto.com',
               target: '_self'
             },
             {
               label: 'GitHub',
               href: 'https://github.com/okteto/okteto',
-            }
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Slack',
-              href: 'https://kubernetes.slack.com/?redir=%2Fmessages%2FCM1QMQGS0%2F',
             },
             {
-              label: 'Feedback',
-              href: 'https://github.com/okteto/cloud-feedback',
+              label: 'Pricing',
+              href: 'https://www.okteto.com/pricing',
+              target: '_self'
             },
           ],
         },
@@ -155,11 +149,21 @@ module.exports = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: 'Current',
+              label: 'okteto.com (0.13)',
               path: '/',
             },
+            '0.12': {
+              label: '0.12',
+              path: '0.12',
+              banner: 'none',
+            },
+            '0.11': {
+              label: '0.11',
+              path: '0.11',
+              banner: 'none',
+            },
             '0.10': {
-              label: 'OE 0.10',
+              label: '0.10',
               path: '0.10',
               banner: 'none',
             },
@@ -205,7 +209,24 @@ module.exports = {
       {
         to: '/reference/compose/',
         from: ['/reference/stacks/']
-      }]
+      },
+      {
+        to: '/administration/dashboard/',
+        from: ['/enterprise/administration/dashboard/']
+      },
+      {
+        to: '/administration/cleanup/',
+        from: ['/enterprise/administration/cleanup/']
+      },
+      {
+        to: '/enterprise/administration/github/',
+        from: ['/enterprise/administration/private-repositories/github-app/']
+      },
+      {
+        to: '/administration/private-repositories/ssh-key/',
+        from: ['/enterprise/administration/private-repositories/ssh-key/']
+      },
+    ]
     }],
     ['docusaurus-gtm-plugin', {
       id: 'GTM-W6RQFNT'

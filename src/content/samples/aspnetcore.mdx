@@ -13,7 +13,7 @@ This tutorial will show you how to create an account in Okteto Cloud and how to 
 
 ## Prerequisites
 
-- Install the Okteto CLI. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
+- Install the latest version of the Okteto CLI. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
 - Configure Access to your Okteto Cloud Namespace [using the Okteto CLI](/docs/cloud/credentials/#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto Cloud UI](/docs/cloud/credentials/#download-your-kubernetes-credentials-from-the-okteto-cloud-ui).
 
 ## Step 1: Deploy the ASP.NET Sample App
@@ -25,15 +25,39 @@ $ git clone https://github.com/okteto/aspnetcore-getting-started
 $ cd aspnetcore-getting-started
 ```
 
-The `k8s.yml` file contains the [Kubernetes manifests](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) of the ASP.NET Sample App. Deploy a dev version of the application by executing:
+At the root of the directory, you'll find the `okteto.yaml` file. This describes how to [build](/docs/reference/manifest/#build-object-optional) and [deploy](/docs/reference/manifest/#deploy-string-optional) the ASP.NET Sample App.
+
+```
+build:
+  hello-world:
+    image: okteto.dev/aspnet-hello-world:1.0.0
+    context: .
+  hello-world-dev:
+    context: .
+    target: dev
+deploy:
+  - kubectl apply -f k8s.yml
+```
+
+Deploy your development environment by executing:
 
 ```console
-$ kubectl apply -f k8s.yml
+$ okteto deploy --build
 ```
 
 ```console
-deployment.apps "hello-world" created
-service "hello-world" created
+ i  Using cindy @ cloud.okteto.com as context
+ i  Building image for service 'hello-world'
+ i  Building the image 'okteto.dev/aspnet-hello-world:1.0.0' in tcp://buildkit.cloud.okteto.net:1234...
+[+] Building 5.9s (11/11) FINISHED
+ ...
+ ✓  Image 'registry.cloud.okteto.net/cindy/aspnet-hello-world:1.0.0' successfully pushed
+ i  Running kubectl apply -f k8s.yml
+deployment.apps/hello-world created
+service/hello-world created
+ingress.networking.k8s.io/hello-world created
+ ✓  Development environment 'aspnet-getting-started' successfully deployed
+ i  Run 'okteto up' to activate your development container
 ```
 
 Open your browser and go to the URL of the application. You can get the URL by logging into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) and clicking on the application's endpoint:
@@ -43,8 +67,27 @@ Open your browser and go to the URL of the application. You can get the URL by l
 Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto Cloud will [automatically create them](/docs/cloud/ssl/) for you when you deploy your application. Cool no 😎?
 
 ## Step 2: Activate your development container
+The [dev](/docs/reference/manifest/#dev-object-optional) section defines how to activate a development container for the ASP.NET Sample App:
+```
+dev:
+  hello-world:
+    image: ${OKTETO_BUILD_HELLO_WORLD_DEV_IMAGE}
+    command: bash
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    remote: 2222
+```
 
-With the ASP.NET Sample Application deployed, run the following command:
+The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+- `image`: the image used by the development container. More information on development images [here](/docs/reference/development-environments/) and [dynamic value for the tag](/docs/reference/manifest/#build-object-optional)
+- `command`: the start command of the development container.
+- `environment`: the environment variables added or overwritten in your development container.
+- `remote`: the local port to use for SSH communication with your development environment.
+
+Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
+This is useful to avoid synchronizing binaries, build artifacts, or git metadata.
+
+Next, execute the following command to activate your development container:
 
 ```console
 $ okteto up
@@ -56,28 +99,39 @@ $ okteto up
  ✓  Files synchronized
     Namespace: cindy
     Name:      hello-world
-    Forward:   5000 -> 5000
-               2222 -> 22
 
-watch : Polling file watcher is enabled
-watch : Started
-info: Microsoft.Hosting.Lifetime[0]
+Welcome to your development container. Happy coding!
+cindy:hello-world app>
+```
+
+Working in your development container is the same as working on your local machine.
+Start the application by running the following command:
+
+```console
+default:hello-world app> dotnet watch run
+```
+
+```console
+dotnet watch ⌚ Polling file watcher is enabled
+dotnet watch 🔥 Hot reload enabled. For a list of supported edits, see https://aka.ms/dotnet/hot-reload.
+  💡 Press "Ctrl + R" to restart.
+dotnet watch 🔧 Building...
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  helloworld -> /okteto/bin/Debug/netcoreapp6.0/helloworld.dll
+dotnet watch 🚀 Started
+warn: Microsoft.AspNetCore.Server.Kestrel[0]
+      Overriding address(es) 'https://localhost:5001, http://localhost:5000'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
+info: Microsoft.Hosting.Lifetime[14]
       Now listening on: http://0.0.0.0:5000
+dotnet watch 🌐 Unable to launch the browser. Navigate to http://0.0.0.0:5000
 info: Microsoft.Hosting.Lifetime[0]
       Application started. Press Ctrl+C to shut down.
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /src
+      Content root path: /okteto
 ```
-
-The `okteto up` command starts a [development container](/docs/reference/development-environments/), which means:
-
-- The ASP.NET Core Sample App container is updated with the Docker image `okteto/hello-world:aspnetcore-dev`. This image is based off `mcr.microsoft.com/dotnet/core/sdk:3`, and is preconfigured with all the required dev tools to build, test, debug, and run a `dotnetcore`-based application. Check the [Dockerfile](https://github.com/okteto/aspnetcore-getting-started/blob/master/Dockerfile) to see how it's generated.
-- A [file synchronization service](/docs/reference/file-synchronization/) is created to keep your changes up-to-date between your local filesystem and your development container.
-- Container port 5000 is forwarded to localhost.
-
-> All of this (and more) can be customized via the `okteto.yml` [manifest file](/docs/reference/manifest/).
 
 Go back to the browser and reload the page to test that your application is running.
 
@@ -142,8 +196,4 @@ Congratulations, you just developed **your first application in Okteto Cloud** �
 > - Test your application end to end as fast as you type code
 > - No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
 
-Okteto uses the `okteto.yml` file to determine the name of your development container, the docker image to use, and where to upload your code. Check the [Okteto manifest docs](/docs/reference/manifest/) to customize your development containers with your own dev tools, images, and dependencies to adapt Okteto to your own application.
-
-Ready to develop your application on Okteto Cloud? Read our [step by step tutorial](/docs/cloud/okteto-cli/#okteto-manifest) on how to configure an Okteto Pipeline to deploy realistic environments for your application in just one click.
-
-Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or join our [#okteto](https://kubernetes.slack.com/messages/CM1QMQGS0/) channel in the [Kubernetes community Slack](http://slack.k8s.io/) to ask questions or share your feedback.
+Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.
