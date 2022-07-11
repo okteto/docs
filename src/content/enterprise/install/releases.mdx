@@ -5,11 +5,61 @@ sidebar_label: Release Notes
 id: releases
 ---
 
+## 0.13.0
+Jun 16, 2022
+
+### Features
+- Add Access Control to [Volume Snapshots](/docs/enterprise/administration/volume-snapshots/)
+- Add link to the [Community website](https://community.okteto.com) in the help menu.
+- Inject `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` environment variables in every pod
+- Remove Namespace limit on licenses
+
+### Improvements
+- Upgrade Okteto CLI to [2.3.3](https://github.com/okteto/okteto/releases/tag/2.3.3)
+- Upgrade Okteto registry to [2.8.1](https://github.com/distribution/distribution/releases/tag/v2.8.1)
+- Better deduplication in secrets query. Prioritize user secrets over cluster secrets.
+- Handle PVC update in the mutating webhook. Fixes Okteto CLI issue [#2599](https://github.com/okteto/okteto/issues/2599)
+- Upgrade crypto package. Fixes [CVE-2022-27191](https://access.redhat.com/security/cve/CVE-2022-27191)
+- Upgrade frontend nginx server to alpine 1.22. Fixes [CVE-2022-27405](https://access.redhat.com/security/cve/CVE-2022-27405)
+
+### Bugfixes
+- Fix panic in Preview Environment query for repos with invalid format
+- Fix component running state calculation for pods with many retries. They previously stayed in the error state.
+- Fix UI bug with Pull Request names in Preview environment list for non github URLs.
+
+## 0.12.0
+May 19, 2022
+
+### Improvements
+- Okteto daemonset no longer mounts host volumes nor runs in privilege mode
+- Add support for [GKE workload identity](https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity)
+- Use `ingressClassName` field for ingresses instead of the deprecated `kubernetes.io/ingress.class` annotation
+- Add [network quotas](/docs/enterprise/administration/configuration/#quotas) for okteto up
+- Invalid ingresses not accepted by the nginx ingress controller are now caught by the webhook
+- Deploying daemonset is no longer allowed by default
+- Ingresses are put to sleep alongside all other namespace resources and automatically wake by with incoming requests
+- Improve pipeline jobs lifecycle and properly handle timeouts. Logs for pipelines that time out are no longer lost
+- Account for "ready" container condition to check if a component is healthy
+- Decouple computing overloaded nodes from the autoscaler
+- Allow users to type in custom branch name for Github repository in the deploy modal
+- Add delete button to preview list
+- Fix inaccesible modal elements on small screens
+- Upgrade to Okteto CLI 2.2.2
+- Upgrade ingress-nginx helm chart to 4.1.0
+
+### Bugfixes
+- Fix a panic in the mutation webhook for pods with no labels
+- Minor UI fixes for deploy's branch selector
+
+### Breaking changes
+- Ingresses using the `kubernetes.io/ingress.class` annotation will be automatically updated by the okteto webhook and saved as `spec.ingressClassName` with the annotation removed
+- Okteto Pipelines are executed relative to the path where manifest is located. All relative paths in the manifest will use the context of the subfolder where the manifest is defined
+
 ## 0.11.1
 May 6, 2022
 
 ### Bugfixes
-- Provided a buildkit update in order to address authentication issues when building images.
+- Provides a buildkit update for addressing authentication issues when building images.
 
 ## 0.11.0
 April 7, 2022
@@ -509,7 +559,7 @@ January 30, 2021
 - The dashboard now supports running `okteto down` directly from there
 - The dashboard now gives you an option to destroy attached volumes together with the application
 - Support for Azure Storage for the Okteto Registry
-- Login with Okta, Gitlab, Ping, Dex, or any other OpenID provider
+- Login with Okta, GitLab, Ping, Dex, or any other OpenID provider
 - You can now enable/disable the cluster-wide changes that the daemon set applies
 - Dev environments will automatically use the internal network when connecting to the build and registry services
 - Upgraded to cert-manager v1.1.0
