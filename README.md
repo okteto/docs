@@ -10,7 +10,7 @@ This repository is the source for https://okteto.com/docs. If you'd like to cont
 
 - [Install Okteto CLI](https://www.okteto.com/docs/getting-started/#installing-okteto-cli)
 - [Set your `okteto context`](https://www.okteto.com/docs/getting-started/#configuring-okteto-cli-with-okteto-cloud)
-- Clone the repo and then run `okteto up` from the terminal
+- Clone the repo and run `okteto up` from the root of the repo
 
 You should now see the docs deployed on http://localhost:8080/docs/ 🚀
 
