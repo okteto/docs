@@ -226,6 +226,10 @@ module.exports = {
         to: '/administration/private-repositories/ssh-key/',
         from: ['/enterprise/administration/private-repositories/ssh-key/']
       },
+      {
+        to: '/welcome/overview/',
+        from: ['/cloud/']
+      }
     ]
     }],
     ['docusaurus-gtm-plugin', {

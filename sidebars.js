@@ -21,7 +21,6 @@ module.exports = {
     "Dev Environments": [
       "reference/development-environments",
       "cloud/okteto-cli",
-      "cloud",
       {
         "type": "category",
         "label": "Deploying",
