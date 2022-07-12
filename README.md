@@ -8,7 +8,7 @@ This repository is the source for https://okteto.com/docs. If you'd like to cont
 
 ### ☁️ Develop With Okteto
 
-- [Install okteto cli](https://www.okteto.com/docs/getting-started/#installing-okteto-cli)
+- [Install Okteto CLI](https://www.okteto.com/docs/getting-started/#installing-okteto-cli)
 - [Configure okteto context for cloud](https://www.okteto.com/docs/getting-started/#configuring-okteto-cli-with-okteto-cloud)
 - Clone the repo and then run `okteto up` from the terminal
 
