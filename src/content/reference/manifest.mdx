@@ -135,6 +135,19 @@ A list of commands to deploy your development environment.
 
 It's usually a combination of `helm`, `kubectl`, and `okteto` commands.
 
+#### Deploy a `docker-compose` file:
+
+If you are planning to develop with your `docker-compose` only, you should [check out our "Getting Started" guide](/docs/using-dev-envs/)!
+
+You can also create an `okteto.yml` manifest to get even more out of okteto (e.g. to customize the folders that get synchronized, add extra environment variables, etc...). If you do that, you'll need to update the `deploy` section as follows:
+
+```yaml
+deploy:
+  compose: docker-compose.yml
+```
+
+#### Deploy a helm chart:
+
 ```yaml
 deploy:
   - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
@@ -148,13 +161,21 @@ deploy:
     command: helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-There is also an extended notation to deploy Docker Compose files and [endpoints](/docs/reference/compose/#endpoints-object-optional) as part of your development environment:
+#### Advanced deploy:
+
+There is an extended notation to deploy Docker compose files and [endpoints](/docs/reference/compose/#endpoints-object-optional) as part of your development environment:
+
+The `services` field allows us to deploy only a subset of the services in the Docker compose file. Only the `volumes` and `endpoints` of the services specified in the `services` field are deployed.
 
 ```yaml
 deploy:
-  commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
-  compose: docker-compose.yml
+  compose:
+    - file: docker-compose.yml
+      services:
+        - frontend
+    - file: docker-compose.dev.yml
+      services:
+        - api
   endpoints:
     - path: /
       service: frontend
@@ -164,13 +185,13 @@ deploy:
       port: 8080
 ```
 
-or:
+You can even merge deploy commands with docker-compose files:
 
 ```yaml
 deploy:
-  compose:
-    - docker-compose.yml
-    - docker-compose.dev.yml
+  commands:
+    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  compose: docker-compose.yml
 ```
 
 ### destroy ([string], optional)
