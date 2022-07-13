@@ -1,23 +1,23 @@
 ---
 title: Civo
-description: How to install Okteto Enterprise onto Civo
+description: How to install Okteto onto Civo
 id: civo
 ---
 
 import Image from '@theme/Image';
 
-This guide will show you how to install Okteto Enterprise onto Civo's Kubernetes Service.
+This guide will show you how to install Okteto onto Civo's Kubernetes Service.
 
 ## Requirements
 
-In order to fully install Okteto Enterprise, you'll need the following:
+In order to fully install Okteto, you'll need the following:
 
 - A subdomain to which you can add a wildcard DNS record
 - A Kubernetes cluster
 - A working installation of kubectl
 - A working installation of Helm v3
 - A GitHub OAuth application
-- An Okteto Enterprise License (optional)
+- An Okteto License (optional)
 
 ### Subdomain
 
@@ -37,7 +37,7 @@ To get started with Okteto, we recommend that you create a Kubernetes cluster wi
 - Default network
 - Without Traefik (you'll need to remove it from the default apps)
 
-Okteto Enterprise will create persistent volumes for the build and registry services, so you might need to increase [your storage quotas](https://www.civo.com/account/quota).
+Okteto will create persistent volumes for the build and registry services, so you might need to increase [your storage quotas](https://www.civo.com/account/quota).
 
 ### Installing kubectl
 
@@ -49,7 +49,7 @@ Follow the official documentation for [installing the latest release of Helm v3]
 
 ### Creating the GitHub OAuth application
 
-> Okteto Enterprise supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we'll focus on using GitHub. All the supported configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
+> Okteto supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we'll focus on using GitHub. All the supported configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
 
 Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
 
@@ -65,27 +65,27 @@ https://okteto.DOMAIN
 https://okteto.DOMAIN/auth/callback
 ```
 
-You'll use the `Client ID` and `Client Secret` when installing Okteto Enterprise.
+You'll use the `Client ID` and `Client Secret` when installing Okteto.
 
 ### Getting your Civo API Key
 
-Okteto Enterprise needs to be able to create and delete entires on Civo's DNS service to fulfill the ACME challenge for the certificates. It will use your API key for this.
+Okteto needs to be able to create and delete entires on Civo's DNS service to fulfill the ACME challenge for the certificates. It will use your API key for this.
 
 To retrieve your API Key, log in into your Civo account, select "Account" from the menu on the left, go to "Settings", and then click on the "Security" tab.
 
 <p align="center"><Image src="images/civo-apikey.png" width="650" /></p>
 
-### Getting your Okteto Enterprise License
+### Getting your Okteto License
 
-Okteto Enterprise is free for small teams.  You get all the features of [Okteto Enterprise](/docs/enterprise/) for up to 3 users with 3 namespaces each.
+Okteto is free for small teams.  You get all the features of [Okteto](/docs/enterprise/) for up to 3 users with 3 namespaces each.
 
-Want to use Okteto Enterprise with a bigger team? [Let's talk](https://okteto.com/#talktous)
+Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
-## Installing Okteto Enterprise
+## Installing Okteto
 
 ### Creating the Okteto namespace
 
-Create a dedicated namespace for your Okteto Enterprise instance and the required CRDs:
+Create a dedicated namespace for your Okteto instance and the required CRDs:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/namespace.yaml
@@ -95,7 +95,7 @@ $ kubectl apply -f https://charts.okteto.com/namespace.yaml
 $ kubectl apply -f https://charts.okteto.com/crds.yaml
 ```
 
-### Configuring your Okteto Enterprise instance
+### Configuring your Okteto instance
 
 Create a Kubernetes secret with the Civo API key:
 
@@ -103,7 +103,7 @@ Create a Kubernetes secret with the Civo API key:
 $ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=$API_KEY
 ```
 
-Download a copy of the [Okteto Enterprise Civo configuration file](https://okteto.com/docs/enterprise/civo/config.yaml), open it, and update the following values:
+Download a copy of the [Okteto Civo configuration file](https://okteto.com/docs/enterprise/civo/config.yaml), open it, and update the following values:
 
 - Your `email`
 - Your `license` (optional)
@@ -135,18 +135,18 @@ registry:
         size: 100Gi
 ```
 
-### Adding the Okteto Enterprise Helm repository
+### Adding the Okteto Helm repository
 
-You'll need to add the Okteto Enterprise repository in order to be able to install Okteto Enterprise:
+You'll need to add the Okteto repository in order to be able to install Okteto:
 
 ```console
 helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
-### Installing your Okteto Enterprise instance
+### Installing your Okteto instance
 
-Install the latest version of Okteto Enterprise by running:
+Install the latest version of Okteto by running:
 
 ```console
 helm install okteto okteto/okteto-enterprise -f config.yaml --namespace=okteto
@@ -169,13 +169,13 @@ NOTES:
 You can retrieve the External IP by running:
     kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
 
-2. Once you create both DNS entries you can access your Okteto Enterprise instance at this URL:
+2. Once you create both DNS entries you can access your Okteto instance at this URL:
 https://okteto.dev.example.com
 ```
 
 ### Retrieve the Ingress Controller IP address
 
-You can use `kubectl` to fetch the address that has been dynamically allocated by Civo to the NGINX Ingress you've just installed and configured as a part of Okteto Enterprise:
+You can use `kubectl` to fetch the address that has been dynamically allocated by Civo to the NGINX Ingress you've just installed and configured as a part of Okteto:
 
 ```console
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
@@ -190,7 +190,7 @@ okteto-ingress-nginx-controller  LoadBalancer   10.245.147.23  91.211.154.196  8
 
 You'll need to create a wildcard DNS record for this IP. To do that, log in to your Civo account, click on the "Manage" option on the left part of the dashboard, and click on "DNS".
 
-Select the domain you're using for your Okteto Enterprise instance, and click on the "DNS Records" option.
+Select the domain you're using for your Okteto instance, and click on the "DNS Records" option.
 
 <p align="center"><Image src="images/civo-dns-records.png" width="650" /></p>
 
@@ -203,14 +203,14 @@ Click on the "Add a Record" button and use the following values:
 
 Click on the "Add Record" button to create the DNS record.
 
-## Sign in to your Okteto Enterprise
+## Sign in to your Okteto
 
 > After completing the previous steps, it might take a few minutes for your DNS configuration to propage and for cert manager to create a valid certificate and for all the pods to start.
 
-You can access your Okteto Enterprise instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
+You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
 
 Refer to the general [configuration documentation](/docs/enterprise/administration/configuration/) for advanced configuration.
 
 ## Troubleshooting
 
-See our [troubleshooting guide](/docs/enterprise/install/troubleshooting/) for tips on how to troubleshoot your Okteto Enterprise instance.
+See our [troubleshooting guide](/docs/enterprise/install/troubleshooting/) for tips on how to troubleshoot your Okteto instance.
