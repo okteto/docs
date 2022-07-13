@@ -48,6 +48,7 @@ jobs:
     - name: Context
       uses: okteto/context@latest
       with:
+        url: ${{secrets.OKTETO_URL}}
         token: ${{ secrets.OKTETO_TOKEN }}
 
     - name: Deploy preview environment
@@ -59,50 +60,22 @@ jobs:
         timeout: 15m
 ```
 
-### Preview Environments for Okteto Enterprise Users
-
-To configure preview environments for [Okteto Enterprise](https://okteto.com/enterprise/), you need to specify the url of your Okteto Enterprise instance as
-a parameter in the `context` action:
-
-```yaml
-# file: .github/workflows/preview.yaml
-on:
-  pull_request:
-    branches:
-      - main
-
-jobs:
-  preview:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Context
-      uses: okteto/context@latest
-      with:
-        token: ${{ secrets.OKTETO_TOKEN }}
-        url: https://okteto.example.com
-
-    - name: Deploy preview environment
-      uses: okteto/deploy-preview@latest
-      env:
-       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        name: pr-${{ github.event.number }}
-        scope: global
-        timeout: 15m
-
-```
-
-In Okteto Enterprise, you have access to two different scopes for preview environments:
+There are two different scopes for preview environments:
 -  `personal`, where the only one who has access to the environment is the logged user.
 -  `global`, where all cluster members have access to it and do not need to have the user's name at the end of the preview environment name. Only  administrators cancreate a preview environment with global scope.
 
-## Step 3: Configure your Okteto API Token
+> The `global` scope is not supported in Okteto Cloud
 
-If you noticed, the workflow uses the `secrets:OKTETO_TOKEN`. We do this, so we don't have to commit the token into our repo. Before you run this workflow you need to create the `OKTETO_TOKEN` secret in your repository, with your personal access token as the value.
+## Step 3: Configure your secrets
 
-[Follow the process in this guide to create a personal access token](https://okteto.com/docs/cloud/personal-access-tokens/).
+If you noticed, the workflow uses the `secrets:OKTETO_TOKEN` and `secrets:OKTETO_URL`. We do this, so we don't have to commit these values into our repo. 
 
-Once you've created the personal access token, add it to your GitHub repository following the instructions [here](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository). 
+Before you run this workflow you need to create the following secrets in your repository:
+
+- `OKTETO_TOKEN` with your personal access token as the value.
+- `OKTETO_URL` with the URL of your Okteto instance (if left empty, it will default to https://cloud.okteto.com)
+
+[Follow the process in this guide to create a personal access token](https://okteto.com/docs/cloud/personal-access-tokens/). Once you've created the personal access token, add it to your GitHub repository following the instructions [here](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository). 
 
 ## Step 4: Open a Pull Request
 
@@ -136,35 +109,11 @@ jobs:
     - name: Context
       uses: okteto/context@latest
       with:
-        token: ${{ secrets.OKTETO_TOKEN }}
-
-    - name: Destroy preview environment
-      uses: okteto/destroy-preview@latest
-      with:
-        name: pr-${{ github.event.number }}-cindylopez
-```
-
-For Okteto Enterprise users:
-
-```yaml
-# file: .github/workflows/preview-closed.yaml
-on:
-  pull_request:
-    types:
-      - closed
-
-jobs:
-  closed:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Context
-      uses: okteto/context@latest
-      with:
         url: ${{secrets.OKTETO_URL}}
         token: ${{ secrets.OKTETO_TOKEN }}
 
     - name: Destroy preview environment
       uses: okteto/destroy-preview@latest
       with:
-        name: pr-${{ github.event.number }}
+        name: pr-${{ github.event.number }}-cindylopez
 ```
