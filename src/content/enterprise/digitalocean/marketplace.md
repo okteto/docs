@@ -27,7 +27,7 @@ Once you log in to the admin page, you'll need to provide the following values t
 1. The email of the owner of the application
 1. A [dedicated subdomain](#Subdomain) for your Okteto instance
 1. Your Kubernetes cluster's [public endpoint](#Cluster-Public-Endpoint)
-1. Your [Okteto Enterprise license](#License) (optional)
+1. Your [Okteto license](#License) (optional)
 1. The Client ID and Client Secret of a [GitHub OAuth app](#Authentication)
 1. A list of the GitHub Usernames allowed to log into your Okteto instance (optional, leave it empty to allow everyone)
 1. A DigitalOcean [personal access token](#Personal-Access-Token)
@@ -73,11 +73,11 @@ clusters:
 ```
 
 ### License
-Okteto Enterprise is free to try. You get all the features of [Okteto Enterprise](https://okteto.com/docs/enterprise/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
+Okteto is free to try. You get all the features of [Okteto](https://okteto.com/docs/enterprise/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 
-Okteto Enterprise uses GitHub OAuth as the authentication provider. You'll need to create a [GitHub OAuth app](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/) with the following values:
+Okteto uses GitHub OAuth as the authentication provider. You'll need to create a [GitHub OAuth app](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/) with the following values:
 
 *Homepage URL:*
 https://okteto.$SUBDOMAIN
@@ -87,7 +87,7 @@ https://okteto.$SUBDOMAIN/auth/callback
 
 ### Personal Access Token
 
-Okteto Enterprise requires a DigitalOcean personal access token with read/write permissions to create DNS entries when responding to [ACME DNS-01 challenges](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge). The entries will be created in the subdomain you provided in the configuration. Create your [personal access token here](https://cloud.digitalocean.com/account/api/tokens).
+Okteto requires a DigitalOcean personal access token with read/write permissions to create DNS entries when responding to [ACME DNS-01 challenges](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge). The entries will be created in the subdomain you provided in the configuration. Create your [personal access token here](https://cloud.digitalocean.com/account/api/tokens).
 
 ## Support
 

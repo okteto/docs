@@ -1,6 +1,6 @@
 ---
 title: Installation Preparation
-description: How to install Okteto Enterprise in your own Kubernetes cluster
+description: How to install Okteto in your own Kubernetes cluster
 id: preparation
 sidebar_label: Preparation
 ---
@@ -10,7 +10,7 @@ import TabItem from '@theme/TabItem';
 
 ## Requirements
 
-In order to fully install Okteto Enterprise, you'll need the following:
+In order to fully install Okteto, you'll need the following:
 
 - A domain to which you can add a wildcard DNS record
 - A Kubernetes cluster
@@ -19,13 +19,13 @@ In order to fully install Okteto Enterprise, you'll need the following:
 - A Bitbucket, GitHub, or Google OAuth application, or an OpenID Connect application
 - Credentials of your Cloud Provider
 - A bucket (or equivalent block storage)
-- An Okteto Enterprise License (optional)
+- An Okteto License (optional)
 
 ### Domain
 
 You'll need to have access to a domain to which you can add a wildcard DNS record.
 
-This can be a root domain (e.g. example.com) or a subdomain (e.g. dev.example.com). Okteto Enterprise uses Let's Encrypt to generate valid TLS servers, so your domain needs to be available over the internet.
+This can be a root domain (e.g. example.com) or a subdomain (e.g. dev.example.com). Okteto uses Let's Encrypt to generate valid TLS servers, so your domain needs to be available over the internet.
 
 The domain needs to be registered with the same cloud provider you'll be using to store you private images.
 
@@ -38,7 +38,7 @@ We recommend the following specs:
 - A pool with at least 3 nodes with a minimum of 4CPUs and 16 GB of Memory
 - 100 GB per disk
 
-You'll be using the cluster's API server endpoint when configuring Okteto Enterprise.
+You'll be using the cluster's API server endpoint when configuring Okteto.
 
 ### Installing kubectl
 
@@ -52,7 +52,7 @@ Follow the official documentation for [installing the latest release of Helm v3]
 
 ### Authentication
 
-Okteto Enterprise uses OAuth for user authentication. It currently supports GitHub, Google, and OpenID Connect.
+Okteto uses OAuth for user authentication. It currently supports GitHub, Google, and OpenID Connect.
 
 <Tabs
   defaultValue="github"
@@ -84,7 +84,7 @@ Account: Email
 Account: Read
 
 
-You'll use the `Key` and `Secret` when installing Okteto Enterprise.
+You'll use the `Key` and `Secret` when installing Okteto.
 
 </TabItem>
 <TabItem value="github">
@@ -103,7 +103,7 @@ https://okteto.DOMAIN
 https://okteto.DOMAIN/auth/callback
 ```
 
-You'll use the `client ID` and `client Secret` when installing Okteto Enterprise.
+You'll use the `client ID` and `client Secret` when installing Okteto.
 
 </TabItem>
 <TabItem value="google">
@@ -123,7 +123,7 @@ https://okteto.DOMAIN
 https://okteto.DOMAIN/auth/callback
 ```
 
-You'll use the `client ID`, `client Secret` when installing Okteto Enterprise.
+You'll use the `client ID`, `client Secret` when installing Okteto.
 
 </TabItem>
 <TabItem value="openid">
@@ -138,16 +138,16 @@ When creating the application, you'll need to provide the following values:
 - Response Type: `code`
 - Grant Type: `authorization code`
 
-You'll use the `issuer URL`, `authorization URL`, `client ID`, and `client Secret` when installing Okteto Enterprise.
+You'll use the `issuer URL`, `authorization URL`, `client ID`, and `client Secret` when installing Okteto.
 
-> Okteto Enterprise doesn't currently support provider-initiated login or logout.
+> Okteto doesn't currently support provider-initiated login or logout.
 
 </TabItem>
 </Tabs>
 
 ### Cloud Provider Account
 
-Okteto Enterprise needs to perform the following actions on your cloud provider:
+Okteto needs to perform the following actions on your cloud provider:
 
 1. Create and list DNS entries (this is used when generating and renewing certificates)
 1. Read and Write from block storage  (this is used when pulling and pushing images to the registry)
@@ -168,11 +168,11 @@ Please refer to the following documents on how to create the credentials in the 
 
 #### Creating an Azure Storage Account
 
-Follow [these instructions](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) to create a storage account in your Azure Subscription. You'll use the access key when installing Okteto Enterprise.
+Follow [these instructions](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) to create a storage account in your Azure Subscription. You'll use the access key when installing Okteto.
 
 #### Creating a Storage Container
 
-Okteto Enterprise uses a Storage Container to store your private images. Follow Azures's [guide on how to create a storage container](https://docs.aws.amazon.com/quickstarts/latest/s3backup/step-1-create-bucket.html) and set its privacy level to private.
+Okteto uses a Storage Container to store your private images. Follow Azures's [guide on how to create a storage container](https://docs.aws.amazon.com/quickstarts/latest/s3backup/step-1-create-bucket.html) and set its privacy level to private.
 
 #### Registering your Domain
 
@@ -180,7 +180,7 @@ Follow [these instructions](https://docs.microsoft.com/en-us/azure/dns/dns-deleg
 
 #### Creating a Service Principal
 
-Okteto Enterprise will use the Service Principal to create, update, and delete DNS entries in your Azure DNS zone when generating SSL certificates.
+Okteto will use the Service Principal to create, update, and delete DNS entries in your Azure DNS zone when generating SSL certificates.
 
 To create the service principal you can use the following script (requires `azure-cli` and `jq`):
 
@@ -208,7 +208,7 @@ $ AZURE_TENANT_ID=$(echo $DNS_SP | jq -r '.tenant')
 $ AZURE_SUBSCRIPTION_ID=$(az account show | jq -r '.id')
 ```
 
-Get the following values and save them. We'll need the values below when installing Okteto Enterprise.
+Get the following values and save them. We'll need the values below when installing Okteto.
 
 ```console
 $ echo "Service Principal ID: $AZURE_NEW_SP_NAME"
@@ -242,11 +242,11 @@ Register your domain using the same account used to create your EKS cluster.
 
 #### Creating an S3 Bucket
 
-Okteto Enterprise uses S3 to store your private images. Follow Amazon's [guide on how to create s3 buckets](https://docs.aws.amazon.com/quickstarts/latest/s3backup/step-1-create-bucket.html). Create the bucket in the region as your EKS cluster, and keep it private.
+Okteto uses S3 to store your private images. Follow Amazon's [guide on how to create s3 buckets](https://docs.aws.amazon.com/quickstarts/latest/s3backup/step-1-create-bucket.html). Create the bucket in the region as your EKS cluster, and keep it private.
 
 #### Creating an IAM
 
-The Okteto Enterprise sub-components need access to Route 53 (to fulfill the ACME challenge for the certificates) and S3 (for uploading and downloading your container images).
+The Okteto sub-components need access to Route 53 (to fulfill the ACME challenge for the certificates) and S3 (for uploading and downloading your container images).
 
 We recommend you follow AWS' official documentation on [how to create and manage IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) for more information on this.
 
@@ -295,7 +295,7 @@ Create an `IAM User` with the following actions (replace `YOUR_BUCKET` with your
 }
 ```
 
-Once the `IAM User` is created, generate a set of Access keys and save them locally. You'll use the keys when installing Okteto Enterprise.
+Once the `IAM User` is created, generate a set of Access keys and save them locally. You'll use the keys when installing Okteto.
 
 </TabItem>
 
@@ -309,11 +309,11 @@ Register your domain using the same account used to create your DOK cluster.
 
 #### Generating an API Token
 
-Go to https://cloud.digitalocean.com/account/api/tokens and generate a new personal access token with read/write access. We'll be using this when installing Okteto Enterprise.
+Go to https://cloud.digitalocean.com/account/api/tokens and generate a new personal access token with read/write access. We'll be using this when installing Okteto.
 
 #### Creating a DigitalOcean Space and Access Key
 
-Okteto Enterprise uses a Storage Space to store your private images. Follow DigitalOcean's [guide on how to create a storage space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key). Create the space in the same region as your Kubernetes cluster and restrict file listing.
+Okteto uses a Storage Space to store your private images. Follow DigitalOcean's [guide on how to create a storage space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key). Create the space in the same region as your Kubernetes cluster and restrict file listing.
 
 
 </TabItem>
@@ -328,11 +328,11 @@ Create it in the same project and region as your GKE cluster.
 
 #### Creating a Google Cloud Storage Bucket
 
-Okteto Enterprise uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
+Okteto uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
 
 #### Creating a Google Cloud Service Account
 
-The Okteto Enterprise sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
+The Okteto sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
 
 We recommend you follow Google's official documentation on [how to create and manage Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts) for more information on this.
 
@@ -340,14 +340,14 @@ You'll need to perform the following tasks:
 
 1. Create a `Service Account` in the same Google Cloud project as your GKE cluster.
 1. Give it the `DNS Administrator` and `Storage Object Admin` roles.
-1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto Enterprise.
+1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto.
 
 </TabItem>
 
 </Tabs>
 
-You'll use the credentials when installing Okteto Enterprise.
+You'll use the credentials when installing Okteto.
 
-## Deploying Okteto Enterprise
+## Deploying Okteto
 
-With the environment set up and configuration generated, you can now proceed to the [deployment of Okteto Enterprise](/docs/enterprise/install/deployment/).
+With the environment set up and configuration generated, you can now proceed to the [deployment of Okteto](/docs/enterprise/install/deployment/).
