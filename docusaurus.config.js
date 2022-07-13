@@ -229,10 +229,6 @@ module.exports = {
       {
         to: '/welcome/overview/',
         from: ['/cloud/']
-      },
-      {
-        to: '/welcome/overview/',
-        from: ['/cloud/']
       }
     ]
     }],
