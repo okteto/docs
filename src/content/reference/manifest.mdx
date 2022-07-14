@@ -563,21 +563,21 @@ selector:
 ### services ([object], optional)
 
 A list of services that you want to put on developer mode along your your development container.
-The services work just like the development container, with one exception: they won't be able to start an interactive session. 
-The containers defined in this section run in detached mode, but they can also mount your local folders in a particular path.
+The services work just like the development container, with one exception: they won't be able to start an interactive session.
 
 For example, imagine that you have a python-based application with an API and a Worker service. If you define the manifest as shown below, running `okteto up` would give you a remote terminal into the web development container, while synchronizing your changes with both web and worker.
 
 ```yaml
-name: web
-command: ["python", "manage.py", "runserver", "0.0.0.0:8080"]
-sync:
-  - .:/app
-services:
-  - name: worker
-    command: ["celery", "worker", "-A", "myproject.celeryconf", "-Q", "default", "-n", "default@%h"]
+dev:
+  web:
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8080"]
     sync:
       - .:/app
+    services:
+      - name: worker
+        command: ["celery", "worker", "-A", "myproject.celeryconf", "-Q", "default", "-n", "default@%h"]
+        sync:
+          - .:/app
 ```
 
 and both deployments, `web` and `worker` will mount your local folder `.` into the path `/app`.
