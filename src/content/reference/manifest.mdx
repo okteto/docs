@@ -560,6 +560,47 @@ selector:
   app.kubernetes.io/name: vote
 ```
 
+### services ([object], optional)
+
+A list of services that you want to put on developer mode along your your development container.
+The services work just like the development container, with one exception: they won't be able to start an interactive session.
+
+For example, imagine that you have a python-based application with an API and a Worker service. If you define the manifest as shown below, running `okteto up` would give you a remote terminal into the web development container, while synchronizing your changes with both web and worker.
+
+```yaml
+dev:
+  web:
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8080"]
+    sync:
+      - .:/app
+    services:
+      - name: worker
+        command: ["celery", "worker", "-A", "myproject.celeryconf", "-Q", "default", "-n", "default@%h"]
+        sync:
+          - .:/app
+```
+
+and both deployments, `web` and `worker` will mount your local folder `.` into the path `/app`.
+
+The supported keys for containers defined in this section are:
+
+1. `annotations`
+1. `command`
+1. `container`
+1. `environment`
+1. `image`
+1. `labels`
+1. `name`
+1. `namespace`
+1. `resources`
+1. `sync`
+1. `tolerations`
+1. `workdir`
+
+They work the same as for the main container, except for the `command` and `name` keys.
+For `services`, `command` defaults to the command specified in your deployment, instead of `sh`.
+`labels` and `name` are mutually exclusive (for the main container, `name` is mandatory).
+
 #### sync ([string], required)
 
 Specifies local folders that must be synchronized to the development container.
