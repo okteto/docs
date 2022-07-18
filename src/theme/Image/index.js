@@ -4,7 +4,7 @@ import classnames from 'classnames';
 import styles from './styles.module.scss';
 
 function Image(props) {
-  let source = props.src;
+  let {src: source, loading} = props;
   if (!source.match(/^((http|https):\/\/|\/)/) && typeof window !== 'undefined') {
     // Calculate relative url based on current route.
     const basePath = window.location.pathname.replace(/index\.[a-z]+$/, '')
@@ -15,6 +15,7 @@ function Image(props) {
   const imageProps = {
     ...props,
     src: source,
+    loading: loading || "lazy",
     center: undefined,
     borderless: undefined
   };
