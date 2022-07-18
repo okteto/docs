@@ -63,12 +63,14 @@ Each image supports the following fields:
 
 In order to refer to these images from anywhere in your [Okteto Manifest](/docs/cloud/okteto-cli/#okteto-manifest), you can use the following environment variables:
 
-- `${OKTETO_BUILD_<service>_TAG}`: SHA for the last image build at the registry
+- `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference (using its SHA)
 - `${OKTETO_BUILD_<service>_REGISTRY}`: the registry URL where the image was pushed
 - `${OKTETO_BUILD_<service>_REPOSITORY}`: the name of the image that was pushed (`namespace/_<service>`)
-- `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference (using its SHA)
+- `${OKTETO_BUILD_<service>_TAG}`: SHA for the last image build at the registry
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
+
+> if a `<service>` name includes the symbol `-`, in the corresponding `OKTETO_BUILD_<service>` environment variables, the symbol `-` will be replaced by `_`.  For example, if `<service>` is `name-with-hyphen`, the environment variable names will start with `$OKTETO_BUILD_SERVICE_WITH_HYPHEN_`.
 
 ### context (string, optional)
 
@@ -135,6 +137,19 @@ A list of commands to deploy your development environment.
 
 It's usually a combination of `helm`, `kubectl`, and `okteto` commands.
 
+#### Deploy a `docker-compose` file:
+
+If you are planning to develop with your `docker-compose` only, you should [check out our "Getting Started" guide](/docs/using-dev-envs/)!
+
+You can also create an `okteto.yml` manifest to get even more out of okteto (e.g. to customize the folders that get synchronized, add extra environment variables, etc...). If you do that, you'll need to update the `deploy` section as follows:
+
+```yaml
+deploy:
+  compose: docker-compose.yml
+```
+
+#### Deploy a helm chart:
+
 ```yaml
 deploy:
   - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
@@ -148,13 +163,21 @@ deploy:
     command: helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-There is also an extended notation to deploy Docker Compose files and [endpoints](/docs/reference/compose/#endpoints-object-optional) as part of your development environment:
+#### Advanced deploy:
+
+There is an extended notation to deploy Docker compose files and [endpoints](/docs/reference/compose/#endpoints-object-optional) as part of your development environment:
+
+The `services` field allows us to deploy only a subset of the services in the Docker compose file. Only the `volumes` and `endpoints` of the services specified in the `services` field are deployed.
 
 ```yaml
 deploy:
-  commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
-  compose: docker-compose.yml
+  compose:
+    - file: docker-compose.yml
+      services:
+        - frontend
+    - file: docker-compose.dev.yml
+      services:
+        - api
   endpoints:
     - path: /
       service: frontend
@@ -164,13 +187,13 @@ deploy:
       port: 8080
 ```
 
-or:
+You can even merge deploy commands with docker-compose files:
 
 ```yaml
 deploy:
-  compose:
-    - docker-compose.yml
-    - docker-compose.dev.yml
+  commands:
+    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  compose: docker-compose.yml
 ```
 
 ### destroy ([string], optional)
@@ -204,6 +227,9 @@ dev:
     sync:
       - frontend:/usr/src/app
 ```
+
+The `name` of each development container must match the name of the Kubernetes Deployment or Statefulset that you want to put on development mode.
+If the name of your Deployment or Statefulset is dynamicly generated, use the [selector](/docs/reference/manifest/#selector-mapstringstring-optional) field to match the Deployment or Statefulset by labels.
 
 Each development container supports the following fields:
 
@@ -533,6 +559,47 @@ They must identify a single Kubernetes deployment/statefulset.
 selector:
   app.kubernetes.io/name: vote
 ```
+
+### services ([object], optional)
+
+A list of services that you want to put on developer mode along your your development container.
+The services work just like the development container, with one exception: they won't be able to start an interactive session.
+
+For example, imagine that you have a python-based application with an API and a Worker service. If you define the manifest as shown below, running `okteto up` would give you a remote terminal into the web development container, while synchronizing your changes with both web and worker.
+
+```yaml
+dev:
+  web:
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8080"]
+    sync:
+      - .:/app
+    services:
+      - name: worker
+        command: ["celery", "worker", "-A", "myproject.celeryconf", "-Q", "default", "-n", "default@%h"]
+        sync:
+          - .:/app
+```
+
+and both deployments, `web` and `worker` will mount your local folder `.` into the path `/app`.
+
+The supported keys for containers defined in this section are:
+
+1. `annotations`
+1. `command`
+1. `container`
+1. `environment`
+1. `image`
+1. `labels`
+1. `name`
+1. `namespace`
+1. `resources`
+1. `sync`
+1. `tolerations`
+1. `workdir`
+
+They work the same as for the main container, except for the `command` and `name` keys.
+For `services`, `command` defaults to the command specified in your deployment, instead of `sh`.
+`labels` and `name` are mutually exclusive (for the main container, `name` is mandatory).
 
 #### sync ([string], required)
 

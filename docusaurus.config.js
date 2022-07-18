@@ -149,7 +149,7 @@ module.exports = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: 'okteto.com',
+              label: 'okteto.com (0.13)',
               path: '/',
             },
             '0.12': {
@@ -209,7 +209,28 @@ module.exports = {
       {
         to: '/reference/compose/',
         from: ['/reference/stacks/']
-      }]
+      },
+      {
+        to: '/administration/dashboard/',
+        from: ['/enterprise/administration/dashboard/']
+      },
+      {
+        to: '/administration/cleanup/',
+        from: ['/enterprise/administration/cleanup/']
+      },
+      {
+        to: '/enterprise/administration/github/',
+        from: ['/enterprise/administration/private-repositories/github-app/']
+      },
+      {
+        to: '/administration/private-repositories/ssh-key/',
+        from: ['/enterprise/administration/private-repositories/ssh-key/']
+      },
+      {
+        to: '/welcome/overview/',
+        from: ['/cloud/']
+      }
+    ]
     }],
     ['docusaurus-gtm-plugin', {
       id: 'GTM-W6RQFNT'

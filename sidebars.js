@@ -21,7 +21,6 @@ module.exports = {
     "Dev Environments": [
       "reference/development-environments",
       "cloud/okteto-cli",
-      "cloud",
       {
         "type": "category",
         "label": "Deploying",
@@ -61,6 +60,18 @@ module.exports = {
       },
       "cloud/preview-environments/preview-environments-gitlab"
     ],
+    "Administration": [
+      "administration/dashboard",
+      "administration/cleanup",
+      {
+        "type": "category",
+        "label": "Private Repositories",
+        "items": [
+          "administration/private-repositories/github-app",
+          "administration/private-repositories/ssh-key"
+        ]
+      },
+    ],
     "Okteto Self-Hosted": [
       "enterprise",
       {
@@ -88,20 +99,12 @@ module.exports = {
       },
       {
         "type": "category",
-        "label": "Administration",
+        "label": "Configuration",
         "items": [
-          "enterprise/administration/dashboard",
           "enterprise/administration/certificates",
+          "enterprise/administration/custom-installer-image",
           "enterprise/administration/configuration",
-          "enterprise/administration/cleanup",
-          {
-            "type": "category",
-            "label": "Private Repositories",
-            "items": [
-              "enterprise/administration/private-repositories/github-app",
-              "enterprise/administration/private-repositories/ssh-key"
-            ]
-          },
+          "enterprise/administration/github",
           "enterprise/administration/volume-snapshots"
         ]
       }
@@ -118,7 +121,8 @@ module.exports = {
     "Tutorials": [
       "tutorials/compose-getting-started",
       "tutorials/preview-environments",
-      "tutorials/webpack"
+      "tutorials/webpack",
+      "tutorials/aws-lambda"
     ],
     "Samples": [
       "samples/aspnetcore",

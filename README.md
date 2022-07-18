@@ -4,6 +4,25 @@
 
 This repository is the source for https://okteto.com/docs. If you'd like to contribute to the documentation, please first check out our [contributing guide](CONTRIBUTING.md) for info on how to get started.
 
+## Development
+
+### ☁️ Develop With Okteto
+
+- [Install Okteto CLI](https://www.okteto.com/docs/getting-started/#installing-okteto-cli)
+- [Set your `okteto context`](https://www.okteto.com/docs/getting-started/#configuring-okteto-cli-with-okteto-cloud)
+- Clone the repo and run `okteto up` from the root of the repo
+
+You should now see the docs deployed on http://localhost:8080/docs/ 🚀
+
+### 💻 Develop locally
+
+Clone the repo and then run:
+
+```console
+yarn
+yarn start
+```
+
 ## Components
 
 ### Product tiers list
@@ -15,13 +34,9 @@ Sometimes, documentation is specific to a product tier. You can add a badge besi
 Tiers is a `string` of tier separated by a space
 
 ```md
-# Page heading<TiersList tiers="Enterprise Self-host" />
+# Page heading<TiersList tiers="Scale Self-Hosted" />
 ```
 
 ## Contributors
-
-<a href="https://github.com/okteto/docs/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=okteto/docs" />
-</a>
 
 Made with [contributors-img](https://contrib.rocks).

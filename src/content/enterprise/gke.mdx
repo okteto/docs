@@ -1,14 +1,14 @@
 ---
 title: Google Kubernetes Engine (GKE)
-description: How to install Okteto Enterprise onto Google Kubernetes Engine (GKE)
+description: How to install Okteto onto Google Kubernetes Engine (GKE)
 id: gke
 ---
 
-This guide will show you how to install Okteto Enterprise onto Google Kubernetes Engine (GKE). We'll be focusing exclusively on GKE in order to keep it as simple as possible.
+This guide will show you how to install Okteto onto Google Kubernetes Engine (GKE). We'll be focusing exclusively on GKE in order to keep it as simple as possible.
 
 ## Requirements
 
-In order to fully install Okteto Enterprise, you will need the following:
+In order to fully install Okteto, you will need the following:
 
 - A subdomain to which you can add a wildcard DNS record
 - A Kubernetes cluster
@@ -17,7 +17,7 @@ In order to fully install Okteto Enterprise, you will need the following:
 - A Google (or GitHub) OAuth application
 - A Google Cloud service account and a key
 - A Google Cloud Storage bucket
-- An Okteto Enterprise License (optional)
+- An Okteto License (optional)
 
 ### Subdomain
 
@@ -45,7 +45,7 @@ Follow the official documentation for [installing the latest release of Helm v3]
 
 ### Creating the Google OAuth application
 
-> Okteto Enterprise supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we will focus on using Google. All the supported configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
+> Okteto supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we will focus on using Google. All the supported configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
 
 Follow Google's official documentation on [how to create an OAuth 2.0 Client](https://support.google.com/cloud/answer/6158849?hl=en).
 
@@ -62,11 +62,11 @@ https://okteto.DOMAIN
 https://okteto.DOMAIN/auth/callback
 ```
 
-You'll use the `client ID` and `client Secret` when installing Okteto Enterprise.
+You'll use the `client ID` and `client Secret` when installing Okteto.
 
 ### Creating a Google Cloud Service Account
 
-The Okteto Enterprise sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
+The Okteto sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
 
 We recommend you follow Google's official documentation on [how to create and manage Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts) for more information on this.
 
@@ -74,32 +74,32 @@ You'll need to perform the following tasks:
 
 1. Create a `Service Account` in the same Google Cloud project as your GKE cluster.
 1. Give it the `DNS Administrator` and `Storage Object Admin` roles.
-1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto Enterprise.
+1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto.
 
 ### Creating a Google Cloud Storage Bucket
 
-Okteto Enterprise uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
+Okteto uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
 
-## Adding the Okteto Enterprise Helm repository
+## Adding the Okteto Helm repository
 
-You'll need to add the Okteto Enterprise repository in order to be able to install Okteto Enterprise:
+You'll need to add the Okteto repository in order to be able to install Okteto:
 
 ```console
 helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
-### Getting your Okteto Enterprise License
+### Getting your Okteto License
 
-Okteto Enterprise is free for small teams.  You get all the features of [Okteto Enterprise](/docs/enterprise/) for up to 3 users with 3 namespaces each.
+Okteto is free for small teams.  You get all the features of [Okteto](/docs/enterprise/) for up to 3 users with 3 namespaces each.
 
-Want to use Okteto Enterprise with a bigger team? [Let's talk](https://okteto.com/#talktous)
+Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
-## Installing Okteto Enterprise
+## Installing Okteto
 
 ### Creating the Okteto namespace
 
-Create a dedicated namespace for your Okteto Enterprise instance, and the required CRDs:
+Create a dedicated namespace for your Okteto instance, and the required CRDs:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/namespace.yaml
@@ -109,7 +109,7 @@ $ kubectl apply -f https://charts.okteto.com/namespace.yaml
 $ kubectl apply -f https://charts.okteto.com/crds.yaml
 ```
 
-### Configuring your Okteto Enterprise instance
+### Configuring your Okteto instance
 
 Create a Kubernetes secret with the `Service Account` key you created before:
 
@@ -117,7 +117,7 @@ Create a Kubernetes secret with the `Service Account` key you created before:
 kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-file=key=$PATH_TO_KEY_FILE
 ```
 
-Download a copy of the [Okteto Enterprise GKE configuration file](https://okteto.com/docs/enterprise/gke/config.yaml), open it, and set the following values:
+Download a copy of the [Okteto GKE configuration file](https://okteto.com/docs/enterprise/gke/config.yaml), open it, and set the following values:
 - Your `email`
 - Your `license` (optional)
 - A `subdomain`
@@ -152,9 +152,9 @@ buildkit:
     type: LoadBalancer
 ```
 
-### Installing your Okteto Enterprise instance
+### Installing your Okteto instance
 
-Install the latest version of Okteto Enterprise by running:
+Install the latest version of Okteto by running:
 
 ```console
 helm install okteto okteto/okteto-enterprise -f config.yaml --namespace=okteto
@@ -183,7 +183,7 @@ You can retrieve the External IP by running:
 You can retrieve the External IP by running:
     kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
 
-3. Once you create both DNS entries you can access your Okteto Enterprise instance at this URL:
+3. Once you create both DNS entries you can access your Okteto instance at this URL:
 https://okteto.dev.example.com
 ```
 
@@ -191,7 +191,7 @@ https://okteto.dev.example.com
 
 ### Retrieve the Ingress Controller IP address
 
-We can use the instructions `kubectl` to fetch the address that has been dynamically allocated by GKE to the NGINX Ingress we've just installed and configured as a part of Okteto Enterprise:
+We can use the instructions `kubectl` to fetch the address that has been dynamically allocated by GKE to the NGINX Ingress we've just installed and configured as a part of Okteto:
 
 ```console
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
@@ -208,7 +208,7 @@ You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the do
 
 ### Retrieve the Buildkit IP address
 
-You can use `kubectl` to fetch the address that has been dynamically allocated by GKE to the Buildkit instance you've just installed and configured as a part of Okteto Enterprise:
+You can use `kubectl` to fetch the address that has been dynamically allocated by GKE to the Buildkit instance you've just installed and configured as a part of Okteto:
 
 ```console
 kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
@@ -223,9 +223,9 @@ okteto-okteto-enterprise-buildkit     LoadBalancer   10.245.142.73   34.68.230.2
 
 You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `buildkit`.
 
-## Sign in to your Okteto Enterprise
+## Sign in to your Okteto
 
-You can access your Okteto Enterprise instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
+You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
 
 ## Troubleshooting
 
