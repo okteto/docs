@@ -120,7 +120,8 @@ module.exports = {
     "Tutorials": [
       "tutorials/compose-getting-started",
       "tutorials/preview-environments",
-      "tutorials/webpack"
+      "tutorials/webpack",
+      "tutorials/aws-lambda"
     ],
     "Samples": [
       "samples/aspnetcore",
