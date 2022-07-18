@@ -102,6 +102,7 @@ module.exports = {
         "label": "Configuration",
         "items": [
           "enterprise/administration/certificates",
+          "enterprise/administration/custom-installer-image",
           "enterprise/administration/configuration",
           "enterprise/administration/github",
           "enterprise/administration/volume-snapshots"
@@ -120,7 +121,8 @@ module.exports = {
     "Tutorials": [
       "tutorials/compose-getting-started",
       "tutorials/preview-environments",
-      "tutorials/webpack"
+      "tutorials/webpack",
+      "tutorials/aws-lambda"
     ],
     "Samples": [
       "samples/aspnetcore",
