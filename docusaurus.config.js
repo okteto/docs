@@ -153,8 +153,8 @@ module.exports = {
               path: '/',
             },
             '0.13': {
-              label: '0.12',
-              path: '0.12',
+              label: '0.13',
+              path: '0.13',
               banner: 'none',
             },
             '0.12': {
