@@ -149,8 +149,13 @@ module.exports = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: 'okteto.com (0.13)',
+              label: 'okteto.com (0.14)',
               path: '/',
+            },
+            '0.13': {
+              label: '0.13',
+              path: '0.13',
+              banner: 'none',
             },
             '0.12': {
               label: '0.12',
