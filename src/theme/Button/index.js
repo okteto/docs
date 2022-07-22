@@ -21,7 +21,8 @@ const Button = ({ children, role, to, external, className, onClick, size, hidden
         onClick={onClick}
         className={`Button ${className || ''} layout ${size || ''}`}
         href={to}
-        target={external ? '_blank' : '_self'}>
+        target={external ? '_blank' : '_self'}
+        rel={external ? 'noopener noreferrer' : null}>
       { children }
     </a>;
   }
