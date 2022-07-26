@@ -34,7 +34,7 @@ We recommend the following specs:
 - A pool with at least 3 `Standard D4` nodes
 - 100 GB per Standard SSD Managed Disk
 
-You'll be using the cluster's API server endpoint when configuring Okteto
+You'll be using the cluster's API server endpoint when configuring Okteto.
 
 ### Installing kubectl
 
@@ -72,6 +72,8 @@ You'll need the Account Name and a Storage Account Key when installing Okteto.
 
 ### Creating an Azure Service Principal
 
+This step is only needed if using Let's Encrypt/Cert Manager to manage your certificates.
+
 The Okteto sub-components need access to AzureDNS to fulfill the ACME challenge when generating certificates.
 
 We recommend you follow [cert-manager's documentation on this topic](https://cert-manager.io/docs/configuration/acme/dns01/azuredns/#service-principal).
@@ -101,11 +103,24 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ### Creating the Okteto namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
+Create a dedicated namespace for your Okteto instance:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/namespace.yaml
 ```
+
+*The `namespace.yaml` manifest assumes you'll be installing the application into the `okteto` namespace. If you are not doing this, you'll need to update the file before creating the namespace.*
+
+Jump to the next step if you are [bringing your own certificates](/docs/enterprise/administration/certificates/).
+
+If you are already running Cert Manager in your cluster, add this setting to your Okteto helm configuration:
+
+```
+cert-manager:
+  enabled: false
+```
+
+Otherwise, if you want to install Cert Manager as part of the Okteto installation, run the command below:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/crds.yaml

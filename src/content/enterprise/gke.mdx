@@ -66,7 +66,9 @@ You'll use the `client ID` and `client Secret` when installing Okteto.
 
 ### Creating a Google Cloud Service Account
 
-The Okteto sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
+The Okteto sub-components need access to Cloud Storage (for uploading and downloading your container images).
+
+If you are using Let's Encrypt/Cert Manager to manage your certificates, Okteto also needs access to Cloud DNS (to fulfill the ACME challenge for the certificates).
 
 We recommend you follow Google's official documentation on [how to create and manage Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts) for more information on this.
 
@@ -99,11 +101,24 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ### Creating the Okteto namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
+Create a dedicated namespace for your Okteto instance:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/namespace.yaml
 ```
+
+*The `namespace.yaml` manifest assumes you'll be installing the application into the `okteto` namespace. If you are not doing this, you'll need to update the file before creating the namespace.*
+
+Jump to the next step if you are [bringing your own certificates](/docs/enterprise/administration/certificates/).
+
+If you are already running Cert Manager in your cluster, add this setting to your Okteto helm configuration:
+
+```
+cert-manager:
+  enabled: false
+```
+
+Otherwise, if you want to install Cert Manager as part of the Okteto installation, run the command below:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/crds.yaml
