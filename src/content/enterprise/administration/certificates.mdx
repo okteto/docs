@@ -7,11 +7,14 @@ id: certificates
 
 ## Bring your own Wildcard Certificate
 
-By default, Okteto will create a wildcard certificate for your cluster using [cert-manager](https://cert-manager.io/) and [Let's Encrypt](https://letsencrypt.org/). This certificate is used to secure communication to the Okteto dashboard, the build service, the registry service, and to all the applications that use  [Automatic SSL Endpoints](https://okteto.com/docs/cloud/ssl/).
+By default, Okteto will create a self-signed wildcard certificate for your cluster.
+This certificate is used to secure communication to the Okteto dashboard, the build service, the registry service, and to all the applications that use  [Automatic SSL Endpoints](https://okteto.com/docs/cloud/ssl/).
 
-In certain scenarios you may want to bring your own certificates rather than let Okteto create a wildcard certificate for you. You can configure this via the `wildcardCertificate` configuration key in your Helm configuration file.
+In a production environment, you should use your own certificates rather than let Okteto create a self-signed wildcard certificate for you.
+You can configure this via the `wildcardCertificate` configuration key in your Helm configuration file.
 
-To start, you need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
+To start, you need the private and public keys of your certificate.
+The certificate must be a PEM-encoded X.509 certificate, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
 
 Import the secret into your kubernetes cluster by running the command below:
 
@@ -31,6 +34,9 @@ ingress-nginx:
     extraArgs:
       default-ssl-certificate: $(POD_NAMESPACE)/your-ssl-certificate-secret
 ```
+
+In order to generate your certificates with [Cert Manager](https://cert-manager.io/) you need to use a [DNS01](https://cert-manager.io/docs/configuration/acme/dns01/#delegated-domains-for-dns01) auth method in your [Issuer](https://cert-manager.io/docs/concepts/issuer/).
+Check the list of supported providers [here](https://cert-manager.io/docs/configuration/acme/dns01/#supported-dns01-providers).
 
 Finally, [install or upgrade](/docs/enterprise/install/deployment/) your Okteto installation for the new configuration to be applied.
 
