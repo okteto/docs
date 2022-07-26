@@ -72,6 +72,8 @@ You'll use the `Application ID` and `Secret` of your OAuth Application when inst
 
 ### Creating a Digital Ocean Personal Access Token
 
+This step is only needed if using Let's Encrypt/Cert Manager to manage your certificates.
+
 Okteto requires a DigitalOcean personal access token with read/write permissions to be able to create DNS entries when responding to [ACME DNS-01 challenges](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge).
 The entries will be created in the subdomain you provided in the configuration.
 You can create your personal access token by going [here](https://cloud.digitalocean.com/account/api/tokens).
@@ -91,11 +93,24 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ### Creating the Okteto namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
+Create a dedicated namespace for your Okteto instance:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/namespace.yaml
 ```
+
+*The `namespace.yaml` manifest assumes you'll be installing the application into the `okteto` namespace. If you are not doing this, you'll need to update the file before creating the namespace.*
+
+Jump to the next step if you are [bringing your own certificates](/docs/enterprise/administration/certificates/).
+
+If you are already running Cert Manager in your cluster, add this setting to your Okteto helm configuration:
+
+```
+cert-manager:
+  enabled: false
+```
+
+Otheriwse, if you want to install Cert Manager as part of the Okteto installation, run the command below:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/crds.yaml

@@ -70,7 +70,9 @@ Okteto uses S3 to store your private images. Follow Amazon's [guide on how to cr
 
 ### Creating an IAM
 
-The Okteto sub-components need access to Route 53 (to fulfill the ACME challenge for the certificates) and S3 (for uploading and downloading your container images).
+The Okteto sub-components need access S3 (for uploading and downloading your container images).
+
+If you are using Let's Encrypt/Cert Manager to manage your certificates, Okteto also needs access to Route 53 (to fulfill the ACME challenge for the certificates).
 
 We recommend you follow AWS' official documentation on [how to create and manage IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) for more information on this.
 
@@ -145,11 +147,24 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ### Creating the Okteto namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
+Create a dedicated namespace for your Okteto instance:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/namespace.yaml
 ```
+
+*The `namespace.yaml` manifest assumes you'll be installing the application into the `okteto` namespace. If you are not doing this, you'll need to update the file before creating the namespace.*
+
+Jump to the next step if you are [bringing your own certificates](/docs/enterprise/administration/certificates/).
+
+If you are already running Cert Manager in your cluster, add this setting to your Okteto helm configuration:
+
+```
+cert-manager:
+  enabled: false
+```
+
+Otherwise, if you want to install Cert Manager as part of the Okteto installation, run the command below:
 
 ```console
 $ kubectl apply -f https://charts.okteto.com/crds.yaml
