@@ -691,6 +691,34 @@ volumes:
 
 Sets the working directory of your development container.
 
+### forward ([string], optional)
+
+Port forwards activated on any `okteto up` command, independently of the dev container name.
+
+As in [forward](#forward-string-optional) in dev section, several formats are accepted for this, but it is necessary to indicate the name of the service to be forwarded using the notation `localPort:remoteService:remotePort`.
+
+```yaml
+forward:
+  - 5432:postgres:5432
+```
+
+You can also indicate the service to expose using a label selector.
+
+```yaml
+forward:
+  - localPort: 8080
+    remotePort: 80
+    name: app
+  - localPort: 5432
+    remotePort: 5432
+    labels:
+      app: db
+```
+
+Using a global forward, Okteto handles port collision if two `okteto up` sessions are running at the same time. 
+
+When a `okteto up` session is already making use of those ports declared in the global forward section and another `okteto up` session runs, the latter will see that global ports are already allocated by the previous session so it will retry every so often to reopen the forward (in case the initial session terminates and de-allocate ports).
+
 ### icon (string, optional)
 
 The icon associated to your development environmen in the Okteto Dashboard (optional).
