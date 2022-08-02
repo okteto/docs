@@ -321,6 +321,17 @@ buildkit:
     cache: 150000
 ```
 
+In order to handle timeouts during communication between the client and the buildkit daemon, the following environment variables can be modified on the server side:
+
+- `OKTETO_KEEPALIVE_SERVER_TIME_MS`: After this duration of time, if the server doesn't see any activity it pings the client to see if the transport is still alive. If set below 1s, a minimum value of 1s will be used. The current default value is 2 hours.
+- `OKTETO_KEEPALIVE_SERVER_TIMEOUT_MS`: After having pinged for keepalive check, the server waits for a duration of Timeout and if no activity is seen, the connection is closed. The current default value is 20 seconds.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_IDLE_MS`: Duration for the amount of time after which an idle connection would be closed by sending a GOAWAY. Idleness duration is defined since the most recent time the number of outstanding RPCs became zero or the connection establishment. The current default value is infinity.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS`: Duration for the maximum amount of time a connection may exist before it will be closed by sending a GOAWAY. A random jitter of +/-10% will be added to the value to spread out connection storms. The current default value is infinity.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_GRACE_MS`: An additive period after `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS` after which the connection will be forcibly closed. The current default value is infinity.
+- `OKTETO_KEEPALIVE_SERVER_POLICY_MINTIME_MS`: Minimum amount of time a client should wait before sending a keepalive ping. The current default value is 5 minutes.
+- `OKTETO_KEEPALIVE_SERVER_POLICY_PERMIT_WITHOUT_STREAM`: If true, server allows keepalive pings even when there are no active streams(RPCs). If false, and client sends pings when there are no active streams, server will send GOAWAY and close the connection. False by default.
+
+
 ### daemonset
 
 The daemonset automatically configures every node of your cluster to work better with Okteto.
