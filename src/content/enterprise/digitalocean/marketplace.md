@@ -9,7 +9,7 @@ After you have downloaded your `kubeconfig` file and can successfully connect to
 The first step is to get your admin token. Run the following command in a terminal shell to retrieve it:
 
 ```console
-kubectl get sa -n=okteto do-okteto-enterprise -ojsonpath='{.metadata.labels.dev\.okteto\.com/token}'
+kubectl get sa -n=okteto do-okteto -ojsonpath='{.metadata.labels.dev\.okteto\.com/token}'
 ```
 
 Second, start a port-forward to the ingress service by running the command below:
