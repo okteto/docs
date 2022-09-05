@@ -21,7 +21,7 @@ In order to fully install Okteto, you'll need the following:
 
 ### Subdomain
 
-You'll need to have access to a internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com. Let's Encrypt servers must be able to resolve the addresses in order to issue the required certificates.
+You'll need to have access to a internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com.
 
 This guide will assume that your domain is registered in [Amazon Route53](https://aws.amazon.com/route53/). Other DNS services can be used, but aren't covered here.
 
@@ -32,8 +32,8 @@ Okteto supports Kubernetes versions 1.20 through 1.22.
 
 We recommend the following specs:
 - v1.22
-- A pool with at least 3 `m4.xlarge` nodes
-- 100 GB per disk
+- A pool with at least 3 nodes (4CPUs and 32GBs each)
+- 250 GB per disk
 
 You'll be using the cluster's API server endpoint when configuring Okteto
 
@@ -71,7 +71,7 @@ Okteto uses S3 to store your private images. Follow Amazon's [guide on how to cr
 
 ### Creating an IAM
 
-The Okteto sub-components need access to Route 53 (to fulfill the ACME challenge for the certificates) and S3 (for uploading and downloading your container images).
+The Okteto Registry needs access to S3 for uploading and downloading your container images.
 
 We recommend you follow AWS' official documentation on [how to create and manage IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) for more information on this.
 
@@ -86,21 +86,6 @@ You'll need to perform the following tasks:
         {
           "Version": "2012-10-17",
           "Statement": [
-              {
-                  "Effect": "Allow",
-                  "Action": "route53:GetChange",
-                  "Resource": "arn:aws:route53:::change/*"
-              },
-              {
-                  "Effect": "Allow",
-                  "Action": "route53:ChangeResourceRecordSets",
-                  "Resource": "arn:aws:route53:::hostedzone/*"
-              },
-              {
-                  "Effect": "Allow",
-                  "Action": "route53:ListHostedZonesByName",
-                  "Resource": "*"
-              },
               {
                   "Effect": "Allow",
                   "Action": [
@@ -144,16 +129,12 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ## Installing Okteto
 
-### Creating the Okteto namespace
+### Create the Okteto Namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
-
-```console
-$ kubectl apply -f https://charts.okteto.com/namespace.yaml
-```
+Run the following command to create a namespace to install Okteto in:
 
 ```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
+$ kubectl create namespace okteto
 ```
 
 ### Configuring your Okteto instance
@@ -273,7 +254,7 @@ kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/compo
 The output will look something like this:
 
 ```
-NAME                                  TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
 okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
 ```
 
@@ -283,11 +264,8 @@ You'll need to take the `EXTERNAL-IP` address and add it to your DNS for the dom
 
 You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
 
-## Troubleshooting
+## Next Steps
 
-If you experience issues during this guide, we recommend you check these things first:
-
-1. `okteto.SUBDOMAIN` resolves to the IP address you retrieved.
-1. If you get a certificate warning, there has been a problem with Let's Encrypt. This is usually related to DNS resolution, the need to retry, or the permissions of the credentials created.
-
-For further troubleshooting tips, see our [troubleshooting guide](/docs/enterprise/install/troubleshooting/).
+The Okteto default installation uses self-signed certificates.
+In a production environment, you should use your own certificates rather than let Okteto create a self-signed wildcard certificate for you.
+Follow [this document](/docs/enterprise/administration/certificates/) to reconfigure Okteto with your own certificates.
