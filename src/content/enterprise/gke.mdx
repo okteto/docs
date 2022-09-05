@@ -32,8 +32,8 @@ Okteto supports Kubernetes versions 1.20 through 1.22.
 
 We recommend the following specs:
 - v1.22
-- A pool with at least 3 `n1-standard-4` nodes
-- 100 GB per disk
+- A pool with at least 3 nodes (4CPUs and 32GBs each)
+- 250 GB per disk
 
 ### Installing kubectl
 
@@ -65,21 +65,21 @@ https://okteto.DOMAIN/auth/callback
 
 You'll use the `client ID` and `client Secret` when installing Okteto.
 
+### Creating a Google Cloud Storage Bucket
+
+Okteto uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
+
 ### Creating a Google Cloud Service Account
 
-The Okteto sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
+The Okteto Registry needs access to Cloud Storage for uploading and downloading your container images.
 
 We recommend you follow Google's official documentation on [how to create and manage Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts) for more information on this.
 
 You'll need to perform the following tasks:
 
 1. Create a `Service Account` in the same Google Cloud project as your GKE cluster.
-1. Give it the `DNS Administrator` and `Storage Object Admin` roles.
+1. Give it the `Storage Object Admin` roles.
 1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto.
-
-### Creating a Google Cloud Storage Bucket
-
-Okteto uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
 
 ## Adding the Okteto Helm repository
 
@@ -98,16 +98,12 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ## Installing Okteto
 
-### Creating the Okteto namespace
+### Create the Okteto Namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
-
-```console
-$ kubectl apply -f https://charts.okteto.com/namespace.yaml
-```
+Run the following command to create a namespace to install Okteto in:
 
 ```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
+$ kubectl create namespace okteto
 ```
 
 ### Configuring your Okteto instance
@@ -158,7 +154,7 @@ buildkit:
 Install the latest version of Okteto by running:
 
 ```console
-helm install okteto okteto/okteto-enterprise -f config.yaml --namespace=okteto
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto
 ```
 
 After a few seconds, all the resources will be created. The output will look something like this:
@@ -218,8 +214,8 @@ kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/compo
 The output will look something like this:
 
 ```
-NAME                                  TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
-okteto-okteto-enterprise-buildkit     LoadBalancer   10.245.142.73   34.68.230.233    1234:32449/TCP   5m
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   34.68.230.233    1234:32449/TCP   5m
 ```
 
 You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `buildkit`.
@@ -228,11 +224,8 @@ You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the do
 
 You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
 
-## Troubleshooting
+## Next Steps
 
-If you experience issues during this guide, we recommend you check these things first:
-
-1. `okteto.SUBDOMAIN` resolves to the IP address you retrieved.
-1. If you get a certificate warning, there has been a problem with Let's Encrypt. This is usually related to DNS resolution, the need to retry, or the permissions of the credentials created.
-
-For further troubleshooting tips, see our [troubleshooting guide](/docs/enterprise/install/troubleshooting/).
+The Okteto default installation uses self-signed certificates.
+In a production environment, you should use your own certificates rather than let Okteto create a self-signed wildcard certificate for you.
+Follow [this document](/docs/enterprise/administration/certificates/) to reconfigure Okteto with your own certificates.

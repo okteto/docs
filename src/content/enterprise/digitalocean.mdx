@@ -21,7 +21,7 @@ In order to fully install Okteto, you'll need the following:
 
 ### Subdomain
 
-You'll need to have access to a internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com. Let's Encrypt servers must be able to resolve the addresses in order to issue the required certificates.
+You'll need to have access to a internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com.
 
 This guide will assume that your domain is registered in [DigitalOcean](https://cloud.digitalocean.com/networking/domains). Other DNS services can be used, but aren't covered here.
 
@@ -35,8 +35,8 @@ Okteto supports Kubernetes versions 1.20 through 1.22.
 To get started with Okteto, follow these specs:
 
 - v1.22
-- A pool with at least 2 nodes (4CPUs and 16GBs each) without autoscalability
-- 100 GB per disk
+- A pool with at least 3 nodes (4CPUs and 32GBs each)
+- 250 GB per disk
 
 ### Installing kubectl
 
@@ -71,12 +71,6 @@ email
 
 You'll use the `Application ID` and `Secret` of your OAuth Application when installing Okteto.
 
-### Creating a Digital Ocean Personal Access Token
-
-Okteto requires a DigitalOcean personal access token with read/write permissions to be able to create DNS entries when responding to [ACME DNS-01 challenges](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge).
-The entries will be created in the subdomain you provided in the configuration.
-You can create your personal access token by going [here](https://cloud.digitalocean.com/account/api/tokens).
-
 ### Creating a DigitalOcean Space and Access Key
 
 Okteto uses DigitalOcean spaces to store your private images. Follow DigitalOcean's [guide on how to create a space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key).
@@ -90,24 +84,20 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ## Installing Okteto
 
-### Creating the Okteto namespace
+### Create the Okteto Namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
-
-```console
-$ kubectl apply -f https://charts.okteto.com/namespace.yaml
-```
+Run the following command to create a namespace to install Okteto in:
 
 ```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
+$ kubectl create namespace okteto
 ```
 
 ### Configuring your Okteto instance
 
-Create a Kubernetes secret with the DigitalOcean personal token (`$TOKEN`) and the space access key secret (`$SECRET`) you created before:
+Create a Kubernetes secret with the DigitalOcean space access key secret (`$SECRET`) you created before:
 
 ```console
-$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=token=$TOKEN --from-literal=key=$SECRET
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=$SECRET
 ```
 
 Using these values:
@@ -170,7 +160,7 @@ helm repo update
 Install the latest version of Okteto by running:
 
 ```console
-helm install okteto okteto/okteto-enterprise -f config.yaml --namespace=okteto
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto
 ```
 
 After a few seconds, all the resources will be created. The output will look something like this:
@@ -228,27 +218,18 @@ kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/compo
 The output will look something like this:
 
 ```
-NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)          AGE
-okteto-okteto-enterprise-buildkit     LoadBalancer   10.245.142.73   64.225.83.88    1234:32449/TCP   5m
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   64.225.83.88    1234:32449/TCP   5m
 ```
 
 You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `buildkit`.
 
 ## Sign in to your Okteto
 
-**Note**: after completing the previous steps, it might take a few minutes for cert manager to create a valid certificate.
-You can check the logs of the `cert-manager` deployment in the `okteto` namespace to check when the certificate has been created or if the certificate creation is failing.
-Once the certificate is created, it can take up to 5 minutes for all pods to restart and to be up and running.
-
 You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
 
-Refer to the general [configuration documentation](/docs/enterprise/administration/configuration/) for advanced configuration.
+## Next Steps
 
-## Troubleshooting
-
-If you experience issues during this guide, we recommend you check these things first:
-
-1. `okteto.SUBDOMAIN` resolves to the IP address you retrieved.
-1. If you get a certificate warning, there has been a problem with Let's Encrypt. This is usually related to DNS resolution, the need to retry, or the permissions of the credentials created.
-
-For further troubleshooting tips, see our [troubleshooting guide](/docs/enterprise/install/troubleshooting/).
+The Okteto default installation uses self-signed certificates.
+In a production environment, you should use your own certificates rather than let Okteto create a self-signed wildcard certificate for you.
+Follow [this document](/docs/enterprise/administration/certificates/) to reconfigure Okteto with your own certificates.
