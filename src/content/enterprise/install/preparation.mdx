@@ -25,9 +25,9 @@ In order to fully install Okteto, you'll need the following:
 
 You'll need to have access to a domain to which you can add a wildcard DNS record.
 
-This can be a root domain (e.g. example.com) or a subdomain (e.g. dev.example.com). Okteto uses Let's Encrypt to generate valid TLS servers, so your domain needs to be available over the internet.
-
-The domain needs to be registered with the same cloud provider you'll be using to store you private images.
+This can be a root domain (e.g. example.com) or a subdomain (e.g. dev.example.com).
+By default, Okteto creates a self-signed certificate to secure communication to the Okteto dashboard, the build service, the registry service, and to all the applications that use  [Automatic SSL Endpoints](https://okteto.com/docs/cloud/ssl/).
+Follow [this guide](/docs/enterprise/administration/certificates/) if you want to bring your own certificates.
 
 ### Deploy a Kubernetes cluster
 
@@ -150,7 +150,6 @@ You'll use the `issuer URL`, `authorization URL`, `client ID`, and `client Secre
 
 Okteto needs to perform the following actions on your cloud provider:
 
-1. Create and list DNS entries (this is used when generating and renewing certificates)
 1. Read and Write from block storage  (this is used when pulling and pushing images to the registry)
 
 Please refer to the following documents on how to create the credentials in the different cloud providers:
@@ -179,59 +178,6 @@ Okteto uses a Storage Container to store your private images. Follow Azures's [g
 
 Follow [these instructions](https://docs.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns) to register your domain in Azure DNS.
 
-#### Creating a Service Principal
-
-Okteto will use the Service Principal to create, update, and delete DNS entries in your Azure DNS zone when generating SSL certificates.
-
-To create the service principal you can use the following script (requires `azure-cli` and `jq`):
-
-```console
-# This is the URI of the service principal that uses Azure DNS
-$ AZURE_NEW_SP_NAME=http://okteto-enterprise
-
-
-# This is the name of the resource group that you have your dns zone in
-$ AZURE_DNS_ZONE_RESOURCE_GROUP=AZURE_DNS_ZONE_RESOURCE_GROUP
-
-
-# The DNS zone name. This should match the domain you configured in the previous step.
-$ AZURE_DNS_ZONE=dev.example.com
-
-
-# Create the Service Principal
-$ DNS_SP=$(az ad sp create-for-rbac --name $AZURE_NEW_SP_NAME)
-
-
-# Extract the required values
-$ AZURE_SP_APP_ID=$(echo $DNS_SP | jq -r '.appId')
-$ AZURE_SP_PASSWORD=$(echo $DNS_SP | jq -r '.password')
-$ AZURE_TENANT_ID=$(echo $DNS_SP | jq -r '.tenant')
-$ AZURE_SUBSCRIPTION_ID=$(az account show | jq -r '.id')
-```
-
-Get the following values and save them. We'll need the values below when installing Okteto.
-
-```console
-$ echo "Service Principal ID: $AZURE_NEW_SP_NAME"
-$ echo "Service Principal Password: $AZURE_SP_PASSWORD"
-$ echo "Azure Subscription ID: $AZURE_SUBSCRIPTION_ID"
-$ echo "Azure Tenant ID: $AZURE_TENANT_ID"
-$ echo "Resource Group Name: $AZURE_DNS_ZONE_RESOURCE_GROUP"
-```
-
-By default, the service principal will have more permissions than necessary. We recommend you lower the permissions of the service principal:
-
-```console
-# Remove all permissions
-$az role assignment delete --assignee $AZURE_SP_APP_ID --role Contributor
-
-
-# Give it permissions to the DNS zone
-NS_ID=$(az network dns zone show --name $AZURE_DNS_ZONE --resource-group $AZURE_DNS_ZONE_RESOURCE_GROUP --query "id" --output tsv)
-$ az role assignment create --assignee $AZURE_SP_APP_ID --role "DNS Zone Contributor" --scope $DNS_ID
-```
-
-
 </TabItem>
 <TabItem value="aws">
 
@@ -247,7 +193,7 @@ Okteto uses S3 to store your private images. Follow Amazon's [guide on how to cr
 
 #### Creating an IAM
 
-The Okteto sub-components need access to Route 53 (to fulfill the ACME challenge for the certificates) and S3 (for uploading and downloading your container images).
+The Okteto Registry needs access to S3 for uploading and downloading your container images.
 
 We recommend you follow AWS' official documentation on [how to create and manage IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) for more information on this.
 
@@ -257,21 +203,6 @@ Create an `IAM User` with the following actions (replace `YOUR_BUCKET` with your
 {
   "Version": "2012-10-17",
   "Statement": [
-      {
-          "Effect": "Allow",
-          "Action": "route53:GetChange",
-          "Resource": "arn:aws:route53:::change/*"
-      },
-      {
-          "Effect": "Allow",
-          "Action": "route53:ChangeResourceRecordSets",
-          "Resource": "arn:aws:route53:::hostedzone/*"
-      },
-      {
-          "Effect": "Allow",
-          "Action": "route53:ListHostedZonesByName",
-          "Resource": "*"
-      },
       {
           "Effect": "Allow",
           "Action": [
@@ -308,10 +239,6 @@ Follow [these instructions](https://www.digitalocean.com/docs/networking/dns/how
 
 Register your domain using the same account used to create your DOK cluster.
 
-#### Generating an API Token
-
-Go to https://cloud.digitalocean.com/account/api/tokens and generate a new personal access token with read/write access. We'll be using this when installing Okteto.
-
 #### Creating a DigitalOcean Space and Access Key
 
 Okteto uses a Storage Space to store your private images. Follow DigitalOcean's [guide on how to create a storage space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key). Create the space in the same region as your Kubernetes cluster and restrict file listing.
@@ -333,14 +260,14 @@ Okteto uses Google Cloud Storage to store your private images. Follow Google's [
 
 #### Creating a Google Cloud Service Account
 
-The Okteto sub-components need access to Cloud DNS (for generating certificates) and Cloud Storage (for uploading and downloading your container images).
+The Okteto Registry needs access to Cloud Storage for uploading and downloading your container images.
 
 We recommend you follow Google's official documentation on [how to create and manage Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts) for more information on this.
 
 You'll need to perform the following tasks:
 
 1. Create a `Service Account` in the same Google Cloud project as your GKE cluster.
-1. Give it the `DNS Administrator` and `Storage Object Admin` roles.
+1. Give it the `Storage Object Admin` roles.
 1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto.
 
 </TabItem>
