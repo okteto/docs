@@ -1,0 +1,306 @@
+---
+title: Deploy your Okteto instance
+description: How to Deploy Okteto in your Kubernetes cluster
+id: deployment
+sidebar_label: Deployment
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+## Create the Okteto Namespace
+
+Run the commands below to create a namespace for the application and the necessary CRDs.
+
+```console
+$ kubectl apply -f https://charts.okteto.com/namespace.yaml
+```
+
+```console
+$ kubectl apply -f https://charts.okteto.com/crds.yaml
+```
+
+*The `namespace.yaml` manifest assumes you'll be installing the application into the `okteto` namespace. If you are not doing this, you'll need to update the file before creating the namespace.*
+
+## Configuration file
+
+Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the most common options. A complete list of configuration options is [available here](/docs/enterprise/administration/configuration/).
+
+You can use [this sample configuration file](https://charts.okteto.com/config.yaml) as a starting point. The different configuration settings are explained below.
+
+### Email
+
+You'll need to provide the email of the application owner.
+
+```yaml
+email: "admin@example.com"
+```
+
+### Cluster Endpoint
+
+This is the public endpoint of your Kubernetes cluster. It will be used by Okteto when generating `Kubeconfig` credentials for your users.
+
+```yaml
+cluster:
+  endpoint: "https://52.30.32.1"
+```
+
+### Domain
+
+The domain (or subdomain) managed by your Okteto installation.
+
+Your users will be able to access your Okteto instance at `okteto.$SUBDOMAIN`. All ingresses created by okteto will be use it as well (e.g. https://app-$NAMESPACE.$SUBDOMAIN)
+
+```yaml
+subdomain: "example.com"
+```
+
+### License
+
+Okteto is free for small teams.  You get all the features of [Okteto](/docs/enterprise/) for up to 3 users with 3 namespaces each.```
+
+```yaml
+license: XXXXX
+```
+
+Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
+
+> You can also use [a secret](/docs/enterprise/install/deployment/#cloud-provider-secret) to store the license.
+
+### Authentication
+
+Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
+
+Use the `clientId` and `clientSecret` that you created [in the previous step](/docs/enterprise/install/preparation/#authentication).
+
+<Tabs
+  defaultValue="github"
+  values={[
+    { label: 'Bitbucket', value: 'bitbucket', },
+    { label: 'GitHub', value: 'github', },
+    { label: 'Google', value: 'google', },
+    { label: 'OpenID Connect', value: 'openid', },
+  ]}
+>
+<TabItem value="bitbucket">
+
+```yaml
+auth:
+  bitbucket:
+    enabled: true
+    clientId: OAuth Consumer Key
+    clientSecret: OAuth Consumer Secret
+    workspace: my-workspace
+```
+
+An empty `workspace` field allows any Bitbucket user to authenticate.
+
+</TabItem>
+<TabItem value="google">
+
+```yaml
+auth:
+  google:
+    enabled: true
+    clientId: clientid.apps.googleusercontent.com
+    clientSecret: clientSecret
+```
+</TabItem>
+<TabItem value="github">
+
+```yaml
+auth:
+  github:
+    enabled: true
+    clientId: clientID
+    clientSecret: clientSecret
+    organization: my-org
+```
+
+An empty `organization` field allows any GitHub user to authenticate.
+</TabItem>
+
+<TabItem value="openid">
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: clientID
+    clientSecret: clientSecret
+    group: my-group
+    endpoints:
+      issuer: https://your-provider
+      authorization: https://your-provider/authorization
+```
+An empty `group` field allows any user to authenticate.
+
+The `issuer` and `authorization` endpoints must match the value returned in the provider config discovery.
+
+Further configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
+</TabItem>
+</Tabs>
+
+> You can also use [a secret](/docs/enterprise/install/deployment/#cloud-provider-secret) to store the sensitive part of these credentials.
+
+### Cloud Provider
+
+Specify the cloud provider you'll use, as well as identity details.
+
+<Tabs
+  defaultValue="aws"
+  values={[
+    { label: 'Azure', value: 'azure', },
+    { label: 'AWS', value: 'aws', },
+    { label: 'Digital Ocean', value: 'digitalocean', },
+    { label: 'Google Cloud', value: 'gcp', },
+  ]}
+>
+
+<TabItem value="azure">
+
+```yaml
+cloud:
+  provider:
+    azure:
+      enabled: true
+      servicePrincipal: "Service Principal ID"
+      subscriptionID: "Azure Subscription ID"
+      tenantID: "Azure Tenant ID"
+      resourceGroupName: "Resource Group Name"
+      storage:
+        container: "Storage Container Name"
+        accountName: "Storage Account Name"
+```
+</TabItem>
+
+<TabItem value="aws">
+
+```yaml
+cloud:
+  provider:
+    aws:
+      enabled: true
+      bucket: "Bucket Name"
+      region: "AWS region"
+      iam:
+        accessKeyID: "IAM Access Key"
+```
+</TabItem>
+
+<TabItem value="digitalocean">
+
+```yaml
+cloud:
+  provider:
+    digitalocean:
+      enabled: true
+      region: "Region ID"
+      space:
+        name: "Space Name"
+        accessKeyID: "Space Access Key ID"
+```
+
+</TabItem>
+<TabItem value="gcp">
+
+```yaml
+cloud:
+  provider:
+    gcp:
+      enabled: true
+      bucket: "Bucket Name"
+      project: "Project ID"
+```
+</TabItem>
+
+</Tabs>
+
+## Cloud Provider Secret
+
+Create a secret named `okteto-cloud-secret` to store the Cloud Provider credentials created [in the preparation step](/docs/enterprise/install/preparation/#authentication).
+
+<Tabs
+  defaultValue="aws"
+  values={[
+    { label: 'Azure', value: 'azure', },
+    { label: 'AWS', value: 'aws', },
+    { label: 'Digital Ocean', value: 'digitalocean', },
+    { label: 'Google Cloud', value: 'gcp', },
+  ]}
+>
+
+<TabItem value="azure">
+
+```console
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=STORAGE_ACCOUNT_ACCESS_KEY --from-literal=token=SERVICE_PRINCIPAL_PASSWORD
+```
+
+- `STORAGE_ACCESKEY`: A storage account access key with read/write permissions to the storage container specified in the configuration.
+- `SERVICE_PRINCIPAL_PASSWORD`: The password of a Service Principal with read/write permissions to the Azure DNS zone specified in the configuration.
+
+</TabItem>
+
+<TabItem value="aws">
+
+```console
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=IAM_ACCESS_SECRET
+```
+
+- `IAM_ACCESS_SECRET`: The access secret of an IAM with read/write permissions to the bucket and Route53 zone specified in the configuration.
+
+</TabItem>
+
+<TabItem value="digitalocean">
+
+```console
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=token=YOUR_PERSONAL_TOKEN --from-literal=key=ACCESS_KEY
+```
+
+- `YOUR_PERSONAL_TOKEN`: A personal token with read/write permissions to the domain specified in the configuration.
+- `ACCESS_KEY`: The access key of the storage space specified in the configuration.
+
+</TabItem>
+
+<TabItem value="gcp">
+
+```console
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-file=key=key.json
+```
+
+- `key.json`: A file containing the key of a service account with read/write permissions to the CloudDNS zone and storage bucket specified in the configuration.
+
+</TabItem>
+</Tabs>
+
+#### Store Additional Values
+
+You can also use the `okteto-cloud-secret` secret to store the following values instead of setting them in your helm configuration file:
+
+- `OKTETO_LICENSE`: use this instead of `.Values.license` in your helm configuration file.
+- `GOOGLE_CLIENTSECRET`: use this instead of `.Values.auth.google.clientSecret` in your helm configuration file.
+- `GITHUB_CLIENTSECRET`: use this instead of `.Values.auth.github.clientSecret` in your helm configuration file.
+- `BITBUCKET_CLIENTSECRET`: use this instead of `.Values.auth.bitbucket.clientSecret` in your helm configuration file.
+- `OPENID_CLIENTSECRET`: use this instead of `.Values.auth.openid.clientSecret` in your helm configuration file.
+
+## Deploy the Okteto Chart
+
+Run `helm install` to deploy your Okteto instance. In this example, we have named our Helm release okteto.
+
+```console
+$ helm repo add okteto https://charts.okteto.com
+$ helm repo update
+$ helm install okteto okteto/okteto-enterprise  -f config.yaml --namespace=okteto
+```
+
+You can also use `--version version` if you would like to install a specific version of Okteto.
+
+Check the status of the deployment by running `helm status okteto`.
+
+## Post Install Configuration
+
+Once the chart is installed, follow the onscreen instructions to finalize the configuration.
+
+## Initial login
+
+You can access your Okteto instance by going to https://okteto.$SUBDOMAIN. An account will be automatically created for you as part of the login process.
