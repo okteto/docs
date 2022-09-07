@@ -5,19 +5,16 @@ sidebar_label: Upgrade
 id: upgrade
 ---
 
+<<<<<<< HEAD:src/content/self-hosted/install/upgrade.mdx
 ## Upgrading to 0.10.x
 
 Due to changes in the official NGINX ingress chart name, the name of the NGINX ingress configuration key in the Helm configuration file has changed from `nginx-ingress` to `ingress-nginx`. Please update your [ingress-nginx](/docs/self-hosted/administration/configuration/#ingress-nginx) configuration, if required, before upgrading your Okteto instance.
 
 Note that upgrading to 0.10.x **will recreate your NGINX ingress load balancer**.  Depending on your cloud provider and load balancer's configuration, the new load balancer might have a new IP assigned. If this is the case, you'll need to update the DNS entry of your Okteto instance accordingly.
 
+=======
+>>>>>>> Upgrade to 1.0 guide for existing customers:src/content/enterprise/install/upgrade.mdx
 ##  Upgrade your Okteto Instance
-
-Upgrade the CRDs:
-
-```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
-```
 
 To upgrade a new release, modify the `config.yaml` with your desired changes and then use:
 
@@ -29,8 +26,101 @@ $ helm upgrade <your-release-name> okteto/okteto -f config.yaml --namespace=okte
 For example:
 ```console
 $ helm repo update
-$ helm upgrade enterprise okteto/okteto -f config.yaml --namespace=okteto --version 0.9.x
+$ helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version 0.9.x
 ```
 *You can use `helm ls` to find the name of your release.*
 
+<<<<<<< HEAD:src/content/self-hosted/install/upgrade.mdx
 Please review [the release notes](/docs/self-hosted/install/releases/) before upgrading. New features, known issues, and configuration changes will be listed there.
+=======
+Please review [the release notes](/docs/enterprise/install/releases/) before upgrading. New features, known issues, and configuration changes will be listed there.
+
+## Upgrading to 1.x
+
+The Okteto chart 1.0 comes with two breaking changes due to the following changes:
+
+- The chart has been renamed from `okteto-enterprise` to `okteto`. This means the Builkit Kubernetes service is recreated on upgrade and Buildkit won't be available until you update your DNS entries.
+- The Okteto chart 1.0 doesn't install [cert-manager](https://cert-manager.io/) by default any more, as suggested in the [cert-manager best practices](https://cert-manager.io/docs/installation/helm/#installing-with-helm).
+
+To reduce the disruption of the service to a minimum, follow the following steps:
+
+#### Before upgrade
+
+If you are [bringing your own certificates](/docs/enterprise/administration/certificates/), you can skip this step.
+You can check if this is the case if the wildcard creation is disable in the Okteto helm values configuration:
+
+```
+wildcardCertificate:
+  create: false
+```
+
+Run the following command to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
+
+```
+kubectl -n okteto annotate issuer okteto-okteto-enterprise helm.sh/resource-policy=keep
+kubectl -n okteto annotate certificate default-ssl-certificate helm.sh/resource-policy=keep
+```
+
+Also, add the following lines to your Okteto helm values configuration:
+
+```
+wildcardCertificate:
+  create: false
+  name: default-ssl-certificate
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/default-ssl-certificate
+```
+
+> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend to [bring your own certificate](/docs/enterprise/administration/certificates/) once the Okteto upgrade has been complete succesfully.
+
+#### Upgrade Okteto
+
+Run the following commands to upgrade your Okteto instance:
+
+```
+helm repo update
+```
+
+```
+helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto
+```
+
+#### After upgrade
+
+You can use `kubectl` to fetch the new address that has been dynamically allocated to the Buildkit instance:
+
+```console
+kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
+```
+
+You'll need to take the `EXTERNAL-IP` address and add it to your DNS for the domain you have chosen to use. This is done by updating the `A` record with the name `buildkit`.
+
+If you are [bringing your own certificates](/docs/enterprise/administration/certificates/), you should be done with the upgrade.
+
+The Okteto upgrade might have removed cert-manager from your cluster, in case it was automatically installed by Okteto.
+If this was the case, you need to install cert-manager to keep renewing your certificates. To do that, execute the following commands:
+
+```
+helm repo add jetstack https://charts.jetstack.io
+```
+
+```
+helm repo update
+```
+
+```
+helm install cert-manager jetstack/cert-manager --namespace=okteto --version=v1.5.2 --set global.podSecurityPolicy.enabled=true
+```
+
+
+>>>>>>> Upgrade to 1.0 guide for existing customers:src/content/enterprise/install/upgrade.mdx
