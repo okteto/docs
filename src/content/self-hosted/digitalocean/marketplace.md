@@ -2,6 +2,8 @@
 title: Getting started after deploying Okteto
 ---
 
+import Image from '@theme/Image';
+
 After you have downloaded your `kubeconfig` file and can successfully connect to your DigitalOcean Kubernetes cluster (see https://cloud.digitalocean.com/kubernetes/clusters/ if you haven't connected to your cluster), follow the instructions below to start using Okteto.
 
 ## Initial Configuration
@@ -46,7 +48,7 @@ kubectl get svc -n=okteto -l="app=nginx-ingress,component=controller"
 
 Create a [wildcard A record](https://cloud.digitalocean.com/networking/domains) for the entire subdomain and point it to the load balancer's external IP.
 
-![DNS configuration](https://okteto.com/docs/self-hosted/digitalocean/dns.png)
+![DNS configuration](https://www.okteto.com/docs/enterprise/digitalocean/dns.png)
 
 ## More information
 
