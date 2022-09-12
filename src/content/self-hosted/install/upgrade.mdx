@@ -40,28 +40,28 @@ Please review [the release notes](/docs/enterprise/install/releases/) before upg
 Okteto 1.0 has two major breaking changes that you need to be aware of before upgrading:
 
 - The helm chart has been renamed from `okteto-enterprise` to `okteto`. All the resources created by the chart will have `okteto` as their prefix instead of `okteto-enterprise`. This change will cause all resources to be recreated upon upgrade.  Depending on your cloud provider and your networking configuration, you might need to update the DNS entry of the [build service](/docs/enterprise/administration/configuration/#buildkit) after upgrading your Okteto instance.
-- The Okteto chart 1.0 doesn't install [cert-manager](https://cert-manager.io/) by default any more, as suggested in the [cert-manager best practices](https://cert-manager.io/docs/installation/helm/#installing-with-helm).
+- The helm chart doesn't install [cert-manager](https://cert-manager.io/) by default.
 
-To reduce the disruption of the service to a minimum, follow the following steps:
+We recommend that you follow the steps below to reduce the disruption of the service to a minimum:
 
 #### Before upgrade
 
-If you are [bringing your own certificates](/docs/enterprise/administration/certificates/), you can skip this step.
-You can check if this is the case if the wildcard creation is disable in the Okteto helm values configuration:
+You can skip this step if you are [bringing your own certificates](/docs/enterprise/administration/certificates/), 
+You can check if this is the case by seeing that the wildcard creation is disabled in the Okteto helm values configuration:
 
 ```
 wildcardCertificate:
   create: false
 ```
 
-Run the following command to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
+If the helm chart is generating the certificates for you,  run the following command from your command line to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
 
 ```
 kubectl -n okteto annotate issuer okteto-okteto-enterprise helm.sh/resource-policy=keep
 kubectl -n okteto annotate certificate default-ssl-certificate helm.sh/resource-policy=keep
 ```
 
-Also, add the following lines to your Okteto helm values configuration:
+Then, add the following configuration to your Okteto helm values file to use the existing certificate:
 
 ```
 wildcardCertificate:
@@ -74,7 +74,7 @@ ingress-nginx:
       default-ssl-certificate: $(POD_NAMESPACE)/default-ssl-certificate
 ```
 
-> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend to [bring your own certificate](/docs/enterprise/administration/certificates/) once the Okteto upgrade has been complete succesfully.
+> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend you to [bring your own certificate](/docs/enterprise/administration/certificates/) once the Okteto upgrade has been complete succesfully.
 
 #### Upgrade Okteto
 
@@ -90,7 +90,7 @@ helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto
 
 #### After upgrade
 
-You can use `kubectl` to fetch the new address that has been dynamically allocated to the Buildkit instance:
+Use `kubectl` to get the new address of the build service:
 
 ```console
 kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
@@ -103,11 +103,13 @@ NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                  
 okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
 ```
 
-You'll need to take the `EXTERNAL-IP` address and add it to your DNS for the domain you have chosen to use. This is done by updating the `A` record with the name `buildkit`.
+Update your DNS configuration with the `EXTERNAL-IP` address.
 
-If you are [bringing your own certificates](/docs/enterprise/administration/certificates/), you should be done with the upgrade.
+If you are [bringing your own certificates](/docs/enterprise/administration/certificates/), your Okteto instance is now fully upgraded. The rest of the guide doesn't apply to your configuration.
 
-The Okteto upgrade might have removed cert-manager from your cluster, in case it was automatically installed by Okteto.
+## Install cert-manager
+
+Okteto will remove the instance of `cert-manager` that was installed by older versions of the helm chart. If you plan on using `cert-manager` as your certificate provider, you'll need to install it manually in your cluster using the instructions below: 
 If this was the case, you need to install cert-manager to keep renewing your certificates. To do that, execute the following commands:
 
 ```
