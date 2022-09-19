@@ -1,0 +1,318 @@
+---
+title: Volume Snapshots
+description: Use volume snapshots in your development environments
+sidebar_label: Volume Snapshots
+id: volume-snapshots
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Use volume snapshots to enable your users to initialize persistent volume claims with the contents of a preexisting storage snapshot. Use volume snapshots when working with large datasets or if you want to create development environments with real data coming from your production or staging environments.
+
+## Requirements
+
+To use the Volume Snapshots feature, you must install a CSI driver that supports snapshots and create the corresponding `VolumeSnapshotClass`.
+
+### Installing the CSI Driver
+
+Volume Snapshots is compatible with any CSI-compliant driver, such as:
+- [Google Compute Engine Persistent Disk CSI Driver](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/gce-pd-csi-driver)
+- [Amazon EBS CSI driver](https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html)
+- [DigitalOcean Block Storage CSI Driver](https://github.com/digitalocean/csi-digitalocean)
+
+> Note: As of February 2021, if you're using the Amazon EBS CSI driver, you'll need to install the alpha version to enable Volume Snapshots. More information is available [on their github repository](https://github.com/kubernetes-sigs/aws-ebs-csi-driver).
+
+We recommend you follow your vendor's installation instructions to learn more about this topic.
+
+### Create a VolumeSnapshotClass
+
+Create a `VolumeSnapshotClass` in your cluster to determine the CSI driver and `deletionPolicy` for your `VolumeSnapshots`.
+
+The following manifest is an example of a VolumeSnapshotClass:
+
+<Tabs
+  defaultValue="aws-ebs"
+  values={[
+    { label: 'Amazon EBS', value: 'aws-ebs', },
+    { label: 'GCE Persistent Disk ', value: 'gce-pd', },
+    { label: 'DigitalOcean Block Storage', value: 'do', },
+  ]}
+>
+<TabItem value="aws-ebs">
+
+```yaml
+# okteto-snapshot-class.yaml
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshotClass
+metadata:
+  name: okteto-snapshot-class
+driver: ebs.csi.aws.com
+deletionPolicy: Delete
+```
+
+</TabItem>
+<TabItem value="gce-pd">
+
+```yaml
+# okteto-snapshot-class.yaml
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshotClass
+metadata:
+  name: okteto-snapshot-class
+driver: pd.csi.storage.gke.io
+deletionPolicy: Delete
+```
+
+</TabItem>
+
+<TabItem value="do">
+
+```yaml
+# okteto-snapshot-class.yaml
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshotClass
+metadata:
+  name: okteto-snapshot-class
+driver: dobs.csi.digitalocean.com
+deletionPolicy: Delete
+```
+
+</TabItem>
+</Tabs>
+
+To create the `VolumeSnapshotClass` run the following command after creating the file.
+
+```
+kubectl apply -f okteto-snapshot-class.yaml
+```
+
+### Create a StorageClass (optional)
+
+Optionally, you can also create a storage class. This storage class will be used by Okteto when creating the volumes.
+
+<Tabs
+  defaultValue="aws-ebs"
+  values={[
+    { label: 'Amazon EBS', value: 'aws-ebs', },
+    { label: 'GCE Persistent Disk ', value: 'gce-pd', },
+    { label: 'DigitalOcean Block Storage', value: 'do', },
+  ]}
+>
+<TabItem value="aws-ebs">
+
+```yaml
+# okteto-snapshot-sc.yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: okteto-snapshot-sc
+provisioner: ebs.csi.aws.com
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+```
+
+</TabItem>
+<TabItem value="gce-pd">
+
+```yaml
+# okteto-snapshot-sc.yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: okteto-snapshot-sc
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-standard
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+```
+
+</TabItem>
+<TabItem value="do">
+
+```yaml
+# okteto-snapshot-sc.yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: okteto-snapshot-sc
+provisioner: dobs.csi.digitalocean.com
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+```
+
+</TabItem>
+</Tabs>
+
+To create the `StorageClass` run the following command after creating the file.
+
+```
+kubectl apply -f okteto-snapshot-sc.yaml
+```
+
+## Enabling Volume Snapshots
+
+To enable Volume Snapshots on your Okteto instance, update your `config.yaml` file with the following values, and run a [helm upgrade](https://okteto.com/docs/enterprise/install/upgrade/#upgrade-your-okteto-enterprise-instance) to apply the new configuration.
+
+More information on the different configuration settings [is available here](/docs/enterprise/administration/configuration/#volumesnapshots).
+
+<Tabs
+  defaultValue="aws-ebs"
+  values={[
+    { label: 'Amazon EBS', value: 'aws-ebs', },
+    { label: 'GCE Persistent Disk ', value: 'gce-pd', },
+    { label: 'DigitalOcean Block Storage', value: 'do', },
+  ]}
+>
+<TabItem value="aws-ebs">
+
+```yaml
+volumeSnapshots:
+  enabled: true
+  driver: ebs.csi.aws.com
+  class:  okteto-snapshot-class
+  storageClass: okteto-snapshot-sc
+```
+
+</TabItem>
+<TabItem value="gce-pd">
+
+```yaml
+volumeSnapshots:
+  enabled: true
+  driver: pd.csi.storage.gke.io
+  class:  okteto-snapshot-class
+  storageClass: okteto-snapshot-sc
+```
+
+</TabItem>
+<TabItem value="do">
+
+```yaml
+volumeSnapshots:
+  enabled: true
+  driver: dobs.csi.digitalocean.com
+  class:  okteto-snapshot-class
+  storageClass: okteto-snapshot-sc
+```
+
+</TabItem>
+</Tabs>
+
+## Using Volume Snapshots in your Development Environment
+
+### Creating a Volume Snapshot
+
+Volume Snapshots allow developers to initialize persistent volume claims with the contents of any preexisting storage snapshot. The snapshot can contain database backups, big files, images, a copy of your staging data, etc.
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-snapshot
+spec:
+  volumeSnapshotClassName: okteto-snapshot-class
+  source:
+    persistentVolumeClaimName: mysql-snapshot
+```
+
+### Consuming a Volume Snapshot created in Kubernetes
+
+Use the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations on any persistent volume claim to tell Okteto to initialize your persistent volume claim from a VolumeSnapshot Kubernetes object, as shown below:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-name: mysql-snapshot
+    dev.okteto.com/from-snapshot-namespace: staging
+  name: pvc-from-snapshot
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+If the annotation `dev.okteto.com/from-snapshot-namespace` is not defined, Okteto will default to the namespace of the new persistent volume claim.
+
+Use the annotation `dev.okteto.com/skip-snapshot-if-same-namespace: "true"` to skip the data cloning operation if the source snapshot and the new PVC are in the same namespace.
+
+By default, all users in your cluster will be able to use any of the available snapshots as a data source for their development environments. You can limit this via the `enableNamespaceAccessValidation` key in the `volumeSnapshots` section of the configuration, value of `true` will enable the validation.
+
+## Using Storage Snapshots in your Development Environment
+
+If your data source is not on Kubernetes, you can instead create a storage snapshot directly from your cloud provider (consult your cloud provider's documentation on how to generate a volume snapshot).
+
+Use the `dev.okteto.com/from-snapshot-id` annotation on any persistent volume claim to tell Okteto to initialize your persistent volume claim from a storage snapshot created in your cloud provider, as shown below:
+
+<Tabs
+  defaultValue="aws-ebs"
+  values={[
+    { label: 'Amazon EBS', value: 'aws-ebs', },
+    { label: 'GCE Persistent Disk ', value: 'gce-pd', },
+    { label: 'DigitalOcean Block Storage', value: 'do', },
+  ]}
+>
+<TabItem value="aws-ebs">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-id: snapshot-8dc4bb4c
+  name: pvc-from-snapshot
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</TabItem>
+<TabItem value="gce-pd">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-id: projects/my-project/global/snapshots/snapshot-8dc4bb4c-c76e-bb03-ff17-1d83e07a6804
+  name: pvc-from-snapshot
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</TabItem>
+<TabItem value="do">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-id: volume-8dc4bb4c
+  name: pvc-from-snapshot
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</TabItem>
+</Tabs>
+
+As part of the creation of the persistent volume claim, Okteto will import the specified snapshot into your cluster using a `VolumeSnapshotContent` and will set the source of your persistent volume claim to this [VolumeSnapshotContent](https://kubernetes.io/docs/concepts/storage/volume-snapshots/), ready to be used by your development environment.
+
+By default, anyone can use any of your cloud provider's snapshot ID as a data source. You can disable this by changing the configuration `allowIDAnnotation ` to `false` in the `volumeSnapshots` section of the configuration.
