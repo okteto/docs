@@ -21,7 +21,7 @@ In order to fully install Okteto, you'll need the following:
 
 ### Subdomain
 
-You'll need to have access to a internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com. Let's Encrypt servers must be able to resolve the addresses in order to issue the required certificates.
+You'll need to have access to a internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com.
 
 This guide will assume that your domain is registered in [Amazon Route53](https://aws.amazon.com/route53/). Other DNS services can be used, but aren't covered here.
 
@@ -33,7 +33,7 @@ Okteto supports Kubernetes versions 1.21 through 1.23.
 We recommend the following specs:
 - v1.32
 - A pool with at least 3 `m4.xlarge` nodes
-- 100 GB per disk
+- 250 GB per disk
 
 You'll be using the cluster's API server endpoint when configuring Okteto
 
@@ -47,7 +47,7 @@ Follow the official documentation for [installing the latest release of Helm v3]
 
 ### Creating the GitHub OAuth application
 
-> Okteto supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we'll focus on using GitHub. All the supported configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
+> Okteto supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we'll focus on using GitHub. All the supported configuration settings [are described here](/docs/self-hosted/administration/configuration/#auth).
 
 Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
 
@@ -71,7 +71,7 @@ Okteto uses S3 to store your private images. Follow Amazon's [guide on how to cr
 
 ### Creating an IAM
 
-The Okteto sub-components need access to Route 53 (to fulfill the ACME challenge for the certificates) and S3 (for uploading and downloading your container images).
+The Okteto Registry needs access to a S3 bucket to store your container images.
 
 We recommend you follow AWS' official documentation on [how to create and manage IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) for more information on this.
 
@@ -86,21 +86,6 @@ You'll need to perform the following tasks:
         {
           "Version": "2012-10-17",
           "Statement": [
-              {
-                  "Effect": "Allow",
-                  "Action": "route53:GetChange",
-                  "Resource": "arn:aws:route53:::change/*"
-              },
-              {
-                  "Effect": "Allow",
-                  "Action": "route53:ChangeResourceRecordSets",
-                  "Resource": "arn:aws:route53:::hostedzone/*"
-              },
-              {
-                  "Effect": "Allow",
-                  "Action": "route53:ListHostedZonesByName",
-                  "Resource": "*"
-              },
               {
                   "Effect": "Allow",
                   "Action": [
@@ -138,22 +123,18 @@ helm repo update
 
 ### Getting your Okteto License
 
-Okteto is free for small teams.  You get all the features of [Okteto](/docs/enterprise/) for up to 3 users with 3 namespaces each.
+Okteto is free for small teams. You get all the features of [Okteto](/free-trial/) for up to 3 users with 3 namespaces each.
 
 Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
 ## Installing Okteto
 
-### Creating the Okteto namespace
+### Create the Okteto Namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
-
-```console
-$ kubectl apply -f https://charts.okteto.com/namespace.yaml
-```
+Run the following command to create a namespace to install Okteto in:
 
 ```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
+$ kubectl create namespace okteto
 ```
 
 ### Configuring your Okteto instance
@@ -164,7 +145,8 @@ Create a Kubernetes secret with the IAM User's Access secret key you created bef
 kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=IAM_ACCESS_SECRET
 ```
 
-Download a copy of the [Okteto EKS configuration file](https://okteto.com/docs/enterprise/eks/config.yaml), open it, and update the following values:
+Download a copy of the [Okteto EKS configuration file](/docs/self-hosted/eks/config.yaml), open it, and update the following values:
+
 - Your `email`
 - Your `license` (optional)
 - A `subdomain`
@@ -173,7 +155,7 @@ Download a copy of the [Okteto EKS configuration file](https://okteto.com/docs/e
 - The name of the `bucket` you created
 - The `Access key ID` of the IAM User
 
-> You can also configure Okteto to assume a role instead of using access keys. Check the [AWS section in the configuration page](/docs/enterprise/administration/configuration/#cloud) to learn more.
+> You can also configure Okteto to assume a role instead of using access keys. Check the [AWS section in the configuration page](/docs/self-hosted/administration/configuration/#cloud) to learn more.
 
 For example:
 
@@ -211,7 +193,7 @@ buildkit:
 Install the latest version of Okteto by running:
 
 ```console
-helm install okteto okteto/okteto-enterprise -f config.yaml --namespace=okteto
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto
 ```
 
 After a few seconds, all the resources will be created. The output will look something like this:
@@ -273,21 +255,14 @@ kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/compo
 The output will look something like this:
 
 ```
-NAME                                  TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
-okteto-okteto-enterprise-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
 ```
 
 You'll need to take the `EXTERNAL-IP` address and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `buildkit`.
 
-## Sign in to your Okteto
+## Sign in to your Okteto instance
 
-You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
+> **Important**: The default installation uses self-signed certificates. We strongly recommend that you  configure Okteto to [bring your own certificates](/docs/self-hosted/administration/certificates/) before giving your team access to your instance.
 
-## Troubleshooting
-
-If you experience issues during this guide, we recommend you check these things first:
-
-1. `okteto.SUBDOMAIN` resolves to the IP address you retrieved.
-1. If you get a certificate warning, there has been a problem with Let's Encrypt. This is usually related to DNS resolution, the need to retry, or the permissions of the credentials created.
-
-For further troubleshooting tips, see our [troubleshooting guide](/docs/enterprise/install/troubleshooting/).
+You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully log into the instance will be automatically assigned the `administrator` role.

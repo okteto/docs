@@ -210,7 +210,7 @@ module.exports = {
         to: '/welcome/overview/',
         from: ['/']
       }, {
-        to: '/enterprise/install/overview/',
+        to: '/self-hosted/install/overview/',
         from: ['/enterprise/dns/']
       }, {
         to: '/tutorials/compose-getting-started/',
@@ -229,7 +229,7 @@ module.exports = {
         from: ['/enterprise/administration/cleanup/']
       },
       {
-        to: '/enterprise/administration/github/',
+        to: '/administration/private-repositories/github-app/',
         from: ['/enterprise/administration/private-repositories/github-app/']
       },
       {

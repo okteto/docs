@@ -14,14 +14,13 @@ In order to fully install Okteto, you'll need the following:
 - A Kubernetes cluster
 - A working installation of kubectl
 - A working installation of Helm v3
-- A GitHub OAuth application
+- An OAuth application
 - An Azure Storage Container
-- An Azure Service Principal with read/write access to AzureDNS
 - An Okteto license (optional)
 
 ### Subdomain
 
-You'll need access to an internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com. Let's Encrypt servers must be able to resolve the addresses in order to issue the required certificates.
+You'll need access to an internet accessible subdomain to which you can add a wildcard DNS record, such as dev.example.com.
 
 This guide will assume that your domain is registered in [AzureDNS](https://docs.microsoft.com/en-us/azure/dns/dns-overview). Other DNS services can be used, but aren't covered here.
 
@@ -33,9 +32,9 @@ Okteto supports Kubernetes versions 1.21 through 1.23.
 We recommend the following specs:
 - v1.23
 - A pool with at least 3 `Standard D4` nodes
-- 100 GB per Standard SSD Managed Disk
+- 250 GB per Standard SSD Managed Disk
 
-You'll be using the cluster's API server endpoint when configuring Okteto
+You'll be using the cluster's API server endpoint when configuring Okteto.
 
 ### Installing kubectl
 
@@ -45,9 +44,9 @@ Follow Azure's documentation for [installing kubectl](https://docs.microsoft.com
 
 Follow the official documentation for [installing the latest release of Helm v3](https://helm.sh/docs/intro/install/).
 
-### Creating the GitHub OAuth application
+### Creating the OAuth application
 
-> Okteto supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we'll focus on using GitHub. All the supported configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
+> Okteto supports OAuth providers like Google, GitHub, or OpenID Connect to handle user authentication. For this guide, we'll focus on using GitHub. All the supported configuration settings [are described here](/docs/self-hosted/administration/configuration/#auth).
 
 Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
 
@@ -71,18 +70,6 @@ Okteto uses a storage container to store your private images. Follow Azure's [gu
 
 You'll need the Account Name and a Storage Account Key when installing Okteto.
 
-### Creating an Azure Service Principal
-
-The Okteto sub-components need access to AzureDNS to fulfill the ACME challenge when generating certificates.
-
-We recommend you follow [cert-manager's documentation on this topic](https://cert-manager.io/docs/configuration/acme/dns01/azuredns/#service-principal).
-
-You'll need the following values from the Service Principal when installing Okteto:
-- AppID
-- Password
-- Tenant ID
-- Subscription ID
-
 ## Adding the Okteto Helm repository
 
 You'll need to add the Okteto repository in order to be able to install Okteto:
@@ -94,41 +81,35 @@ helm repo update
 
 ### Getting your Okteto License
 
-Okteto is free for small teams.  You get all the features of [Okteto](/docs/enterprise/) for up to 3 users with 3 namespaces each.
+Okteto is free for small teams. You get all the features of [Okteto](/free-trial/) for up to 3 users with 3 namespaces each.
 
 Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
 ## Installing Okteto
 
-### Creating the Okteto namespace
+### Create the Okteto Namespace
 
-Create a dedicated namespace for your Okteto instance, and the required CRDs:
-
-```console
-$ kubectl apply -f https://charts.okteto.com/namespace.yaml
-```
+Run the following command to create a namespace to install Okteto in:
 
 ```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
+$ kubectl create namespace okteto
 ```
 
 ### Configuring your Okteto instance
 
-Create a Kubernetes secret with the Service Principal's Password you created before:
+Create a Kubernetes secret with the Storage Account Access Key you created before:
 
 ```console
-kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=STORAGE_ACCOUNT_ACCESS_KEY --from-literal=token=SERVICE_PRINCIPAL_PASSWORD
+kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=STORAGE_ACCOUNT_ACCESS_KEY
 ```
 
-Download a copy of the [Okteto AKS configuration file](https://okteto.com/docs/enterprise/aks/config.yaml), open it, and update the following values:
+Download a copy of the [Okteto AKS configuration file](/docs/self-hosted/aks/config.yaml), open it, and update the following values:
+
 - Your `email`
 - Your `license` (optional)
 - A `subdomain`
 - `clientId` and `clientSecret` of the OAuth Application you created
 - Your cluster's API server endpoint
-- The `AppID` of the Service Principal
-- The `Tenant ID` of the Service Principal
-- The `Subscription ID` of the Service Principal
 - The name of the `storage container` you created
 - The `Storage Account Name`
 
@@ -151,10 +132,6 @@ cloud:
   provider:
     azure:
       enabled: true
-      servicePrincipal: "b2f3a941-1853-44fc-8600-88d6a061305e"
-      subscriptionID: "6e459427-98be-414d-8476-1e0328626abf"
-      tenantID: "c9ef58ed-1920-4dc8-8a24-98904464d3d8"
-      resourceGroupName: "okteto-enterprise-resource-group"
       storage:
         container: "okteto-container"
         accountName: "okteto-storage-account"
@@ -171,7 +148,7 @@ buildkit:
 Install the latest version of Okteto by running:
 
 ```console
-helm install okteto okteto/okteto-enterprise -f config.yaml --namespace=okteto
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto
 ```
 
 After a few seconds, all the resources will be created. The output will look something like this:
@@ -232,22 +209,14 @@ kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/compo
 The output will look something like this:
 
 ```
-NAME                                  TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
-okteto-okteto-enterprise-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...aks.microsoft.com    1234:32449/TCP   5m
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...aks.microsoft.com    1234:32449/TCP   5m
 ```
 
 You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `buildkit`.
 
-## Sign in to your Okteto
+## Sign in to your Okteto instance
 
-You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as you soon as you click the `Login` button.
+> **Important**: The default installation uses self-signed certificates. We strongly recommend that you  configure Okteto to [bring your own certificates](/docs/self-hosted/administration/certificates/) before giving your team access to your instance.
 
-## Troubleshooting
-
-If you experience issues during this guide, we recommend you check these things first:
-
-1. `okteto.SUBDOMAIN` resolves to the IP address you retrieved.
-1. If you get a certificate warning, there has been a problem with Let's Encrypt. This is usually related to DNS resolution, the need to retry, or the permissions of the credentials created.
-
-
-For further troubleshooting tips, see our [troubleshooting guide](/docs/enterprise/install/troubleshooting/).
+You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully log into the instance will be automatically assigned the `administrator` role.

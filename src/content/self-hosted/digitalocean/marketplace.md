@@ -2,6 +2,8 @@
 title: Getting started after deploying Okteto
 ---
 
+import Image from '@theme/Image';
+
 After you have downloaded your `kubeconfig` file and can successfully connect to your DigitalOcean Kubernetes cluster (see https://cloud.digitalocean.com/kubernetes/clusters/ if you haven't connected to your cluster), follow the instructions below to start using Okteto.
 
 ## Initial Configuration
@@ -9,7 +11,7 @@ After you have downloaded your `kubeconfig` file and can successfully connect to
 The first step is to get your admin token. Run the following command in a terminal shell to retrieve it:
 
 ```console
-kubectl get sa -n=okteto do-okteto-enterprise -ojsonpath='{.metadata.labels.dev\.okteto\.com/token}'
+kubectl get sa -n=okteto do-okteto -ojsonpath='{.metadata.labels.dev\.okteto\.com/token}'
 ```
 
 Second, start a port-forward to the ingress service by running the command below:
@@ -46,7 +48,7 @@ kubectl get svc -n=okteto -l="app=nginx-ingress,component=controller"
 
 Create a [wildcard A record](https://cloud.digitalocean.com/networking/domains) for the entire subdomain and point it to the load balancer's external IP.
 
-![DNS configuration](https://okteto.com/docs/enterprise/digitalocean/dns.png)
+![DNS configuration](https://www.okteto.com/docs/enterprise/digitalocean/dns.png)
 
 ## More information
 
@@ -73,7 +75,7 @@ clusters:
 ```
 
 ### License
-Okteto is free to try. You get all the features of [Okteto](https://okteto.com/docs/enterprise/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
+Okteto is free to try. You get all the features of [Okteto](https://okteto.com/docs/self-hosted/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 

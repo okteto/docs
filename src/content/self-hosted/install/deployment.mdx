@@ -10,21 +10,15 @@ import TabItem from '@theme/TabItem';
 
 ## Create the Okteto Namespace
 
-Run the commands below to create a namespace for the application and the necessary CRDs.
+Run the command below to create a namespace for okteto:
 
 ```console
-$ kubectl apply -f https://charts.okteto.com/namespace.yaml
+$ kubectl create namespace okteto
 ```
-
-```console
-$ kubectl apply -f https://charts.okteto.com/crds.yaml
-```
-
-*The `namespace.yaml` manifest assumes you'll be installing the application into the `okteto` namespace. If you are not doing this, you'll need to update the file before creating the namespace.*
 
 ## Configuration file
 
-Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the most common options. A complete list of configuration options is [available here](/docs/enterprise/administration/configuration/).
+Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the most common options. A complete list of configuration options is [available here](/docs/self-hosted/administration/configuration/).
 
 You can use [this sample configuration file](https://charts.okteto.com/config.yaml) as a starting point. The different configuration settings are explained below.
 
@@ -57,7 +51,7 @@ subdomain: "example.com"
 
 ### License
 
-Okteto is free for small teams.  You get all the features of [Okteto](/docs/enterprise/) for up to 3 users with 3 namespaces each.```
+Okteto is free for small teams.  You get all the features of [Okteto](/docs/self-hosted/) for up to 3 users with 3 namespaces each.```
 
 ```yaml
 license: XXXXX
@@ -65,13 +59,13 @@ license: XXXXX
 
 Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
-> You can also use [a secret](/docs/enterprise/install/deployment/#cloud-provider-secret) to store the license.
+> You can also use [a secret](/docs/self-hosted/install/deployment/#cloud-provider-secret) to store the license.
 
 ### Authentication
 
 Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
 
-Use the `clientId` and `clientSecret` that you created [in the previous step](/docs/enterprise/install/preparation/#authentication).
+Use the `clientId` and `clientSecret` that you created [in the previous step](/docs/self-hosted/install/preparation/#authentication).
 
 <Tabs
   defaultValue="github"
@@ -137,11 +131,11 @@ An empty `group` field allows any user to authenticate.
 
 The `issuer` and `authorization` endpoints must match the value returned in the provider config discovery.
 
-Further configuration settings [are described here](/docs/enterprise/administration/configuration/#auth).
+Further configuration settings [are described here](/docs/self-hosted/administration/configuration/#auth).
 </TabItem>
 </Tabs>
 
-> You can also use [a secret](/docs/enterprise/install/deployment/#cloud-provider-secret) to store the sensitive part of these credentials.
+> You can also use [a secret](/docs/self-hosted/install/deployment/#cloud-provider-secret) to store the sensitive part of these credentials.
 
 ### Cloud Provider
 
@@ -164,10 +158,6 @@ cloud:
   provider:
     azure:
       enabled: true
-      servicePrincipal: "Service Principal ID"
-      subscriptionID: "Azure Subscription ID"
-      tenantID: "Azure Tenant ID"
-      resourceGroupName: "Resource Group Name"
       storage:
         container: "Storage Container Name"
         accountName: "Storage Account Name"
@@ -218,7 +208,7 @@ cloud:
 
 ## Cloud Provider Secret
 
-Create a secret named `okteto-cloud-secret` to store the Cloud Provider credentials created [in the preparation step](/docs/enterprise/install/preparation/#authentication).
+Create a secret named `okteto-cloud-secret` to store the Cloud Provider credentials created [in the preparation step](/docs/self-hosted/install/preparation/#authentication).
 
 <Tabs
   defaultValue="aws"
@@ -233,11 +223,10 @@ Create a secret named `okteto-cloud-secret` to store the Cloud Provider credenti
 <TabItem value="azure">
 
 ```console
-$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=STORAGE_ACCOUNT_ACCESS_KEY --from-literal=token=SERVICE_PRINCIPAL_PASSWORD
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=STORAGE_ACCOUNT_ACCESS_KEY
 ```
 
-- `STORAGE_ACCESKEY`: A storage account access key with read/write permissions to the storage container specified in the configuration.
-- `SERVICE_PRINCIPAL_PASSWORD`: The password of a Service Principal with read/write permissions to the Azure DNS zone specified in the configuration.
+- `STORAGE_ACCOUNT_ACCESS_KEY`: A storage account access key with read/write permissions to the storage container specified in the configuration.
 
 </TabItem>
 
@@ -254,10 +243,9 @@ $ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-li
 <TabItem value="digitalocean">
 
 ```console
-$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=token=YOUR_PERSONAL_TOKEN --from-literal=key=ACCESS_KEY
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=ACCESS_KEY
 ```
 
-- `YOUR_PERSONAL_TOKEN`: A personal token with read/write permissions to the domain specified in the configuration.
 - `ACCESS_KEY`: The access key of the storage space specified in the configuration.
 
 </TabItem>
@@ -268,7 +256,7 @@ $ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-li
 $ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-file=key=key.json
 ```
 
-- `key.json`: A file containing the key of a service account with read/write permissions to the CloudDNS zone and storage bucket specified in the configuration.
+- `key.json`: A file containing the key of a service account with read/write permissions to the storage bucket specified in the configuration.
 
 </TabItem>
 </Tabs>
@@ -290,7 +278,7 @@ Run `helm install` to deploy your Okteto instance. In this example, we have name
 ```console
 $ helm repo add okteto https://charts.okteto.com
 $ helm repo update
-$ helm install okteto okteto/okteto-enterprise  -f config.yaml --namespace=okteto
+$ helm install okteto okteto/okteto  -f config.yaml --namespace=okteto
 ```
 
 You can also use `--version version` if you would like to install a specific version of Okteto.
