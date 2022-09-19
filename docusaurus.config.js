@@ -152,6 +152,11 @@ module.exports = {
               label: 'okteto.com (0.15)',
               path: '/',
             },
+            '0.15': {
+              label: '0.15',
+              path: '0.15',
+              banner: 'none',
+            },
             '0.14': {
               label: '0.14',
               path: '0.14',
