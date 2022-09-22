@@ -73,39 +73,39 @@ module.exports = {
       },
     ],
     "Okteto Self-Hosted": [
-      "enterprise",
+      "self-hosted",
       {
         "type": "category",
         "label": "Installation",
         "items": [
-          "enterprise/install/overview",
-          "enterprise/install/preparation",
-          "enterprise/install/deployment",
-          "enterprise/install/upgrade",
-          "enterprise/install/troubleshooting",
-          "enterprise/install/releases"
+          "self-hosted/install/overview",
+          "self-hosted/install/preparation",
+          "self-hosted/install/deployment",
+          "self-hosted/install/upgrade",
+          "self-hosted/install/troubleshooting",
+          "self-hosted/install/releases"
         ]
       },
       {
         "type": "category",
         "label": "Cloud Providers Guides",
         "items": [
-          "enterprise/eks",
-          "enterprise/aks",
-          "enterprise/civo",
-          "enterprise/do",
-          "enterprise/gke"
+          "self-hosted/eks",
+          "self-hosted/aks",
+          "self-hosted/civo",
+          "self-hosted/do",
+          "self-hosted/gke"
         ]
       },
       {
         "type": "category",
         "label": "Configuration",
         "items": [
-          "enterprise/administration/certificates",
-          "enterprise/administration/custom-installer-image",
-          "enterprise/administration/configuration",
-          "enterprise/administration/github",
-          "enterprise/administration/volume-snapshots"
+          "self-hosted/administration/certificates",
+          "self-hosted/administration/custom-installer-image",
+          "self-hosted/administration/configuration",
+          "self-hosted/administration/github",
+          "self-hosted/administration/volume-snapshots"
         ]
       }
     ],
