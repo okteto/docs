@@ -119,21 +119,19 @@ The `mapping` fields are optional. Use them to configure the mapping between Okt
 
 ### cloud
 
-Okteto integrates with different cloud providers to store the registry images and generate certificates for your applications.
+Okteto integrates with different cloud providers to store the [Okteto Registry](/docs/cloud/registry/) images.
 
-> The credentials will be used by cert-manager when generating and renewing the wildcard certificate. The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](/docs/self-hosted/install/deployment/#cloud-provider-secret).
+> The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](/docs/self-hosted/install/deployment/#cloud-provider-secret).
 
-- `azure`: Use this if your domain is managed by Azure DNS, and to use Azure Storage to store your private images.
+#### Azure
+
+Use this to use Azure Storage to store your private images.
 
 ```yaml
 cloud:
   provider:
     azure:
       enabled: true
-      servicePrincipal: "Service Principal ID"
-      subscriptionID: "Azure Subscription ID"
-      tenantID: "Azure Tenant ID"
-      resourceGroupName: "Resource Group Name"
       storage:
         container: "Storage Container Name"
         accountName: "Storage Account Name"
@@ -141,7 +139,9 @@ cloud:
 
 The storage setting will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
 
-- `aws`: Use this if your domain is managed by Route53, and to use S3 to store your private images.
+#### AWS
+
+Use this to use S3 to store your private images.
 
 ```yaml
 cloud:
@@ -151,28 +151,14 @@ cloud:
       bucket: "Bucket Name"
       region: "AWS region"
       iam:
+        enabled: true
         accessKeyID: "IAM Access Key"
 ```
 The bucket will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
 
-Use the `role` configuration below if your Route53 zone is managed by a separate AWS account than the one used to provision your Kubernetes cluster.
+#### Digitalocean
 
-```yaml
- cloud:
-   provider:
-     aws:
-       enabled: true
-       bucket: "Bucket Name"
-       region: "AWS region"
-       iam:
-         enabled: false
-       role:
-         enabled: true
-         arn: "Role arn"
-         hostedZoneID: "zone id"
- ```
-
-- `digitalocean`: Use this if your domain is managed by DigitalOcean, and to use DigitalOcean spaces to store your private images.
+Use this to use DigitalOcean Spaces to store your private images.
 
 ```yaml
 cloud:
@@ -186,7 +172,9 @@ cloud:
 
 The space settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
 
-- `gcp`: Use this if your domain is managed by Google Cloud DNS, and to use Google Cloud Storage to store your private images.
+#### GCP
+
+Use this to use Google Cloud Storage to store your private images.
 
 ```yaml
 cloud:
@@ -201,19 +189,30 @@ cloud:
 
 The bucket settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
 
-- `byo`: Use this if you're using a provider not currently supported by Okteto.
+#### BYO
+
+Use this if you're using a provider not currently supported by Okteto.
 
 ```yaml
 cloud:
   provider:
     byo:
       enabled: true
-      issuerName:
-      issuerKind: Issuer
 ```
 
-When using `byo` you'll need to create a valid cert-manager issuer before installing Okteto, and configure your registry to use the file system for storage.
+When using `byo` you'll need to [configure your registry](docs/self-hosted/administration/configuration/#registry) to use the file system for storage.
 
+```yaml
+registry:
+ storage:
+   filesystem:
+     enabled: true
+     persistence:
+       enabled: true
+       size: 400Gi
+   cloud:
+     enabled: false
+```
 
 #### Advanced Cloud Scenarios
 
