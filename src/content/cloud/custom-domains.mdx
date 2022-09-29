@@ -5,8 +5,6 @@ sidebar_label: Custom Domain Names
 id: custom-domains
 ---
 
-> This is only available on Okteto Cloud
-
 import Image from '@theme/Image';
 
 By default, an application deployed in Okteto Cloud will be available at its Okteto Cloud domain, which has the form `*-$NAMESPACE.cloud.okteto.net`.
@@ -26,9 +24,36 @@ Perform the following tasks to register your custom domain in your Okteto Cloud 
 
 1. Confirm that you own the custom domain name. Need a custom domain name? You can buy one with a domain registration service.
 
-2. [Reach out to support](https://okteto.com/support) to register your custom domain with Okteto Cloud. Please include the domain, your github ID, and the namespace you want to use in your communications.
+2. Update your DNS configuration so your custom domain points to [Okteto DNS target](/docs/cloud/custom-domains/#configure-your-dns).
 
-3. Update your DNS configuration so your custom domain points to Okteto Cloud's DNS target.
+3. (Only for Okteto Cloud users) [Reach out to support](https://okteto.com/support) to register your custom domain with Okteto Cloud. Please include the domain, your github ID, and the namespace you want to use in your communications. This isn't needed for Scale and Enterpise users.
+
+3. (Only for Scale and Enterprise users) Execute the following commands in your namespace:
+
+```
+kubectl label ns ${OKTETO_NAMESPACE} dev.okteto.com/custom-domain=true --overwrite
+kubectl annotate ns $ns dev.okteto.com/domain=${YOUR_DOMAIN} --overwrite
+```
+
+and create the following `Issuer` in your namespace:
+```
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: okteto-http01
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: support@okteto.com
+    preferredChain: ""
+    privateKeySecretRef:
+      name: okteto-http01
+    solvers:
+    - http01:
+       ingress:
+         class: nginx
+         serviceType: ClusterIP
+```
 
 ## Configure your Application to use your Custom Domain
 
@@ -90,38 +115,6 @@ custom-dns   myapp.com      104.155.138.215,104.197.238.82,104.198.241.5,35.224.
 ```
 
 We recommend you use this approach instead of hard-coding the host name in your manifests to keep them portable across namespaces.
-
-## Docker compose applications
-
-If you deployment is powered by a docker compose manifest, add a label to the service you want to configure a custom domain as shown below:
-
-```yaml
-services:
-  fastapi:
-    build: .
-    replicas: 1
-    ports:
-      - 8080:8080
-    environment:
-      - DB_HOST=postgres://pguser:pgpass@postgres:5432/pgdb
-      - secret=dev
-    labels:
-      dev.okteto.com/auto-ingress: "true"
-  postgresql:
-    image: bitnami/postgresql:latest
-    ports:
-      - 5432
-    environment:
-      - POSTGRES_USER=pguser
-      - POSTGRES_PASSWORD=pgpass
-      - POSTGRES_DB=pgdb
-    volumes:
-      - data:/bitnami/postgresql
-volumes:
-  data:
-
-```
-
 
 ## Configure your DNS
 
