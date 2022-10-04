@@ -75,7 +75,7 @@ clusters:
 ```
 
 ### License
-Okteto is free to try. You get all the features of [Okteto](https://okteto.com/docs/self-hosted/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
+Okteto is free for small teams. You get all the features of [Okteto](https://okteto.com/docs/self-hosted/) for up to 3 users. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 
