@@ -53,15 +53,35 @@ To pull an image from a different namespace, you'll need to create and configure
 
 ## Push helm chart into the Okteto Registry
 
-Just as you can push images to the Okteto Registry, you also have the option to push Helm charts. To do this, the first step is to log in to the registry where you want to push the chart:
+Just as you can push images to the Okteto Registry, you also have the option to push Helm charts. To do this, the first step is to log in to the registry where you want to push the chart. For this you will need some credentials that you can obtain by executing the `okteto context show` command. This command will show you information about the current okteto context in use.
 
 ```
-helm registry login registry.cloud.okteto.net -u my-username -p my-password
+{
+    "name": "https://cloud.okteto.com",
+    "id": "3cf4529c-1gbd-4364-99cf-3f4bbe499adb",
+    "username": "CindyLopez",
+    "token": "i3kDEh4FKqrJzY7e7Qamd8CfTTrjkPOTN5ftHoKl",
+    "namespace": "cindy-namespace",
+    "builder": "tcp://buildkit.cloud.okteto.net:1234",
+    "registry": "registry.cloud.okteto.net",
+    "personalNamespace": "cindylopez",
+    "isOkteto": true
+}
 ```
 
-You can get your credentials needed to log in with Helm against the Okteto Registry by running the `okteto context show` command. With it you can retrieve your username, password (token) and the domain from your registry.
+You can retrieve your username, password (token), and the domain for your registry from the output. 
 
-Once you are logged against the Okteto Registry you can push the packaged chart to the Okteto Registry by using the command below:
+```
+helm registry login registry.cloud.okteto.net -u CindyLopez -p i3kDEh4FKqrJzY7e7Qamd8CfTTrjkPOTN5ftHoKl
+```
+
+Once you are logged in you will need to package the chart. 
+
+```
+helm package ./chart
+```
+
+After that you can push the packaged Helm chart to the registry.
 
 ```
 helm push ./movies-api-0.1.0.tgz oci://registry.cloud.okteto.net/my-namespace
@@ -73,4 +93,4 @@ Once the packaged chart has been pushed to the Okteto Registry, you can pull it 
 helm pull oci://registry.cloud.okteto.net/my-namespace/movies-api --version 0.1.0
 ```
 
-> Note: This example is using the registry for Cloud. You need adapt the registry domain and namespace name to your case using the notation `oci://<registry-domain>/<okteto-namespace>`.
+> Note: This example uses Okteto Cloud's registry.  Remember to change the registry domain and namespace name if needed, by using the following notation `oci://<registry-domain>/<okteto-namespace>`.
