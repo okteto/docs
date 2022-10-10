@@ -42,6 +42,7 @@ module.exports = {
       },
       "cloud/build",
       "cloud/registry",
+      "cloud/volume-snapshots",
       "cloud/namespaces",
       "cloud/credentials",
       "cloud/personal-access-tokens",
@@ -105,7 +106,7 @@ module.exports = {
           "self-hosted/administration/custom-installer-image",
           "self-hosted/administration/configuration",
           "self-hosted/administration/github",
-          "self-hosted/administration/volume-snapshots"
+          "self-hosted/administration/enable-volume-snapshots"
         ]
       }
     ],

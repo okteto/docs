@@ -1,0 +1,105 @@
+---
+title: Volume Snapshots
+description: Use volume snapshots in your development environments
+sidebar_label: Volume Snapshots
+id: volume-snapshots
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Volume snapshots allows you to initialize persistent volume claims with the contents of a preexisting volume snapshot.
+Use volume snapshots when working with large datasets or if you want to create development environments with real data coming from your production or staging environments.
+
+## Requirements
+
+<Tabs
+  defaultValue="self-hosted"
+  values={[
+    { label: 'Self-Hosted', value: 'self-hosted', },
+    { label: 'SaaS', value: 'saas', },
+  ]}
+>
+<TabItem value="self-hosted">
+
+Follow [this guide](/docs/self-hosted/administration/volume-snapshots/) to enable Volume Snapshots in your cluster.
+
+</TabItem>
+
+<TabItem value="saas">
+If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
+</TabItem>
+</Tabs>
+
+## Using Volume Snapshots in your Development Environment
+
+### Creating a Volume Snapshot
+
+Okteto allows developers to initialize persistent volume claims with the contents of any preexisting volume snapshot.
+The volume snapshot is created from a persistent volume claim and it can contain database backups, big files, images, a copy of your staging data, etc.
+
+The following manifest creates a volume snapshot from the `mysql-pvc` persistent volume claim:
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-snapshot
+spec:
+  volumeSnapshotClassName: okteto-snapshot-class
+  source:
+    persistentVolumeClaimName: mysql-pvc
+```
+
+### Consuming a Volume Snapshot created in Kubernetes
+
+Use the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations on any persistent volume claim to tell Okteto to initialize your persistent volume claim from an existing volume snapshot, as shown below:
+
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Compose', value: 'compose', },
+  ]}
+>
+<TabItem value="kubernetes">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-name: mysql-snapshot
+    dev.okteto.com/from-snapshot-namespace: staging
+  name: pvc-from-snapshot
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+services:
+  mongodb:
+    image: mongodb
+    volumes:
+      - data:/mongodb
+
+volumes:
+  data:
+    annotations:
+      dev.okteto.com/from-snapshot-name: mysql-snapshot
+      dev.okteto.com/from-snapshot-namespace: staging
+```
+
+</TabItem>
+</Tabs>
+
+If the annotation `dev.okteto.com/from-snapshot-namespace` is not defined, Okteto will default to the namespace of the new persistent volume claim.
+
+Use the annotation `dev.okteto.com/skip-snapshot-if-same-namespace: "true"` to skip the data cloning operation if the source snapshot and the new persistent volume claim are in the same namespace.
