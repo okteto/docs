@@ -38,6 +38,51 @@ If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
 Okteto allows developers to initialize persistent volume claims with the contents of any preexisting volume snapshot.
 The volume snapshot is created from a persistent volume claim and it can contain database backups, big files, images, a copy of your staging data, etc.
 
+The source persistent volume claim must have a storage class that supports volume snapshots. For Okteto SaaS users that means `csi-okteto-standard` or `csi-okteto-ssd`:
+
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Compose', value: 'compose', },
+  ]}
+>
+<TabItem value="kubernetes">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  storageClassName: csi-okteto-standard
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+services:
+  mysql:
+    image: mysql
+    volumes:
+      - mysql-pvc:/var/lib/mysql
+
+volumes:
+  mysql-pvc:
+    driver_opts:
+      class: csi-okteto-standard
+```
+
+</TabItem>
+</Tabs>
+
+
 The following manifest creates a volume snapshot from the `mysql-pvc` persistent volume claim:
 
 ```yaml
@@ -86,13 +131,13 @@ spec:
 ```yaml
 services:
   mongodb:
-    image: mongodb
+    image: mysql
     volumes:
-      - data:/mongodb
+      - data:/var/lib/mysql
 
 volumes:
   data:
-    annotations:
+    labels:
       dev.okteto.com/from-snapshot-name: mysql-snapshot
       dev.okteto.com/from-snapshot-namespace: staging
 ```
