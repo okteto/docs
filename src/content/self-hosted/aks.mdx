@@ -35,6 +35,13 @@ We recommend the following specs:
 - 250 GB per Standard SSD Managed Disk
 
 You'll be using the cluster's API server endpoint when configuring Okteto.
+Run the following command to obtain your cluster's API server endpoint:
+
+```
+kubectl config view --minify | grep server
+```
+
+> Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
 
 ### Installing kubectl
 
@@ -82,7 +89,7 @@ helm repo update
 ### Getting your Okteto License
 
 Okteto is free for up to 3 users without a license.
-You can also sign on for the [free trial](/free-trial/) to give access up to 100 users for a month.
+You can also sign on for the [free trial](https://www.okteto.com/free-trial/) to give access up to 100 users for a month.
 
 ## Installing Okteto
 
@@ -102,12 +109,13 @@ Create a Kubernetes secret with the Storage Account Access Key you created befor
 kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=STORAGE_ACCOUNT_ACCESS_KEY
 ```
 
-Download a copy of the [Okteto AKS configuration file](/docs/self-hosted/aks/config.yaml), open it, and update the following values:
+Download a copy of the [Okteto AKS configuration file](https://www.okteto.com/docs/self-hosted/aks/config.yaml), open it, and update the following values:
 
 - Your `email`
 - Your `license` (optional)
 - A `subdomain`
 - `clientId` and `clientSecret` of the OAuth Application you created
+- You GitHub `organization`.  An empty `organization` field permits any user to log in.
 - Your cluster's API server endpoint
 - The name of the `storage container` you created
 - The `Storage Account Name`
@@ -126,6 +134,7 @@ auth:
     enabled: true
     clientId: ae8924d074d8c8809999
     clientSecret: ABCD90598b706d5342f07cce18fee5e5da391234
+    organization: my-org
 
 cloud:
   provider:
@@ -153,7 +162,6 @@ helm install okteto okteto/okteto -f config.yaml --namespace=okteto
 After a few seconds, all the resources will be created. The output will look something like this:
 
 ```
-
 Release "okteto" has been installed. Happy Helming!
 NAME: okteto
 LAST DEPLOYED: Thu Mar 26 18:07:55 2020

@@ -25,7 +25,7 @@ cluster:
 
 ### license
 
-Okteto is free for small teams. You can manage up to 3 users with 3 namespaces each without having to provide a license.
+Okteto is free for small teams. You can manage up to 3 users without having to provide a license.
 
 ```yaml
 license: XXXXX
@@ -51,9 +51,29 @@ After installation, we recommend that you create a DNS entry for `*.$SUBDOMAIN`,
 
 Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
 
-> You can also use a [secret](/docs/self-hosted/install/deployment/#cloud-provider-secret) to store the sensitive part of these credentials.
+> You can also use a [secret](/docs/enterprise/install/deployment/#cloud-provider-secret) to store the sensitive part of these credentials.
 
-- `bitbucket`: Use this group of settings when using Bitbucket OAauth as your authentication provider.
+#### Bitbucket
+
+Follow Bitbucket's official documentation on [how to create an OAuth Consumer](https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/).
+
+When creating the OAuth Consumer, you will need to provide the following values:
+
+**Callback URL**:
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+**URL**:
+```
+https://okteto.DOMAIN
+```
+
+**Permissions**:
+Account: Email
+Account: Read
+
+Use this group of settings when using Bitbucket OAauth as your authentication provider.
 
 ```yaml
 auth:
@@ -66,7 +86,23 @@ auth:
 
 The `workspace` field is optional. Only members of the workspace will be allowed to login into your Okteto instance. An empty `workspace` field permits any user to log in.
 
-- `github`: Use this group of settings when using GitHub OAuth as your authentication provider.
+#### GitHub
+
+Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
+
+When creating the OAuth App, you will need to provide the following values:
+
+**Homepage URL**:
+```
+https://okteto.DOMAIN
+```
+
+**Authorization callback URL**:
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+Use this group of settings when using GitHub OAuth as your authentication provider.
 
 ```yaml
 auth:
@@ -79,7 +115,24 @@ auth:
 
 The `organization` field is optional. Only members of the organization will be allowed to log in into your Okteto instance. An empty `organization` field permits any user to log in.
 
-- `google`: Use this group of settings when using Google OAuth as your authentication provider.
+#### Google
+
+Follow Google's official documentation on [how to create an OAuth 2.0 Client](https://support.google.com/cloud/answer/6158849?hl=en).
+
+When creating the OAUTH 2.0 Client, you will need to provide the following values:
+
+**Authorized javascript origin**:
+```
+https://okteto.DOMAIN
+```
+
+**Authorized redirect URIs**:
+```
+https://okteto.DOMAIN
+https://okteto.DOMAIN/auth/callback
+```
+
+Use this group of settings when using Google OAuth as your authentication provider.
 
 ```yaml
 auth:
@@ -89,7 +142,19 @@ auth:
     clientSecret: clientSecret
 ```
 
-- `openid`: Use this group of settings when using an OpenID Connect provider as your authentication provider.
+#### OpenID Connect
+
+Follow your OpenID Connect service provider's documentation on how to create the required application.
+
+When creating the application, you'll need to provide the following values:
+
+- Start SSO URL:  `https://okteto.DOMAIN`
+- Redirect URIs: `https://okteto.DOMAIN`, `https://okteto.DOMAIN/auth/callback`
+- Scopes: `openid`, `email`, `profile`
+- Response Type: `code`
+- Grant Type: `authorization code`
+
+Use this group of settings when using an OpenID Connect provider as your authentication provider.
 
 ```yaml
 auth:
@@ -511,10 +576,11 @@ applications:
 
 ### clusterRole
 
-The role Okteto assigns to every user. If empty, Okteto will create a default role.
+Okteto assings this cluster role to every user via a namespace-scoped role binding.
+The default value assigns each developer a `cluster-admin` role binding with only access to their personal namespaces.
 
 ```yaml
-clusterRole: "role name"
+clusterRole: "cluster-admin"
 ```
 
 ### user extraRoleBindings
@@ -557,6 +623,15 @@ devStorageClass:
 ```
 
 There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](/docs/self-hosted/administration/volume-snapshots/) configured, if a storage class is required for the snapshots that storage class will have preference.
+
+### globalClusterRole
+
+Okteto assings this cluster role to every user via a cluster role binding. By default, this behavior is disabled.
+This can be useful to give access to cluster level resources to every developer account, like accessing the Node API.
+
+```yaml
+globalClusterRole: ""
+```
 
 ### ingress
 
@@ -860,6 +935,15 @@ Disable if you want to enforce using the `username` as a suffix on namespaces an
 
 ```yaml
 userDefinedNamespaces: false
+```
+
+### userPodAffinity
+
+When enabled Okteto automatically adds a preferred affinity to every pod, which leans towards placing pods from the same namespace and in the same node (default: `true`).
+
+```yaml
+userPodAffinity:
+  enabled: true
 ```
 
 ### volumes
