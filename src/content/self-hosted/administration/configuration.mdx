@@ -583,6 +583,24 @@ The default value assigns each developer a `cluster-admin` role binding with onl
 clusterRole: "cluster-admin"
 ```
 
+### user extraRoleBindings
+
+Extra `RoleBindings` to be created for every user's service account. This is useful if you want to grant access to resources in other namespaces of the cluster.  Disabled by default.
+
+The `RoleBindings` will reference `ClusterRoles` and will be scoped to the `namespace` specified in the configuration. Okteto will not create neither the `ClusterRoles` nor the `Namespaces` and expects them to exist in the cluster. Here's an example configuration:
+
+```yaml
+user: 
+  extraRoleBindings:
+    enabled: true
+    roleBindings:
+      namespace-name1:
+      - cluster-role1
+      - cluster-role2
+      namespace-name2:
+      - cluster-role3
+```
+
 ### convertLoadBalancedServices
 
 Converts services with type LoadBalancer into ClusterIP and automatically creates an ingress. Enabled by default.
@@ -620,21 +638,21 @@ globalClusterRole: ""
 Configure default values for the ingress created by Okteto.
 
 - `annotations`: The annotations to apply to all the ingresses created during the Okteto installation.
-- `class`: If set, Okteto will set this as the `ingress.class` of all ingresses managed by Okteto. This is useful if you have more than one ingress controller in your cluster.
+- `oktetoIngressClass`: The `ingressClassName` to apply to all the ingresses created during the Okteto installation (defaults to `nginx`).
+- `class`: If specified, Okteto will set this as the `ingressClassName` of all ingresses managed by Okteto. This is useful if you have more than one ingress controller in your cluster.
 - `forceIngressClass`: If enabled, all ingresses deployed in namespaces managed by Okteto will have the ingress class defined in  `ingress.class` (default: `false`).
 - `ip`: The internal IP of the ingress. Pods will call the Okteto API and the Okteto Registry using this IP. Required if the Okteto API/Registry is exposed using an ingress not managed by Okteto.
 - `tlsSecret`: TLS secret for the ingress created by Okteto. If empty, okteto defaults to the wildcard certificate created by Okteto.
 
 ```yaml
 ingress:
-  annotations:
-    kubernetes.io/ingress.class: nginx
+  annotations: {}
+  oktetoIngressClass: nginx
   class: nginx
   forceIngressClass: false
   ip: ""
   tlsSecret: ""
 ```
-
 ### ingressLimits
 
 Configure ingress connections limits for each public endpoint. Disabled by default.
