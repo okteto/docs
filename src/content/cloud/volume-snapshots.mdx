@@ -2,7 +2,7 @@
 title: Volume Snapshots
 description: Use volume snapshots in your development environments
 sidebar_label: Volume Snapshots
-id: volume-snapshots
+id: use-volume-snapshots
 ---
 
 import Tabs from '@theme/Tabs';
@@ -24,21 +24,38 @@ Use volume snapshots when working with large datasets or if you want to create d
 
 Follow [this guide](/docs/self-hosted/administration/volume-snapshots/) to enable Volume Snapshots in your cluster.
 
+Use a storage class provisioned by a CSI driver that [supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html) for the source persistent volumes of your volume snapshots.
+
 </TabItem>
 
 <TabItem value="saas">
 If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
+
+Use one of the following storage class for the source persistent volumes of your volume snapshots:
+
+- `csi-okteto-standard`: backed by standard hard disk drives (HDD)
+- `csi-okteto-ssd`: backed by solid-state drives (SDD)
+
 </TabItem>
 </Tabs>
 
 ## Using Volume Snapshots in your Development Environment
 
-### Creating a Volume Snapshot
-
 Okteto enables developers to initialize persistent volume claims with the contents of a pre-existing volume snapshot.
 The volume snapshot is created from a persistent volume claim and it can contain database backups, big files, images, a copy of your staging data, etc.
 
-The source persistent volume claim must have a storage class that supports volume snapshots. For Okteto SaaS users that means `csi-okteto-standard` or `csi-okteto-ssd`:
+The steps to clone the data of an existing persistent volume into your develepment environment are:
+
+- [Create the source persistent volume with the right storage class](/docs/cloud/use-volume-snapshots/#creating-the-persistent-volume)
+- [Create a volume snapshot of the source persistent volume](/docs/cloud/use-volume-snapshots/#creating-a-volume-snapshot)
+- [Consume the volume snapshot in a new persistent volume](/docs/cloud/use-volume-snapshots/#consuming-a-volume-snapshot)
+
+### Creating the Persistent Volume
+
+If the default storage class of your cluster doesn't support volume snapshots, make sure to pick the right storage class when creating your persistent volume.
+Check the [requirements](/docs/cloud/use-volume-snapshots/#requirements) section to know more about available storage classes in Okteto.
+
+This is a sample using Kubernetes manifests or Docker Compose files:
 
 <Tabs
   defaultValue="kubernetes"
@@ -83,6 +100,12 @@ volumes:
 </Tabs>
 
 
+### Creating a Volume Snapshot
+
+Volume snapshots are created with the content of the persistent volume at time of creating the volume snapshot. Further updates on the persistent volume aren't reflected in the volume snapshot content.
+
+This step is independent of whether you created your persistent volume with Kubernetes manifests or a Docker Compose file:
+
 The following manifest creates a volume snapshot from the `mysql-pvc` persistent volume claim:
 
 ```yaml
@@ -96,7 +119,7 @@ spec:
     persistentVolumeClaimName: mysql-pvc
 ```
 
-### Consuming a Volume Snapshot created in Kubernetes
+### Consuming a Volume Snapshot
 
 Use the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations on any persistent volume claim to tell Okteto to initialize your persistent volume claim from an existing volume snapshot, as shown below:
 
@@ -148,3 +171,8 @@ volumes:
 If the annotation `dev.okteto.com/from-snapshot-namespace` is not defined, Okteto will default to the namespace of the new persistent volume claim.
 
 Use the annotation `dev.okteto.com/skip-snapshot-if-same-namespace: "true"` to skip the data cloning operation if the source snapshot and the new persistent volume claim are in the same namespace.
+
+For a full end to end sample, check the following resources:
+
+- [How to Create a Development Environment with Realistic Data in Okteto Cloud](https://www.okteto.com/blog/how-to-create-and-use-data-clones-in-okteto-cloud/) blog post
+- [How to Create and Use Data Clones in Okteto](https://www.okteto.com/blog/how-to-create-and-use-data-clones-in-okteto-video/) video tutorial
