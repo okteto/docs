@@ -563,3 +563,34 @@ endpoints:
       service: backend
       port: 8080
 ```
+
+### update (annotation, optional)
+
+You can set the update policy of a service by setting the annotation `dev.okteto.com/update`. 
+
+Depending on the kind of resource the acceptance values are different:
+- rolling: Will deploy a service with 0 downtime. Allowed on deployments and statefulsets.
+- recreate: Will wait until the current pod is deleted to start creating the new one. Allowed on deployments
+- on-delete: Will wait until the current pod is deleted to start creating the new one. Allowed on statefulset
+
+```yaml
+services:
+  deployment:
+    image: python:alpine
+    labels:
+      "dev.okteto.com/update": rolling
+    entrypoint: python -m http.server 8080
+    ports:
+      - 8080:8080
+  sfs:
+    image: python:alpine
+    labels:
+      "dev.okteto.com/update": on-delete
+    entrypoint: python -m http.server 8080
+    ports:
+      - 8080:8080
+    volumes:
+    - /usr/src
+```
+
+> Remember that if you are on a docker-compose file the labels are translated into kubernetes annotations.
