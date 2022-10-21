@@ -24,14 +24,14 @@ Use volume snapshots when working with large datasets or if you want to create d
 
 Follow [this guide](/docs/self-hosted/administration/volume-snapshots/) to enable Volume Snapshots in your cluster.
 
-Use a storage class provisioned by a CSI driver that [supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html) for the source persistent volumes of your volume snapshots.
+Use a storage class provisioned by a CSI driver that [supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html) for the source persistent volume of your volume snapshots. 
 
 </TabItem>
 
 <TabItem value="saas">
 If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
 
-Use one of the following storage class for the source persistent volumes of your volume snapshots:
+Use one of the following storage classes for the source of your volume snapshots:
 
 - `csi-okteto-standard`: backed by standard hard disk drives (HDD)
 - `csi-okteto-ssd`: backed by solid-state drives (SDD)
@@ -44,18 +44,17 @@ Use one of the following storage class for the source persistent volumes of your
 Okteto enables developers to initialize persistent volume claims with the contents of a pre-existing volume snapshot.
 The volume snapshot is created from a persistent volume claim and it can contain database backups, big files, images, a copy of your staging data, etc.
 
-The steps to clone the data of an existing persistent volume into your develepment environment are:
+In order to use volume snapshots with your development environment you need to:
 
-- [Create the source persistent volume with the right storage class](/docs/cloud/use-volume-snapshots/#creating-the-persistent-volume)
+- [Create the source persistent volume](/docs/cloud/use-volume-snapshots/#creating-the-persistent-volume)
 - [Create a volume snapshot of the source persistent volume](/docs/cloud/use-volume-snapshots/#creating-a-volume-snapshot)
 - [Consume the volume snapshot in a new persistent volume](/docs/cloud/use-volume-snapshots/#consuming-a-volume-snapshot)
 
-### Creating the Persistent Volume
+### Creating the Source Persistent Volume
+First, create the source persistent volume. This is the data that you want to be able to clone into your development environment.  In the example below we use a database, but this could be anything that uses a volume for storage: databases, ML models, images, etc...
+> If the default storage class of your cluster doesn't support volume snapshots, make sure you set the storage class to one that is compatible when creating your persistent volume.
+Check the [requirements](/docs/cloud/use-volume-snapshots/#requirements) section to learn more about the available storage classes in Okteto.
 
-If the default storage class of your cluster doesn't support volume snapshots, make sure to pick the right storage class when creating your persistent volume.
-Check the [requirements](/docs/cloud/use-volume-snapshots/#requirements) section to know more about available storage classes in Okteto.
-
-This is a sample using Kubernetes manifests or Docker Compose files:
 
 <Tabs
   defaultValue="kubernetes"
@@ -102,7 +101,7 @@ volumes:
 
 ### Creating a Volume Snapshot
 
-Volume snapshots are created with the content of the persistent volume at time of creating the volume snapshot. Further updates on the persistent volume aren't reflected in the volume snapshot content.
+After creating the source persistent volume, the next step is to create the Volume Snapshot. Volume snapshots are created with the content of the persistent volume at the time of creating the volume snapshot. Further updates on the persistent volume aren't reflected in the volume snapshot content.
 
 This step is independent of whether you created your persistent volume with Kubernetes manifests or a Docker Compose file:
 
@@ -120,7 +119,7 @@ spec:
 ```
 
 ### Consuming a Volume Snapshot
-
+Finally, you can use the volume snapshot created in the previous step to populate a new persistent volume. 
 Use the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations on any persistent volume claim to tell Okteto to initialize your persistent volume claim from an existing volume snapshot, as shown below:
 
 <Tabs
