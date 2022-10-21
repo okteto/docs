@@ -1,6 +1,6 @@
 ---
 title: Volume Snapshots
-description: Use volume snapshots in your development environments
+description: Enable volume snapshots in Okteto
 sidebar_label: Volume Snapshots
 id: volume-snapshots
 ---
@@ -8,8 +8,8 @@ id: volume-snapshots
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-Use volume snapshots to enable your users to initialize persistent volume claims with the contents of a preexisting storage snapshot. Use volume snapshots when working with large datasets or if you want to create development environments with real data coming from your production or staging environments.
-
+Volume snapshots allows you to initialize persistent volume claims with the contents of a preexisting volume snapshot.
+Use volume snapshots when working with large datasets or if you want to create development environments with real data coming from your production or staging environments.
 ## Requirements
 
 To use the Volume Snapshots feature, you must install a CSI driver that supports snapshots and create the corresponding `VolumeSnapshotClass`.
@@ -199,47 +199,6 @@ volumeSnapshots:
 
 </TabItem>
 </Tabs>
-
-## Using Volume Snapshots in your Development Environment
-
-### Creating a Volume Snapshot
-
-Volume Snapshots allow developers to initialize persistent volume claims with the contents of any preexisting storage snapshot. The snapshot can contain database backups, big files, images, a copy of your staging data, etc.
-
-```yaml
-apiVersion: snapshot.storage.k8s.io/v1beta1
-kind: VolumeSnapshot
-metadata:
-  name: mysql-snapshot
-spec:
-  volumeSnapshotClassName: okteto-snapshot-class
-  source:
-    persistentVolumeClaimName: mysql-snapshot
-```
-
-### Consuming a Volume Snapshot created in Kubernetes
-
-Use the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations on any persistent volume claim to tell Okteto to initialize your persistent volume claim from a VolumeSnapshot Kubernetes object, as shown below:
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  annotations:
-    dev.okteto.com/from-snapshot-name: mysql-snapshot
-    dev.okteto.com/from-snapshot-namespace: staging
-  name: pvc-from-snapshot
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-```
-
-If the annotation `dev.okteto.com/from-snapshot-namespace` is not defined, Okteto will default to the namespace of the new persistent volume claim.
-
-Use the annotation `dev.okteto.com/skip-snapshot-if-same-namespace: "true"` to skip the data cloning operation if the source snapshot and the new PVC are in the same namespace.
 
 By default, all users in your cluster will be able to use any of the available snapshots as a data source for their development environments. You can limit this via the `enableNamespaceAccessValidation` key in the `volumeSnapshots` section of the configuration, value of `true` will enable the validation.
 

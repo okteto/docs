@@ -42,6 +42,7 @@ module.exports = {
       },
       "cloud/build",
       "cloud/registry",
+      "cloud/use-volume-snapshots",
       "cloud/namespaces",
       "cloud/credentials",
       "cloud/personal-access-tokens",
