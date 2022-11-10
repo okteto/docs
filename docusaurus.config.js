@@ -147,7 +147,7 @@ module.exports = {
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
           lastVersion: 'current',
-          onlyIncludeVersion: ['current', '1.1', '1.0', '0.15', '0.14'],
+          onlyIncludeVersions: ['current', '1.1', '1.0', '0.15', '0.14'],
           versions: {
             current: {
               label: 'okteto.com (1.1)',
