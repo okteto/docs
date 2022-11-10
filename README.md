@@ -33,7 +33,7 @@ yarn run docusaurus docs:version 0.XX
 
 This will create a new version with the docs on your current branch. Do this before you start merging the docs for the next version. 
 
-After this, modify [`docusaurus.config.js`](docusaurus.config.js) to add the version to the dropdown. We typically keep the last 6 versions in the dropdown.
+After this, modify [`docusaurus.config.js`](docusaurus.config.js) to add the version to the dropdown. We typically keep the last 5 versions in the dropdown.
 
 ## Components
 
