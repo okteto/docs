@@ -173,18 +173,8 @@ module.exports = {
               banner: 'none',
             },
             '0.13': {
-              label: '0.13',
-              path: '0.13',
-              banner: 'none',
-            },
-            '0.12': {
-              label: '0.12',
-              path: '0.12',
-              banner: 'none',
-            },
-            '0.11': {
-              label: '0.11',
-              path: '0.11',
+              label: '0.14',
+              path: '0.14',
               banner: 'none',
             },
           },
