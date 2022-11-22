@@ -363,6 +363,7 @@ autoscaler:
 
 The build service. It's used in combination with `okteto build` to build containers directly in the cluster.
 
+- `port`: Port used for the buildkit statefulset. Defaults to `443`.
 - `annotations`: Annotations to add to the buildkit pods.
 - `extraEnv`: Environment variables to be set on the buildkit containers.
 - `hpa.enabled`: Enable horizontal pod autoscaling for the buildkit pods. Disabled by default.
@@ -379,6 +380,7 @@ The build service. It's used in combination with `okteto build` to build contain
 
 ```yaml
 buildkit:
+  port: 443
   extraEnv:
     - name: NO_PROXY
       value: ".example.com"
@@ -717,6 +719,20 @@ networkPolicies:
   enabled: true
   blockedCIDRs:
   - "169.254.169.254/32"
+```
+
+### podSecurityPolicy
+
+Decide if you want [pod security policy](https://kubernetes.io/docs/concepts/security/pod-security-policy/) to be added to the service accounts created by Okteto.
+Enabled by default.
+
+- `useAppArmor`: Add the apparmor security annotations to the Okteto pod security policies.
+  Enabled by default.
+
+```yaml
+podSecurityPolicy:
+   enabled: true
+   useAppArmor: true
 ```
 
 ### overrideFileWatchers
@@ -1059,6 +1075,29 @@ A common use case for adding service account annotations is to [get access via I
 - [Azure Workload Identity](https://azure.github.io/azure-workload-identity/docs/)
 - [GKE Workload identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
 - [AWS IAM Roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)
+
+### podSecurityPolicy
+
+#### enabled
+
+Whether to enable pod security policy (defaults to `true`).
+
+#### useAppArmor
+
+Whether to enable appArmor (defaults to `true`).
+
+If `useAppArmor=true` the following labels are added to the existing pod security policy:
+
+```yaml
+apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
+apparmor.security.beta.kubernetes.io/defaultProfileName: runtime/default
+```
+
+```yaml
+podSecurityPolicy:
+    enabled: true
+    useAppArmor: true
+```
 
 ## Dependencies
 
