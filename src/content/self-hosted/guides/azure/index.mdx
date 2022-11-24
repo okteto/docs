@@ -1,0 +1,102 @@
+---
+title: Use Azure as your Authentication Provider
+description: Guide on how use Azure as the authentication provider of your Okteto Self-hosted instance
+id: identity-provider-azure
+---
+
+import Image from '@theme/Image';
+import TiersList from '@theme/TiersList';
+
+#  Use Azure as your Identity Provider<TiersList tiers="Self-Hosted" />
+
+This guide will walk you through the steps necessary to configure Azure as the authentication provider for your instace of Okteto.
+
+Please refer to [Azure's official documentation](https://learn.microsoft.com/en-us/power-apps/maker/portals/configure/configure-openid-settings) on Open ID Connect for more information.
+
+## Prerequisites
+
+- An instance of [Okteto](https://okteto.com/docs/self-hosted/).
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine.
+- Access to an [Azure account](https://portal.azure.com) with permissions to registrate applications in Azure Active Directory.
+
+## Create an App Registration
+
+Create a new app integration, using the values below:
+
+<p align="center"><Image src="/docs/self-hosted/guides/azure/images/new-app.png" alt="Create the new App Registration" /></p>
+
+Then, fill in the following values on the “Register an application” window:
+
+1. Name: The name of your app (e.g. Okteto)
+2. Accounts in this organizational directory only (Default Directory only - Single tenant)
+3. Redirect URI: https://okteto.{YOUR_DOMAIN}/auth/callback
+
+Once the application has been created, copy the `Application (client) ID` value. This will be your `<<client-id>>`.
+You'll need it to configure your Okteto Instance.
+
+<p align="center"><Image src="/docs/self-hosted/guides/azure/images/client-id.png" alt="Copy the Tenant ID" /></p>
+
+Also, copy the `Directory (tenant) ID` value. This will be your `<<tenant-id>>`.
+You'll need it to configure your Okteto Instance.
+
+<p align="center"><Image src="/docs/self-hosted/guides/azure/images/tenant-id.png" alt="Copy the Tenant ID" /></p>
+
+On the left menu, click on "Certificates & secrets". Create a "New client secret" and copy the `Value`. This will be your `<<client-secret>>`.
+
+<p align="center"><Image src="/docs/self-hosted/guides/azure/images/secrets.png" alt="Copy the Secret ID and Value" /></p>
+
+## Configure Okteto
+
+Once you have the Okta application ready, you'll need to update the configuration of your Okteto Self-Hosted instance. 
+
+First, update the auth section of your Helm configuration file (e.g. `values.yaml` ) with the values you obtained on the first step of this guide:
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: <<client-id>>
+    clientSecret: <<client-secret>>
+    endpoints:
+      issuer: https://sts.windows.net/<<tenant-id>>/
+      authorization: https://login.microsoftonline.com/<<tenant-id>>/oauth2/v2.0/authorize
+    mapping:
+      externalIDKey: email
+```
+
+> You can also store the value of clientSecret [as a secret directly in Kubernetes](/docs/self-hosted/install/deployment/#cloud-provider-secret).
+
+Then, [upgrade your installation](/docs/self-hosted/install/upgrade/) to apply the changes. We recommend that you upgrade to the same version that you already have to minimize the changes and help with your troubleshooting. 
+
+Once the upgrade has been completed, go to your instance and click on the 'Log In' button to access your instance using Okta as the authentication provider.
+
+<p align="center"><Image src="/docs/self-hosted/guides/azure/images/with-azure.png" alt="Log in with Azure" /></p>
+
+### Customize the attributes that Okteto consumes
+
+By default, Okteto will use the following attributes below when creating a user:
+
+- `Name` as the display name of the user.
+- `Nickname` as the username of the user.
+- `Email` as the email.
+- `Picture URL` for the user's profile picture.
+
+If you are not using some of those values, or you want to customize which attributes get mapped, you can customize that by using the `mapping` field inside the `openid` key in your Helm configuration file.
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: <<client-id>>
+    clientSecret: <<client-secret>>
+    endpoints:
+      issuer: https://sts.windows.net/<<tenant-id>>/
+      authorization: https://login.microsoftonline.com/<<tenant-id>>/oauth2/v2.0/authorize
+    mapping:
+      externalIDKey: nickname
+      nameKey: name
+      emailKey: email
+      pictureKey: picture
+```
+
+The value of every key in the `mapping` section must match a `claim` in your Azure + OpenID configuration, and it must contain a non-empty value.
