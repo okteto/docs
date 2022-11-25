@@ -1,0 +1,205 @@
+---
+title: Getting Started on Okteto Cloud with Python
+description: This tutorial will show you how to develop a Python sample application
+sidebar_label: Python
+id: python
+---
+
+import Image from '@theme/Image';
+
+[Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) gives instant access to secure Kubernetes namespaces to enable developers to code, build, and run Kubernetes applications entirely in the cloud.
+
+This tutorial will show you how to develop and debug a Python sample application running in Okteto Cloud.
+
+## Prerequisites
+
+- Install the latest version of the Okteto CLI. Follow this [guide](/docs/cloud/okteto-cli/) if you haven't done it yet.
+- Configure Access to your Okteto Cloud Namespace [using the Okteto CLI](/docs/cloud/credentials/#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto Cloud UI](/docs/cloud/credentials/#download-your-kubernetes-credentials-from-the-okteto-cloud-ui).
+
+## Step 1: Deploy the Python Sample App
+
+Get a local version of the Python Sample App by executing the following commands:
+
+```console
+$ git clone https://github.com/okteto/python-getting-started
+$ cd python-getting-started
+```
+
+At the root of the directory, you'll find the `okteto.yaml` file. This describes how to [build](/docs/reference/manifest/#build-object-optional) and [deploy](/docs/reference/manifest/#deploy-string-optional) the Python Sample App.
+
+```
+build:
+  hello-world:
+    image: okteto.dev/python-hello-world:1.0.0
+    context: .
+deploy:
+  - kubectl apply -f k8s.yml
+```
+
+Deploy your development environment by executing:
+
+```console
+$ okteto deploy --build
+```
+
+```console
+ i  Using cindy @ cloud.okteto.com as context
+ i  Building image for service 'hello-world'
+ i  Building the image 'okteto.dev/python-hello-world:1.0.0' in tcp://buildkit.cloud.okteto.net:1234...
+[+] Building 5.9s (11/11) FINISHED
+ ...
+ ✓  Image 'registry.cloud.okteto.net/cindy/python-hello-world:1.0.0' successfully pushed
+ i  Running kubectl apply -f k8s.yml
+deployment.apps/hello-world created
+service/hello-world created
+ingress.networking.k8s.io/hello-world created
+ ✓  Development environment 'python-getting-started' successfully deployed
+ i  Run 'okteto up' to activate your development container
+```
+
+Log into [Okteto Cloud](https://cloud.okteto.com/#/?origin=docs) and click on the URL of the application:
+
+<Image center src="/docs/samples/images/okteto-ui.png" alt="Okteto Cloud UI Python" width="850" />
+
+Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto Cloud will [automatically create them](/docs/cloud/ssl/) for you when you deploy your application. Cool no 😎?
+
+## Step 2: Activate your development container
+The [dev](/docs/reference/manifest/#dev-object-optional) section defines how to activate a development container for the Python Sample App:
+```
+dev:
+  hello-world:
+    command: bash
+    environment:
+      - FLASK_ENV=development
+    sync:
+      - .:/usr/src/app
+    reverse:
+      - 9000:9000
+    volumes:
+      - /root/.cache/pip
+```
+The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+- `command`: the start command of the development container.
+- `sync`: the folders that will be synchronized between your local machine and the development container.
+- `reverse`: a list of ports to reverse forward from your development container to your local machine
+- `volumes`: a list of paths in your development container to be mounted as persistent volumes. This is useful to persist the pip cache.
+
+Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
+This is useful to avoid virtual environments, build artifacts, or git metadata.
+
+Next, execute the following command to activate your development container:
+
+```console
+$ okteto up
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Namespace: cindy
+    Name:      hello-world
+    Reverse:   9000 <- 9000
+
+Welcome to your development container. Happy coding!
+cindy:hello-world app>
+```
+
+Working in your development container is the same as working on your local machine.
+Start the application in development mode by running the following command:
+
+```console
+cindy:hello-world app> python app.py
+```
+
+```
+Starting hello-world server...
+ * Serving Flask app "app" (lazy loading)
+ * Environment: development
+ * Debug mode: on
+ * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)
+ ```
+
+Go back to the browser and reload the page to test that your application is running.
+
+## Step 3: Develop directly on Okteto Cloud
+
+Open the `app.py` file in your favorite local IDE and modify the response message on line 7 to be *Hello world from the cluster!*.
+Save your changes.
+
+```python
+@app.route('/')
+def hello_world():
+    return 'Hello World from the cluster!'
+}
+```
+
+Okteto will synchronize your changes to your development container.
+Flask's auto-reloader will detect the changes automatically and restart the application with the new code.
+
+```console
+ * Detected change in '/usr/src/app/app.py', reloading
+ * Restarting with stat
+Starting hello-world server...
+ * Debugger is active!
+ * Debugger PIN: 308-916-374
+```
+
+Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎!
+
+## Step 4: Debug directly in Okteto Cloud
+
+Okteto enables you to debug your applications directly from your favorite IDE.
+Let's take a look at how that works in one of python's most popular IDE's, [PyCharm](https://www.jetbrains.com/pycharm/).
+
+> For VS Code users, this [document](https://code.visualstudio.com/docs/python/debugging#_debugging-by-attaching-over-a-network-connection) explains how to configure the debugger with `debugpy`.
+
+First, open the project in PyCharm and remove the comments on `app.py` line `20`.
+
+```python
+if __name__ == '__main__':
+  print('Starting hello-world server...')
+  # comment out to use Pycharm's remote debugger
+  attach()
+
+  app.run(host='0.0.0.0', port=8080)
+```
+
+Second, launch the [Remote Debug Server](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html) by clicking on the Debug button on the top right.
+Ensure that the Debug Tool Window shows the `Waiting for process connection...` message. This message will be shown until you launch your app on the development container shell and it connects to the Debug Server.
+
+```console
+Starting hello-world server...
+ * Serving Flask app "app" (lazy loading)
+ * Environment: development
+ * Debug mode: on
+ * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)
+ * Restarting with stat
+Starting hello-world server...
+Connecting to debugger...
+```
+
+On your local machine, switch to the Debug Tool Window. Once the app connects it will show the connection to the pydev debugger.
+Press the `resume` button to let the execution continue.
+
+<Image center src="/docs/samples/images/python-connected.png" alt="debugging with Python" width="850" />
+
+Add a breakpoint on `app.py`, line 10. Go back to the browser and reload the page.
+
+The execution will halt at your breakpoint. You can then inspect the request, the available variables, etc.
+
+<Image center borderless src="/docs/samples/images/python-debug.png" alt="breakpoint in Python" width="850" />
+
+Your code is executing in Okteto Cloud, but you can debug it from your local machine without any extra services or tools.
+Pretty cool no? 😉
+
+## Next steps
+
+Congratulations, you just developed **your first application in Okteto Cloud** 🚀.
+
+> Okteto lets you develop your applications directly on Kubernetes. This way you can:
+> - Eliminate integration issues by developing in a realistic environment
+> - Test your application end to end as fast as you type code
+> - No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
+
+Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.
