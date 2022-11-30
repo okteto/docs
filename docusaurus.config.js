@@ -254,6 +254,10 @@ module.exports = {
       {
         to: '/welcome/overview/',
         from: ['/cloud/']
+      },
+      {
+        to: '/cloud/starter-plan/',
+        from: ['/cloud/developer-plan/']
       }
     ]
     }],
