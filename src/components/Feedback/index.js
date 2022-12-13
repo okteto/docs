@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 import ThumbsUpIcon from "../../icons/ThumbsUpIcon";
 import ThumbsDownIcon from "../../icons/ThumbsDownIcon";
@@ -12,7 +12,7 @@ const Feedback = () => {
   const [expanded, setExpanded] = useState(false);
   const [pageTitle, setPageTitle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState ({submitted: false, helpful: ""})
+  const [feedback, setFeedback] = useState({ submitted: false, helpful: "" })
   const [gaveFeedbackForThesePagesURLs, setGaveFeedbackForThesePagesURLs] = useState(sessionStorage.getItem(SESSION_STORAGE_KEY) || false);
 
   const form = useRef(null)
@@ -22,18 +22,18 @@ const Feedback = () => {
   })
 
   useEffect(() => {
-    if(gaveFeedbackForThesePagesURLs) {
+    if (gaveFeedbackForThesePagesURLs) {
       const pages = JSON.parse(gaveFeedbackForThesePagesURLs);
       const currentPageFeedback = pages.find(page => page.url === window.location.href.split('#')[0]);
-      if(currentPageFeedback) {
-        setFeedback({submitted: true, helpful: currentPageFeedback.helpful})
+      if (currentPageFeedback) {
+        setFeedback({ submitted: true, helpful: currentPageFeedback.helpful })
       }
     }
   }, [])
 
   const submit = e => {
     e.preventDefault();
-    
+
     setLoading(true);
 
     const data = {
@@ -44,29 +44,29 @@ const Feedback = () => {
       submittedOn: new Date().toLocaleDateString('en-CA')
     }
 
-    handleSessionStorage({url: data.pageURL, helpful: data.helpful});
+    handleSessionStorage({ url: data.pageURL, helpful: data.helpful });
 
     fetch('https://okteto-docs.netlify.app/.netlify/functions/gather-feedback', { method: 'POST', body: JSON.stringify(data) }).then(response => {
-      if(response.status === 200) setFeedback({submitted: true, helpful: data.helpful})
+      if (response.status === 200) setFeedback({ submitted: true, helpful: data.helpful })
       setLoading(false);
     })
   }
 
-  const handleSessionStorage = ({url, helpful}) => {
+  const handleSessionStorage = ({ url, helpful }) => {
     let pageURLs = JSON.parse(gaveFeedbackForThesePagesURLs) || [];
-    pageURLs.push({url: url, helpful});
+    pageURLs.push({ url: url, helpful });
     sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(pageURLs));
   }
 
   const handleRadioChange = () => {
-    setFeedback({helpful: form.current.helpful.value})
+    setFeedback({ helpful: form.current.helpful.value })
     setExpanded(true);
   }
 
   return (
     <>
       <h2 className={styles.componentTitle}>Was this page helpful?</h2>
-      <form ref={form} onSubmit={submit} className={`${styles.form} ${expanded || feedback.submitted ? styles.formExpanded : ''}`}>
+      <form ref={form} onSubmit={submit} className={`${styles.form} ${expanded || feedback.submitted ? styles.formExpanded : ''}`}>
         <fieldset className={styles.fieldset} disabled={feedback.submitted ? "disabled" : ""}>
           <div className={styles.radioContainer}>
             <div className={styles.radio}>
@@ -84,7 +84,8 @@ const Feedback = () => {
           </div>
           {!feedback.submitted &&
             <>
-              <textarea name="feedback" className={styles.comment} placeholder="Place add your feedback (optional)" hidden={!expanded}></textarea>
+              <textarea name="feedback" className={styles.comment} placeholder="Please add your feedback (optional)" hidden={!expanded}></textarea>
+              Have a specific question? Head over to <a href="https://community.okteto.com">community.okteto.com!</a>
               <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button" loading={loading}>
                 Submit
               </Button>
