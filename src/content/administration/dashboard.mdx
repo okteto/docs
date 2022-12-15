@@ -70,33 +70,26 @@ The Secrets section of the Admin dashboard lets you define cluster-wide secrets.
 
 We recomment to use [build secrets](/docs/reference/manifest/#build-object-optional) to inject sensitive data into your Dockerfile.
 
-For example, you can have the following okteto manifest to mount your `.npmrc` file into your Dockerfile:
+For example, you can have the following okteto manifest to mount your `.env` file into your Dockerfile:
 
 ```yaml
 build:
   api:
     context: .
     secrets:
-      npmrc: .npmrc
+      my_env: .env
 ```
 
 You can refer this secret from your Dockerfile like this:
 
 ```
-FROM node:14
-
-WORKDIR /usr/src/app
-COPY package.json yarn.lock .
-
-RUN --mount=type=secret,id=npmrc,dst=/root/.npmrc yarn install
+RUN --mount=type=secret,id=my_env,dst=/etc/secrets/.env cat /etc/secrets/.env
 ```
 
-And the content of the `.npmrc` file would be:
+And the content of the `.env` file would be:
 
 ```
-registry=https://registry.npmjs.org/
-//***.jfrog.io/artifactory/api/npm/:_authToken=${NPM_TOKEN}
-@scope**:registry=https://***.jfrog.io/artifactory/api/npm/private-npm
+${MY_PASSWORD}
 ```
 
-where `NPM_TOKEN` can be a local environment variable or an Okteto Secret, and it gets subsituted by Okteto before mounting the file as a build secret.
+where `MY_PASSWORD` can be a local environment variable or an Okteto Secret, and it gets subsituted by Okteto before mounting the file as a build secret.
