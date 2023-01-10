@@ -85,7 +85,7 @@ const Feedback = () => {
           {!feedback.submitted &&
             <>
               <textarea name="feedback" className={styles.comment} placeholder="Please add your feedback (optional)" hidden={!expanded}></textarea>
-              Have a specific question? Head over to <a href="https://community.okteto.com">community.okteto.com!</a>
+              <span hidden={!expanded} className={styles.specificQuestion}>Have a specific question? Head over to <a href="https://community.okteto.com">our community!</a></span>
               <Button type="submit" className={styles.submitButton} hidden={!expanded} role="button" loading={loading}>
                 Submit
               </Button>
