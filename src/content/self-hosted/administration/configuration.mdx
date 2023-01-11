@@ -324,13 +324,14 @@ Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluste
 - `annotations`: Annotations to add to the autoscaler pods.
 - `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
 - `cpu.down`: Decrease the cluster size when the CPU consumption is lesser than this value. It defaults to 40 percent.
-- `increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `image`: image used by the autoscaler to deploy the autoscaler agent. It defaults to `busybox`.
 - `labels`: Labels to add to the autoscaler pods.
-- `max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
 - `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
 - `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
-- `min`: Minimum number of nodes in the cluster. It defaults to 1.
-- `nodePoolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
+- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
+- `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
+- `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
 - `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
 - `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
 - `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
@@ -341,10 +342,8 @@ Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluste
 ```yaml
 autoscaler:
   enabled: false
+  image: busybox
   schedule: 300
-  increment: 1
-  min: 1
-  max: 10
   cpu:
     up: 60
     down: 40
@@ -357,6 +356,11 @@ autoscaler:
   volumes:
     up: 90
     down: 80
+  nodes:
+    increment: 1
+    min: 1
+    max: 10
+    podLabel: cloud.google.com/gke-nodepool
   slackWebhook:
 ```
 
@@ -560,20 +564,31 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 ## Advanced Configuration
 
-### affinities
+### affinity
 
 Apply default affinities to pods deployed in namespaces created by Okteto.
+
+- `devPool`: Affinities for pods created on namespaces managed by Okteto.
+- `oktetoPool`: Affinities for pods created during the Okteto installation.
 
 ```yaml
 affinities:
   devPool:
-    - weight: 10
-      preference:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - preference:
         matchExpressions:
-        - key: cloud.google.com/gke-preemptible
+        - key: cloud.google.com/spot
           operator: In
           values:
           - "true"
+      weight: 10
+  oktetoPool:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - preference:
+        matchExpressions:
+        - key: dev.okteto.com/overloaded
+          operator: DoesNotExist
+      weight: 50
 ```
 
 In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptible nodes.
@@ -621,6 +636,21 @@ Converts services with type LoadBalancer into ClusterIP and automatically create
 ```yaml
 convertLoadBalancedServices:
   enabled: true
+```
+
+### crds
+
+Configures the the Okteto custom resource definition installation.
+
+- `annotations`: The annotations to apply to the CRDs created during the Okteto installation.
+- `keep`: Keep CRDs on chart uninstall (defaults to `true`).
+- `install`: Install and upgrade CRDs (defaults to `true`).
+
+```yaml
+crds:
+  install: true
+  keep: true
+  annotations: {}
 ```
 
 ### devStorageClass
