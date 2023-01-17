@@ -46,7 +46,7 @@ kubectl get svc -n=okteto -l="app=nginx-ingress,component=controller"
 
 Create a [wildcard A record](https://cloud.digitalocean.com/networking/domains) for the entire subdomain and point it to the load balancer's external IP.
 
-![DNS configuration](https://www.okteto.com/docs/enterprise/digitalocean/dns.pngng)
+![DNS configuration](https://www.okteto.com/docs/self-hosted/digitalocean/dns.pngng)
 
 ## More information
 
