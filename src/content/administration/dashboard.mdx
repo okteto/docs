@@ -67,3 +67,29 @@ For each namespace, an administrator will be able to:
 The Secrets section of the Admin dashboard lets you define cluster-wide secrets. Using the `$SECRET_NAME` syntax, you can refer to these secrets directly in your Okteto manifest. They are also injected into the [environment running](/docs/cloud/okteto-cli/#built-in-tools-when-deploying-to-okteto-cloud) the commands in the `deploy` section of the manifest.
 
 > Secrets [defined by the user](/docs/cloud/secrets/) take precedence over the secrets defined here in case of a name collision.
+
+We recommend using [build secrets](/docs/reference/manifest/#build-object-optional) to inject sensitive data into your Dockerfile.
+
+The example below shows how to configure your okteto manifest to  mount a local `.env` file into your Dockerfile:
+
+```yaml
+build:
+  api:
+    context: .
+    secrets:
+      my_env: .env
+```
+
+You can refer to this secret from your Dockerfile using the syntax below:
+
+```
+RUN --mount=type=secret,id=my_env,dst=/etc/secrets/.env cat /etc/secrets/.env
+```
+
+The content of the `.env` file would be:
+
+```
+${MY_PASSWORD}
+```
+
+where `MY_PASSWORD` can be a local environment variable or an Okteto Secret, and it gets subsituted by Okteto before mounting the file as a build secret.
