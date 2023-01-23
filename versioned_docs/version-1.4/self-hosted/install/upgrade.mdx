@@ -1,0 +1,117 @@
+---
+title: Upgrade your Okteto instance
+description: How to upgrade your Okteto instance
+sidebar_label: Upgrade
+id: upgrade
+---
+
+##  Upgrade your Okteto Instance
+
+To upgrade a new release, modify the `config.yaml` with your desired changes and then use:
+
+```console
+$ helm repo update
+$ helm upgrade <your-release-name> okteto/okteto -f config.yaml --namespace=okteto --version <version_number>
+```
+
+For example:
+```console
+$ helm repo update
+$ helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version 0.9.x
+```
+*You can use `helm ls` to find the name of your release.*
+
+Please review [the release notes](/docs/self-hosted/install/releases/) before upgrading. New features, known issues, and configuration changes will be listed there.
+
+## Upgrading to 1.x
+
+Okteto 1.x has two major breaking changes that you need to be aware of before upgrading:
+
+- Support for Kubernetes 1.19 has been removed, and 1.20 is deprecated.
+- The helm chart has been renamed from `okteto-enterprise` to `okteto`. All the resources created by the chart will have `okteto` as their prefix instead of `okteto-enterprise`. This change will cause all resources to be recreated upon upgrade.  Depending on your cloud provider and your networking configuration, you might need to update the DNS entry of the [build service](/docs/self-hosted/administration/configuration/#buildkit) after upgrading your Okteto instance.
+- The helm chart doesn't install [cert-manager](https://cert-manager.io/) by default.
+
+We recommend that you follow the steps below to reduce the disruption of the service to a minimum:
+
+#### Before upgrade
+
+Skip this step if you are [bringing your own certificates](/docs/self-hosted/administration/certificates/).
+Check if this is the case by seeing that the wildcard creation is disabled in the Okteto helm values configuration:
+
+```
+wildcardCertificate:
+  create: false
+```
+
+If Okteto was generating the certificates for you, run the following command from your command line to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
+
+```
+kubectl -n okteto annotate issuer okteto-okteto-enterprise helm.sh/resource-policy=keep
+kubectl -n okteto annotate certificate default-ssl-certificate helm.sh/resource-policy=keep
+```
+
+Then, add the following configuration to your Okteto helm values file to use the existing certificate:
+
+```
+wildcardCertificate:
+  create: false
+  name: default-ssl-certificate
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/default-ssl-certificate
+```
+
+> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend you to [bring your own certificate](/docs/self-hosted/administration/certificates/) once the Okteto upgrade has been complete succesfully.
+
+#### Upgrade Okteto
+
+Run the following commands to upgrade your Okteto instance:
+
+```
+helm repo update
+```
+
+```
+helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto
+```
+
+#### After upgrade
+
+Use `kubectl` to get the new address of the build service:
+
+```console
+kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
+```
+
+Update your DNS configuration with the `EXTERNAL-IP` address.
+
+If you are [bringing your own certificates](/docs/self-hosted/administration/certificates/), your Okteto instance is now fully upgraded. The rest of the guide doesn't apply to your configuration.
+
+## Install cert-manager
+
+Okteto will remove the instance of `cert-manager` that was installed by older versions of the helm chart. If you plan on using `cert-manager` as your certificate provider, you'll need to install it manually in your cluster using the instructions below:
+
+```
+helm repo add jetstack https://charts.jetstack.io
+```
+
+```
+helm repo update
+```
+
+```
+helm install cert-manager jetstack/cert-manager --namespace=okteto --version=v1.5.2 --set global.podSecurityPolicy.enabled=true
+```
+
+Once installed, cert-manager will continue to renew your existing certificates.
+Please refer to [their docs](https://cert-manager.io/docs/) if you run into any installation or certificate renewal issues.
+
