@@ -11,7 +11,8 @@ module.exports = {
   organizationName: 'okteto', // Usually your GitHub org/user name.
   projectName: 'okteto', // Usually your repo name.
   favicon: 'img/favicon.ico',
-  onBrokenLinks: 'error',
+  onBrokenLinks: 'throw',
+  onBrokenMarkdownLinks: 'throw',
   onDuplicateRoutes: 'warn',
   customFields: {
     image: 'https://www.okteto.com/docs/okteto-meta-image.png'
