@@ -71,6 +71,16 @@ module.exports = {
           type: 'docsVersionDropdown',
           position: 'right',
           dropdownActiveClassDisabled: true,
+          dropdownItemsAfter: [
+            {
+              type: 'html',
+              value: '<hr class="dropdown-separator">',
+            },
+            {
+              to: '/archive',
+              label: 'Archived Versions',
+            }
+          ]
         },
         {
           href: 'https://www.okteto.com/free-trial',
@@ -150,7 +160,7 @@ module.exports = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: 'okteto.com (1.4)',
+              label: 'okteto.com',
               path: '/',
             },
             '1.4': {
@@ -176,31 +186,6 @@ module.exports = {
             '1.0': {
               label: '1.0',
               path: '1.0',
-              banner: 'none',
-            },
-            '0.15': {
-              label: '0.15',
-              path: '0.15',
-              banner: 'none',
-            },
-            '0.14': {
-              label: '0.14',
-              path: '0.14',
-              banner: 'none',
-            },
-            '0.13': {
-              label: '0.13',
-              path: '0.13',
-              banner: 'none',
-            },
-            '0.12': {
-              label: '0.12',
-              path: '0.12',
-              banner: 'none',
-            },
-            '0.11': {
-              label: '0.11',
-              path: '0.11',
               banner: 'none',
             },
           },
