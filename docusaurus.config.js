@@ -73,12 +73,8 @@ module.exports = {
           dropdownActiveClassDisabled: true,
           dropdownItemsAfter: [
             {
-              type: 'html',
-              value: '<hr class="dropdown-separator">',
-            },
-            {
-              to: '/archive',
-              label: 'Archived Versions',
+              to: '/docs/archive',
+              label: 'Archived Versions'
             }
           ]
         },
