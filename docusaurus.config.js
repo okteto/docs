@@ -95,7 +95,7 @@ module.exports = {
               to: '/docs/archives',
               label: 'Archived Versions'
             }
-          ],
+          ]
         },
         {
           href: 'https://www.okteto.com/free-trial',

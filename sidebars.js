@@ -135,11 +135,6 @@ module.exports = {
       "samples/python",
       "samples/ruby",
       "samples/more"
-    ],
-    "Archives": 
-    {
-      "type": "doc",
-      "id": "archives",
-    }
+    ]
   },
 }
