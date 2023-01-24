@@ -184,6 +184,31 @@ module.exports = {
               path: '1.0',
               banner: 'none',
             },
+            '0.15': {
+              label: '1.0',
+              path: '1.0',
+              banner: 'none',
+            },
+            '0.14': {
+              label: '1.0',
+              path: '1.0',
+              banner: 'none',
+            },
+            '0.13': {
+              label: '1.0',
+              path: '1.0',
+              banner: 'none',
+            },
+            '0.12': {
+              label: '1.0',
+              path: '1.0',
+              banner: 'none',
+            },
+            '0.11': {
+              label: '1.0',
+              path: '1.0',
+              banner: 'none',
+            },
           },
           include: [
             '**/*.md',
