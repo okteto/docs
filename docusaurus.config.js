@@ -71,7 +71,12 @@ module.exports = {
           type: 'docsVersionDropdown',
           position: 'right',
           dropdownActiveClassDisabled: true,
-          dropdownItemsAfter: [{to: '/archives', label: 'All versions'}],
+          dropdownItemsAfter: [
+            {
+              to: '/archives',
+              label: 'Archives'
+            }
+          ],
         },
         {
           href: 'https://www.okteto.com/free-trial',
