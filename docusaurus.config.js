@@ -68,34 +68,10 @@ module.exports = {
           target: '_self'
         },
         {
+          type: 'docsVersionDropdown',
           position: 'right',
-          label: 'okteto.com',
-          items: [
-            {
-              to: '/docs/1.4/welcome/overview/',
-              label: '1.4'
-            },
-            {
-              to: '/docs/1.3/welcome/overview/',
-              label: '1.3'
-            },
-            {
-              to: '/docs/1.2/welcome/overview/',
-              label: '1.2'
-            },
-            {
-              to: '/docs/1.1/welcome/overview/',
-              label: '1.1'
-            },
-            {
-              to: '/docs/1.0/welcome/overview/',
-              label: '1.0'
-            },
-            {
-              to: '/docs/archives',
-              label: 'Archived Versions'
-            }
-          ]
+          dropdownActiveClassDisabled: true,
+          dropdownItemsAfter: [{to: '/archives', label: 'All versions'}],
         },
         {
           href: 'https://www.okteto.com/free-trial',
