@@ -155,7 +155,7 @@ module.exports = {
           sidebarPath: require.resolve('./sidebars.js'),
           lastVersion: '1.4',
           versions: {
-            next: {
+            current: {
               label: '1.5 (not yet released)',
               path: '/',
             },
