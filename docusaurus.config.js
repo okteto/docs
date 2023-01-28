@@ -4,7 +4,7 @@ const docsContentPath = 'src/content';
 
 module.exports = {
   title: 'Okteto Documentation',
-  tagline: 'Kubernetes for Developers',
+  tagline: 'Cloud Development Simplified',
   url: 'https://www.okteto.com',
   baseUrl: '/docs/',
   trailingSlash: true,
@@ -157,10 +157,11 @@ module.exports = {
           versions: {
             current: {
               label: 'Next',
+              path: '1.5'
             },
             '1.4': {
               label: '1.4',
-              path: '1.4',
+              path: '/',
               banner: 'none',
             },
             '1.3': {
