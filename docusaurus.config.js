@@ -156,13 +156,8 @@ module.exports = {
           lastVersion: '1.4',
           versions: {
             current: {
-              label: '1.5',
-              path: '/',
-            },
-            '1.4': {
               label: '1.4',
               path: '1.4',
-              banner: 'none',
             },
             '1.3': {
               label: '1.3',
