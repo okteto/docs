@@ -73,7 +73,7 @@ clusters:
 ```
 
 ### License
-Okteto Enterprise is free to try. You get all the features of [Okteto Enterprise](/docs/0.11/enterprise/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
+Okteto Enterprise is free to try. You get all the features of [Okteto Enterprise](enterprise.mdx) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 
