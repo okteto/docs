@@ -73,7 +73,7 @@ clusters:
 ```
 
 ### License
-Okteto is free to try. You get all the features of [Okteto](/docs/0.14/enterprise/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
+Okteto is free to try. You get all the features of [Okteto](enterprise.mdx) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 
