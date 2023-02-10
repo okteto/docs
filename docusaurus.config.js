@@ -153,15 +153,15 @@ module.exports = {
           routeBasePath: '/',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: 'current',
+          lastVersion: '1.4',
           versions: {
             current: {
-              label: 'okteto.com',
-              path: '/',
+              label: '1.5',
+              path: '1.5',
             },
             '1.4': {
               label: '1.4',
-              path: '1.4',
+              path: '/',
               banner: 'none',
             },
             '1.3': {
