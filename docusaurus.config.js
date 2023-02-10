@@ -214,9 +214,6 @@ module.exports = {
     ['@docusaurus/plugin-client-redirects', {
       fromExtensions: ['html'],
       redirects: [{
-        to: '/welcome/overview/',
-        from: ['/']
-      }, {
         to: '/self-hosted/install/overview/',
         from: ['/enterprise/dns/']
       }, {
@@ -244,7 +241,7 @@ module.exports = {
         from: ['/enterprise/administration/private-repositories/ssh-key/']
       },
       {
-        to: '/welcome/overview/',
+        to: '/',
         from: ['/cloud/']
       },
       {
