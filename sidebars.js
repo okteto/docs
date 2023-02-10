@@ -155,7 +155,7 @@ module.exports = {
   {
     "type": "link",
     "label": "Archives",
-    "href": "/archives"
+    "href": "/docs/archives"
   }
   ],
 }
