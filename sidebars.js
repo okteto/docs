@@ -153,9 +153,9 @@ module.exports = {
     ]
   },
   {
-    type: "doc",
-    label: "Archives",
-    id: "archives"
-  },
+    "type": "link",
+    "label": "Archives",
+    "href": "/archives"
+  }
   ],
 }

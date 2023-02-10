@@ -1,8 +1,6 @@
 ---
 title: Okteto Docs archives
 description: Okteto Docs Archives
-sidebar_label: Archives
-id: archives
 ---
 
 This page has links to online versions of the Okteto documentation.
@@ -12,7 +10,7 @@ Here you can find the documentation for the current released version of Okteto.
 
 | Version    | Documentation        |Release Notes       |
 |:---------|:------:|------:|
-| 1.4      | [Documentation](/docs/1.4/welcome/overview/)       |  [Release Notes](/docs/1.4/self-hosted/install/releases/)
+| 1.4      | [Documentation](/docs/welcome/overview/)       |  [Release Notes](/docs/self-hosted/install/releases/)
 
 
 
