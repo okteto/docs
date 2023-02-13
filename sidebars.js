@@ -9,7 +9,7 @@ module.exports = {
   "docs": [
     {
       "Welcome": [
-      "welcome/overview",
+      "overview",
       {
         "type": "category",
         "label": "Getting Started",
@@ -153,9 +153,9 @@ module.exports = {
     ]
   },
   {
-    type: "doc",
-    label: "Archives",
-    id: "archives"
-  },
+    "type": "link",
+    "label": "Archives",
+    "href": "/archives"
+  }
   ],
 }
