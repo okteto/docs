@@ -46,7 +46,7 @@ kubectl get svc -n=okteto -l="app=nginx-ingress,component=controller"
 
 Create a [wildcard A record](https://cloud.digitalocean.com/networking/domains) for the entire subdomain and point it to the load balancer's external IP.
 
-![DNS configuration](https://www.okteto.com/docs/enterprise/digitalocean/dns.pngng)
+![DNS configuration](https://www.okteto.com/docs/self-hosted/digitalocean/dns.pngng)
 
 ## More information
 
@@ -73,7 +73,7 @@ clusters:
 ```
 
 ### License
-Okteto is free to try. You get all the features of [Okteto](/docs/0.14/enterprise/) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
+Okteto is free to try. You get all the features of [Okteto](enterprise.mdx) for up to 3 users with 3 namespaces each. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 

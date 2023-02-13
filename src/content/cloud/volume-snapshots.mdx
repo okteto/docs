@@ -22,7 +22,7 @@ Use volume snapshots when working with large datasets or if you want to create d
 >
 <TabItem value="self-hosted">
 
-Follow [this guide](/docs/self-hosted/administration/volume-snapshots/) to enable Volume Snapshots in your cluster.
+Follow [this guide](self-hosted/administration/volume-snapshots.mdx) to enable Volume Snapshots in your cluster.
 
 Use a storage class provisioned by a CSI driver that [supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html) for the source persistent volume of your volume snapshots. 
 
@@ -31,10 +31,7 @@ Use a storage class provisioned by a CSI driver that [supports volume snapshots]
 <TabItem value="saas">
 If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
 
-Use one of the following storage classes for the source persistent volume of your volume snapshots:
-
-- `csi-okteto-standard`: backed by standard hard disk drives (HDD)
-- `csi-okteto-ssd`: backed by solid-state drives (SDD)
+**Important**: you need to use the `csi-okteto` storage classes for the source persistent volume of your volume snapshots.
 
 </TabItem>
 </Tabs>
@@ -46,14 +43,15 @@ The volume snapshot is created from a persistent volume claim and it can contain
 
 In order to use volume snapshots with your development environment you need to:
 
-- [Create the source persistent volume](/docs/cloud/use-volume-snapshots/#creating-the-persistent-volume)
-- [Create a volume snapshot of the source persistent volume](/docs/cloud/use-volume-snapshots/#creating-a-volume-snapshot)
-- [Consume the volume snapshot in a new persistent volume](/docs/cloud/use-volume-snapshots/#consuming-a-volume-snapshot)
+- [Create the source persistent volume](cloud/volume-snapshots.mdx#creating-the-persistent-volume)
+- [Create a volume snapshot of the source persistent volume](cloud/volume-snapshots.mdx#creating-a-volume-snapshot)
+- [Consume the volume snapshot in a new persistent volume](cloud/volume-snapshots.mdx#consuming-a-volume-snapshot)
 
 ### Creating the Source Persistent Volume
+
 First, create the source persistent volume. This is the data that you want to be able to clone into your development environment.  In the example below we use a database, but this could be anything that uses a volume for storage: databases, ML models, images, etc...
 > If the default storage class of your cluster doesn't support volume snapshots, make sure you set the storage class to one that is compatible when creating your persistent volume.
-Check the [requirements](/docs/cloud/use-volume-snapshots/#requirements) section to learn more about the available storage classes in Okteto.
+Check the [requirements](cloud/volume-snapshots.mdx#requirements) section to learn more about the available storage classes in Okteto.
 
 
 <Tabs
@@ -71,7 +69,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
 spec:
-  storageClassName: csi-okteto-standard
+  storageClassName: csi-okteto
   accessModes:
   - ReadWriteOnce
   resources:
@@ -92,7 +90,7 @@ services:
 volumes:
   mysql-pvc:
     driver_opts:
-      class: csi-okteto-standard
+      class: csi-okteto
 ```
 
 </TabItem>

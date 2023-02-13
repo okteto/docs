@@ -6,9 +6,10 @@
  */
 
 module.exports = {
-  "docs": {
-    "Welcome": [
-      "welcome/overview",
+  "docs": [
+    {
+      "Welcome": [
+      "overview",
       {
         "type": "category",
         "label": "Getting Started",
@@ -18,6 +19,8 @@ module.exports = {
         ]
       }
     ],
+  },
+  {
     "Dev Environments": [
       "reference/development-environments",
       "cloud/okteto-cli",
@@ -49,6 +52,8 @@ module.exports = {
       "reference/file-synchronization",
       "reference/ssh-server"
     ],
+  },
+  {
     "Preview Environments": [
       "cloud/preview-environments/preview-environments",
       {
@@ -61,6 +66,8 @@ module.exports = {
       },
       "cloud/preview-environments/preview-environments-gitlab"
     ],
+  },
+  {
     "Administration": [
       "administration/dashboard",
       "administration/cleanup",
@@ -74,6 +81,8 @@ module.exports = {
         ]
       },
     ],
+  },
+  {
     "Okteto Self-Hosted": [
       "self-hosted",
       {
@@ -111,6 +120,8 @@ module.exports = {
         ]
       }
     ],
+  },
+  {
     "References": [
       "reference/cli",
       "reference/manifest",
@@ -120,12 +131,16 @@ module.exports = {
       "cloud/permissions",
       "reference/known-issues"
     ],
+  },
+  {
     "Tutorials": [
       "tutorials/compose-getting-started",
       "tutorials/preview-environments",
       "tutorials/webpack",
       "tutorials/aws-lambda"
     ],
+  },
+  {
     "Samples": [
       "samples/aspnetcore",
       "samples/golang",
@@ -136,5 +151,11 @@ module.exports = {
       "samples/ruby",
       "samples/more"
     ]
+  },
+  {
+    "type": "link",
+    "label": "Archives",
+    "href": "/archives"
   }
+  ],
 }

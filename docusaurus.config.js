@@ -11,7 +11,8 @@ module.exports = {
   organizationName: 'okteto', // Usually your GitHub org/user name.
   projectName: 'okteto', // Usually your repo name.
   favicon: 'img/favicon.ico',
-  onBrokenLinks: 'error',
+  onBrokenLinks: 'throw',
+  onBrokenMarkdownLinks: 'throw',
   onDuplicateRoutes: 'warn',
   customFields: {
     image: 'https://www.okteto.com/docs/okteto-meta-image.png'
@@ -70,6 +71,12 @@ module.exports = {
           type: 'docsVersionDropdown',
           position: 'right',
           dropdownActiveClassDisabled: true,
+          dropdownItemsAfter: [
+            {
+              to: '/archives',
+              label: 'Archives'
+            }
+          ],
         },
         {
           href: 'https://www.okteto.com/free-trial',
@@ -146,11 +153,16 @@ module.exports = {
           routeBasePath: '/',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: 'current',
+          lastVersion: '1.4',
           versions: {
             current: {
-              label: 'okteto.com (1.3)',
+              label: '1.5',
+              path: '1.5',
+            },
+            '1.4': {
+              label: '1.4',
               path: '/',
+              banner: 'none',
             },
             '1.3': {
               label: '1.3',
@@ -171,32 +183,7 @@ module.exports = {
               label: '1.0',
               path: '1.0',
               banner: 'none',
-            },
-            '0.15': {
-              label: '0.15',
-              path: '0.15',
-              banner: 'none',
-            },
-            '0.14': {
-              label: '0.14',
-              path: '0.14',
-              banner: 'none',
-            },
-            '0.13': {
-              label: '0.13',
-              path: '0.13',
-              banner: 'none',
-            },
-            '0.12': {
-              label: '0.12',
-              path: '0.12',
-              banner: 'none',
-            },
-            '0.11': {
-              label: '0.11',
-              path: '0.11',
-              banner: 'none',
-            },
+            }
           },
           include: [
             '**/*.md',
@@ -227,9 +214,6 @@ module.exports = {
     ['@docusaurus/plugin-client-redirects', {
       fromExtensions: ['html'],
       redirects: [{
-        to: '/welcome/overview/',
-        from: ['/']
-      }, {
         to: '/self-hosted/install/overview/',
         from: ['/enterprise/dns/']
       }, {
@@ -257,7 +241,7 @@ module.exports = {
         from: ['/enterprise/administration/private-repositories/ssh-key/']
       },
       {
-        to: '/welcome/overview/',
+        to: '/',
         from: ['/cloud/']
       },
       {
