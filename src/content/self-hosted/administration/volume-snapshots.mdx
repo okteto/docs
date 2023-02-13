@@ -43,7 +43,7 @@ The following manifest is an example of a VolumeSnapshotClass:
 
 ```yaml
 # okteto-snapshot-class.yaml
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
   name: okteto-snapshot-class
@@ -56,7 +56,7 @@ deletionPolicy: Delete
 
 ```yaml
 # okteto-snapshot-class.yaml
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
   name: okteto-snapshot-class
@@ -70,7 +70,7 @@ deletionPolicy: Delete
 
 ```yaml
 # okteto-snapshot-class.yaml
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
   name: okteto-snapshot-class
@@ -155,7 +155,7 @@ kubectl apply -f okteto-snapshot-sc.yaml
 
 To enable Volume Snapshots on your Okteto instance, update your `config.yaml` file with the following values, and run a [helm upgrade](https://okteto.com/docs/self-hosted/install/upgrade/#upgrade-your-okteto-enterprise-instance) to apply the new configuration.
 
-More information on the different configuration settings [is available here](/docs/self-hosted/administration/configuration/#volumesnapshots).
+More information on the different configuration settings [is available here](self-hosted/administration/configuration.mdx#volumesnapshots).
 
 <Tabs
   defaultValue="aws-ebs"
@@ -202,76 +202,6 @@ volumeSnapshots:
 
 By default, all users in your cluster will be able to use any of the available snapshots as a data source for their development environments. You can limit this via the `enableNamespaceAccessValidation` key in the `volumeSnapshots` section of the configuration, value of `true` will enable the validation.
 
-## Using Storage Snapshots in your Development Environment
+## Using Volume Snapshots in your Development Environment
 
-If your data source is not on Kubernetes, you can instead create a storage snapshot directly from your cloud provider (consult your cloud provider's documentation on how to generate a volume snapshot).
-
-Use the `dev.okteto.com/from-snapshot-id` annotation on any persistent volume claim to tell Okteto to initialize your persistent volume claim from a storage snapshot created in your cloud provider, as shown below:
-
-<Tabs
-  defaultValue="aws-ebs"
-  values={[
-    { label: 'Amazon EBS', value: 'aws-ebs', },
-    { label: 'GCE Persistent Disk ', value: 'gce-pd', },
-    { label: 'DigitalOcean Block Storage', value: 'do', },
-  ]}
->
-<TabItem value="aws-ebs">
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  annotations:
-    dev.okteto.com/from-snapshot-id: snapshot-8dc4bb4c
-  name: pvc-from-snapshot
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-```
-
-</TabItem>
-<TabItem value="gce-pd">
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  annotations:
-    dev.okteto.com/from-snapshot-id: projects/my-project/global/snapshots/snapshot-8dc4bb4c-c76e-bb03-ff17-1d83e07a6804
-  name: pvc-from-snapshot
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-```
-
-</TabItem>
-<TabItem value="do">
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  annotations:
-    dev.okteto.com/from-snapshot-id: volume-8dc4bb4c
-  name: pvc-from-snapshot
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-```
-
-</TabItem>
-</Tabs>
-
-As part of the creation of the persistent volume claim, Okteto will import the specified snapshot into your cluster using a `VolumeSnapshotContent` and will set the source of your persistent volume claim to this [VolumeSnapshotContent](https://kubernetes.io/docs/concepts/storage/volume-snapshots/), ready to be used by your development environment.
-
-By default, anyone can use any of your cloud provider's snapshot ID as a data source. You can disable this by changing the configuration `allowIDAnnotation ` to `false` in the `volumeSnapshots` section of the configuration.
+Follow [this guide](cloud/volume-snapshots.mdx/#using-volume-snapshots-in-your-development-environment) to use Volume Snapshots in your development environment.

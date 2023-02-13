@@ -1,0 +1,1161 @@
+---
+title: Configuration Settings
+description: List of configuration settings for Okteto
+id: configuration
+---
+
+## General Settings
+
+### email
+
+The email of the application owner.
+
+```yaml
+email: "admin@example.com"
+```
+
+### cluster
+
+- `endpoint`: The public endpoint of your Kubernetes cluster. It will be used by Okteto when generating `Kubeconfig` credentials for your users.
+
+```yaml
+cluster:
+  endpoint: "https://52.30.32.1"
+```
+
+### license
+
+Okteto is free for small teams. You can manage up to 3 users without having to provide a license.
+
+```yaml
+license: XXXXX
+```
+
+Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
+
+> You can also use a [secret](self-hosted/install/deployment.mdx#cloud-provider-secret) to store the license.
+
+### subdomain
+
+The domain (or subdomain) managed by Okteto.
+
+Your Okteto instance will be available at `okteto.$SUBDOMAIN`. All ingresses created by okteto will use it as well (e.g. https://app-$NAMESPACE.$SUBDOMAIN)
+
+```yaml
+subdomain: "example.com"
+```
+
+After installation, we recommend that you create a DNS entry for `*.$SUBDOMAIN`, pointing to the public address of your load balancer.
+
+### auth
+
+Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
+
+> You can also use a [secret](self-hosted/install/deployment.mdx#cloud-provider-secret) to store the sensitive part of these credentials.
+
+#### Bitbucket
+
+Follow Bitbucket's official documentation on [how to create an OAuth Consumer](https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/).
+
+When creating the OAuth Consumer, you will need to provide the following values:
+
+**Callback URL**:
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+**URL**:
+```
+https://okteto.DOMAIN
+```
+
+**Permissions**:
+Account: Email
+Account: Read
+
+Use this group of settings when using Bitbucket OAauth as your authentication provider.
+
+```yaml
+auth:
+  bitbucket:
+    enabled: true
+    clientId: OAauth Consumer Key
+    clientSecret: OAauth Consumer Secret
+    workspace: my-workspace
+```
+
+The `workspace` field is optional. Only members of the workspace will be allowed to login into your Okteto instance. An empty `workspace` field permits any user to log in.
+
+#### GitHub
+
+> If you are planning on using the GitHub Integration, you should follow [this guide](self-hosted/administration/configuration.mdx#creating-the-github-app). You'll then use the same Github Application for the Integration as the one from Oauth.
+
+Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
+
+When creating the OAuth App, you will need to provide the following values:
+
+**Homepage URL**:
+```
+https://okteto.DOMAIN
+```
+
+**Authorization callback URL**:
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+Use this group of settings when using GitHub OAuth as your authentication provider.
+
+```yaml
+auth:
+  github:
+    enabled: true
+    clientId: clientID
+    clientSecret: clientSecret
+    organization: my-org
+```
+
+The `organization` field is optional. Only members of the organization will be allowed to log in into your Okteto instance. An empty `organization` field permits any user to log in.
+
+#### Google
+
+Follow Google's official documentation on [how to create an OAuth 2.0 Client](https://support.google.com/cloud/answer/6158849?hl=en).
+
+When creating the OAUTH 2.0 Client, you will need to provide the following values:
+
+**Authorized javascript origin**:
+```
+https://okteto.DOMAIN
+```
+
+**Authorized redirect URIs**:
+```
+https://okteto.DOMAIN
+https://okteto.DOMAIN/auth/callback
+```
+
+Use this group of settings when using Google OAuth as your authentication provider.
+
+```yaml
+auth:
+  google:
+    enabled: true
+    clientId: clientid.apps.googleusercontent.com
+    clientSecret: clientSecret
+    allowDomains:
+    - example.com
+```
+
+The `allowDomains` field is optional. Only users with Google Workspace accounts that match one of the domains on the list will be allowed to log into your Okteto instance. An empty `allowDomains` field permits any user with a valid Google Workspace account to log in.
+
+#### OpenID Connect
+
+Follow your OpenID Connect service provider's documentation on how to create the required application.
+
+Okteto supports any identity provider that implements the OpenID Connect standard. The following external identity providers have been tested with Okteto:
+
+- [Okta](self-hosted/guides/okta/index.mdx)
+- [Azure Active Directory](self-hosted/guides/azure-active-directory/index.mdx)
+
+> Are we missing your favorite identity provider? Open a feature request in the [Okteto Community](https://community.okteto.com/t/about-the-feature-requests-category/28) and let us know!
+
+When creating the application, you'll need to provide the following values:
+
+- Start SSO URL:  `https://okteto.DOMAIN`
+- Redirect URIs: `https://okteto.DOMAIN`, `https://okteto.DOMAIN/auth/callback`
+- Scopes: `openid`, `email`, `profile`
+- Response Type: `code`
+- Grant Type: `authorization code`
+
+Use this group of settings when using an OpenID Connect provider as your authentication provider.
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: clientid
+    clientSecret: clientSecret
+    group: my-group
+    endpoints:
+      issuer: https://your-provider
+      authorization: https://your-provider/authorization
+    mapping:
+      externalIDKey: nickname
+      nameKey: name
+      emailKey: email
+      pictureKey: picture
+      groupsKey: groups
+```
+
+The `group` field is optional. Only members of the group will be allowed to log in into your Okteto instance. An empty `group` field permits any user to log in.
+
+The `issuer` and `authorization` endpoints must match the value returned in the provider config discovery.
+
+The `mapping` fields are optional. Use them to configure the mapping between Okteto's user attributes and the claim coming from your authentication provider.
+
+> Your provider needs to support the [UserInfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) in order to be used with Okteto. This authentication option follows the OpenID standard, and it has been validated with Okta, PingIdentity, and GitLab.
+
+### cloud
+
+Okteto integrates with different cloud providers to store the [Okteto Registry](cloud/registry.mdx) images.
+
+> The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](self-hosted/install/deployment.mdx#cloud-provider-secret).
+
+#### Azure
+
+Use this to use Azure Storage to store your private images.
+
+```yaml
+cloud:
+  provider:
+    azure:
+      enabled: true
+      storage:
+        container: "Storage Container Name"
+        accountName: "Storage Account Name"
+```
+
+The storage setting will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+#### AWS
+
+Use this to use S3 to store your private images.
+
+```yaml
+cloud:
+  provider:
+    aws:
+      enabled: true
+      bucket: "Bucket Name"
+      region: "AWS region"
+      iam:
+        enabled: true
+        accessKeyID: "IAM Access Key"
+```
+The bucket will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+#### Digitalocean
+
+Use this to use DigitalOcean Spaces to store your private images.
+
+```yaml
+cloud:
+  provider:
+    digitalocean:
+      enabled: true
+      space:
+        name:
+        accessKeyID:
+```
+
+The space settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+#### GCP
+
+Use this to use Google Cloud Storage to store your private images.
+
+```yaml
+cloud:
+  provider:
+    gcp:
+      enabled: true
+      bucket: "Bucket Name"
+      project: "Project ID"
+      workloadIdentity:
+        enabled: false
+```
+
+The bucket settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+#### BYO
+
+Use this if you're using a provider not currently supported by Okteto.
+
+```yaml
+cloud:
+  provider:
+    byo:
+      enabled: true
+```
+
+When using `byo` you'll need to [configure your registry](self-hosted/administration/configuration.mdx#registry) to use the file system for storage.
+
+```yaml
+registry:
+ storage:
+   filesystem:
+     enabled: true
+     persistence:
+       enabled: true
+       size: 400Gi
+   cloud:
+     enabled: false
+```
+
+#### Advanced Cloud Scenarios
+
+It is possible to use separate cloud providers for DNS than for storage if needed. [Reach out to support](https://okteto.com/support), we're always happy to help!
+
+## Okteto Components
+
+### api
+
+The API service. Account and Kubernetes credentials management, namespace creation, and sharing, deployment via the catalog, etc...
+
+- `annotations`: Annotations to add to the API pods.
+- `extraEnv`: Environment variables to be set on the API containers.
+- `labels`: Labels to add to the API pods.
+- `replicaCount`: The number of API pods. It defaults to 2.
+- `resources`: The resources for the API pods.
+
+```yaml
+api:
+  extraEnv:
+    - name: NO_PROXY
+      value: ".example.com"
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+```
+
+### autoscaler
+
+The cluster autoscaler service. Disabled by default.
+It instructs the Kubernetes cluster autoscaler to scale nodes if the real cpu/memory usage of a node is beyond the limits.
+Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluster nodes.
+
+> **Requirements**: cluster autoscaler and metrics server must be installed in your cluster.
+
+- `annotations`: Annotations to add to the autoscaler pods.
+- `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
+- `cpu.down`: Decrease the cluster size when the CPU consumption is lesser than this value. It defaults to 40 percent.
+- `image`: image used by the autoscaler to deploy the autoscaler agent. It defaults to `busybox`.
+- `labels`: Labels to add to the autoscaler pods.
+- `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
+- `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
+- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
+- `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
+- `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
+- `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
+- `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
+- `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
+- `slackWebhook`: A slack webhook url to notify autoscaler events.
+- `volumes.up`: Increase the cluster size when the Volumes in a node vs the max volumes per node is greater than or equal to this value. It defaults to 90 percent.
+- `volumes.down`: Decrease the cluster size when the Volumes in a node vs the max volumes per node is lesser than this value. It defaults to 80 percent.
+
+```yaml
+autoscaler:
+  enabled: false
+  image: busybox
+  schedule: 300
+  cpu:
+    up: 60
+    down: 40
+  memory:
+    up: 70
+    down: 50
+  pods:
+    up: 90
+    down: 80
+  volumes:
+    up: 90
+    down: 80
+  nodes:
+    increment: 1
+    min: 1
+    max: 10
+    podLabel: cloud.google.com/gke-nodepool
+  slackWebhook:
+```
+
+### buildkit
+
+The build service. It's used in combination with `okteto build` to build containers directly in the cluster.
+
+- `port`: Port used for the buildkit statefulset. Defaults to `443`.
+- `annotations`: Annotations to add to the buildkit pods.
+- `extraEnv`: Environment variables to be set on the buildkit containers.
+- `hpa.enabled`: Enable horizontal pod autoscaling for the buildkit pods. Disabled by default.
+- `hpa.min`: Minimum number of buildkit pods to keep running.
+- `hpa.max`: Maximum number of buildkit pods to scale to.
+- `hpa.cpu`: The amount of CPU utilization that will cause the HPA to scale the buildkit pods.
+- `labels`: Labels to add to the buildkit pods.
+- `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
+- `replicaCount`: The number of buildkit pods. It defaults to 1.
+- `resources`: The resources for the buildkit pods.
+- `storage.class`: The storage class of the volume attached to every buildkit pod to persist the buildkit cache.
+- `storage.size`: The size of the volume attached to every buildkit pod to persist the buildkit cache.
+- `storage.cache`: The size of the buildkit cache to store image caches. It should be 30Gi smaller than `storage.size`.
+
+```yaml
+buildkit:
+  port: 443
+  extraEnv:
+    - name: NO_PROXY
+      value: ".example.com"
+  replicaCount: 1
+  storage:
+    class: ssd
+    size: 180Gi
+    cache: 150000
+```
+
+In order to handle timeouts during communication between the client and the buildkit daemon, the following environment variables can be modified on the server side:
+
+- `OKTETO_KEEPALIVE_SERVER_TIME_MS`: After this duration of time, if the server doesn't see any activity it pings the client to see if the transport is still alive. If set below 1s, a minimum value of 1s will be used. The current default value is 2 hours.
+- `OKTETO_KEEPALIVE_SERVER_TIMEOUT_MS`: After having pinged for keepalive check, the server waits for a duration of Timeout and if no activity is seen, the connection is closed. The current default value is 20 seconds.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_IDLE_MS`: Duration for the amount of time after which an idle connection would be closed by sending a GOAWAY. Idleness duration is defined since the most recent time the number of outstanding RPCs became zero or the connection establishment. The current default value is infinity.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS`: Duration for the maximum amount of time a connection may exist before it will be closed by sending a GOAWAY. A random jitter of +/-10% will be added to the value to spread out connection storms. The current default value is infinity.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_GRACE_MS`: An additive period after `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS` after which the connection will be forcibly closed. The current default value is infinity.
+- `OKTETO_KEEPALIVE_SERVER_POLICY_MINTIME_MS`: Minimum amount of time a client should wait before sending a keepalive ping. The current default value is 5 minutes.
+- `OKTETO_KEEPALIVE_SERVER_POLICY_PERMIT_WITHOUT_STREAM`: If true, server allows keepalive pings even when there are no active streams(RPCs). If false, and client sends pings when there are no active streams, server will send GOAWAY and close the connection. False by default.
+
+
+### daemonset
+
+The daemonset automatically configures every node of your cluster to work better with Okteto.
+
+- `annotations`: Annotations to add to the daemonset pods.
+- `extraEnv`: Environment variables to be set on the daemonset containers.
+- `labels`: Labels to add to the daemonset pods.
+- `image`: Container image used by the daemonset pods.
+- `initContainers.privateCA.image`: InitContainer image used by the daemon pods. Defaults to `busybox`
+
+### frontend
+
+The frontend service serves the web application.
+
+- `annotations`: Annotations to add to the frontend pods.
+- `extraEnv`: Environment variables to be set on the frontend containers.
+- `labels`: Labels to add to the frontend pods.
+- `replicaCount`: The number of frontend pods. It defaults to 2.
+- `resources`: The resources for the frontend pods.
+
+```yaml
+frontend:
+  extraEnv:
+    - name: NO_PROXY
+      value: ".example.com"
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+```
+
+### gc
+
+The garbage collector service. It automatically scales idle applications to zero and deletes unused namespaces. Enabled by default.
+
+- `annotations`: Annotations to add to the gc pods.
+- `labels`: Labels to add to the gc pods.
+- `scaleToZeroPeriod`: The duration, in hours, that an application or resource must be idle before the garbage collector scales it to zero. Set to zero to disable.
+- `deleteNamespacePeriod`: The duration, in days, that a namespace must be idle before the garbage collector deletes it. Set to zero to disable.
+- `slackWebhook`: If set, the garbage collector will send a notification when it scales a resource to zero or when it deletes a namespace.
+
+```yaml
+gc:
+  enabled: true
+  scaleToZeroPeriod: 24
+  deleteNamespacePeriod: 15
+  slackWebhook:
+```
+
+### installer
+
+The jobs that deploy your [development environments from Git](cloud/deploy-from-git.mdx).
+
+- `annotations`: Annotations to add to the installer job pods.
+- `extraEnv`: Environment variables to be set on the installer job containers.
+- `labels`: Labels to add to the installer job pods.
+- `image`: to configure your custom installer binaries, including a custom Okteto CLI version.
+- `runner`: to configure your [custom installer image](self-hosted/administration/custom-installer-image.mdx).
+- `activeDeadlineSeconds`:  Maximum duration of the pipeline in seconds.
+- `gitSSHUser`: User to be used when cloning git repos using ssh.
+- `sshSecretName`: The name of the secret that contains the private key used when cloning git repos using ssh. If it doesn't exist, the key and the secret will be automatically generated by Okteto.
+- `resources`: The resources for pods created by the installer jobs.
+
+
+```yaml
+installer:
+  image: okteto/installer:1.5.2
+  runner: okteto/pipeline-runner:1.0.0
+  extraEnv:
+    - name: NO_PROXY
+      value: ".example.com"
+  activeDeadlineSeconds: 1800
+  gitSSHUser: git
+  sshSecretName: "okteto-ssh"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi
+```
+
+### registry
+
+The private container registry.
+
+- `annotations`: Annotations to add to the registry pods.
+- `extraEnv`: Environment variables to be set on the registry containers.
+- `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precendence over the ones defined in the [ingress](self-hosted/administration/configuration.mdx#ingress) section.
+- `ingress.tlsSecret`: TLS secret for the registry endpoint. If empty, okteto will default to the wildcard certificate created by Okteto.
+- `labels`: Labels to add to the registry pods.
+- `pullPolicy`: The security policy for image pulls. If set to `cluster`, any Okteto user can pull any image from the registry. When set to `namespace`, only users with access to the namespace can pull images from the namespace. It defaults to `namespace`.
+- `replicaCount`: The number of registry pods. It defaults to 1.
+- `resources`: The resources for the registry pods.
+- `serviceAccountName`: The service account used by the registry. It defaults to `default`.
+- `storage`: The storage mechanism for the images.
+  - `cloud.enabled`: Set this to true if you want to store the images using your cloud provider's block storage service (e.g. S3). It will use the values defined in the [`cloud` key](#cloud). It's enabled by default.
+
+```yaml
+registry:
+  extraEnv:
+    - name: NO_PROXY
+      value: ".example.com"
+  storage:
+    cloud:
+      enabled: true
+```
+
+  - `filesystem`: Set this to true if you want to store the images in PVC attached to the registry. This might limit your ability to scale up the registry, depending on the type of storage you are using. You can also customize the `storageClass`, the `size` of the volume, and even attach an existing volume claim via `claimName`.
+
+```yaml
+registry:
+  storage:
+    cloud:
+      enabled: false
+    filesystem:
+      enabled: true
+      persistence:
+        claimName: ""
+        accessMode: ReadWriteOnce
+        storageClass: ""
+        size: 40Gi
+```
+
+### telemetry
+
+You can enable or disable the telemetry job. The telemetry job "phones home" once a day with the following information:
+
+- Number of managed users
+- Number of managed namespaces
+- Kubernetes Version and Platform
+- A unique install ID
+- Your license ID.
+- The name of the authentication provider
+- The name of the cloud provider
+
+Okteto uses the information to help us better understand how our customers use Okteto, as well as to help us prioritize fixes and features. We don't share your information with anyone else.
+
+```yaml
+telemetry:
+  enabled: true
+```
+
+If this configuration is disabled, Okteto CLI analytics are automatically disabled.
+
+### webhook
+
+The webhook service. Ingress creation, generation of hostnames, enforcement of policies, etc...
+
+- `annotations`: Annotations to add to the webhook pods.
+- `extraEnv`: Environment variables to be set on the webhook containers.
+- `hostNetwork`: Enables or disables host networking for the webhook deployment. The default is false.
+- `labels`: Labels to add to the webhook pods.
+- `port`: Port sets the port used for the webhook deployment. The default is 443.
+- `replicaCount`: The number of webhook pods. It defaults to 2.
+- `resources`: The resources for the webhook pods.
+
+## Advanced Configuration
+
+### affinity
+
+Apply default affinities to pods deployed in namespaces created by Okteto.
+
+- `devPool`: Affinities for pods created on namespaces managed by Okteto.
+- `oktetoPool`: Affinities for pods created during the Okteto installation.
+
+```yaml
+affinity:
+  devPool:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - preference:
+          matchExpressions:
+          - key: cloud.google.com/spot
+            operator: In
+            values:
+            - "true"
+        weight: 10
+  oktetoPool:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - preference:
+          matchExpressions:
+          - key: dev.okteto.com/overloaded
+            operator: DoesNotExist
+        weight: 50
+```
+
+In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptible nodes.
+
+### applications
+
+- `repository`: The [Helm repository](cloud/deploy-from-helm.mdx) available for every developer. This is disabled by default. To enable, set the `applications.repository` property to your Helm registry URL
+
+```yaml
+applications:
+  repository: "https://apps.okteto.com"
+```
+
+### clusterRole
+
+Okteto assings this cluster role to every user via a namespace-scoped role binding.
+The default value assigns each developer a `cluster-admin` role binding with only access to their personal namespaces.
+
+```yaml
+clusterRole: "cluster-admin"
+```
+
+### user extraRoleBindings
+
+Extra `RoleBindings` to be created for every user's service account. This is useful if you want to grant access to resources in other namespaces of the cluster.  Disabled by default.
+
+The `RoleBindings` will reference `ClusterRoles` and will be scoped to the `namespace` specified in the configuration. Okteto will not create neither the `ClusterRoles` nor the `Namespaces` and expects them to exist in the cluster. Here's an example configuration:
+
+```yaml
+user: 
+  extraRoleBindings:
+    enabled: true
+    roleBindings:
+      namespace-name1:
+      - cluster-role1
+      - cluster-role2
+      namespace-name2:
+      - cluster-role3
+```
+
+### convertLoadBalancedServices
+
+Converts services with type LoadBalancer into ClusterIP and automatically creates an ingress. Enabled by default.
+
+```yaml
+convertLoadBalancedServices:
+  enabled: true
+```
+
+### crds
+
+Configures CRDs managed by Okteto
+
+- `annotations`: The annotations to apply to the CRDs created during the Okteto installation.
+- `keep`: Keep CRDs on chart uninstall (defaults to `true`).
+- `install`: Install and upgrade CRDs on chart install (defaults to `true`).
+
+```yaml
+crds:
+  install: true
+  keep: true
+  annotations: {}
+```
+
+### devStorageClass
+
+Uses the specified storage class for all persistent volume claims created when developers execute `okteto up`. This setting will override any storage class defined on the [Okteto manifest](reference/manifest.mdx#persistentvolume-object-optional). Disabled by default.
+
+- `storageClass`: The storage class enforced for persistent volume claims created by `okteto up`.
+
+```yaml
+devStorageClass:
+  enabled: true
+  storageClass: ebs-sc
+```
+
+There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](self-hosted/administration/volume-snapshots.mdx) configured, if a storage class is required for the snapshots that storage class will have preference.
+
+### globalClusterRole
+
+Okteto assings this cluster role to every user via a cluster role binding. By default, this behavior is disabled.
+This can be useful to give access to cluster level resources to every developer account, like accessing the Node API.
+
+```yaml
+globalClusterRole: ""
+```
+
+### ingress
+
+Configure default values for the ingress created by Okteto.
+
+- `annotations`: The annotations to apply to all the ingresses created during the Okteto installation.
+- `oktetoIngressClass`: The `ingressClassName` to apply to all the ingresses created during the Okteto installation (defaults to `nginx`).
+- `class`: If specified, Okteto will set this as the `ingressClassName` of all ingresses managed by Okteto. This is useful if you have more than one ingress controller in your cluster.
+- `forceIngressClass`: If enabled, all ingresses deployed in namespaces managed by Okteto will have the ingress class defined in  `ingress.class` (default: `false`).
+- `forceIngressSubdomain`: If enabled, the subdomain of the host of all ingresses deployed in namespaces managed by Okteto must match the okteto wildcard subdomain (default: `true`).
+- `ip`: The internal IP of the ingress. Pods will call the Okteto API and the Okteto Registry using this IP. Required if the Okteto API/Registry is exposed using an ingress not managed by Okteto.
+- `tlsSecret`: TLS secret for the ingress created by Okteto. If empty, okteto defaults to the wildcard certificate created by Okteto.
+
+```yaml
+ingress:
+  annotations: {}
+  oktetoIngressClass: nginx
+  class: nginx
+  forceIngressClass: false
+  forceIngressSubdomain: true
+  ip: ""
+  tlsSecret: ""
+```
+### ingressLimits
+
+Configure ingress connections limits for each public endpoint. Disabled by default.
+
+- `connections`: Maximum parallel connections for each ingress.
+- `rps`: Maximum requests per second for each ingress.
+- `rpm`: Maximum requests per minute for each ingress.
+
+```yaml
+ingressLimits:
+  enabled: true
+  connections: 40
+  rps: 40
+  rpm: 400
+```
+
+### injectDevelopmentBinaries
+
+Automatically inject kubectl, helm, and okteto binaries on every development environment, and on the git and helm deployment pipelines. This requires permissions to mount a host volume.
+
+If this is disabled, you'll need to provide your own image in `installer.image`.
+
+```yaml
+injectDevelopmentBinaries:
+  enabled: true
+```
+
+### namespace
+
+Annotation and label customizations for namespaces.
+The configured annotations and labels will be applied to each namespace created by Okteto.
+These annotations and labels are additional to the ones already applied by Okteto.
+
+- `annotations`: Annotations applied to each namespace generated by Okteto.
+- `labels`: Labels applied to each namespace generated by Okteto.
+
+```yaml
+namespace:
+  annotations:
+    custom.annotation/one: one
+    custom.annotation/two: two
+  labels:
+    custom.label/one: one
+    custom.label/two: two
+```
+
+### networkPolicies
+
+Configures [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for each namespace to isolate network traffic.
+Disabled by default.
+
+- `blockedCIDRs`: Outgoing traffic to any cidr on this list will be blocked by the network policy (optional).
+
+```yaml
+networkPolicies:
+  enabled: true
+  blockedCIDRs:
+  - "169.254.169.254/32"
+```
+
+### podSecurityPolicy
+
+Decide if you want [pod security policy](https://kubernetes.io/docs/concepts/security/pod-security-policy/) to be added to the service accounts created by Okteto.
+
+#### enabled
+
+Whether to enable pod security policy (defaults to `true`).
+
+#### useAppArmor
+
+Add the apparmor security annotations to the Okteto pod security policies. (defaults to `true`).
+
+If `true` the following annotations are added to the existing pod security policy:
+
+```yaml
+apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
+apparmor.security.beta.kubernetes.io/defaultProfileName: runtime/default
+```
+
+```yaml
+podSecurityPolicy:
+   enabled: true
+   useAppArmor: true
+```
+
+### overrideFileWatchers
+
+Overrides the default kernel values for file watchers in every node. Recommended if you're running databases, or if you plan on using "okteto up" on the cluster. This requires permission to mount and modify /proc values.
+
+- `maxUserWatches`: The maximum number of allowed inotify watchers.
+- `maxMapCount`: The maximum number of memory map areas a process may have.
+- `aioMaxNR`: The maximum number of allowable concurrent IO requests.
+
+```yaml
+overrideFileWatchers:
+  enabled: true
+  maxUserWatches: 10048576
+  maxMapCount: 262144
+  aioMaxNR: 1000000
+```
+
+### overrideRegistryResolution
+
+Overrides the registry hostname resolution to use internal IPs. This requires permission to mount and modify the cluster nodes' /etc/hosts file.
+
+```yaml
+overrideRegistryResolution:
+  enabled: true
+```
+
+### prepullImages
+
+Pre-pull the git and helm installer images in all the nodes. This requires permission to mount the docker socket.
+
+```yaml
+prepullImages:
+  enabled: true
+```
+
+### privateRegistry
+
+A list of private registries and its corresponding credentials. The kubelet will use them when pulling images:
+
+```yaml
+privateRegistry:
+  hub:
+    url: https://index.docker.io/v1/
+    user: username1
+    password: password1
+  gcr:
+    url: https://gcr.io
+    token: dXNlcjM6cGFzc3dvcmQzCg==
+  aws:
+    url: 536194259215.dkr.ecr.us-east-1.amazonaws.com
+    user: $AWS_ACCESS_KEY_ID
+    password: $AWS_SECRET_ACCESS_KEY
+```
+
+> Use `token` if your registry does not support username/password authentication (e.g. google registry).
+
+> If you are using an AWS private registry, Okteto takes care of refreshing docker credentials every 4 hours.
+
+You can use this to configure a Docker Hub account for your cluster in order to avoid DockerHub's pull limits.
+Be careful, a credential misconfiguration could lead to an issue where kubelet cannot pull public images from Docker Hub.
+If this happens, [follow these instructions](self-hosted/install/troubleshooting.mdx#private-image-registry-credentials-misconfiguration) to recover from this state.
+
+### pullAlways
+
+Forces the `PullAlways` image pull policy in the cluster. Enabled by default.
+
+```yaml
+pullAlways:
+  enabled: true
+```
+
+### quickstarts
+
+The list of shortcuts to show in the "Deploy from Git Repository" dialog.
+
+- `name`: Name to identify the quickstart.
+- `url`: Repository URL configured for the quickstart.
+- `branch`: Default branch to be considered for the configured quickstart repository.
+- `variables`: List of variables to be passed to the pipeline on deployment time.
+  - `name`: Indicates the variable name.
+  - `value`: Specifies the default value.
+  - `options`: Specifies an enumeration of possible values.
+- `default`: Flag to indicate if `url`, `branch` and `variables` fields will be automatically filled with configured values in the "Deploy from Git Repository" dialog.
+
+```yaml
+quickstarts:
+  - name: "Movies Sample App"
+    url: https://github.com/okteto/movies
+    default: true
+    branch: main
+    variables:
+      - name: DB_HOST
+        value: mongodb
+      - name: THEME
+        options: ["dark", "light"]
+  - name: "GitHub"
+    url: https://github.com/
+  - name: "GitLab"
+    url: https://gitlab.com/
+  - name: "Bitbucket"
+    url: https://bitbucket.org/
+```
+
+### quotas
+
+Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) at the namespace level.
+
+- `resources`: Limits the number of resources that a user can create.
+  - `maxNamespaces`: Maximum number of namespaces.
+  - `maxPods`: Maximum number of pods per namespace.
+  - `maxReplicationControllers`: Maximum number of replication controllers per namespace.
+  - `maxSecrets`: Maximum number of secrets per namespace.
+  - `maxConfigMaps`: Maximum number of config maps per namespace.
+  - `maxPVCs`: Maximum number of persistent volume claims per namespace.
+  - `maxVolumeSnapshots`: Maximum number of volume snapshots per namespace.
+  - `maxIngresses`: Maximum number of ingresses per namespace
+- `bandwidth`: Limits the incoming/outcoming bandwidth per pod. Requires using the Okteto [NGINX Ingress Controller](self-hosted/administration/configuration.mdx#nginx-ingress).
+  - `ingress`: Maximum ingress bandwidth.
+  - `egress`: Maximum egress bandwidth.
+  - `up`: Limits the incoming/outgoing bandwidth per development container.
+    - `ingress`: Maximum ingress bandwidth for a development container
+    - `egress`: Maximum egress bandwidth for a development container.
+- `requests`: Limits the maximum [resource requests](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits) per namespace.
+  - `cpu`: Maximum CPU resource requests.
+  - `memory`: Maximum memory resource requests.
+  - `storage`: Maximum storage resource requests.
+- `limits`: Limits the maximum [resource limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits) per namespace.
+  - `cpu`: Maximum CPU resource limits.
+  - `memory`: Maximum memory resource limits.
+  - `storage`: Maximum storage resource limits.
+- `limitranges`: Configures the [limit ranges](https://kubernetes.io/docs/concepts/policy/limit-range/) of each namespace.
+  - `max`: Configures the maximum resources per container.
+    - `cpu`: Maximum CPU resource limits.
+    - `memory`: Maximum memory resource limits.
+  - `requests`: Configures the default resource requests per container.
+    - `limitRequestRatio`: If this value is different than zero, Okteto automatically sets the requests of each container to its limits divided by this value. It is useful to keep requests low in the cluster and make better usage of your infrastructure. Defaults to 1000.
+    - `cpu`: Default CPU resource requests. Ignored if `limitRequestRatio` is different than zero.
+    - `memory`: Default memory resource requests.  Ignored if `limitRequestRatio` is different than zero.
+  - `limits`: Configures the default resource limits per container.
+    - `cpu`: Default CPU resource limits.
+    - `memory`: Default memory resource limits.
+
+The default values are:
+
+```yaml
+quotas:
+  resources:
+    enabled: false
+    maxNamespaces: "3"
+    maxPods: "20"
+    maxServices: "20"
+    maxReplicationControllers: "30"
+    maxSecrets: "50"
+    maxConfigMaps: "50"
+    maxPVCs: "10"
+    maxVolumeSnapshots: "10"
+  bandwidth:
+    enabled: false
+    ingress: "800M"
+    egress: "800M"
+  requests:
+    enabled: false
+    cpu: "1"
+    memory: "2Gi"
+    storage: "20Gi"
+  limits:
+    enabled: false
+    cpu: "4"
+    memory: "8Gi"
+    storage: "20Gi"
+  limitranges:
+    max:
+      enabled: false
+      cpu: "3"
+      memory: "12Gi"
+    requests:
+      enabled: true
+      limitRequestRatio: 1000
+      cpu: "100m"
+      memory: "0.2Gi"
+    limits:
+      enabled: true
+      cpu: "2"
+      memory: "8Gi"
+```
+
+### secret
+
+Labels and annotations to include in the secret created by the chart. Useful if you want to integrate with Vault or similar secret stores.
+
+```yaml
+secret:
+  annotations:
+    your.custom.annotation: "10"
+  labels:
+    your.custom.label: "20"
+```
+
+### tolerations
+
+Indicates [tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the okteto components.
+Define the label and taint `okteto-node-pool` on your worker nodes to match these values.
+
+- `oktetoPool`: Tolerations for the api, webhook, gc, autoscaler, ingress controller, and frontend services.
+- `buildPool`: Tolerations for the buildkit and registry services.
+- `devPool`: Tolerations for the pods deployed in namespaces created by okteto.
+
+```yaml
+tolerations:
+  oktetoPool: okteto
+  buildPool: build
+  devPool: dev
+```
+
+For example, if you add the label `okteto-node-pool:build` and the taint `okteto-node-pool=build:NoSchedule` to a node, and you
+are using `buildPool: build`, the buildkit and registry pods are deployed to this node.
+
+### userDefinedNamespaces
+
+Disable if you want to enforce using the `username` as a suffix on namespaces and ingress hosts. Enabled by default.
+
+```yaml
+userDefinedNamespaces: false
+```
+
+### userPodAffinity
+
+When enabled Okteto automatically adds a preferred affinity to every pod, which leans towards placing pods from the same namespace and in the same node (default: `true`).
+
+```yaml
+userPodAffinity:
+  enabled: true
+```
+
+### virtualServices
+
+When enabled, the Okteto UI will show the public endpoints associated with [Istio Virtual Services](https://istio.io/latest/docs/reference/config/networking/virtual-service/) (default: `false`).
+
+```yaml
+virtualServices:
+  enabled: false
+```
+
+### volumes
+
+Allows you to specify different settings for volumes.
+
+ - `validate`: Section to configure volume validation.
+  - `enabled`: Enables volume validation. Disabled by default
+  - `supportedStorageClasses`: List of supported storage classes.
+  - `forceStorageClass`: Flag to specify if the storage class should be enforced in case of creating a volume with a non-supported storage class. If set, the first storage class specified on `supportedStorageClasses` will be the enforced value.
+  - `supportedAccessModes`: List of supported access modes.
+
+```yaml
+volumes:
+  validate:
+    enabled: true
+    supportedStorageClasses: ["standard", "standard-rwo"]
+    forceStorageClass: true
+    supportedAccessModes: ["ReadWriteOnce"]
+```
+
+### volumeSnapshots
+
+Enables users to initialize persistent volume claims with the contents of a preexisting volume snapshot.
+
+This feature requires having a CSI driver installed in your cluster.
+
+- `driver`: The name of the CSI driver used when creating snapshots.
+- `class`: The VolumeSnapshotClass of the volume snapshot.
+- `storageClass`: The storage class required by volumes initialized from snapshots (optional).
+- `enableNamespaceAccessValidation`: When enabled, only users that have access to the namespace where the volume snapshot is stored will be able to use it in their development environments. Default false.
+- `allowIDAnnotation`: Allow using your cloud provider's snapshot ID as the source of the data. Default true.
+
+```yaml
+volumeSnapshots:
+  enabled: true
+  driver: ebs.csi.aws.com
+  class: snapclass
+  storageClass: ebs-sc
+```
+
+Add the `dev.okteto.com/from-snapshot-id` annotation to any persistent volume claim to tell Okteto to initialize your persistent volume claim, as shown below:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-id: snap-xxxxxxxx
+  name: pvc-name
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+When a persistent volume claim resource is created, Okteto will import the snapshot in Kubernetes using a [VolumeSnapshotContent](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) and will set the source of your persistent volume claim to this VolumeSnapshotContent.
+
+### wildcardCertificate
+
+Disable if you want to bring your own certificates and/or certificate authority. Enabled by default.
+
+- `create`: If set to false, Okteto will not create the wildcard certificate automatically.
+- `duration`: The duration of the certificate. Ignored if `create` is set to `false`.
+- `name`: The name of the secret where the certificate will be stored.
+- `privateCA.enabled`: Set to true when using a private certificate authority.
+- `privateCA.secret.name`: The name of the secret that stores the private certificate authority's certificate.
+- `privateCA.secret.key`: The key in the secret that stores the private certificate authority's certificate.
+
+```yaml
+wildcardCertificate:
+  create: true
+  duration: 2160h0m0s
+  name: default-ssl-certificate
+  # if using a private CA, specify the name of the TLS secret that stores the certificate
+  privateCA:
+    enabled: false
+    secret:
+      name: "okteto-ca"
+      key: "ca.crt"
+```
+
+### user
+
+#### serviceAccount
+
+The configured annotations and labels are additional to the ones already applied by Okteto.
+
+- `annotations`: Annotations added to each service account generated by Okteto for user accounts.
+- `labels`: Labels added to each service account generated by Okteto for user accounts.
+
+```yaml
+user:
+  serviceAccount:
+    annotations:
+      custom.annotation/one: one
+      custom.annotation/two: two
+    labels:
+      custom.label/one: one
+      custom.label/two: two
+```
+
+A common use case for adding service account annotations is to [get access via IAM Roles or Workload Identity](https://community.okteto.com/t/support-for-gke-workload-identities-for-okteto-self-hosted/39/4) to create Cloud resources as part of your Okteto Manifest `deploy` commands.
+
+- [Azure Workload Identity](https://azure.github.io/azure-workload-identity/docs/)
+- [GKE Workload identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
+- [AWS IAM Roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)
+
+
+## Dependencies
+
+Okteto will automatically install [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) as part of the default installation, using its official [Helm chart](https://kubernetes.github.io/ingress-nginx).
+
+### NGINX-Ingress
+
+Use the `ingress-nginx` keys in your configuration file to modify the configuration.
+
+For example, to change the number of replicas, you'd need to add the following:
+
+```yaml
+ingress-nginx:
+  controller:
+    replicaCount: 2
+```
+
+The full list of values is [available here](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml).

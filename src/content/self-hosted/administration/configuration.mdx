@@ -33,7 +33,7 @@ license: XXXXX
 
 Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
-> You can also use a [secret](/docs/self-hosted/install/deployment/#cloud-provider-secret) to store the license.
+> You can also use a [secret](self-hosted/install/deployment.mdx#cloud-provider-secret) to store the license.
 
 ### subdomain
 
@@ -51,7 +51,7 @@ After installation, we recommend that you create a DNS entry for `*.$SUBDOMAIN`,
 
 Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
 
-> You can also use a [secret](/docs/self-hosted/install/deployment/#cloud-provider-secret) to store the sensitive part of these credentials.
+> You can also use a [secret](self-hosted/install/deployment.mdx#cloud-provider-secret) to store the sensitive part of these credentials.
 
 #### Bitbucket
 
@@ -88,7 +88,7 @@ The `workspace` field is optional. Only members of the workspace will be allowed
 
 #### GitHub
 
-> If you are planning on using the GitHub Integration, you should follow [this guide](/docs/self-hosted/administration/configuration/#creating-the-github-app). You'll then use the same Github Application for the Integration as the one from Oauth.
+> If you are planning on using the GitHub Integration, you should follow [this guide](self-hosted/administration/configuration.mdx#creating-the-github-app). You'll then use the same Github Application for the Integration as the one from Oauth.
 
 Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
 
@@ -152,6 +152,15 @@ The `allowDomains` field is optional. Only users with Google Workspace accounts 
 
 Follow your OpenID Connect service provider's documentation on how to create the required application.
 
+Okteto supports any identity provider that implements the OpenID Connect standard. The following external identity providers have been tested with Okteto:
+
+- [Azure Active Directory](self-hosted/guides/azure-active-directory/index.mdx)
+- [Gitlab](self-hosted/guides/gitlab/index.mdx)
+- [Okta](self-hosted/guides/okta/index.mdx)
+
+
+> Are we missing your favorite identity provider? Open a feature request in the [Okteto Community](https://community.okteto.com/t/about-the-feature-requests-category/28) and let us know!
+
 When creating the application, you'll need to provide the following values:
 
 - Start SSO URL:  `https://okteto.DOMAIN`
@@ -190,9 +199,9 @@ The `mapping` fields are optional. Use them to configure the mapping between Okt
 
 ### cloud
 
-Okteto integrates with different cloud providers to store the [Okteto Registry](/docs/cloud/registry/) images.
+Okteto integrates with different cloud providers to store the [Okteto Registry](cloud/registry.mdx) images.
 
-> The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](/docs/self-hosted/install/deployment/#cloud-provider-secret).
+> The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](self-hosted/install/deployment.mdx#cloud-provider-secret).
 
 #### Azure
 
@@ -214,6 +223,10 @@ The storage setting will be used by the registry to pull and push images (if [us
 
 Use this to use S3 to store your private images.
 
+The bucket will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+##### IAM User
+
 ```yaml
 cloud:
   provider:
@@ -225,7 +238,23 @@ cloud:
         enabled: true
         accessKeyID: "IAM Access Key"
 ```
-The bucket will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+##### IAM Role for Service Account (IRSA)
+
+```yaml
+cloud:
+  provider:
+    aws:
+      enabled: true
+      bucket: "Bucket Name"
+      region: "AWS region"
+      iam:
+        enabled: false
+registry:
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-registry-role-name'
+```
 
 #### Digitalocean
 
@@ -247,6 +276,21 @@ The space settings will be used by the registry to pull and push images (if [usi
 
 Use this to use Google Cloud Storage to store your private images.
 
+The bucket settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
+
+##### Service Account Key (JSON)
+
+```yaml
+cloud:
+  provider:
+    gcp:
+      enabled: true
+      bucket: "Bucket Name"
+      project: "Project ID"
+```
+
+##### Workload Identity
+
 ```yaml
 cloud:
   provider:
@@ -255,10 +299,12 @@ cloud:
       bucket: "Bucket Name"
       project: "Project ID"
       workloadIdentity:
-        enabled: false
+        enabled: true
+registry:
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: 'GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com'
 ```
-
-The bucket settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
 
 #### BYO
 
@@ -271,7 +317,7 @@ cloud:
       enabled: true
 ```
 
-When using `byo` you'll need to [configure your registry](docs/self-hosted/administration/configuration/#registry) to use the file system for storage.
+When using `byo` you'll need to [configure your registry](self-hosted/administration/configuration.mdx#registry) to use a persistent volume for storage. 
 
 ```yaml
 registry:
@@ -324,13 +370,14 @@ Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluste
 - `annotations`: Annotations to add to the autoscaler pods.
 - `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
 - `cpu.down`: Decrease the cluster size when the CPU consumption is lesser than this value. It defaults to 40 percent.
-- `increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `image`: image used by the autoscaler to deploy the autoscaler agent. It defaults to `busybox`.
 - `labels`: Labels to add to the autoscaler pods.
-- `max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
 - `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
 - `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
-- `min`: Minimum number of nodes in the cluster. It defaults to 1.
-- `nodePoolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
+- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
+- `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
+- `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
 - `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
 - `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
 - `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
@@ -341,10 +388,8 @@ Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluste
 ```yaml
 autoscaler:
   enabled: false
+  image: busybox
   schedule: 300
-  increment: 1
-  min: 1
-  max: 10
   cpu:
     up: 60
     down: 40
@@ -357,6 +402,11 @@ autoscaler:
   volumes:
     up: 90
     down: 80
+  nodes:
+    increment: 1
+    min: 1
+    max: 10
+    podLabel: cloud.google.com/gke-nodepool
   slackWebhook:
 ```
 
@@ -411,6 +461,7 @@ The daemonset automatically configures every node of your cluster to work better
 - `extraEnv`: Environment variables to be set on the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
 - `image`: Container image used by the daemonset pods.
+- `initContainers.privateCA.image`: InitContainer image used by the daemon pods. Defaults to `busybox`
 
 ### frontend
 
@@ -454,16 +505,18 @@ gc:
 
 ### installer
 
-The jobs that deploy your [development environments from Git](/docs/cloud/deploy-from-git/).
+The jobs that deploy your [development environments from Git](cloud/deploy-from-git.mdx).
 
 - `annotations`: Annotations to add to the installer job pods.
 - `extraEnv`: Environment variables to be set on the installer job containers.
 - `labels`: Labels to add to the installer job pods.
 - `image`: to configure your custom installer binaries, including a custom Okteto CLI version.
-- `runner`: to configure your [custom installer image](/docs/self-hosted/administration/custom-installer-image/).
+- `runner`: to configure your [custom installer image](self-hosted/administration/custom-installer-image.mdx).
 - `activeDeadlineSeconds`:  Maximum duration of the pipeline in seconds.
 - `gitSSHUser`: User to be used when cloning git repos using ssh.
 - `sshSecretName`: The name of the secret that contains the private key used when cloning git repos using ssh. If it doesn't exist, the key and the secret will be automatically generated by Okteto.
+- `resources`: The resources for pods created by the installer jobs.
+
 
 ```yaml
 installer:
@@ -475,6 +528,22 @@ installer:
   activeDeadlineSeconds: 1800
   gitSSHUser: git
   sshSecretName: "okteto-ssh"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi
+```
+
+- `buildCredentialHelpers`: Mapping of registry hostnames as keys to credential helpers as values. Disabled if `privateRegistry` is defined. Registry hostnames must be Fully Qualified Domain Names. Credential helper names must be accessible at installer job pod `$PATH` as `docker-credential-$NAME`.
+
+```yaml
+installer:
+  buildCredentialHelpers:
+    111122223333.dkr.ecr.eu-central-1.amazonaws.com: ecr-login
+user:
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-installer-role-name'
 ```
 
 ### registry
@@ -483,13 +552,14 @@ The private container registry.
 
 - `annotations`: Annotations to add to the registry pods.
 - `extraEnv`: Environment variables to be set on the registry containers.
-- `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precendence over the ones defined in the [ingress](/docs/self-hosted/administration/configuration/#ingress) section.
+- `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precendence over the ones defined in the [ingress](self-hosted/administration/configuration.mdx#ingress) section.
 - `ingress.tlsSecret`: TLS secret for the registry endpoint. If empty, okteto will default to the wildcard certificate created by Okteto.
 - `labels`: Labels to add to the registry pods.
 - `pullPolicy`: The security policy for image pulls. If set to `cluster`, any Okteto user can pull any image from the registry. When set to `namespace`, only users with access to the namespace can pull images from the namespace. It defaults to `namespace`.
 - `replicaCount`: The number of registry pods. It defaults to 1.
 - `resources`: The resources for the registry pods.
-- `serviceAccountName`: The service account used by the registry. It defaults to `default`.
+- `serviceAccountName`: Alternative service account to be used by the registry. The service account must exist in the same namespace for the Okteto Helm release. Defaults to none.
+- `serviceAccount.annotations`: Annotations to add to the registry service account.
 - `storage`: The storage mechanism for the images.
   - `cloud.enabled`: Set this to true if you want to store the images using your cloud provider's block storage service (e.g. S3). It will use the values defined in the [`cloud` key](#cloud). It's enabled by default.
 
@@ -554,27 +624,38 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 ## Advanced Configuration
 
-### affinities
+### affinity
 
 Apply default affinities to pods deployed in namespaces created by Okteto.
 
+- `devPool`: Affinities for pods created on namespaces managed by Okteto.
+- `oktetoPool`: Affinities for pods created during the Okteto installation.
+
 ```yaml
-affinities:
+affinity:
   devPool:
-    - weight: 10
-      preference:
-        matchExpressions:
-        - key: cloud.google.com/gke-preemptible
-          operator: In
-          values:
-          - "true"
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - preference:
+          matchExpressions:
+          - key: cloud.google.com/spot
+            operator: In
+            values:
+            - "true"
+        weight: 10
+  oktetoPool:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - preference:
+          matchExpressions:
+          - key: dev.okteto.com/overloaded
+            operator: DoesNotExist
+        weight: 50
 ```
 
 In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptible nodes.
 
 ### applications
 
-- `repository`: The [Helm repository](/docs/cloud/deploy-from-helm/) available for every developer. This is disabled by default. To enable, set the `applications.repository` property to your Helm registry URL
+- `repository`: The [Helm repository](cloud/deploy-from-helm.mdx) available for every developer. This is disabled by default. To enable, set the `applications.repository` property to your Helm registry URL
 
 ```yaml
 applications:
@@ -617,9 +698,24 @@ convertLoadBalancedServices:
   enabled: true
 ```
 
+### crds
+
+Configures CRDs managed by Okteto
+
+- `annotations`: The annotations to apply to the CRDs created during the Okteto installation.
+- `keep`: Keep CRDs on chart uninstall (defaults to `true`).
+- `install`: Install and upgrade CRDs on chart install (defaults to `true`).
+
+```yaml
+crds:
+  install: true
+  keep: true
+  annotations: {}
+```
+
 ### devStorageClass
 
-Uses the specified storage class for all persistent volume claims created when developers execute `okteto up`. This setting will override any storage class defined on the [Okteto manifest](/docs/reference/manifest/#persistentvolume-object-optional). Disabled by default.
+Uses the specified storage class for all persistent volume claims created when developers execute `okteto up`. This setting will override any storage class defined on the [Okteto manifest](reference/manifest.mdx#persistentvolume-object-optional). Disabled by default.
 
 - `storageClass`: The storage class enforced for persistent volume claims created by `okteto up`.
 
@@ -629,7 +725,7 @@ devStorageClass:
   storageClass: ebs-sc
 ```
 
-There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](/docs/self-hosted/administration/volume-snapshots/) configured, if a storage class is required for the snapshots that storage class will have preference.
+There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](self-hosted/administration/volume-snapshots.mdx) configured, if a storage class is required for the snapshots that storage class will have preference.
 
 ### globalClusterRole
 
@@ -807,7 +903,7 @@ privateRegistry:
 
 You can use this to configure a Docker Hub account for your cluster in order to avoid DockerHub's pull limits.
 Be careful, a credential misconfiguration could lead to an issue where kubelet cannot pull public images from Docker Hub.
-If this happens, [follow these instructions](/docs/self-hosted/install/troubleshooting/#private-image-registry-credentials-misconfiguration) to recover from this state.
+If this happens, [follow these instructions](self-hosted/install/troubleshooting.mdx#private-image-registry-credentials-misconfiguration) to recover from this state.
 
 ### pullAlways
 
@@ -863,7 +959,7 @@ Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-qu
   - `maxPVCs`: Maximum number of persistent volume claims per namespace.
   - `maxVolumeSnapshots`: Maximum number of volume snapshots per namespace.
   - `maxIngresses`: Maximum number of ingresses per namespace
-- `bandwidth`: Limits the incoming/outcoming bandwidth per pod. Requires using the Okteto [NGINX Ingress Controller](/docs/self-hosted/administration/configuration/#nginx-ingress).
+- `bandwidth`: Limits the incoming/outcoming bandwidth per pod. Requires using the Okteto [NGINX Ingress Controller](self-hosted/administration/configuration.mdx#nginx-ingress).
   - `ingress`: Maximum ingress bandwidth.
   - `egress`: Maximum egress bandwidth.
   - `up`: Limits the incoming/outgoing bandwidth per development container.
@@ -983,6 +1079,15 @@ userPodAffinity:
   enabled: true
   antiAffinity: 
     enabled: false
+```
+
+### virtualServices
+
+When enabled, the Okteto UI will show the public endpoints associated with [Istio Virtual Services](https://istio.io/latest/docs/reference/config/networking/virtual-service/) (default: `false`).
+
+```yaml
+virtualServices:
+  enabled: false
 ```
 
 ### volumes
