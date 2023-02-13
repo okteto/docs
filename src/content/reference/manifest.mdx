@@ -214,6 +214,16 @@ deploy:
   compose: docker-compose.yml
 ```
 
+You can share environment variables between steps by adding them to `$OKTETO_ENV`:
+
+```yaml
+deploy:
+  - name: Set env value
+    command: echo "OKTETO_FOLDER=/app" >> $OKTETO_ENV 
+  - name: Get env value
+    command: echo "$OKTETO_FOLDER" # Prints /app
+```
+
 ### destroy ([string], optional)
 
 A list of commands to destroy external resources created by your development environment.
@@ -728,16 +738,18 @@ A list of external resources that are part of your development environment.  Use
 external:
   db:
     notes: docs/database.md
+    icon: database
     endpoints:
     - name: db
       url: https://localhost:3306
   functions:
     notes: docs/lambdas.md
+    icon: function
     endpoints:
     - name: data-aggregator
-      url: https://fake-id.lambda-url.us-east-1.on.aws
+      url: https://fake-id.lambda-url.us-east-1.on.aws.aggregator
     - name: data-processor
-      url: https://fake-id.lambda-url.us-east-2.on.aws
+      url: https://fake-id.lambda-url.us-east-1.on.aws.processor
 ```
 
 #### endpoints ([object], required)
@@ -751,6 +763,39 @@ The name of the endpoint.
 ##### url (string, optional)
 
 The url of the endpoint.
+
+##### Use dynamic endpoints for an external URL
+
+The url value related to an external resource can be set during deployment stage by sharing `$OKTETO_EXTERNAL_{EXTERNAL_NAME}_ENDPOINTS_{ENDPOINT_NAME}_URL`. This allows a value to be generated dynamically at deployment time.
+
+```yaml
+deploy:
+  - name: Set endpoint URL dynamically
+    command: echo "OKTETO_EXTERNAL_DB_ENDPOINTS_DB_URL=$(aws deploy db --name foo)" >> $OKTETO_ENV
+  - name: Use dynamic value
+    command: echo ${OKTETO_EXTERNAL_DB_ENDPOINTS_DB_URL}
+external:
+  db:
+    notes: docs/database.md
+    icon: database
+    endpoints:
+    - name: db
+    # url: is not set because it is dynamically generated in the deploy section.
+```
+
+If the url value is declared in both places, the one declared in the deploy section will prevail. 
+
+#### icon (string, optional)
+
+ Sets the icon that will be shown in the UI. The supported values for icons are listed below. If empty, it will default to `default`.
+
+ - `container`
+ - `dashboard`
+ - `database`
+ - `default`
+ - `function`
+ - `graph`
+ - `storage`
 
 #### notes (string, optional)
 
