@@ -27,8 +27,8 @@ yarn start
 To create a new version, run the following commands:
 
 ```
-yarn install docusaurus
-yarn run docusaurus docs:version 0.XX
+yarn add docusaurus
+yarn run docusaurus docs:version 1.x
 ```
 
 This will create a new version with the docs on your current branch. Do this before you start merging the docs for the next version. 
