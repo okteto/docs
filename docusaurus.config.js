@@ -153,15 +153,20 @@ module.exports = {
           routeBasePath: '/',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.4',
+          lastVersion: '1.5',
           versions: {
             current: {
+              label: '1.6',
+              path: '1.6',
+            },
+            '1.5': {
               label: '1.5',
-              path: '1.5',
+              path: '/',
+              banner: 'none',
             },
             '1.4': {
               label: '1.4',
-              path: '/',
+              path: '1.4',
               banner: 'none',
             },
             '1.3': {
