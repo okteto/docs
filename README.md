@@ -33,7 +33,9 @@ yarn run docusaurus docs:version 0.XX
 
 This will create a new version with the docs on your current branch. Do this before you start merging the docs for the next version. 
 
-Modify `docusaurus.config.js`](docusaurus.config.js):
+Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaurus.config.js) as follows:
+
+
 1. Update `lastVersion` to the new official version
 
 2. Update `current` to the version in development
@@ -67,6 +69,19 @@ Modify `docusaurus.config.js`](docusaurus.config.js):
             banner: 'none',
         },
     ```
+
+
+Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/` redirects to `/docs`
+
+```
+# Redirect the current version to /docs/
+[[redirects]]
+  from = "/docs/1.5/*"
+  to = "/docs/:splat"
+  status = 301
+```
+
+https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
 
 
 ## Components
