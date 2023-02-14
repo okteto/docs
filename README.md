@@ -16,22 +16,35 @@ You should now see the docs deployed on http://localhost:8080/docs/ 🚀
 
 ### 💻 Develop locally
 
+*You'll need to install `node` 16+ and `yarn` 1.22+ locally in order to be able to build the doc site locally.* 
+
+
 Clone the repo and then run:
 
 ```console
 yarn
 yarn start
 ```
-## Version
 
+## Create a new version of the Docs
+
+*A new version of the docs is created once the documentation for a certain version is "finished". This is typically done in preparation of a new release.*
+
+
+### Create a new version
 To create a new version, run the following commands:
 
 ```
-yarn install docusaurus
-yarn run docusaurus docs:version 0.XX
+yarn add docusaurus
+yarn run docusaurus docs:version 1.XX
 ```
 
-This will create a new version with the docs on your current branch. Do this before you start merging the docs for the next version. 
+This will create a new version with the docs on your current branch. 
+
+### Change the default version
+
+*The default version of the docs is created and published once a new version of Okteto is available. This is typically done as part of the release process of Okteto Self-Hosted.*
+
 
 Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaurus.config.js) as follows:
 
