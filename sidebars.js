@@ -71,7 +71,7 @@ module.exports = {
     "Administration": [
       "administration/dashboard",
       "administration/cleanup",
-      "administration/git-catalog",
+      "administration/catalog",
       {
         "type": "category",
         "label": "Private Repositories",
