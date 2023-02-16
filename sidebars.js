@@ -28,6 +28,7 @@ module.exports = {
         "type": "category",
         "label": "Deploying",
         "items": [
+          "cloud/launch-from-catalog",
           "cloud/deploy-from-git",
           "cloud/private-repositories",
           "cloud/deploy-from-helm"
