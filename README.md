@@ -6,14 +6,6 @@ This repository is the source for https://okteto.com/docs. If you'd like to cont
 
 ## Development
 
-### ☁️ Develop With Okteto
-
-- [Install Okteto CLI](https://www.okteto.com/docs/getting-started/#installing-okteto-cli)
-- [Set your `okteto context`](https://www.okteto.com/docs/getting-started/#configuring-okteto-cli-with-okteto-cloud)
-- Clone the repo and run `okteto up` from the root of the repo
-
-You should now see the docs deployed on http://localhost:8080/docs/ 🚀
-
 ### 💻 Develop locally
 
 *You'll need to install `node` 16+ and `yarn` 1.22+ locally in order to be able to build the doc site locally.* 
