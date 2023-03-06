@@ -357,53 +357,6 @@ $ okteto kubeconfig
  i  Updated kubernetes context 'cloud_okteto_com/cindy' in '/Users/cindy/.kube/config'
 ```
 
-### kubetoken
-
-> This command is only available in okteto clusters
-
-Print Kubernetes cluster credentials in [ExecCredential](https://kubernetes.io/docs/reference/config-api/client-authentication.v1/) format. More information on client side authentication can be found [here](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins).
-
-This command is used internally by okteto to authenticate with the Kubernetes cluster in your kubeconfig, and should only be used when troubleshooting authentication issues.
-
-```console
-$ okteto kubetoken
-```
-
-```json
-{
-  "apiVersion": "client.authentication.k8s.io/v1",
-  "metadata": {
-    "creationTimestamp": null,
-    "managedFields": [
-      {
-        "manager": "backend",
-        "operation": "Update",
-        "apiVersion": "authentication.k8s.io/v1",
-        "time": "2023-03-01T13:18:48Z",
-        "fieldsType": "FieldsV1",
-        "fieldsV1": {
-          "f:spec": {
-            "f:expirationSeconds": {}
-          }
-        },
-        "subresource": "token"
-      }
-    ]
-  },
-  "spec": {
-    "audiences": [
-      "<your-cluster-audience>"
-    ],
-    "expirationSeconds": 1800,
-    "boundObjectRef": null
-  },
-  "status": {
-    "token": "<your.jwt.token>",
-    "expirationTimestamp": "2023-03-01T13:48:48Z"
-  }
-}
-```
-
 ### namespace
 
 Configure the current namespace of the okteto context.
@@ -721,3 +674,54 @@ Displays the current installed version
 ```console
 $ okteto version
 ```
+
+## Troubleshooting
+
+### Kubernetes authentication
+
+After you've ran `okteto kubeconfig` you should be able to communicate with the cluster through tools like `kubectl` and `helm`. If you are getting errors when trying to do so, you can use the `okteto kubetoken` command to troubleshoot the issue. This command is used internally as your [authentication plugin](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins) against the cluster. 
+
+When running
+
+```console
+$ okteto kubetoken <your_okteto_context>
+```
+
+You should see a message like this:
+
+```json
+{
+  "apiVersion": "client.authentication.k8s.io/v1",
+  "metadata": {
+    "creationTimestamp": null,
+    "managedFields": [
+      {
+        "manager": "backend",
+        "operation": "Update",
+        "apiVersion": "authentication.k8s.io/v1",
+        "time": "2023-03-01T13:18:48Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:spec": {
+            "f:expirationSeconds": {}
+          }
+        },
+        "subresource": "token"
+      }
+    ]
+  },
+  "spec": {
+    "audiences": [
+      "<your-cluster-audience>"
+    ],
+    "expirationSeconds": 1800,
+    "boundObjectRef": null
+  },
+  "status": {
+    "token": "<your.jwt.token>",
+    "expirationTimestamp": "2023-03-01T13:48:48Z"
+  }
+}
+```
+
+If you are getting something else, you should be receiving an error message with guidance on how to follow up.
