@@ -47,6 +47,26 @@ subdomain: "example.com"
 
 After installation, we recommend that you create a DNS entry for `*.$SUBDOMAIN`, pointing to the public address of your load balancer.
 
+### publicOverride
+
+Use this property to override where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with you [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
+
+When set, an additional component is deployed for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature. You can configure its settings at [`privateEndpoints`] section.
+
+Authentication callback URL and origin URL will change to the following:
+
+**Callback URL**:
+```
+https://${publicOverride}/auth/callback
+https://private-endpoints.${subdomain}/auth/callback
+```
+
+**Origin URL**:
+```
+https://${publicOverride}
+https://private-endpoints.${subdomain}
+```
+
 ### auth
 
 Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
@@ -1215,6 +1235,19 @@ A common use case for adding service account annotations is to [get access via I
 - [GKE Workload identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
 - [AWS IAM Roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)
 
+### privateEndpoints
+
+When [`publicOverride`] is set, Okteto Self Hosted deploys an additional component for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature, which is responsible for authenticating and authorizing requests sent to Okteto Endpoints set to private mode.
+
+- `port`: Internal port used for the Private Endpoint component. Defaults to `8080`.
+- `resources`: The resources for the Private Endpoint component pods.
+- `replicaCount`: The number of Private Endpoint component pods. It defaults to 1.
+- `annotations`: Annotations to add to the Private Endpoint component pods.
+
+By default, the Private Endpoint component will inherit the configuration set at the [`auth`] section, but you can override some values with the following properties: 
+
+- `clientID`: Overrides `auth.*.clientID`.
+- `clientSecret`: Overrides `auth.*.clientSecret`.
 
 ## Dependencies
 
