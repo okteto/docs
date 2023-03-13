@@ -8,7 +8,21 @@ id: releases
 ## 1.6.0
 13 March, 2023
 
-This version comes with a breaking change. The default ingress class for ingresses managed by okteto is `okteto-nginx` instead of `nginx` to prevent colissions with other controllers that might be already installed in the cluster. All ingresses managed by Okteto will be automatically updated. No action is required from the user. If you want to keep the previous value (`nginx`), you would need to set the keys `ingress.oktetoIngressClass` and `ingress.class` to `nginx` in your helm values file before upgrading Okteto.
+This version comes with a breaking change. The default ingress class for ingresses managed by okteto is `okteto-nginx` instead of `nginx` to prevent colissions with other controllers that might be already installed in the cluster. All ingresses managed by Okteto will be automatically updated. No action is required from the user. If you want to keep the previous value (`nginx`), you would need to set the following values in your helm values file:
+
+```yaml
+ingress:
+  class: nginx
+  oktetoIngressClass: nginx
+ingress-nginx:
+  controller:
+    ingressClass: nginx
+    ingressClassResource:
+      name: nginx
+      controllerValue: "k8s.io/ingress-nginx"
+```
+
+
 
 In some cases, there is a race condition recreating the controller pods in which a controller pod starts before the new ingress class is created in the cluster and that generates 404 errors when accessing Okteto or dev environments. If that happens, a rollout of the controller deployment fixes the issue (`kubectl rollout restart deployment <ingress-controller-deployment-name> -n okteto`).
 
