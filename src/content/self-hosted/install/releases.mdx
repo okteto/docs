@@ -5,6 +5,67 @@ sidebar_label: Release Notes
 id: releases
 ---
 
+## 1.6.0
+13 March, 2023
+
+### Breaking changes
+
+This version comes with a breaking change. The default ingress class for ingresses managed by okteto changed from `nginx` to `okteto-nginx`  to prevent collisions with other controllers that might be already installed in the cluster. There is no action required from the user,  all ingresses managed by Okteto will be automatically updated as part of the upgrade.
+
+If you want to continue to use the previous value (`nginx`), you can do it by setting the following values in your helm values file:
+
+```yaml
+ingress:
+  class: nginx
+  oktetoIngressClass: nginx
+ingress-nginx:
+  controller:
+    ingressClass: nginx
+    ingressClassResource:
+      name: nginx
+      controllerValue: "k8s.io/ingress-nginx"
+```
+
+
+
+In some cases, there is a race condition recreating the controller pods in which a controller pod starts before the new ingress class is created in the cluster and that generates 404 errors when accessing Okteto or dev environments. For that reason, we recommend to rollout the ingress controller deployment to avoid this issue (`kubectl rollout restart deployment <ingress-controller-deployment-name> -n okteto`).
+
+### Deprecation Notice
+- Support for Kubernetes [1.21](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.21.md) has been deprecated and will be removed next release.
+
+### Features
+
+- Add support for Kubernetes [1.24](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md)
+- Update the Okteto CLI version to [2.13.0](https://github.com/okteto/okteto/releases/tag/2.13.0)
+- Support [custom quotas](self-hosted/administration/configuration.mdx#quotas) for node port and load balancer service types
+- [Public override support](self-hosted/administration/configuration.mdx#publicoverride) for self-signed certificates and bring your own certificate
+- The wake operation will now wake up dependent services first, following the same order as when the environment was created.
+- Add support for [dynamic endpoints for external resources](reference/manifest.mdx#use-dynamic-endpoints-for-an-external-url)
+
+### Improvements
+
+- Several improvements in the UI to keep the status updated accordingly with the status in user's dev environments
+- Allow users to access to namespaces that are being terminated to see the operation logs
+- Added input autofocus in several dialogs
+- The "Create Namespace" button is now enabled immediately after you start writing the name of the namespace in the "New Namespace" dialog.
+- You can now filter the available branches in the GitHub deploy dialog
+- Simplified the admin dashboard by removing duplicated titles in every section.
+- Do not autodestroy GC job when it ends. Last 3 executions of the job will be kept, so job logs can be accessed
+- Private endpoints cookie is now set in the backend and specified as "httpOnly"
+- Upgrade Reloader dependency to [1.0.5](https://github.com/stakater/Reloader/releases/tag/v1.0.5)
+
+### Bugfixes
+
+- Skip volume snapshots deletion as part of destroy all operation if "include volumes" check is not selected
+- Fix "Destroy all", "Delete namespace" and "Wake namespace" operations when using private CAs or self-signed certificates
+- Display the correct operation name in logs when deleting a namespace or destroying all resources within a namespace
+- Avoid duplicated log lines when the browser visibility changes
+- Self-signed certificate is recreated when [subdomain](self-hosted/administration/configuration.mdx#subdomain) or [publicOverride](self-hosted/administration/configuration.mdx#publicoverride) changes after an upgrade
+- Fixed view transition when a destroy namespace operation is retried
+- Fixed missing [custom icons on external resources](reference/manifest.mdx#icon-string-optional)
+- Fixed autofocus on confirm dialogs
+- GC deletes pods stuck in `Failed` phase with `NodeAffinity` reason
+
 ## 1.5.1
 6 March, 2023
 
@@ -39,8 +100,8 @@ id: releases
 - "Get Started" button is not active while running a "destroy all" job
 - Fix namespace wake up when endpoint requests is sent to paths other than root.
 - Keep ingress class on wake if ingress class is different than "sleeping"
-- Ignore read only Kubernetes API Extension Servers (e.g. metrics.k8s.io) if unavailable on destroy all job runs. 
-- When using Divert, some scenarios may cause its ingress configuration to be dropped 
+- Ignore read only Kubernetes API Extension Servers (e.g. metrics.k8s.io) if unavailable on destroy all job runs.
+- When using Divert, some scenarios may cause its ingress configuration to be dropped
 - Don't show a pointer cursor type in log lines
 - Autopreviews are now being deleted when PR is merged or closed
 - Correctly alignment of non private/divert endpoints and repository at resource details section.
