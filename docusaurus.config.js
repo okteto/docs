@@ -160,7 +160,7 @@ module.exports = {
               path: '1.7',
             },
             '1.6': {
-              label: '1.5',
+              label: '1.6',
               path: '/',
               banner: 'none',
             },
