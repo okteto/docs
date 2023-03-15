@@ -1,0 +1,239 @@
+---
+title:  DigitalOcean Kubernetes (DOKS)
+description: How to install Okteto onto DigitalOcean Kubernetes
+id: do
+---
+
+This guide will show you how to install Okteto onto DigitalOcean Kubernetes. We'll be focusing exclusively on DigitalOcean Kubernetes in order to keep it as simple as possible.
+
+## Requirements
+
+In order to fully install Okteto, you'll need the following:
+
+- A subdomain to which you can add a wildcard DNS record
+- A Kubernetes cluster
+- A working installation of kubectl
+- A working installation of Helm v3
+- A GitLab OAuth application
+- A DigitalOcean personal access token
+- A DigitalOcean space and access key
+- An Okteto License (optional)
+
+### Subdomain
+
+You'll need access to a subdomain to which you can add a wildcard DNS record, such as dev.example.com.
+
+This guide will assume that your domain is registered in [DigitalOcean](https://cloud.digitalocean.com/networking/domains). Other DNS services can be used, but aren't covered here.
+
+In the rest of this guide, we will refer to this subdomain as `DOMAIN`.
+
+### Deploy a Kubernetes cluster
+
+If you are not familiar with this step, we recommend that you follow DigitalOcean's [cluster creation guide](https://www.digitalocean.com/docs/kubernetes/how-to/create-clusters/).
+Okteto supports Kubernetes versions 1.22 through 1.24.
+
+To get started with Okteto, follow these specs:
+
+- v1.23
+- A pool with at least 2 nodes (4CPUs and 16GBs each) without autoscalability
+- 250 GB per disk
+
+You'll be using the cluster's API server endpoint when configuring Okteto.
+Run the following command to obtain your cluster's API server endpoint:
+
+```
+kubectl config view --minify | grep server
+```
+
+> Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
+
+### Installing kubectl
+
+Follow the official documentation for [installing kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Once installed, configure `kubectl` to [talk to your new cluster](https://www.digitalocean.com/docs/kubernetes/how-to/connect-to-cluster/).
+
+### Installing Helm v3
+
+Follow the official documentation for [installing the latest release of Helm v3](https://helm.sh/docs/intro/install/).
+
+### Creating the GitLab OAuth application
+
+Okteto supports OAuth providers like Google, Bitbucket, GitHub, or OpenID Connect to handle user authentication. All the supported configuration settings [are described here](self-hosted/administration/configuration.mdx#auth).
+
+For this guide, we will focus on using GitLab OpenID Connect.
+
+Follow GitLab's official documentation on [how to create an OAuth Client](https://docs.gitlab.com/ee/integration/oauth_provider.html).
+
+When creating the OAuth Application, you will need to provide the following values:
+
+**Redirect URIs**:
+```
+https://okteto.DOMAIN
+https://okteto.DOMAIN/auth/callback
+```
+
+**Scopes**:
+```
+openid
+profile
+email
+```
+
+You'll use the `Application ID` and `Secret` of your OAuth Application when installing Okteto.
+
+### Creating a DigitalOcean Space and Access Key
+
+Okteto uses DigitalOcean spaces to store your private images. Follow DigitalOcean's [guide on how to create a space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key).
+Create the space in the same region as your Kubernetes cluster and restrict file listing.
+
+### Getting your Okteto License
+
+Okteto is free for up to 3 users without a license.
+You can also sign on for the [free trial](https://www.okteto.com/free-trial/) to give access up to 100 users for a month.
+
+## Installing Okteto
+
+### Create the Okteto Namespace
+
+Run the following command to create a namespace to install Okteto in:
+
+```console
+$ kubectl create namespace okteto
+```
+
+### Configuring your Okteto instance
+
+Create a Kubernetes secret with the DigitalOcean space access key secret (`$SECRET`) you created before:
+
+```console
+$ kubectl create secret generic okteto-cloud-secret --namespace=okteto --from-literal=key=$SECRET
+```
+
+Using these values:
+
+- Your email: `$EMAIL`
+- Your license (optional): `$LICENSE`
+- Your subdomain: `$SUBDOMAIN`
+- Your cluster's API server endpoint
+- The URL of your GitLab instance: `$GITLAB_URL`. Use https://gitlab.com if your are using GitLab SaaS
+- Application ID: `$OAUTH_APPLICATION_ID` and Secret: `$OAUTH_APPLICATION_SECRET` of the OAuth 2.0 Client you created
+- The ID of the DigitalOcean region of your Kubernetes cluster: `$REGION`
+- Your space name: `$SPACE_NAME` and access key ID : `$SPACE_ACCESS_KEY_ID`
+
+create the following `config.yml` file to configure the Okteto Helm chart:
+
+```yaml
+email: "$EMAIL"
+license: "$LICENSE"
+subdomain: "$SUBDOMAIN"
+
+cluster:
+  endpoint: "$KUBERNETES_ENDPOINT"
+
+auth:
+  openid:
+    enabled: true
+    endpoints:
+       issuer: "$GITLAB_URL"
+       authorization: "$GITLAB_URL/oauth/authorize"
+    clientId: "$OAUTH_APPLICATION_ID"
+    clientSecret: "$OAUTH_APPLICATION_SECRET"
+
+cloud:
+  provider:
+    digitalocean:
+      enabled: true
+      region: "$REGION"
+      space:
+        name: "$SPACE_NAME"
+        accessKeyID: "$SPACE_ACCESS_KEY_ID"
+
+buildkit:
+  ingress:
+    enabled: false
+  service:
+    type: LoadBalancer
+```
+
+### Adding the Okteto Helm repository
+
+You'll need to add the Okteto repository in order to be able to install Okteto:
+
+```console
+helm repo add okteto https://charts.okteto.com
+helm repo update
+```
+
+### Installing your Okteto instance
+
+Install the latest version of Okteto by running:
+
+```console
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto
+```
+
+After a few seconds, all the resources will be created. The output will look something like this:
+
+```
+Release "okteto" has been installed. Happy Helming!
+NAME: okteto
+LAST DEPLOYED: Thu Mar 26 18:07:55 2020
+NAMESPACE: okteto
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+1. Create the following DNS record, pointing it to the NGINX controller service External-IP:
+- "*.dev.example.com"
+
+You can retrieve the External IP by running:
+    kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+
+2. Create the following DNS record, pointing it to the Buildkit service External-IP:
+- "buildkit.dev.example.com"
+
+You can retrieve the External IP by running:
+    kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
+
+3. Once you create both DNS entries you can access your Okteto instance at this URL:
+https://okteto.dev.example.com
+```
+
+### Retrieve the Ingress Controller IP address
+
+You can use `kubectl` to fetch the address that has been dynamically allocated by DigitalOcean to the NGINX Ingress you've just installed and configured as a part of Okteto:
+
+```console
+kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                                     AGE
+okteto-ingress-nginx-controller  LoadBalancer   10.245.147.23  64.225.83.163   80:30087/TCP,443:31799/TCP,1234:31412/TC    2m
+```
+
+You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `*`.
+
+### Retrieve the Buildkit IP address
+
+You can use `kubectl` to fetch the address that has been dynamically allocated by DigitalOcean to the Buildkit instance you've just installed and configured as a part of Okteto:
+
+```console
+kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   64.225.83.88    1234:32449/TCP   5m
+```
+
+You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. This is done by creating an `A` record with the name `buildkit`.
+
+## Sign in to your Okteto instance
+
+> **Important**: The default installation uses self-signed certificates. We strongly recommend that you  configure Okteto to [bring your own certificates](self-hosted/administration/certificates.mdx) before giving your team access to your instance.
+
+You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully log into the instance will be automatically assigned the `administrator` role.
