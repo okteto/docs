@@ -1,0 +1,45 @@
+---
+title: How to Configure your Custom Helm Repository
+description: Tutorial on how to add your own Helm repository to Okteto Cloud
+sidebar_label: Configure your Custom Helm Repository
+id: repos
+---
+
+import Image from '@theme/Image';
+import TiersList from '@theme/TiersList';
+
+# How to Configure your Custom Helm Repository  <TiersList tiers="Scale Enterprise Self-Hosted" />
+
+With Okteto you can deploy [Helm Charts with one click](cloud/deploy-from-helm.mdx). A default list of Helm Charts is provided to get you and your team up and running.
+
+You can add your own Helm repositories to Okteto to extend this list. This gives you the same one-click deployment experience with the services that you and your team use. You can use this to simplify onboarding and standarize your dependencies.
+
+In order to add your Helm Charts, you'll need a Helm chart repository index with at least one published chart. [Follow this guide](https://helm.sh/docs/chart_repository/) to learn how to do it.
+
+## Add your repository to Okteto Cloud
+
+On the left side of the Okteto dashboard click the **Settings** option. In the new window, click the **Integrations** tab.
+The dashboard will show you the Helm repositories you have configured in Okteto. Click the **Add Repository** button and put the address of your repository:
+
+<p align="center"><Image src="/docs/tutorials/images/helm-repos.png" alt="add a Helm repository" width="850" /></p>
+
+The Helm Charts from your Help repository will now be included in the [Deploy from Helm Chart](cloud/deploy-from-helm.mdx) dialog.
+
+## Suggest default values
+
+The `values.yaml` file of your Helm Chart contains all the default configuration values for your Helm releases.
+This file can be too complex for anyone who is not familiar with your application.
+Place a `values-okteto.yaml` file side by side with your `values.yaml` file to show the recommended options to the users.
+Okteto will automatically load the `values-okteto.yaml` file and show it in the [Deploy from Helm Chart](cloud/deploy-from-helm.mdx) dialog.
+
+## Make your chart multi-tenant friendly.
+
+Okteto is a multi-tenant environment. We recommend that you update your charts to take advange of this, and to make them safer and easier to use for everyone.
+
+Your Helm chart will need to comply with these restrictions to function properly with the default permissions in Okteto:
+
+- Your chart cannot create `ClusterRole` or `ClusterRoleBinding` objects.
+- `NodePort` and `LoadBalancer` service types are not supported. Okteto Cloud automatically translates `NodePort` or `LoadBalancer` services into ingress rules. More information is [available here](cloud/ssl.mdx).
+- The following `Pod` options are not allowed: `privileged`, `hostNetwork`, `allowPrivilegeEscalation`, `hostPID`, `hostIPC`. Volume host paths are not allowed either.
+
+More information about our multi-tenant policies [is available here](cloud/multitenancy.mdx).
