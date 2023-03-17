@@ -217,144 +217,6 @@ The `mapping` fields are optional. Use them to configure the mapping between Okt
 
 > Your provider needs to support the [UserInfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) in order to be used with Okteto. This authentication option follows the OpenID standard, and it has been validated with Okta, PingIdentity, and GitLab.
 
-### cloud
-
-Okteto integrates with different cloud providers to store the [Okteto Registry](cloud/registry.mdx) images.
-
-> The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](self-hosted/install/deployment.mdx#cloud-provider-secret).
-
-#### Azure
-
-Use this to use Azure Storage to store your private images.
-
-```yaml
-cloud:
-  provider:
-    azure:
-      enabled: true
-      storage:
-        container: "Storage Container Name"
-        accountName: "Storage Account Name"
-```
-
-The storage setting will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
-
-#### AWS
-
-Use this to use S3 to store your private images.
-
-The bucket will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
-
-##### IAM User
-
-```yaml
-cloud:
-  provider:
-    aws:
-      enabled: true
-      bucket: "Bucket Name"
-      region: "AWS region"
-      iam:
-        enabled: true
-        accessKeyID: "IAM Access Key"
-```
-
-##### IAM Role for Service Account (IRSA)
-
-```yaml
-cloud:
-  provider:
-    aws:
-      enabled: true
-      bucket: "Bucket Name"
-      region: "AWS region"
-      iam:
-        enabled: false
-registry:
-  serviceAccount:
-    annotations:
-      eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-registry-role-name'
-```
-
-#### Digitalocean
-
-Use this to use DigitalOcean Spaces to store your private images.
-
-```yaml
-cloud:
-  provider:
-    digitalocean:
-      enabled: true
-      space:
-        name:
-        accessKeyID:
-```
-
-The space settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
-
-#### GCP
-
-Use this to use Google Cloud Storage to store your private images.
-
-The bucket settings will be used by the registry to pull and push images (if [using cloud storage](#registry)). This needs to be created before installing Okteto.
-
-##### Service Account Key (JSON)
-
-```yaml
-cloud:
-  provider:
-    gcp:
-      enabled: true
-      bucket: "Bucket Name"
-      project: "Project ID"
-```
-
-##### Workload Identity
-
-```yaml
-cloud:
-  provider:
-    gcp:
-      enabled: true
-      bucket: "Bucket Name"
-      project: "Project ID"
-      workloadIdentity:
-        enabled: true
-registry:
-  serviceAccount:
-    annotations:
-      iam.gke.io/gcp-service-account: 'GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com'
-```
-
-#### BYO
-
-Use this if you're using a provider not currently supported by Okteto.
-
-```yaml
-cloud:
-  provider:
-    byo:
-      enabled: true
-```
-
-When using `byo` you'll need to [configure your registry](self-hosted/administration/configuration.mdx#registry) to use a persistent volume for storage. 
-
-```yaml
-registry:
- storage:
-   filesystem:
-     enabled: true
-     persistence:
-       enabled: true
-       size: 400Gi
-   cloud:
-     enabled: false
-```
-
-#### Advanced Cloud Scenarios
-
-It is possible to use separate cloud providers for DNS than for storage if needed. [Reach out to support](https://okteto.com/support), we're always happy to help!
-
 ## Okteto Components
 
 ### api
@@ -594,26 +456,24 @@ The private container registry.
 - `resources`: The resources for the registry pods.
 - `serviceAccountName`: Alternative service account to be used by the registry. The service account must exist in the same namespace for the Okteto Helm release. Defaults to none.
 - `serviceAccount.annotations`: Annotations to add to the registry service account.
+- `secret.name`: when using external storage, a secret with the values of your cloud provider credentials.
+- `secret.accessKey`: the key of the access key in the secret referenced by `secret.name` (defaults to `accessKey`).
+- `secret.secretKey`: the key of the secret key in the secret referenced by `secret.name` (defaults to `secretKey`).
 - `storage`: The storage mechanism for the images.
-  - `cloud.enabled`: Set this to true if you want to store the images using your cloud provider's block storage service (e.g. S3). It will use the values defined in the [`cloud` key](#cloud). It's enabled by default.
 
-```yaml
-registry:
-  extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
-  storage:
-    cloud:
-      enabled: true
-```
+#### storage
 
-  - `filesystem`: Set this to true if you want to store the images in PVC attached to the registry. This might limit your ability to scale up the registry, depending on the type of storage you are using. You can also customize the `storageClass`, the `size` of the volume, and even attach an existing volume claim via `claimName`.
+Okteto supports different storage drivers to store the [Okteto Registry](cloud/registry.mdx) images.
+
+##### filesystem
+
+Set `filesystem.enabled` to true if you want to store the images in PVC attached to the registry.
+This might limit your ability to scale up the registry, depending on the type of storage you are using.
+You can also customize the `storageClass`, the `size` of the volume, or attach an existing volume claim via `claimName`.
 
 ```yaml
 registry:
   storage:
-    cloud:
-      enabled: false
     filesystem:
       enabled: true
       persistence:
@@ -621,6 +481,137 @@ registry:
         accessMode: ReadWriteOnce
         storageClass: ""
         size: 40Gi
+```
+
+##### azure
+
+Use this to use Azure Storage to store your private images.
+
+```yaml
+registry:
+  storage:
+    provider:
+      azure:
+        enabled: true
+        storage:
+          container: "storage-container-name"
+          accountName: "service-account-name"
+```
+
+Then, create a secret like this:
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=STORAGE_ACCOUNT_ACCESS_KEY
+```
+
+- `STORAGE_ACCOUNT_ACCESS_KEY`: A storage account access key with read/write permissions to the storage container specified in the configuration.
+
+
+##### aws
+
+Use this to use S3 to store your private images.
+
+###### IAM User
+
+```yaml
+registry:
+  storage:
+    provider:
+      aws:
+        enabled: true
+        bucket: "bucket-name"
+        region: "aws-region"
+        iam:
+          enabled: true
+          accessKeyID: "XXXXXX"
+```
+
+Then, create a secret like this:
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=IAM_SECRET_KEY
+```
+
+- `IAM_SECRET_KEY`: The secret key of an IAM with read/write permissions to the bucket specified in the configuration.
+
+###### IAM Role for Service Account (IRSA)
+
+```yaml
+registry:
+  storage:
+    provider:
+      aws:
+        enabled: true
+        bucket: "bucket-name"
+        region: "aws-region"
+        iam:
+          enabled: false
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-registry-role-name'
+```
+
+##### digitalocean
+
+Use this to use DigitalOcean Spaces to store your private images.
+
+```yaml
+registry:
+  storage:
+    provider:
+      digitalocean:
+        enabled: true
+        space:
+          name: "space-name"
+          accessKeyID: "access-key"
+```
+
+Then, create a secret like this:
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=ACCESS_KEY
+```
+
+- `ACCESS_KEY`: The access key of the storage space specified in the configuration.
+
+##### gcp
+
+Use this to use Google Cloud Storage to store your private images.
+
+###### Service Account Key (JSON)
+
+```yaml
+registry:
+  storage:
+    gcp:
+      enabled: true
+      bucket: "bucket-name"
+      project: "project-id"
+```
+
+Then, create a secret like this:
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-file=secretKey=key.json
+```
+
+- `key.json`: A file containing the key of a service account with read/write permissions to the storage bucket specified in the configuration.
+
+
+###### Workload Identity
+
+```yaml
+registry:
+  storage:
+    gcp:
+      enabled: true
+      bucket: "bucket-name"
+      project: "project-id"
+      workloadIdentity:
+        enabled: true
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: 'GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com'
 ```
 
 ### telemetry
