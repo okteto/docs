@@ -221,6 +221,8 @@ The `mapping` fields are optional. Use them to configure the mapping between Okt
 
 Okteto integrates with different cloud providers to store the [Okteto Registry](cloud/registry.mdx) images.
 
+- `enable`: Set this to true if you want to store the images using your cloud provider's block storage service (e.g. S3). It will use the values defined in the providers. Default value is false.
+- `provider`: Set the provider integration to use cloud storage for the registry.
 > The sensitive part of the credentials are not included in the configuration file. Instead, it is provided to Okteto via [a secret](self-hosted/install/deployment.mdx#cloud-provider-secret).
 
 #### Azure
@@ -347,8 +349,6 @@ registry:
      persistence:
        enabled: true
        size: 400Gi
-   cloud:
-     enabled: false
 ```
 
 #### Advanced Cloud Scenarios
@@ -594,29 +594,24 @@ The private container registry.
 - `resources`: The resources for the registry pods.
 - `serviceAccountName`: Alternative service account to be used by the registry. The service account must exist in the same namespace for the Okteto Helm release. Defaults to none.
 - `serviceAccount.annotations`: Annotations to add to the registry service account.
-- `storage`: The storage mechanism for the images.
-  - `cloud.enabled`: Set this to true if you want to store the images using your cloud provider's block storage service (e.g. S3). It will use the values defined in the [`cloud` key](#cloud). It's enabled by default.
+- `storage`: The storage mechanism for the images. Default is `filesystem` with `persistence` disabled.
 
 ```yaml
 registry:
   extraEnv:
     - name: NO_PROXY
       value: ".example.com"
-  storage:
-    cloud:
-      enabled: true
 ```
 
-  - `filesystem`: Set this to true if you want to store the images in PVC attached to the registry. This might limit your ability to scale up the registry, depending on the type of storage you are using. You can also customize the `storageClass`, the `size` of the volume, and even attach an existing volume claim via `claimName`.
+  - `filesystem.persistence.enabled`: Set this to true if you want to store the images in PVC attached to the registry. This might limit your ability to scale up the registry, depending on the type of storage you are using. You can also customize the `storageClass`, the `size` of the volume, and even attach an existing volume claim via `claimName`.
 
 ```yaml
 registry:
   storage:
-    cloud:
-      enabled: false
     filesystem:
       enabled: true
       persistence:
+        enabled: true
         claimName: ""
         accessMode: ReadWriteOnce
         storageClass: ""
