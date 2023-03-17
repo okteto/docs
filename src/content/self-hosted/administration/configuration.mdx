@@ -64,7 +64,11 @@ You can overwrite Okteto's public URL using the [publicOverride](self-hosted/adm
 
 ### publicOverride
 
-Use this property to override where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with you [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
+Use this property to override the Public URL where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with your [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
+
+```yaml
+publicOverride: "example.com"
+```
 
 When set, an additional component is deployed for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature.
 You can configure its settings using the [privateEndpoints](self-hosted/administration/configuration.mdx#privateEndpoints) section.
@@ -452,12 +456,21 @@ installer:
       memory: 50Mi
 ```
 
-- `buildCredentialHelpers`: Mapping of registry hostnames as keys to credential helpers as values. Disabled if `privateRegistry` is defined. Registry hostnames must be Fully Qualified Domain Names. Credential helper names must be accessible at installer job pod `$PATH` as `docker-credential-$NAME`.
+#### buildCredentialHelpers
+
+Configure IAM roles to pull private images from your Dockerfiles. Disabled if [privateRegistry](self-hosted/administration/configuration.mdx#privateregistry) is defined.
+
+For private ECRs, add a mapping of registry hostnames as keys to credential helpers as values. Registry hostnames must be Fully Qualified Domain Names.
 
 ```yaml
 installer:
   buildCredentialHelpers:
     111122223333.dkr.ecr.eu-central-1.amazonaws.com: ecr-login
+```
+
+Create an IAM role with access to your private ECR, assume this role by the audience of Okteto Developer Service Accounts (service accounts in the `okteto` namespace) and apply these changes to the Okteto configuration:
+
+```yaml
 user:
   serviceAccount:
     annotations:
