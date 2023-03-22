@@ -84,3 +84,58 @@ If you want to replace the default endpoints for an `Ingress` or `VirtualService
 This annotation allows you to define a list of endpoints, separated by commas, that will replace the default endpoints.
 Additionally, the value of this annotation expands the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` environment variables, providing an easy way to make your endpoints portable between namespaces.
 
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Compose', value: 'compose', },
+  ]}
+>
+<TabItem value="kubernetes">
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+    dev.okteto.com/endpoints: movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+endpoints:
+  labels:
+    dev.okteto.com/endpoints: movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}
+  rules:
+    - path: /
+      service: frontend
+      port: 80
+    - path: /api
+      service: backend
+      port: 8080
+```
+
+</TabItem>
+</Tabs>
