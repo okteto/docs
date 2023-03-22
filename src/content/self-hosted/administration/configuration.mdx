@@ -445,9 +445,14 @@ The build service. It's used in combination with `okteto build` to build contain
 - `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
 - `replicaCount`: The number of buildkit pods. It defaults to 1.
 - `resources`: The resources for the buildkit pods.
-- `storage.class`: The storage class of the volume attached to every buildkit pod to persist the buildkit cache.
-- `storage.size`: The size of the volume attached to every buildkit pod to persist the buildkit cache.
-- `storage.cache`: The size of the buildkit cache to store image caches. It should be 30Gi smaller than `storage.size`.
+- `serviceAccount.create`: create a service account for buildkit. True by default.
+- `serviceAccount.name`: Buildkit service account name. Defaults to `okteto-buildkit`.
+- `serviceAccount.annotations`: Annotations for the buildkit service account.
+- `serviceAccount.labels`: Labels for the buildkit service account.
+- `persistency.enabled`: Configures a persistence volume for buildkit. False by default.
+- `persistency.storageClass`: The storage class of the persistence volume attached to every buildkit pod.
+- `persistency.size`: The size of the persistence volume attached to every buildkit pod.
+- `persistency.cache`: The size of the buildkit cache to store image caches. It should be around 30Gi smaller than `storage.size`.
 
 ```yaml
 buildkit:
@@ -456,8 +461,9 @@ buildkit:
     - name: NO_PROXY
       value: ".example.com"
   replicaCount: 1
-  storage:
-    class: ssd
+  persistency:
+    enabled: true
+    storageClass: ssd
     size: 180Gi
     cache: 150000
 ```
