@@ -5,9 +5,12 @@ sidebar_label: Automatic SSL
 id: ssl
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 Okteto Cloud can automatically create an SSL endpoint for your deployments. In order to take advantage of this feature, add the annotation below to your service's manifest:
 
-```
+```yaml
   dev.okteto.com/auto-ingress: "true"
 ```
 
@@ -72,3 +75,70 @@ spec:
 ```
 
 We recommend you follow this option. This way your ingress configuration can be deployed on any Okteto Cloud namespace.
+
+## Customizing the endpoints shown in the Okteto UI
+
+Okteto provides additional annotations that enable you to customize the endpoints shown in the Okteto UI.
+
+To hide specific endpoints from the Okteto UI, you can use the `dev.okteto.com/hide-from-ui: true` annotation.
+Simply apply this annotation to your `Ingress` or `VirtualService` resource, and the endpoints associated with that resource will not be displayed in the Okteto UI.
+
+If you want to replace the default endpoints for an `Ingress` or `VirtualService` resource, you can use the `dev.okteto.com/endpoints` annotation.
+This annotation allows you to define a list of endpoints, separated by commas, that will replace the default endpoints.
+Additionally, the value of this annotation expands the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` environment variables, providing an easy way to make your endpoints portable between namespaces.
+
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Compose', value: 'compose', },
+  ]}
+>
+<TabItem value="kubernetes">
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+    dev.okteto.com/endpoints: https://movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+endpoints:
+  labels:
+    dev.okteto.com/endpoints: https://movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}
+  rules:
+    - path: /
+      service: frontend
+      port: 80
+    - path: /api
+      service: backend
+      port: 8080
+```
+
+</TabItem>
+</Tabs>
