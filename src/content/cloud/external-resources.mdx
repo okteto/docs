@@ -1,0 +1,122 @@
+---
+title: External Resources
+description: Configure Okteto's manifest to show external resources in your development environment
+sidebar_label: External Resources
+id: external-resources
+---
+
+import Image from '@theme/Image';
+
+The `external` section of your [Okteto manifest](reference/manifest) enables you to incorporate resources that exist outside of Okteto into your Okteto development experience. Any resources you define in this section of the manifest will be available in the Okteto UI. You can now obtain resource parity with what's in your application code and displayed in Okteto.
+
+## Overview
+
+Let's take a look at the composition of the `external` section in the Okteto manifest starting with the high-level structure of this configuration block. There are some important details you need to know before using this feature.
+
+Here's an example of how to define your `external` resources in the Okteto manifest, which you can see in our [References section](reference/manifest/#external-object-optional):
+
+```yaml
+external:
+  db:
+    notes: docs/database.md
+    icon: database
+    endpoints:
+    - name: db
+      url: https://localhost:3306
+  functions:
+    notes: docs/lambdas.md
+    icon: function
+    endpoints:
+    - name: data-aggregator
+      url: https://fake-id.lambda-url.us-east-1.on.aws.aggregator
+    - name: data-processor
+      url: https://fake-id.lambda-url.us-east-1.on.aws.processor
+```
+
+Every keyword that you see here is opinionated except for `db:` and `functions:`. Those two keywords, the names of the external resources being defined here, can be anything you want them to be. For example, if we want to call the `db:` resource `dundie_award:` you can do so. Similarly, you could name `functions:` something like `parkour:` and it will work just fine.
+
+Whatever name you use to label these resources will be what's shown in the Okteto UI. Choose wisely!
+
+## Defining Your Resources
+
+As you configure your external resources in this section, keep in mind the following definitions:
+
+`notes:` is used to provide context in the form of a relative link to a markdown file. The contents are displayed in the Okteto UI (see below).
+
+**Image Placeholder: show where content will appear**
+
+`icon:` specifies one of several predefined icons you can use when this resource is rendered in the Okteto UI. The current list of supported icons is:
+
+- container
+- dashboard
+- database
+- default
+- function
+- graph
+- storage
+
+**Image Placeholder: show example of icon on an external resource**
+
+`endpoints:` contain information on how to access the external resource using:
+
+- `name:` to name the endpoint you're defining
+- `url:` to provide the specific url for accessing the resource
+
+The name of the endpoint is used to inject or modify environment variables. In this example, one of those would be: `OKTETO_EXTERNAL_FUNCTIONS_ENDPOINTS_DATA_GGREGATOR_URL`.
+
+All of this information can be found and in a more concise format in our [References section](reference/manifest/#external-object-optional).
+
+
+## Example: Deploy a Development Environment with External Resources
+
+Now that we've walked through a sample of an `external` configuration, let's look at using this within the broader context of an application we're working on. You can navigate to our [demo repo](https://github.com/okteto/voting-app-with-external-resources) to follow along if you'd like.
+
+In this example we'll be configuring and deploying a development environment that includes polyglot microservices and two external resources: an AWS lambda function and MongoDB Atlas for storage.
+
+**Image Placeholder: Architecture image from the demo repo**
+
+### Prerequisites
+
+1. Okteto CLI 2.13 or newer
+2. An AWS account
+3. A [MongoDB Atlas](https://www.mongodb.com/docs/atlas/getting-started/) account
+4. [Deploy a free cluster](https://www.mongodb.com/docs/atlas/tutorial/deploy-free-tier-cluster/) in your MongoDB Atlas account
+5. Create a set of IAM keys for your AWS account
+6. Create the following Okteto secrets:
+   - MONGODB_USERNAME: Your MongoDB Atlas username
+   - MONGODB_PASSWORD: Your MongoDB Atlas username
+   - MONGODB_HOST: The URL of your MongoDB Atlas cluster
+   - MONGODB_WEBURL: The Web URL of your MongoDB Atlas cluster
+   - AWS_ACCESS_KEY_ID: The Acces Key ID of your IAM user
+   - AWS_SECRET_ACCESS_KEY: The Secret Acces Key of your IAM user
+   
+Notice that the `external` configuration is a bit different in this demo:
+
+```yaml
+external:
+  lambda:
+    icon: function
+    notes: docs/lambda.md
+    endpoints:
+    - name: function
+  atlas:
+    icon: database
+    notes: docs/atlas.md
+    endpoints:
+    - name: dashboard
+```
+
+The `url:` keys are missing from each external resource (`lambda` and `atlas`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](cloud/secrets) you defined above in the (#prerequisites) section.
+
+Alternatively, you could remove the respective `deploy` commands and add the `url` endpoints here manually, but this is a good example of how flexible the manifest file can be.
+
+Once you've configured the [steps above](#prerequisites), you can deploy this on your Okteto instance:
+
+```
+$ git clone https://github.com/okteto/voting-app-with-external-resources
+$ cd voting-app-with-external-resources
+$ okteto context use $OKTETO_URL
+$ okteto deploy
+```
+
+Once the application has been deployed in Okteto, you can work on the `Result` microservice by running the command: `okteto up result`. Similarly, you can work on the `Vote` microservice by running the command: `okteto up vote`.
