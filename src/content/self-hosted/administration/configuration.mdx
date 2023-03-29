@@ -483,9 +483,10 @@ Okteto supports different storage drivers to store the images inside the [Okteto
 
 ##### filesystem
 
-Set `filesystem.enabled` to true if you want to store the images in PVC attached to the registry.
-This might limit your ability to scale up the registry, depending on the type of storage you are using.
-You can also customize the `storageClass`, the `size` of the volume, or attach an existing volume claim via `claimName`.
+Set `filesystem.enabled` to true if you want to store the images in the container filesystem.
+Additionally, set `filesystem.persistence.enabled` to true if you want to store the images in a PVC attached to the registry.
+Both options might limit your ability to scale up the registry, depending on the type of storage you are using.
+You can also customize the `storageClass` (optional), the `size` of the volume (defaults to 40Gi), or attach an existing volume claim via `claimName`.
 
 ```yaml
 registry:
@@ -493,6 +494,7 @@ registry:
     filesystem:
       enabled: true
       persistence:
+        enabled: true
         claimName: ""
         accessMode: ReadWriteOnce
         storageClass: ""
@@ -502,6 +504,16 @@ registry:
 ##### azure
 
 Use this to use Azure Storage to store your private images.
+
+`STORAGE_ACCOUNT_ACCESS_KEY` refers to a storage account access key with read/write permissions to the storage container specified in the Okteto configuration.
+Create a secret with the value of `STORAGE_ACCOUNT_ACCESS_KEY` using the command below.
+
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=STORAGE_ACCOUNT_ACCESS_KEY
+```
+
+Then, add the following configuration to your Okteto helm values file:
 
 ```yaml
 registry:
@@ -514,43 +526,15 @@ registry:
           accountName: "service-account-name"
 ```
 
-Then, create a secret like this:
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=STORAGE_ACCOUNT_ACCESS_KEY
-```
-
-- `STORAGE_ACCOUNT_ACCESS_KEY`: A storage account access key with read/write permissions to the storage container specified in the configuration.
-
-
 ##### aws
 
 Use this to use S3 to store your private images.
 
-###### IAM User
+###### IAM Role for Service Account (recommended)
 
-```yaml
-registry:
-  storage:
-    provider:
-      aws:
-        enabled: true
-        bucket: "bucket-name"
-        region: "aws-region"
-        iam:
-          enabled: true
-          accessKeyID: "XXXXXX"
-```
+Use this option to give the registry pods a role to authenticate with the S3 bucket.
 
-Then, create a secret like this:
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=IAM_SECRET_KEY
-```
-
-- `IAM_SECRET_KEY`: The secret key of an IAM with read/write permissions to the bucket specified in the configuration.
-
-###### IAM Role for Service Account (IRSA)
+To do that, add the following configuration to your Okteto helm values file:
 
 ```yaml
 registry:
@@ -567,9 +551,45 @@ registry:
       eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-registry-role-name'
 ```
 
+
+###### IAM User
+
+`IAM_SECRET_KEY` refers to the secret key of an IAM with read/write permissions to the bucket specified in the Okteto configuration.
+Create a secret with the value of `IAM_SECRET_KEY` using the command below.
+
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=IAM_SECRET_KEY
+```
+
+Then, add the following configuration to your Okteto helm values file:
+
+
+```yaml
+registry:
+  storage:
+    provider:
+      aws:
+        enabled: true
+        bucket: "bucket-name"
+        region: "aws-region"
+        iam:
+          enabled: true
+          accessKeyID: "XXXXXX"
+```
+
 ##### digitalocean
 
 Use this to use DigitalOcean Spaces to store your private images.
+
+`ACCESS_KEY` refers to the access key of the storage space specified in the Okteto configuration.
+Create a secret with the value of `ACCESS_KEY` using the command below.
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=ACCESS_KEY
+```
+
+Then, add the following configuration to your Okteto helm values file:
 
 ```yaml
 registry:
@@ -582,39 +602,15 @@ registry:
           accessKeyID: "access-key"
 ```
 
-Then, create a secret like this:
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=ACCESS_KEY
-```
-
-- `ACCESS_KEY`: The access key of the storage space specified in the configuration.
-
 ##### gcp
 
 Use this to use Google Cloud Storage to store your private images.
 
-###### Service Account Key (JSON)
+###### Workload Identity (recommended)
 
-```yaml
-registry:
-  storage:
-    gcp:
-      enabled: true
-      bucket: "bucket-name"
-      project: "project-id"
-```
+Use this option to configure the registry pods with a workload id to authenticate with the bucket.
 
-Then, create a secret like this:
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-file=secretKey=key.json
-```
-
-- `key.json`: A file containing the key of a service account with read/write permissions to the storage bucket specified in the configuration.
-
-
-###### Workload Identity
+To do that, add the following configuration to your Okteto helm values file:
 
 ```yaml
 registry:
@@ -628,6 +624,26 @@ registry:
   serviceAccount:
     annotations:
       iam.gke.io/gcp-service-account: 'GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com'
+```
+
+###### Service Account Key (JSON)
+
+`key.json` refers to a file containing the key of a service account with read/write permissions to the storage bucket specified in the Okteto configuration.
+Create a secret with the value of `key.json`  using the command below.
+
+```console
+$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-file=secretKey=key.json
+```
+
+Then, add the following configuration to your Okteto helm values file:
+
+```yaml
+registry:
+  storage:
+    gcp:
+      enabled: true
+      bucket: "bucket-name"
+      project: "project-id"
 ```
 
 ### telemetry
