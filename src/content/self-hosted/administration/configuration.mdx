@@ -37,23 +37,39 @@ Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous
 
 ### subdomain
 
-The domain (or subdomain) managed by Okteto.
-
-Your Okteto instance will be available at `okteto.$SUBDOMAIN`. All ingresses created by okteto will use it as well (e.g. https://app-$NAMESPACE.$SUBDOMAIN)
+Okteto's [automatic SSL endpoints](cloud/ssl.mdx) allows you to expose secure and unique public endpoints for your development environments. By default, all endpoints created by Okteto will use a combination of the name of the app, the namespace, and the `subdomain`.
+For example, if you have a development environment named `app` in the `cindy` namespace, it will be accessible at https://app-cindy.example.com if `subdomain` is example.com.
 
 ```yaml
 subdomain: "example.com"
 ```
 
-After installation, we recommend that you create a DNS entry for `*.$SUBDOMAIN`, pointing to the public address of your load balancer.
+By default, Okteto's frontend and API services will be accessible via https://okteto.$SUBDOMAIN.
+Once Okteto is installed, you can use `kubectl` to retrieve the public address of the Okteto NGINX Ingress Controller:
+
+```console
+kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                              TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)                                     AGE
+okteto-ingress-nginx-controller   LoadBalancer   10.0.7.73    34.68.230.234   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
+```
+
+You'll need to take the `EXTERNAL-IP` address to create a DNS entry for `*.$SUBDOMAIN`.
+
+You can overwrite Okteto's public URL using the [publicOverride](self-hosted/administration/configuration.mdx#publicoverride) field.
 
 ### publicOverride
 
 Use this property to override where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with you [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
 
-When set, an additional component is deployed for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature. You can configure its settings at [`privateEndpoints`] section.
+When set, an additional component is deployed for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature.
+You can configure its settings using the [privateEndpoints](self-hosted/administration/configuration.mdx#privateEndpoints) section.
 
-Authentication callback URL and origin URL will change to the following:
+When setting your [auth provider](self-hosted/administration/configuration.mdx#auth), the authentication callback URL and origin URL will change to the following:
 
 **Callback URL**:
 ```
@@ -703,7 +719,7 @@ Extra `RoleBindings` to be created for every user's service account. This is use
 The `RoleBindings` will reference `ClusterRoles` and will be scoped to the `namespace` specified in the configuration. Okteto will not create neither the `ClusterRoles` nor the `Namespaces` and expects them to exist in the cluster. Here's an example configuration:
 
 ```yaml
-user: 
+user:
   extraRoleBindings:
     enabled: true
     roleBindings:
@@ -770,7 +786,7 @@ Configure default values for the ingress created by Okteto.
 - `class`: If specified, Okteto will set this as the `ingressClassName` of all ingresses managed by Okteto. This is useful if you have more than one ingress controller in your cluster.
 - `forceIngressClass`: If enabled, all ingresses deployed in namespaces managed by Okteto will have the ingress class defined in  `ingress.class` (default: `false`).
 - `forceIngressSubdomain`: If enabled, the subdomain of the host of all ingresses deployed in namespaces managed by Okteto must match the okteto wildcard subdomain (default: `true`).
-- `ip`: The internal IP of the ingress. Pods will call the Okteto API and the Okteto Registry using this IP. Required if the Okteto API/Registry is exposed using an ingress not managed by Okteto.
+- `ip`: The internal IP of the ingress. Pods will call the Okteto API and the Okteto Registry using this IP. Required if the installation of the Okteto [NGINX Ingress Controller](self-hosted/administration/configuration.mdx#using-your-own-ingress-controller) is disabled.
 - `tlsSecret`: TLS secret for the ingress created by Okteto. If empty, okteto defaults to the wildcard certificate created by Okteto.
 
 ```yaml
@@ -1228,14 +1244,14 @@ A common use case for adding service account annotations is to [get access via I
 
 ### privateEndpoints
 
-When [`publicOverride`] is set, Okteto Self Hosted deploys an additional component for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature, which is responsible for authenticating and authorizing requests sent to Okteto Endpoints set to private mode.
+When [publicOverride](self-hosted/administration/configuration.mdx#publicoverride) is set, Okteto Self Hosted deploys an additional component for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature, which is responsible for authenticating and authorizing requests sent to Okteto Endpoints set to private mode.
 
 - `port`: Internal port used for the Private Endpoint component. Defaults to `8080`.
 - `resources`: The resources for the Private Endpoint component pods.
 - `replicaCount`: The number of Private Endpoint component pods. It defaults to 1.
 - `annotations`: Annotations to add to the Private Endpoint component pods.
 
-By default, the Private Endpoint component will inherit the configuration set at the [`auth`] section, but you can override some values with the following properties: 
+By default, the Private Endpoint component will inherit the configuration set at the [`auth`] section, but you can override some values with the following properties:
 
 - `clientID`: Overrides `auth.*.clientID`.
 - `clientSecret`: Overrides `auth.*.clientSecret`.
@@ -1244,7 +1260,7 @@ By default, the Private Endpoint component will inherit the configuration set at
 
 Okteto will automatically install [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) as part of the default installation, using its official [Helm chart](https://kubernetes.github.io/ingress-nginx).
 
-### NGINX-Ingress
+### NGINX Ingress Controller
 
 Use the `ingress-nginx` keys in your configuration file to modify the configuration.
 
@@ -1265,3 +1281,16 @@ Okteto sets specific values on the embedded ingress-nginx chart to enable featur
 ```
 helm get values okteto/okteto --jsonpath '{.ingress-nginx}'
 ```
+
+#### Using Your Own Ingress Controller
+
+You can disable the installation of NGINX Ingress Controller like this:
+
+```yaml
+ingress-nginx:
+  enabled: false
+```
+
+In that case, configure [ingress.oktetoIngressClass](self-hosted/administration/configuration.mdx#ingress) with the ingress class you want to use for all the ingresses created during the Okteto installation.
+And the [ingress.ip](self-hosted/administration/configuration.mdx#ingress) field with the Cluster IP of your ingress controller.
+
