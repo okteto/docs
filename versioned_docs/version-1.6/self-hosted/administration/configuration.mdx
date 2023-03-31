@@ -49,7 +49,11 @@ After installation, we recommend that you create a DNS entry for `*.$SUBDOMAIN`,
 
 ### publicOverride
 
-Use this property to override where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with you [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
+Use this property to override the Public URL where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with your [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
+
+```yaml
+publicOverride: "example.com"
+```
 
 When set, an additional component is deployed for [Okteto Private Endpoints](cloud/private-endpoints.mdx) feature. You can configure its settings at [`privateEndpoints`] section.
 
@@ -261,6 +265,8 @@ cloud:
 
 ##### IAM Role for Service Account (IRSA)
 
+Create a IAM role with access to the Okteto Registry bucket, bind the IAM role to the Okteto Registry Kubernetes service account and apply these changes to the Okteto configuration:
+
 ```yaml
 cloud:
   provider:
@@ -275,6 +281,7 @@ registry:
     annotations:
       eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-registry-role-name'
 ```
+
 
 #### Digitalocean
 
@@ -311,6 +318,8 @@ cloud:
 
 ##### Workload Identity
 
+Create an IAM service account with access to the Okteto Registry bucket, bind the IAM service account to the Okteto Registry Kubernetes service account and apply these changes to the Okteto configuration:
+
 ```yaml
 cloud:
   provider:
@@ -337,7 +346,7 @@ cloud:
       enabled: true
 ```
 
-When using `byo` you'll need to [configure your registry](self-hosted/administration/configuration.mdx#registry) to use a persistent volume for storage. 
+When using `byo` you'll need to [configure your registry](self-hosted/administration/configuration.mdx#registry) to use a persistent volume for storage.
 
 ```yaml
 registry:
@@ -566,18 +575,6 @@ installer:
     requests:
       cpu: 10m
       memory: 50Mi
-```
-
-- `buildCredentialHelpers`: Mapping of registry hostnames as keys to credential helpers as values. Disabled if `privateRegistry` is defined. Registry hostnames must be Fully Qualified Domain Names. Credential helper names must be accessible at installer job pod `$PATH` as `docker-credential-$NAME`.
-
-```yaml
-installer:
-  buildCredentialHelpers:
-    111122223333.dkr.ecr.eu-central-1.amazonaws.com: ecr-login
-user:
-  serviceAccount:
-    annotations:
-      eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/okteto-installer-role-name'
 ```
 
 ### registry
