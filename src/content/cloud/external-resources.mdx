@@ -7,13 +7,26 @@ id: external-resources
 
 import Image from '@theme/Image';
 
-The `external` section of your [Okteto manifest](reference/manifest) enables you to incorporate resources that exist outside of Okteto into your Okteto development experience. Any resources you define in this section of the manifest will be available in the Okteto UI. You can now obtain resource parity with what's in your application code and displayed in Okteto.
+The External Resources feature in Okteto is a powerful mechanism that enables you to manage the lifecycle of cloud external resources as part of your Okteto development environment. This means you can define the external resources that comprise your application, include those resources in Okteto's garbage collection process, and even destroy those resources when you finish working with your development environment.
+
+You no longer need to use different tools to work on your application in Okteto and you won't need to worry about rogue external resources continuing to run once you are done with your work.
+
+When you configure External Resources in Okteto you can see those resources within the Okteto UI, can click to go directly to those resources in their respective platform, and include them in your Okteto `deploy` and `destroy` configurations.
 
 ## Overview
 
+When you configure the `external` section in your [Okteto manifest](/reference/manifest), keep in mind the following:
+
+- You can create an image that includes your desired external (to Okteto) resources you'd like to use for your application
+- This image can be included in your Okteto manifest's `deploy` and `destroy` sections
+- External resources are deleted when your Okteto namespace is deleted
+- External resources are covered by Okteto's garbage collection process
+
+## Configuring the `external` section
+
 Let's take a look at the composition of the `external` section in the Okteto manifest starting with the high-level structure of this configuration block. There are some important details you need to know before using this feature.
 
-Here's an example of how to define your `external` resources in the Okteto manifest, which you can see in our [References section](reference/manifest/#external-object-optional):
+Here's an example of how to define your `external` resources in the Okteto manifest, which you can see in our [References section](/reference/manifest/#external-object-optional):
 
 ```yaml
 external:
@@ -33,11 +46,13 @@ external:
       url: https://fake-id.lambda-url.us-east-1.on.aws.processor
 ```
 
+> You can also use the [dynamic endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) feature here to provide more flexibility in the URLs.
+
 Every keyword that you see here is opinionated except for `db:` and `functions:`. Those two keywords, the names of the external resources being defined here, can be anything you want them to be. For example, if we want to call the `db:` resource `dundie_award:` you can do so. Similarly, you could name `functions:` something like `parkour:` and it will work just fine.
 
 Whatever name you use to label these resources will be what's shown in the Okteto UI. Choose wisely!
 
-## Defining Your Resources
+## Defining Your External Resources
 
 As you configure your external resources in this section, keep in mind the following definitions:
 
@@ -62,10 +77,9 @@ As you configure your external resources in this section, keep in mind the follo
 - `name:` to name the endpoint you're defining
 - `url:` to provide the specific url for accessing the resource
 
-The name of the endpoint is used to inject or modify environment variables. In this example, one of those would be: `OKTETO_EXTERNAL_FUNCTIONS_ENDPOINTS_DATA_GGREGATOR_URL`.
+The name of the endpoint is used to inject or modify environment variables. In this example, one of those would be: `OKTETO_EXTERNAL_FUNCTIONS_ENDPOINTS_DATA_AGGREGATOR_URL`.
 
-All of this information can be found and in a more concise format in our [References section](reference/manifest/#external-object-optional).
-
+All of this information can be found and in a more concise format in our [References section](/reference/manifest/#external-object-optional).
 
 ## Example: Deploy a Development Environment with External Resources
 
@@ -106,11 +120,11 @@ external:
     - name: dashboard
 ```
 
-The `url:` keys are missing from each external resource (`lambda` and `atlas`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](cloud/secrets) you defined above in the (#prerequisites) section.
+The `url:` keys are missing from each external resource (`lambda` and `atlas`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](/cloud/secrets) you defined [above](#prerequisites) and the [dynamic endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) feature.
 
 Alternatively, you could remove the respective `deploy` commands and add the `url` endpoints here manually, but this is a good example of how flexible the manifest file can be.
 
-Once you've configured the [steps above](#prerequisites), you can deploy this on your Okteto instance:
+Once you've configured the prerequisites, you can deploy this on your Okteto instance:
 
 ```
 $ git clone https://github.com/okteto/voting-app-with-external-resources
