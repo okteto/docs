@@ -7,7 +7,17 @@ id: external-resources
 
 import Image from '@theme/Image';
 
-The External Resources feature in Okteto is a powerful mechanism that enables you to manage the lifecycle of cloud external resources as part of your Okteto development environment. This means you can define the external resources that comprise your application, include those resources in Okteto's garbage collection process, and even destroy those resources when you finish working with your development environment.
+The External Resources feature in Okteto is a powerful mechanism that enables you to manage the lifecycle of external resources as part of your Okteto development environment. This means you can define the external resources that comprise your application, include those resources in Okteto's garbage collection process, and even destroy those resources when you finish working with your development environment. 
+
+Here are just a few examples of external resources you can use with Okteto:
+
+- A markdown file (e.g. README, API Documentation)
+- MongoDB Atlas Instance
+- LaunchDarkly
+- Amazon SQS
+- Amazon S3
+- Amazon RDS databases
+- AWS Lambda Functions
 
 You no longer need to use different tools to work on your application in Okteto and you won't need to worry about rogue external resources continuing to run once you are done with your work.
 
@@ -22,43 +32,76 @@ When you configure the `external` section in your [Okteto manifest](/reference/m
 - External resources are deleted when your Okteto namespace is deleted
 - External resources are covered by Okteto's garbage collection process
 
-## Configuring the `external` section
+## Configuring external resources
 
-Let's take a look at the composition of the `external` section in the Okteto manifest starting with the high-level structure of this configuration block. There are some important details you need to know before using this feature.
+Using external resources with Okteto requires configuring three areas of your Okteto manifest:
 
-Here's an example of how to define your `external` resources in the Okteto manifest, which you can see in our [References section](/reference/manifest/#external-object-optional):
+1. The `deploy` section to provision your external resources (e.g. call the AWS API to create an s3 bucket)
+2. The `destroy` section to ensure the external resource is destroyed (as appropriate) when your development environment is destroyed
+3. The `external` section to populate the Okteto UI and link to the external resource
+
+### Configuring the `deploy` section
+
+When you use an external resource with Okteto it needs to be provisioned like any other resource. If we use the example above of creating an AWS S3 bucket, we could add the following to our Okteto manifest in the `deploy` section:
+
+```yaml
+deploy:
+  image: okteto/pipeline-runner:1.0.0-sam
+  commands:  
+  - name: Create an AWS S3 bucket
+    command: |
+      sh s3/deploy.sh
+```
+
+In this example we're using a script that contains all of the instructions to do the provisioning work and executing that script in this particular stage of the Okteto `deploy` section. 
+
+### Configuring the `destroy` section
+
+We also need to ensure that the external resources we provision are destroyed when we are finished using our development environment. If we don't include them in the `destroy` step, we risk accumulating zombie resources that continue to operate and potentially accrute additional cloud spend. This also allows Okteto to perform this process for you so you never have to worry about it. Here's a sample `destroy` section using the same AWS S3 bucket example above:
+
+```yaml
+destroy:
+  image: okteto/pipeline-runner:1.0.0-sam
+  commands:
+  - name: Delete AWS S3 bucket
+    command: |
+      sh s3/destroy.sh
+```
+
+### Configuring the `external` section
+
+Lastly, we want our external resources to be visible in the Okteto UI and accessible to developers working with them. To accomplish this, we need to define the `external` section in the Okteto manifest. This section takes the external resources you've provisioned in the `deploy` section and makes them a clickable element within the Okteto UI so any developer working in the same namespace can directly access that external resource.
+
+In the example below we're including a README file that documents the external resource we're using (S3 bucket) as well as the S3 bucket itself. You can see additional configuration details in our [References section](/reference/manifest/#external-object-optional):
 
 ```yaml
 external:
-  db:
-    notes: docs/database.md
-    icon: database
+  readme:
+    icon: okteto
+    notes: README.md
     endpoints:
-    - name: db
-      url: https://localhost:3306
-  functions:
-    notes: docs/lambdas.md
-    icon: function
+    - name: readme
+      url: https://github.com/okteto/external-resources-aws
+  s3:
+    icon: aws
+    notes: s3/notes.md
     endpoints:
-    - name: data-aggregator
-      url: https://fake-id.lambda-url.us-east-1.on.aws.aggregator
-    - name: data-processor
-      url: https://fake-id.lambda-url.us-east-1.on.aws.processor
+    - name: bucket
 ```
 
 > You can also use the [dynamic endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) feature here to provide more flexibility in the URLs.
 
-Every keyword that you see here is opinionated except for `db:` and `functions:`. Those two keywords, the names of the external resources being defined here, can be anything you want them to be. For example, if we want to call the `db:` resource `dundie_award:` you can do so. Similarly, you could name `functions:` something like `parkour:` and it will work just fine.
+Every keyword that you see here is opinionated except for `readme:` and `s3:`. Those two keywords, the names of the external resources being defined here, can be anything you want them to be. For example, if we want to call the `readme:` resource `dundie_award:` you can do so. Similarly, you could name `s3:` something like `parkour:` and it will work just fine.
 
 Whatever name you use to label these resources will be what's shown in the Okteto UI. Choose wisely!
 
-## Defining Your External Resources
+## Customizing your external resource UI elements
 
 As you configure your external resources in this section, keep in mind the following definitions:
 
 `notes:` is used to provide context in the form of a relative link to a markdown file. The contents are displayed in the Okteto UI (see below).
 
-<p align="center"><Image src="/docs/cloud/images/external_resource_notes.png" alt="External resources notes section" width="450" /></p>
+<p align="center"><Image src="/docs/cloud/images/external_resources_notes_example.png" alt="External resources notes section" width="600" /></p>
 
 `icon:` specifies one of several predefined icons you can use when this resource is rendered in the Okteto UI. The current list of supported icons is:
 
@@ -77,60 +120,103 @@ As you configure your external resources in this section, keep in mind the follo
 - `name:` to name the endpoint you're defining
 - `url:` to provide the specific url for accessing the resource
 
-The name of the endpoint is used to inject or modify environment variables. In this example, one of those would be: `OKTETO_EXTERNAL_FUNCTIONS_ENDPOINTS_DATA_AGGREGATOR_URL`.
+The name of the endpoint is used to inject or modify environment variables. In this example, one of those would be: `OKTETO_EXTERNAL_FUNCTIONS_ENDPOINTS_DATA_AGGREGATOR_URL`. This is also referred to as [Dynamic Endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url).
 
 All of this information can be found and in a more concise format in our [References section](/reference/manifest/#external-object-optional).
 
+### Using dynamic endpoints with external resources
+
+[Dynamic Endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) is an Okteto feature that lets you define non-static URLs in your Okteto manifest. There are generally three endpoint scenarios:
+
+1. A static, unchanging URL that you know and that will remain the same across all users and development environments
+1. A hybrid URL that may have a static component but incorporate a dynamic one such as a username (e.g. user1.example.com/endpoint)
+1. A fully dynamic URL that my be completely unique per user
+
+Using the Dynamic Endpoints feature Okteto provides means you can omit the `url:` key from a specific external resource in your Okteto manifest and instead compile that URL within the `deploy` section (either directly or within an included script). 
+
+For example, if have the following `deploy` section defined:
+
+```yaml
+deploy:
+  image: okteto/pipeline-runner:1.0.0-sam
+  commands:  
+  - name: Create an AWS SQS queue
+    command: |
+      sh sqs/deploy.sh
+```
+
+We can define the endpoint dynamically within the `deploy.sh` script ([example here](https://github.com/okteto/external-resources-aws/blob/main/sqs/deploy.sh)). In simpler terms, the URL is dynamically compiled on this line:
+
+```yaml
+dashboard="https://${AWS_REGION}.console.aws.amazon.com/sqs/v2/home?region=${AWS_REGION}#/queues/${encoded}"
+```
+
+That will compile the appropriate URL, using Okteto environment variables, that specify where a developer in the same namespace will go when they click on the AWS SQS external resource component in the Okteto UI (see below).
+
+<p align="center"><Image src="/docs/cloud/images/external_resources_sqs_demo.png" alt="AWS SQS external resource demo UI component" width="450" /></p>
+
 ## Example: Deploy a Development Environment with External Resources
 
-Now that we've walked through a sample of an `external` configuration, let's look at using this within the broader context of an application we're working on. You can navigate to our [demo repo](https://github.com/okteto/voting-app-with-external-resources) to follow along if you'd like.
+Now that we've walked through a sample of an `external` configuration, let's look at using this within the broader context of an application we're working on. You can navigate to our [demo repo](https://github.com/okteto/external-resources-aws) to follow along if you'd like.
 
-In this example we'll be configuring and deploying a development environment that includes polyglot microservices and two external resources: an AWS lambda function and MongoDB Atlas for storage.
+In this example we'll be configuring and deploying a development environment that includes polyglot microservices, an AWS SQS queue, and an S3 bucket.
 
-<p align="center"><Image src="/docs/cloud/images/video_app_architecture.png" alt="Application architecture diagram" width="450" /></p>
+<p align="center"><Image src="/docs/cloud/images/external_resources_architecture.png" alt="Application architecture diagram" width="450" /></p>
 
 ### Prerequisites
 
-1. Okteto CLI 2.13 or newer
-2. An AWS account
-3. A [MongoDB Atlas](https://www.mongodb.com/docs/atlas/getting-started/) account
-4. [Deploy a free cluster](https://www.mongodb.com/docs/atlas/tutorial/deploy-free-tier-cluster/) in your MongoDB Atlas account
-5. Create a set of IAM keys for your AWS account
-6. Create the following Okteto secrets:
-   - MONGODB_USERNAME: Your MongoDB Atlas username
-   - MONGODB_PASSWORD: Your MongoDB Atlas username
-   - MONGODB_HOST: The URL of your MongoDB Atlas cluster
-   - MONGODB_WEBURL: The Web URL of your MongoDB Atlas cluster
-   - AWS_ACCESS_KEY_ID: The Acces Key ID of your IAM user
-   - AWS_SECRET_ACCESS_KEY: The Secret Acces Key of your IAM user
-   
-Notice that the `external` configuration is a bit different in this demo:
+1. Okteto CLI 2.14 or newer
+1. An AWS account
+1. An Okteto account
+1. Create a set of IAM keys for your AWS account (If you are using Okteto Self-Hosted, you can directly assign an AWS Role)
+1. Create the following Okteto secrets:
+
+        AWS_ACCESS_KEY_ID: The Acces Key ID of your IAM user
+        AWS_SECRET_ACCESS_KEY: The Secret Acces Key of your IAM user
+        AWS_REGION: The region in AWS you would like to use for the external resources
+
+Notice the `external` configuration in this demo. It specifies most attributes except for `url` for most of these resources.
 
 ```yaml
 external:
-  lambda:
-    icon: function
-    notes: docs/lambda.md
+  readme:
+    icon: okteto
+    notes: README.md
     endpoints:
-    - name: function
-  atlas:
-    icon: database
-    notes: docs/atlas.md
+    - name: readme
+      url: https://github.com/okteto/external-resources-aws
+  sqs:
+    icon: aws
+    notes: sqs/notes.md
     endpoints:
-    - name: dashboard
+    - name: queue
+  s3:
+    icon: aws
+    notes: s3/notes.md
+    endpoints:
+    - name: bucket
+  api-docs:
+    icon: dashboard
+    notes: check/notes.md
+    endpoints:
+    - name: docs
 ```
 
-The `url:` keys are missing from each external resource (`lambda` and `atlas`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](/cloud/secrets) you defined [above](#prerequisites) and the [dynamic endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) feature.
+The `url:` keys are missing from most external resource (`sqs`, `s3`, and `api-docs`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](/cloud/secrets) you defined [above](#prerequisites) and the [dynamic endpoints](#using-dynamic-endpoints-with-external-resources) feature.
 
 Alternatively, you could remove the respective `deploy` commands and add the `url` endpoints here manually, but this is a good example of how flexible the manifest file can be.
 
 Once you've configured the prerequisites, you can deploy this on your Okteto instance:
 
 ```
-$ git clone https://github.com/okteto/voting-app-with-external-resources
-$ cd voting-app-with-external-resources
+$ git clone https://github.com/okteto/external-resources-aws
+$ cd external-resources-aws
 $ okteto context use $OKTETO_URL
 $ okteto deploy
 ```
 
-Once the application has been deployed in Okteto, you can work on the `Result` microservice by running the command: `okteto up result`. Similarly, you can work on the `Vote` microservice by running the command: `okteto up vote`.
+Once the application has been deployed in Okteto, you can work on the `menu` microservice by running the command: `okteto up menu`. In this specific example, once you've executed this command you'll also need to run `yarn start` from the container.
+
+> To start the other services in this example (`kitchen` and `check`) you'll need to run these commands from the container, respectively:
+- go run main.go
+- python main.py
