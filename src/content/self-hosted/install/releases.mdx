@@ -11,6 +11,45 @@ TBD
 ### Removal Notice
 - Kubernetes [1.21](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.21.md) is no longer supported.
 
+### Deprecation Notice
+
+`cloud.provider` and `cloud.secret` helm chart values are deprecated and they will be removed in the future 2.x release. Now, [`registry.storage.provider`](self-hosted/administration/configuration.mdx#storage) and [`registry.secret`](self-hosted/administration/configuration.mdx#registry) should be used instead as they configure settings for the registry external storage. This change is backward compatible and it will work with the old keys (if they are provided) until they are removed.
+
+So, imagine you have this configuration:
+
+```yaml
+cloud:
+  secret:
+    name: "okteto-cloud-secret"
+    key: "key"
+    token: "token"
+  provider:
+    aws:
+      enabled: true
+      region: us-west-2
+      bucket: okteto-private-images
+      iam:
+        accessKeyID: "XXXXXX"
+```
+
+Now, it should be changed to and remove the config under `cloud`:
+
+```yaml
+registry:
+  secret:
+    name: "okteto-cloud-secret"
+    accessKey: "key"
+    secretKey: "token"
+  storage:
+    provider:
+      aws:
+        enabled: true
+        region: us-west-2
+        bucket: okteto-private-images
+        iam:
+          accessKeyID: "XXXXXX"
+```
+
 ### Features
 
 - Support for the annotation [dev.okteto.com/endpoints](cloud/ssl.mdx#customizing-the-endpoints-shown-in-the-okteto-ui) to customize the endpoints shown in the Okteto UI.
