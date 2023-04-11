@@ -18,8 +18,13 @@ Here are just a few examples of external resources you can use with Okteto:
 - Amazon S3 buckets
 - Amazon RDS databases
 - AWS Lambda Functions
+- GCP Cloud Storage
+- GCP Cloud Functions
+- GCP BigQuery
+- Backstage
+- Atlassian Confluence Documents
 
-You no longer need to use different tools to work on your application in Okteto and you won't need to worry about rogue external resources continuing to run once you are done with your work.
+This is not an exhaustive list and only demonstrates the flexibility of this feature. You can include *anything* as an external resource. You no longer need to use different tools to work on your application in Okteto and you won't need to worry about rogue external resources continuing to run once you are done with your work.
 
 When you configure External Resources in Okteto you can see those resources within the Okteto UI, can click to go directly to those resources in their respective platform, and include them in your Okteto `deploy` and `destroy` configurations.
 
@@ -53,7 +58,7 @@ deploy:
       sh s3/deploy.sh
 ```
 
-In this example we're using a script that contains all of the instructions to do the provisioning work and executing that script in this particular stage of the Okteto `deploy` section. 
+In this example we're using a [script](https://github.com/okteto/external-resources-aws/blob/main/s3/deploy.sh) that contains all of the instructions to do the provisioning work and executing that script in this particular stage of the Okteto `deploy` section. 
 
 > You can also use the `OKTETO_BUILD_XXX_IMAGE` ENV VAR in the `deploy` section to refer to specific container images.
 
@@ -107,12 +112,12 @@ As you configure your external resources in this section, keep in mind the follo
 
 `icon:` specifies one of several predefined icons you can use when this resource is rendered in the Okteto UI. The current list of supported icons is:
 
-- container
 - dashboard
 - database
 - default
 - function
 - graph
+- okteto
 - storage
 
 <p align="center"><Image src="/docs/cloud/images/external_resource_list.png" alt="External resources listed in dev environment" width="450" /></p>
@@ -170,8 +175,8 @@ In this example we'll be configuring and deploying a development environment tha
 1. Okteto CLI 2.14 or newer
 1. An AWS account
 1. An Okteto account
-1. Create a set of IAM keys for your AWS account (If you are using Okteto Self-Hosted, you can directly assign an AWS Role)
-1. Create the following Okteto secrets:
+1. Create a set of [IAM keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for your AWS account (If you are using Okteto Self-Hosted, you can [directly assign an AWS Role](/self-hosted/install/preparation/#creating-an-iam))
+1. Create the following [Okteto secrets](/cloud/secrets/):
 
         AWS_ACCESS_KEY_ID: The Acces Key ID of your IAM user
         AWS_SECRET_ACCESS_KEY: The Secret Acces Key of your IAM user
@@ -216,6 +221,8 @@ $ cd external-resources-aws
 $ okteto context use $OKTETO_URL
 $ okteto deploy
 ```
+
+The `okteto deploy` command will deploy the Okteto environment, external resources, and anything else defined within your Okteto manifest `deploy` section. You can think of this command as the "on button" for your remote cloud development environment within Okteto.
 
 Once the application has been deployed in Okteto, you can work on the `menu` microservice by running the command: `okteto up menu`. In this specific example, once you've executed this command you'll also need to run `yarn start` from the container.
 
