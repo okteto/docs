@@ -35,6 +35,7 @@ module.exports = {
           "cloud/deploy-from-helm"
         ]
       },
+      "cloud/external-resources",
       "cloud/secrets",
       {
         "type": "category",
