@@ -45,6 +45,20 @@ Using external resources with Okteto requires configuring three areas of your Ok
 2. The `destroy` section to ensure the external resource is destroyed (as appropriate) when your development environment is destroyed
 3. The `external` section to populate the Okteto UI and link to the external resource
 
+:::tip
+
+(**[Okteto Self-Hosted](/self-hosted)** customers only) For Amazon AWS and Google GCP you can also configure service accounts for connecting external resources to Okteto. You can learn more about that [here (AWS)](/self-hosted/administration/configuration/#iam-role-for-service-account-recommended) and [here (GCP)](/self-hosted/administration/configuration/#workload-identity-recommended)
+
+:::
+
+You can leverage [Okteto secrets](/cloud/secrets/) to pre-define access keys or credentials for these external resources and use those secrets (using the `$SECRET_NAME` syntax) within your Okteto manifest.
+
+:::info 
+
+Note for `Admins`: We strongly recommend configuring external resource secrets in your [admin dashboard](/administration/dashboard/#secrets-section) to centralize and manage these secrets securely.
+
+:::
+
 ### Configuring the `deploy` section
 
 When you use an external resource with Okteto it needs to be provisioned like any other resource. If we use the example above of creating an AWS S3 bucket, we could add the following to our Okteto manifest in the `deploy` section:
@@ -60,7 +74,11 @@ deploy:
 
 In this example we're using a [script](https://github.com/okteto/external-resources-aws/blob/main/s3/deploy.sh) that contains all of the instructions to do the provisioning work and executing that script in this particular stage of the Okteto `deploy` section. 
 
-> You can also use the `OKTETO_BUILD_XXX_IMAGE` ENV VAR in the `deploy` section to refer to specific container images.
+:::tip 
+
+You can also use the `OKTETO_BUILD_XXX_IMAGE` ENV VAR in the `deploy` section to refer to specific container images.
+
+:::
 
 ### Configuring the `destroy` section
 
@@ -96,7 +114,11 @@ external:
     - name: bucket
 ```
 
-> You can also use the [dynamic endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) feature here to provide more flexibility in the URLs.
+:::tip
+
+You can also use the [dynamic endpoints](/reference/manifest/#use-dynamic-endpoints-for-an-external-url) feature here to provide more flexibility in the URLs.
+
+:::
 
 Every keyword that you see here is opinionated except for `readme:` and `s3:`. Those two keywords, the names of the external resources being defined here, can be anything you want them to be. For example, if we want to call the `readme:` resource `dundie_award:` you can do so. Similarly, you could name `s3:` something like `parkour:` and it will work just fine.
 
@@ -226,6 +248,10 @@ The `okteto deploy` command will deploy the Okteto environment, external resourc
 
 Once the application has been deployed in Okteto, you can work on the `menu` microservice by running the command: `okteto up menu`. In this specific example, once you've executed this command you'll also need to run `yarn start` from the container.
 
-> To start the other services in this example (`kitchen` and `check`) you'll need to run these commands from the container, respectively:
+:::tip
+
+To start the other services in this example (`kitchen` and `check`) you'll need to run these commands from the container, respectively:
 - go run main.go
 - python main.py
+
+:::
