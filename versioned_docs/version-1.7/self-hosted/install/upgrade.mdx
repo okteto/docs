@@ -17,55 +17,15 @@ $ helm upgrade <your-release-name> okteto/okteto -f config.yaml --namespace=okte
 For example:
 ```console
 $ helm repo update
-$ helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version 0.9.x
+$ helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version 1.7.0
 ```
 *You can use `helm ls` to find the name of your release.*
 
 Please review [the release notes](self-hosted/install/releases.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
 
-## Upgrading to 1.x
+## Upgrading to Okteto 1.7.x
 
-Okteto 1.x has two major breaking changes that you need to be aware of before upgrading:
-
-- Support for Kubernetes 1.19 has been removed, and 1.20 is deprecated.
-- The helm chart has been renamed from `okteto-enterprise` to `okteto`. All the resources created by the chart will have `okteto` as their prefix instead of `okteto-enterprise`. This change will cause all resources to be recreated upon upgrade.  Depending on your cloud provider and your networking configuration, you might need to update the DNS entry of the [build service](self-hosted/administration/configuration.mdx#buildkit) after upgrading your Okteto instance.
-- The helm chart doesn't install [cert-manager](https://cert-manager.io/) by default.
-
-We recommend that you follow the steps below to reduce the disruption of the service to a minimum:
-
-#### Before upgrade
-
-Skip this step if you are [bringing your own certificates](self-hosted/administration/certificates.mdx).
-Check if this is the case by seeing that the wildcard creation is disabled in the Okteto helm values configuration:
-
-```
-wildcardCertificate:
-  create: false
-```
-
-If Okteto was generating the certificates for you, run the following command from your command line to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
-
-```
-kubectl -n okteto annotate issuer okteto-okteto-enterprise helm.sh/resource-policy=keep
-kubectl -n okteto annotate certificate default-ssl-certificate helm.sh/resource-policy=keep
-```
-
-Then, add the following configuration to your Okteto helm values file to use the existing certificate:
-
-```
-wildcardCertificate:
-  create: false
-  name: default-ssl-certificate
-
-ingress-nginx:
-  controller:
-    extraArgs:
-      default-ssl-certificate: $(POD_NAMESPACE)/default-ssl-certificate
-```
-
-> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend you to [bring your own certificate](self-hosted/administration/certificates.mdx) once the Okteto upgrade has been complete succesfully.
-
-As part of [1.7.0 version](self-hosted/install/releases.mdx#170), we moved the configuration settings needed to configure the external storage for the registry. Before, it was configured under `cloud` key and now it has to be configured under `registry` key.
+As part of [1.7.0](self-hosted/install/releases.mdx#170), we moved the configuration settings needed to configure the external storage for the registry. Before, it was configured under `cloud` key and now it has to be configured under `registry` key.
 
 So, before `1.7.X`, the configuration to configure external storage would look like this:
 
@@ -101,7 +61,50 @@ registry:
 >
 > If you had a custom value for `cloud.secret`, you need to specify the right values under `registry.secret` key.
 
-#### Upgrade Okteto
+
+## Upgrading from Okteto 0.x to 1.x
+
+Okteto 1.x has two major breaking changes that you need to be aware of before upgrading:
+
+- Support for Kubernetes 1.19 has been removed, and 1.20 is deprecated.
+- The helm chart has been renamed from `okteto-enterprise` to `okteto`. All the resources created by the chart will have `okteto` as their prefix instead of `okteto-enterprise`. This change will cause all resources to be recreated upon upgrade.  Depending on your cloud provider and your networking configuration, you might need to update the DNS entry of the [build service](self-hosted/administration/configuration.mdx#buildkit) after upgrading your Okteto instance.
+- The helm chart doesn't install [cert-manager](https://cert-manager.io/) by default.
+
+We recommend that you follow the steps below to reduce the disruption of the service to a minimum:
+
+### Before upgrade
+
+Skip this step if you are [bringing your own certificates](self-hosted/administration/certificates.mdx).
+Check if this is the case by seeing that the wildcard creation is disabled in the Okteto helm values configuration:
+
+```
+wildcardCertificate:
+  create: false
+```
+
+If Okteto was generating the certificates for you, run the following command from your command line to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
+
+```
+kubectl -n okteto annotate issuer okteto-okteto-enterprise helm.sh/resource-policy=keep
+kubectl -n okteto annotate certificate default-ssl-certificate helm.sh/resource-policy=keep
+```
+
+Then, add the following configuration to your Okteto helm values file to use the existing certificate:
+
+```
+wildcardCertificate:
+  create: false
+  name: default-ssl-certificate
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/default-ssl-certificate
+```
+
+> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend you to [bring your own certificate](self-hosted/administration/certificates.mdx) once the Okteto upgrade has been complete succesfully.
+
+### Upgrade Okteto
 
 Run the following commands to upgrade your Okteto instance:
 
@@ -132,7 +135,7 @@ Update your DNS configuration with the `EXTERNAL-IP` address.
 
 If you are [bringing your own certificates](self-hosted/administration/certificates.mdx), your Okteto instance is now fully upgraded. The rest of the guide doesn't apply to your configuration.
 
-## Install cert-manager
+### Install cert-manager
 
 Okteto will remove the instance of `cert-manager` that was installed by older versions of the helm chart. If you plan on using `cert-manager` as your certificate provider, you'll need to install it manually in your cluster using the instructions below:
 
