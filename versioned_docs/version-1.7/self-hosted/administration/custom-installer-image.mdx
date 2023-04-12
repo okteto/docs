@@ -1,0 +1,51 @@
+---
+title: Custom Installer Image
+description: Use a custom installer image to deploy your Development Environments
+sidebar_label: Custom Installer Image for your Pipelines
+id: custom-installer-image
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+You can specify a custom installer image to deploy your Development Environments. Use this if you want to use tools, frameworks, or custom configurations not included in the [default installer image](https://github.com/okteto/pipeline-runner).
+
+## Requirements
+
+To use the Custom Installer Image feature, you first need to create your own Docker image, and push it to a registry that can be accessed by your Okteto instance.
+
+### Defining the Custom Image
+
+When creating your image, we recommend extending the image from [the latest version](https://github.com/okteto/pipeline-runner/releases) of the default pipeline runner image.
+
+Your image can include anything that you need when deploying Development Environments for your organization. The example below shows you how to include `wget`:
+
+```
+FROM okteto/pipeline-runner:1.0.0
+
+RUN apt-get upgrade && \
+  apt-get install wget
+```
+
+### Build and Publish the Custom Image
+
+Once the image has been defined, build it and push it to your container registry. 
+
+```
+docker build -t YOUR_COMPANY/pipeline-installer:1
+docker push YOUR_COMPANY/pipeline-installer:1
+```
+
+## Configure your Custom Image
+
+To enable the custom image, update your `config.yaml` file with the following values, and run a [helm upgrade](https://okteto.com/docs/self-hosted/install/upgrade/#upgrade-your-okteto-enterprise-instance) to apply the new configuration.
+
+```yaml
+installer:
+  runner: YOUR_COMPANY/pipeline-runner:1
+```
+
+## Using the Custom Image
+
+Once the configuration has been applied, all the Development Environments will be deployed using your custom image.  In order to help you troubleshoot any issues, the name of the image used during deployment is included in the pipeline logs. You can consult this in the Okteto UI.
+
