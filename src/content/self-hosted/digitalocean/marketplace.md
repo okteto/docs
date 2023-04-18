@@ -26,7 +26,6 @@ Use the admin token you retrieved on the first step to log in to the admin scree
 
 Once you log in to the admin page, you'll need to provide the following values to complete Okteto's initial configuration.
 
-1. The email of the owner of the application
 1. A [dedicated subdomain](#Subdomain) for your Okteto instance
 1. Your Kubernetes cluster's [public endpoint](#Cluster-Public-Endpoint)
 1. Your [Okteto license](#License) (optional)
