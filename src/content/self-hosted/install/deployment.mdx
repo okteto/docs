@@ -8,19 +8,11 @@ sidebar_label: Deployment
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-## Create the Okteto Namespace
-
-Run the command below to create a namespace for okteto:
-
-```console
-$ kubectl create namespace okteto
-```
-
 ## Configuration file
 
 Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the most common options. A complete list of configuration options is [available here](self-hosted/administration/configuration.mdx).
 
-You can use [this sample configuration file](https://charts.okteto.com/config.yaml) as a starting point. The different configuration settings are explained below.
+You can use [this sample configuration file](https://www.okteto.com/docs/self-hosted/install/config.yaml) as a starting point. The different configuration settings are explained below.
 
 ### Cluster Endpoint
 
@@ -31,14 +23,19 @@ cluster:
   endpoint: "https://52.30.32.1"
 ```
 
+Run the following command to obtain your cluster's API server endpoint:
+
+```
+kubectl config view --minify | grep server
+```
+
 ### Domain
 
-The domain (or subdomain) managed by your Okteto installation.
-
-Your users will be able to access your Okteto instance at `okteto.$SUBDOMAIN`. All ingresses created by okteto will be use it as well (e.g. https://app-$NAMESPACE.$SUBDOMAIN)
+You'll need sufficient access to a [subdomain](self-hosted/administration/configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
+By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
 
 ```yaml
-subdomain: "example.com"
+subdomain: "dev.example.com"
 ```
 
 ### License
@@ -51,84 +48,6 @@ license: XXXXX
 
 Want to use Okteto with a bigger team? [Let's talk](https://okteto.com/#talktous)
 
-> You can also use [a secret](self-hosted/install/deployment.mdx#cloud-provider-secret) to store the license.
-
-### Authentication
-
-Okteto supports using Bitbucket, GitHub, Google, or OpenID Connect as authentication providers.
-
-Use the `clientId` and `clientSecret` that you created [in the previous step](self-hosted/install/preparation.mdx#authentication).
-
-<Tabs
-  defaultValue="github"
-  values={[
-    { label: 'Bitbucket', value: 'bitbucket', },
-    { label: 'GitHub', value: 'github', },
-    { label: 'Google', value: 'google', },
-    { label: 'OpenID Connect', value: 'openid', },
-  ]}
->
-<TabItem value="bitbucket">
-
-```yaml
-auth:
-  bitbucket:
-    enabled: true
-    clientId: OAuth Consumer Key
-    clientSecret: OAuth Consumer Secret
-    workspace: my-workspace
-```
-
-An empty `workspace` field allows any Bitbucket user to authenticate.
-
-</TabItem>
-<TabItem value="google">
-
-```yaml
-auth:
-  google:
-    enabled: true
-    clientId: clientid.apps.googleusercontent.com
-    clientSecret: clientSecret
-```
-</TabItem>
-<TabItem value="github">
-
-```yaml
-auth:
-  github:
-    enabled: true
-    clientId: clientID
-    clientSecret: clientSecret
-    organization: my-org
-```
-
-An empty `organization` field allows any GitHub user to authenticate.
-</TabItem>
-
-<TabItem value="openid">
-
-```yaml
-auth:
-  openid:
-    enabled: true
-    clientId: clientID
-    clientSecret: clientSecret
-    group: my-group
-    endpoints:
-      issuer: https://your-provider
-      authorization: https://your-provider/authorization
-```
-An empty `group` field allows any user to authenticate.
-
-The `issuer` and `authorization` endpoints must match the value returned in the provider config discovery.
-
-Further configuration settings [are described here](self-hosted/administration/configuration.mdx#auth).
-</TabItem>
-</Tabs>
-
-> You can also use [a secret](self-hosted/install/deployment.mdx#cloud-provider-secret) to store the sensitive part of these credentials.
-
 ## Deploy the Okteto Chart
 
 Run `helm install` to deploy your Okteto instance. In this example, we have named our Helm release okteto.
@@ -136,17 +55,39 @@ Run `helm install` to deploy your Okteto instance. In this example, we have name
 ```console
 $ helm repo add okteto https://charts.okteto.com
 $ helm repo update
-$ helm install okteto okteto/okteto  -f config.yaml --namespace=okteto
+$ helm install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace
 ```
 
-You can also use `--version version` if you would like to install a specific version of Okteto.
+> You can also use `--version version` if you would like to install a specific version of Okteto.
 
-Check the status of the deployment by running `helm status okteto`.
+After a few seconds, all the resources will be created. The output will look something like this:
 
-## Post Install Configuration
+```
+Release "okteto" has been installed. Happy Helming!
+NAME: okteto
+LAST DEPLOYED: Thu Mar 26 18:07:55 2020
+NAMESPACE: okteto
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+1. Create the following DNS record, pointing it to the NGINX controller service External-IP:
+- "*.dev.example.com"
+
+You can retrieve the External IP by running:
+    kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+
+2. Once you create both DNS entries you can access your Okteto instance at this URL:
+https://okteto.dev.example.com
+```
 
 Once the chart is installed, follow the onscreen instructions to finalize the configuration.
 
-## Initial login
+## Sign in to your Okteto instance
 
-You can access your Okteto instance by going to https://okteto.$SUBDOMAIN. An account will be automatically created for you as part of the login process.
+After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+
+> **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](administration/dashboard.mdx) before giving your team access to your Okteto instance.
+
+The default installation is all that's required to follow our [getting started](getting-started.mdx) guide.
+Just remember to replace https://cloud.okteto.com by `https://okteto.SUBDOMAIN` and you will be good to go!
