@@ -14,18 +14,15 @@ In order to fully install Okteto, you'll need the following:
 - A Kubernetes cluster
 - A working installation of kubectl
 - A working installation of Helm v3
-- A GitLab OAuth application
-- A DigitalOcean personal access token
-- A DigitalOcean space and access key
 - An Okteto License (optional)
 
 ### Subdomain
 
-You'll need access to a subdomain to which you can add a wildcard DNS record, such as dev.example.com.
+You'll need sufficient access to a [subdomain](self-hosted/administration/configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
+By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
 
-This guide will assume that your domain is registered in [DigitalOcean](https://cloud.digitalocean.com/networking/domains). Other DNS services can be used, but aren't covered here.
-
-In the rest of this guide, we will refer to this subdomain as `DOMAIN`.
+This guide assumes your domain is registered in Google's [DigitalOcean](https://cloud.digitalocean.com/networking/domains).
+You can use any DNS service you prefer, but this guide focuses specifically on DigitalOcean's Domains.
 
 ### Deploy a Kubernetes cluster
 
@@ -35,7 +32,7 @@ Okteto supports Kubernetes versions 1.22 through 1.24.
 To get started with Okteto, follow these specs:
 
 - v1.23
-- A pool with at least 2 nodes (4CPUs and 16GBs each) without autoscalability
+- A pool with at least 3 nodes (4CPUs and 16GBs each)
 - 250 GB per disk
 
 You'll be using the cluster's API server endpoint when configuring Okteto.
@@ -55,106 +52,6 @@ Follow the official documentation for [installing kubectl](https://kubernetes.io
 
 Follow the official documentation for [installing the latest release of Helm v3](https://helm.sh/docs/intro/install/).
 
-### Creating the GitLab OAuth application
-
-Okteto supports OAuth providers like Google, Bitbucket, GitHub, or OpenID Connect to handle user authentication. All the supported configuration settings [are described here](self-hosted/administration/configuration.mdx#auth).
-
-For this guide, we will focus on using GitLab OpenID Connect.
-
-Follow GitLab's official documentation on [how to create an OAuth Client](https://docs.gitlab.com/ee/integration/oauth_provider.html).
-
-When creating the OAuth Application, you will need to provide the following values:
-
-**Redirect URIs**:
-```
-https://okteto.DOMAIN
-https://okteto.DOMAIN/auth/callback
-```
-
-**Scopes**:
-```
-openid
-profile
-email
-```
-
-You'll use the `Application ID` and `Secret` of your OAuth Application when installing Okteto.
-
-### Creating a DigitalOcean Space and Access Key
-
-Okteto uses DigitalOcean spaces to store your private images. Follow DigitalOcean's [guide on how to create a space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key).
-Create the space in the same region as your Kubernetes cluster and restrict file listing.
-
-### Getting your Okteto License
-
-Okteto is free for up to 3 users without a license.
-You can also sign on for the [free trial](https://www.okteto.com/free-trial/) to give access up to 100 users for a month.
-
-## Installing Okteto
-
-### Create the Okteto Namespace
-
-Run the following command to create a namespace to install Okteto in:
-
-```console
-$ kubectl create namespace okteto
-```
-
-### Configuring your Okteto instance
-
-Create a Kubernetes secret with the DigitalOcean space access key secret (`$SECRET`) you created before:
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=$SECRET
-```
-
-Using these values:
-
-- Your license (optional): `$LICENSE`
-- Your subdomain: `$SUBDOMAIN`
-- Your cluster's API server endpoint
-- The URL of your GitLab instance: `$GITLAB_URL`. Use https://gitlab.com if your are using GitLab SaaS
-- Application ID: `$OAUTH_APPLICATION_ID` and Secret: `$OAUTH_APPLICATION_SECRET` of the OAuth 2.0 Client you created
-- The ID of the DigitalOcean region of your Kubernetes cluster: `$REGION`
-- Your space name: `$SPACE_NAME` and access key ID : `$SPACE_ACCESS_KEY_ID`
-
-create the following `config.yml` file to configure the Okteto Helm chart:
-
-```yaml
-license: "$LICENSE"
-subdomain: "$SUBDOMAIN"
-
-cluster:
-  endpoint: "$KUBERNETES_ENDPOINT"
-
-auth:
-  openid:
-    enabled: true
-    endpoints:
-       issuer: "$GITLAB_URL"
-       authorization: "$GITLAB_URL/oauth/authorize"
-    clientId: "$OAUTH_APPLICATION_ID"
-    clientSecret: "$OAUTH_APPLICATION_SECRET"
-
-registry:
-  storage:
-    provider:
-      digitalocean:
-        enabled: true
-        region: "$REGION"
-        space:
-          name: "$SPACE_NAME"
-          accessKeyID: "$SPACE_ACCESS_KEY_ID"
-
-buildkit:
-  ingress:
-    enabled: false
-  service:
-    type: LoadBalancer
-  persistence:
-    enabled: true
-```
-
 ### Adding the Okteto Helm repository
 
 You'll need to add the Okteto repository in order to be able to install Okteto:
@@ -164,13 +61,46 @@ helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
+### Getting your Okteto License
+
+Okteto is free for up to 3 users without a license.
+You can also sign up for our [free trial](https://www.okteto.com/free-trial/), which supports up to 30 users for a month.
+
+## Installing Okteto
+
+Download a copy of the [Okteto DigitalOcean configuration file](https://www.okteto.com/docs/self-hosted/digitalocean/config.yaml), open it, and update the following values:
+
+- Your `license` (optional)
+- A `subdomain`
+- Your cluster's API server endpoint
+
+For example:
+
+```yaml
+license: 1234567890ABCD==
+subdomain: dev.example.com
+cluster:
+  endpoint: "https://XXXXXX.aks.microsoft.com"
+
+buildkit:
+  ingress:
+    enabled: false
+  service:
+    type: LoadBalancer
+  persistence:
+    enabled: true
+
+```
+
 ### Installing your Okteto instance
 
 Install the latest version of Okteto by running:
 
 ```console
-helm install okteto okteto/okteto -f config.yaml --namespace=okteto
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace
 ```
+
+> You can also install a specific version by including the `--version` argument.
 
 After a few seconds, all the resources will be created. The output will look something like this:
 
@@ -235,6 +165,9 @@ You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the do
 
 ## Sign in to your Okteto instance
 
-> **Important**: The default installation uses self-signed certificates. We strongly recommend that you  configure Okteto to [bring your own certificates](self-hosted/administration/certificates.mdx) before giving your team access to your instance.
+After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
 
-You can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully log into the instance will be automatically assigned the `administrator` role.
+> **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](administration/dashboard.mdx) before giving your team access to your Okteto instance.
+
+The default installation is all that's required to follow our [getting started](getting-started.mdx) guide.
+Just remember to replace https://cloud.okteto.com by `https://okteto.SUBDOMAIN` and you will be good to go!
