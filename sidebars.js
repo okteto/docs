@@ -10,6 +10,7 @@ module.exports = {
     {
       "Welcome": [
       "overview",
+      "saas-vs-self-hosted",
       {
         "type": "category",
         "label": "Getting Started",
