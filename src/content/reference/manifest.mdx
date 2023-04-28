@@ -70,21 +70,7 @@ Each image supports the following fields:
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
 
-In order to refer to these images from anywhere in your [Okteto Manifest](cloud/okteto-cli.mdx#okteto-manifest), you can use the following environment variables:
-
-- `${OKTETO_BUILD_<service>_IMAGE}`: the full image reference
-- `${OKTETO_BUILD_<service>_REGISTRY}`: the registry URL where the image was pushed
-- `${OKTETO_BUILD_<service>_REPOSITORY}`: the name of the image that was pushed
-- `${OKTETO_BUILD_<service>_SHA}`: the latest tag and the SHA of the image
-
-For example, for the image `registry.cloud.okteto.net/cindy/hello-world:okteto`, you would have the following values:
-
-- `OKTETO_BUILD_HELLO_WORLD_IMAGE`: registry.cloud.okteto.net/cindy/hello-world@sha256:xxx
-- `OKTETO_BUILD_HELLO_WORLD_REGISTRY`: registry.cloud.okteto.net
-- `OKTETO_BUILD_HELLO_WORLD_REPOSITORY`: cindy/hello-world
-- `OKTETO_BUILD_HELLO_WORLD_SHA`: okteto@sha256:xxx
-
-> if a `<service>` name includes the symbol `-`, in the corresponding `OKTETO_BUILD_<service>` environment variables, the symbol `-` will be replaced by `_`.  For example, if `<service>` is `name-with-hyphen`, the environment variable names will start with `$OKTETO_BUILD_NAME_WITH_HYPHEN_`.
+Follow this document for a list of [environment variables](cloud/okteto-cli.mdx/#build-environment-variables) available in your deploy commands to refer to the images built in the `build` section of your Okteto Manifest.
 
 > Okteto will automatically add all the build environment variables from all previous images in the dependency chain as build arguments. To refer to them, remember to add the `ARG` instruction on your Dockerfile.
 
@@ -114,6 +100,8 @@ A list of repositories you want to deploy as part of your development environmen
 dependencies:
   - https://github.com/okteto/movies-frontend
 ```
+
+Follow this document for a list of [environment variables](cloud/okteto-cli.mdx/#dependencies-environment-variables) available in your deploy commands to refer to `variables` of your `dependencies`.
 
 Use `okteto deploy --dependencies` to force the redeployment of your dependencies.
 
@@ -155,9 +143,9 @@ A list of commands to deploy your development environment.
 
 It's usually a combination of `helm`, `kubectl`, and `okteto` commands.
 
-#### Deploy a Helm chart
+#### Deploy with Commands
 
-Deploy a Helm chart using the following notation:
+Deploy a Helm chart using custom commands:
 
 ```yaml
 deploy:
@@ -172,6 +160,8 @@ deploy:
     command: helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
+Follow this document for a list of [environment variables](cloud/okteto-cli.mdx/#built-in-environment-variables) available in your deploy commands.
+
 You can share environment variables between steps by adding them to `$OKTETO_ENV`:
 
 ```yaml
@@ -182,7 +172,7 @@ deploy:
     command: echo "$OKTETO_FOLDER" # Prints /app
 ```
 
-#### Deploy a Docker Compose file
+#### Deploy with Docker Compose
 
 Deploy a Docker compose file using the following notation:
 
@@ -288,6 +278,7 @@ destroy:
   - terraform destroy --auto-approve
 ```
 
+Follow this document for a [list of variables](cloud/okteto-cli.mdx/#built-in-environment-variables) available in your destroy commands.
 
 #### Destroy remotely
 
