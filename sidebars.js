@@ -111,13 +111,13 @@ module.exports = {
           "self-hosted/gke"
         ]
       },
+      "self-hosted/administration/configuration",
       {
         "type": "category",
-        "label": "Configuration",
+        "label": "Administration",
         "items": [
           "self-hosted/administration/certificates",
           "self-hosted/administration/custom-installer-image",
-          "self-hosted/administration/configuration",
           "self-hosted/administration/github",
           "self-hosted/administration/volume-snapshots"
         ]
