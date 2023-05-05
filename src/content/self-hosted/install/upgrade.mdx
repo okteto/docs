@@ -154,3 +154,23 @@ helm install cert-manager jetstack/cert-manager --namespace=okteto --version=v1.
 Once installed, cert-manager will continue to renew your existing certificates.
 Please refer to [their docs](https://cert-manager.io/docs/) if you run into any installation or certificate renewal issues.
 
+## Upgrade to Kubernetes 1.25
+
+Kubernetes version 1.25 no longer supports pod security policies.
+If you are running Okteto in Kubernetes < 1.25, the default installation of Okteto creates pod security policies.
+If you upgrade Kubernetes to version 1.25 before upgrading Okteto, you will encounter the following error during the upgrade process:
+
+```
+Error: UPGRADE FAILED: unable to build kubernetes objects from current release manifest: [resource mapping not found for name: "okteto-permissive" namespace: "" from "": no matches for kind "PodSecurityPolicy" in version "policy/v1beta1"
+ensure CRDs are installed first, resource mapping not found for name: "okteto-restrictive" namespace: "" from "": no matches for kind "PodSecurityPolicy" in version "policy/v1beta1"
+ensure CRDs are installed first]
+```
+
+> You can find more information about how to recover from this state in this [community link](https://community.okteto.com/t/upgrade-failed-with-no-matches-for-kind-podsecuritypolicy-in-version-policy-v1beta1/802).
+
+To avoid this issue, upgrade Okteto before upgrading Kubernetes to version 1.25 and add the following configuration to your helm values file:
+
+```
+podSecurityPolicy:
+   enabled: false
+```
