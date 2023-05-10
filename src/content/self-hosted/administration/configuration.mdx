@@ -1298,13 +1298,18 @@ By default, the Private Endpoint component will inherit the configuration set at
 
 ## Dependencies
 
-Okteto will automatically install [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) as part of the default installation, using its official [Helm chart](https://kubernetes.github.io/ingress-nginx).
+Okteto will automatically install two instances of [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) as part of the default installation, using its official [Helm chart](https://kubernetes.github.io/ingress-nginx).
+
+Each instance has an specific role:
+
+- `ingress-nginx`: ingress-controller that serves all the inbound traffic to the Okteto cluster, including Buildkit, Registry, Okteto API, Okteto Frontend and users' ingresses.
+- `okteto-nginx`: ingress-controller dedicated to serve users' ingresses inbound traffic. By default, it is deployed behind `ingress-nginx`.
 
 ### NGINX Ingress Controller
 
-Use the `ingress-nginx` keys in your configuration file to modify the configuration.
+Use the `ingress-nginx` and `okteto-nginx` keys in your configuration file to modify the configuration.
 
-For example, to change the number of replicas, you'd need to add the following:
+For example, to change the number of replicas in `ingress-nginx`, you'd need to add the following:
 
 ```yaml
 ingress-nginx:
@@ -1314,17 +1319,23 @@ ingress-nginx:
 
 The full list of values is [available here](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml).
 
-#### Okteto ingress-nginx default values
+#### Okteto ingress-nginx/okteto-nginx default values
 
 Okteto sets specific values on the embedded ingress-nginx chart to enable features dependend on the ingress-controller. The values can be checked with the following command:
 
-```
-helm get values okteto/okteto --jsonpath '{.ingress-nginx}'
-```
+- `ingress-nginx`:
+  ```
+  helm get values okteto/okteto --jsonpath '{.ingress-nginx}'
+  ```
 
-#### Using Your Own Ingress Controller
+- `okteto-nginx`:
+  ```
+  helm get values okteto/okteto --jsonpath '{.okteto-nginx}'
+  ```
 
-You can disable the installation of NGINX Ingress Controller like this:
+#### Using Your Own Ingress Controller 
+
+You can disable the installation of the main `ingress-nginx` with the following snippet:
 
 ```yaml
 ingress-nginx:
@@ -1334,3 +1345,15 @@ ingress-nginx:
 In that case, configure [ingress.oktetoIngressClass](self-hosted/administration/configuration.mdx#ingress) with the ingress class you want to use for all the ingresses created during the Okteto installation.
 And the [ingress.ip](self-hosted/administration/configuration.mdx#ingress) field with the Cluster IP of your ingress controller.
 
+The `okteto-nginx` will continue to work and it will receive traffic with destintion `*.$(SUBDOMAIN)` from an ingress object at the release namespace. It can also be disabled with the following snippet:
+
+```yaml
+okteto-nginx:
+  enabled: false
+```
+
+If `okteto-nginx` is disabled, the following features will stop working:
+
+- Autowake Namespaces
+- Error Pages
+- Private Endpoints
