@@ -411,6 +411,45 @@ tolerations:
   devPool: dev
 ```
 
+### defaultBackend
+
+The defaultBackend receives errored requests from the ingress-controller and transform them returning them to the client.
+
+- `affinity`: Affinities to add to the defaultBackend pods.
+- `annotations`: Annotations to add to the defaultBackend pods.
+- `enabled`: Control if defaultBackend is deployed. Defaults to `true`.
+- `extraEnvs`: Environment variables to be set on the defaultBackend containers.
+- `image`: Configuration block to customize the image used by the defaultBackend pods.
+  - `repository`: Registry and repository for the defaultBackend pods.
+  - `tag`: Tag used for the defaultBackend pods.
+- `labels`: Labels to add to the defaultBackend pods.
+- `nodeSelector`: Labels to select on which nodes defaultBackend pods will be scheduled.
+- `port`: Internal port used for the defaultBackend. Defaults to `8080`.
+- `replicaCount`: The number of defaultBackend pods. It defaults to 2.
+- `resources`: The resources for the defaultBackend pods.
+- `tolerations`: The toletations for the defaultBackend pods.
+
+```yaml
+defaultBackend:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+```
+
+The defaultBackend provides the following features:
+
+- Autowake namespaces: when a user access an endpoint from an slept namespace, the defaultBackend will issue a wake command.
+- Custom error pages: when a user access an endpoint and an error is produced, the defaultBackend will return a custom error page with hints on how to solve it.
+
+You can also restrict the nodes where the defaultBackend is deployed using [tolerations](self-hosted/administration/configuration.mdx#tolerations):
+
+```
+tolerations:
+  devPool: dev
+```
+
 ### frontend
 
 The frontend service serves the web application.
