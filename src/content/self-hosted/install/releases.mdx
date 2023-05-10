@@ -8,6 +8,10 @@ id: releases
 ## 1.8.0
 10 May, 2023
 
+### Before you upgrade
+
+Okteto 1.8 includes a change in the ingress architecture. If you're using your own ingress controller instead of the ingress-controller embedded with Okteto chart, please checkout the updated section about ["How to use your own ingress controller"](self-hosted/administration/configuration.mdx#using-your-own-ingress-controller).
+
 ### Breaking changes
 
 - The default value for the buildkit service session affinity is now `None`. To keep using `ClientIP` as `sessionAffinity` you need to set `service.sessionAffinity: ClientIP` in your [buildkit configuration](self-hosted/administration/configuration.mdx#buildkit).
@@ -25,6 +29,11 @@ id: releases
 - Oketo Self-Hosted will now show the [installation setup guide](administration/dashboard/#installation) by default
 - External resources can now be destroyed from the Okteto UI
 - External resources now supports [additional icons](reference/manifest.mdx##icon-string-optional)
+- Ingresses are now served through two ingress-controllers instances, enabling flexible configuration and improving connection stability.
+  - `ingress-nginx` will continue to be the main gateway for all inbound traffic to Okteto, but will stop processing individual users' ingresses. Instead it will forward users' ingresses to the new `okteto-nginx`.
+  - `okteto-nginx` sits behind `ingress-nginx` and it process exclusively users' ingresses.
+  - For additional configuration of both instances, please check the [ingress-controller configuration section](self-hosted/administration/configuration.mdx#nginx-ingress-controller).
+- Okteto Ingress [defaultBackend](self-hosted/administration/configuration.mdx#defaultBackend) is now deployed separately of `ingress-nginx` or `okteto-nginx`.
 
 ### Improvements
 
