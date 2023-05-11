@@ -6,17 +6,61 @@ id: releases
 ---
 
 ## 1.8.0
-TBD
+10 May, 2023
+
+### Before you upgrade
+
+Okteto 1.8 includes a change in the ingress architecture. If you're using your own ingress controller instead of the ingress-controller embedded with Okteto chart, please checkout the updated section about ["How to use your own ingress controller"](self-hosted/administration/configuration.mdx#using-your-own-ingress-controller).
 
 ### Breaking changes
+
 - The default value for the buildkit service session affinity is now `None`. To keep using `ClientIP` as `sessionAffinity` you need to set `service.sessionAffinity: ClientIP` in your [buildkit configuration](self-hosted/administration/configuration.mdx#buildkit).
 
 ### Deprecation Notice
+
 - Support for Kubernetes [1.22](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.22.md) has been deprecated and will be removed in the next release.
 
 ### Features
+
 - Kubernetes supported versions: [1.25](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.25.md) ([upgrade guide](self-hosted/install/upgrade.mdx/#upgrade-to-kubernetes-125)), [1.24](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md) and [1.23](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.23.md).
 - Support for custom [labels and annotations](self-hosted/administration/configuration.mdx#namespace) in ingresses managed by Okteto.
+- Upgraded the Okteto CLI version to [2.15.2](https://github.com/okteto/okteto/releases/tag/2.15.2)
+  - Okteto CLI 2.15.2 enables the optimisation removed at Okteto CLI 2.14.3. Now we calculate a hash for a given commit with the info around the build.
+- Oketo Self-Hosted will now show the [installation setup guide](administration/dashboard/#installation) by default
+- External resources can now be destroyed from the Okteto UI
+- External resources now supports [additional icons](reference/manifest.mdx##icon-string-optional)
+- Ingresses are now served through two ingress-controllers instances, enabling flexible configuration and improving connection stability.
+  - `ingress-nginx` will continue to be the main gateway for all inbound traffic to Okteto, but will stop processing individual users' ingresses. Instead it will forward users' ingresses to the new `okteto-nginx`.
+  - `okteto-nginx` sits behind `ingress-nginx` and it process exclusively users' ingresses.
+  - For additional configuration of both instances, please check the [ingress-controller configuration section](self-hosted/administration/configuration.mdx#nginx-ingress-controller).
+- Okteto Ingress [defaultBackend](self-hosted/administration/configuration.mdx#defaultbackend) is now deployed separately of `ingress-nginx` or `okteto-nginx`.
+
+### Improvements
+
+- All external services created or updated by Okteto will now have the `dev.okteto.com/namespace` label 
+- Improved the performance of the query for retrieving endpoints for a preview environment using the `dev.okteto.com/namespace` label
+- Support baggage header for istio divert driver
+- Remove the `email` field from the helm values file. It is is now provided by the license
+- Divert virtual service transformation is now done at the mutation webhook by adding the annotation to the virtualservices
+- The frontend app now uses proper browser history routing instead of hash routing
+- Catalog items are now sorted, by default, in the same way in both the admin dashboard and a developer's deploy/redeploy modal
+- Using personal repositories from Bitbucket is now possible as we've addressed an issue with restricted characters in repository names
+- Persistent spaces can no longer be put to sleep from the admin dashboard
+- Improve text readability on deploy resources list
+
+### Bugfixes
+
+- Custom endpoints annotation `dev.okteto.com/endpoints` is now mapped with the correct service of an ingress
+- Fix preview delete confirm modal stating "Delete namespace"
+- Tabs in the admin panel are now appropriately responsive for smaller screens and resolutions. The last tabs will now wrap properly
+- External Resources markdown inline code is now rendered correctly as inline instead of a fenced code block  
+- Translation browser extensions causing blank screens due to modifying DOM
+- Show endpoints coming from virtual services in the Preview List view
+- Move cache headers from `meta` to nginx so `Cache-Control` headers are applied correctly
+- Show "managed by" message only when adding a repository to previews and not when launching a developement environment
+- Force non-breaking spaces for leading whitespace on logs
+- Fix panic produced when deploying a repository with trailing slash
+- Add disable state to external resources when being destroyed
 
 ## 1.7.1
 21 April, 2023
