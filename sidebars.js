@@ -50,6 +50,7 @@ module.exports = {
       "cloud/registry",
       "cloud/use-volume-snapshots",
       "cloud/namespaces",
+      "cloud/container-resources",
       "cloud/credentials",
       "cloud/personal-access-tokens",
       "reference/file-synchronization",

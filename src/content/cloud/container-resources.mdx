@@ -1,0 +1,51 @@
+---
+title: Container Resources
+description: Optimizing Container Resource Allocation for Efficient Development Environments
+sidebar_label: Container Resources
+id: container-resources
+---
+
+import Image from '@theme/Image';
+
+Okteto leverages the concept of [Kubernetes resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) to decide on which node to place each container.
+
+When you specify a resource `limit` for a container, Okteto enforces those limits so that the running container is not allowed to use more of that resource than the limit you set.
+Okteto also reserves at least the `request` amount of that system's resources specifically for that container to use.
+
+## Best Practices
+
+It's strongly recommended that you configure your CPU and Memory `requests` to align with your container's actual resource utilization.
+By doing so, you ensure that your containers always have sufficient resources available for optimal development speed.
+
+## Resource Consumption
+
+The Okteto UI shows information about the memory and CPU that deployments and statefulsets are using:
+
+<p align="center"><Image src="/docs/cloud/images/container-resources.png" alt="container resources" width="650" /></p>
+
+## Access your Metrics with kubectl
+
+If you require more detailed data on your container resource consumption, you can use the `kubectl top pods` command.
+
+Fetch your kubectl credentials with `okteto kubeconfig` and run `kubectl top pods` to access your container's metrics:
+
+```console
+$ kubectl top pod
+```
+
+```
+NAME                        CPU(cores)   MEMORY(bytes)
+api-7cc77bcdcb-pm72j        89m          66Mi
+frontend-78b8b698cf-5wb5p   1m           2Mi
+mongodb-0                   5m           160Mi
+```
+
+## Configure your Development Environment Resources
+
+There are three different ways to configure the container resources for your development environments:
+
+- [Kubernetes manifest](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
+- [Docker Compose](/reference/compose/#resources-object-optional)
+- [Okteto Manifest](/reference/manifest/#resources-object-optional)
+
+As an admin, you can also define the [quotas and default resources](self-hosted/administration/configuration.mdx/#quotas) for all your containers.
