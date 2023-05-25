@@ -11,9 +11,23 @@ By default, Okteto will create a self-signed wildcard certificate for your clust
 
 In a production environment, you should use your own certificates rather than let Okteto create a self-signed wildcard certificate for you. You can configure this via the `wildcardCertificate` configuration key in your Helm configuration file.
 
-To start, you need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate in PKCS1 format, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
+### Use cert-manager and Let’s Encrypt
 
-If [`publicOverride`](self-hosted/administration/configuration.mdx#publicoverride) is set, its value must also be included in the certificate's `Subject Alternative Name` list. For example, if you use `dev.example.com` as the `publicOverride`, and `okteto.net` as the `subdomain`, you need to generate a certificate that includes `*.okteto.net` and `dev.example.com` in the `Subject Alternative Name` list. 
+Let’s Encrypt is a free, automated, and open Certificate Authority. Certificates can be automatically requested using various tools. A very popular way of requesting certificate from Let's Encrypt is [by using cert-manager](https://github.com/cert-manager/cert-manager).
+
+When using [cert-manager](https://cert-manager.io/), you need to use a [DNS01](https://cert-manager.io/docs/configuration/acme/dns01/#delegated-domains-for-dns01) auth method in your [Issuer](https://cert-manager.io/docs/concepts/issuer/), since Okteto requires a wildcart certificate.
+Check the list of supported providers [here](https://cert-manager.io/docs/configuration/acme/dns01/) for more information.
+
+Our community maintains guides on how to use cert-manager together with different Cloud Providers to generate certificates for Okteto:
+
+- [Amazon Route53](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-aws-route53/273/2)
+- [Google Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-google-cloud-dns/274/2)
+- [Azure Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-azure-cloud-dns/275/2)
+
+
+### Use your own wildcard certificate
+
+For this, you'll need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate in PKCS1 format, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
 
 Import the secret into your kubernetes cluster by running the command below:
 
@@ -39,15 +53,12 @@ You can use any certificate provider you are familiar with if it's compatible wi
 - [AWS Certificate Manager](https://community.okteto.com/t/how-do-i-configure-okteto-with-aws-certificate-manager/272)
 - [GoDaddy](https://community.okteto.com/t/how-do-i-bring-my-godaddy-certificate-to-okteto/578/1)
 
-If you are using [cert-manager](https://cert-manager.io/), you need to use a [DNS01](https://cert-manager.io/docs/configuration/acme/dns01/#delegated-domains-for-dns01) auth method in your [Issuer](https://cert-manager.io/docs/concepts/issuer/).
-Check the list of supported providers [here](https://cert-manager.io/docs/configuration/acme/dns01/) for more information.
-Our community maintains guides on how to use cert-manager together with different Cloud Providers to generate certificates for Okteto:
-
-- [Amazon Route53](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-aws-route53/273/2)
-- [Google Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-google-cloud-dns/274/2)
-- [Azure Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-azure-cloud-dns/275/2)
 
 Finally, [install or upgrade](self-hosted/install/deployment.mdx) your Okteto installation for the new configuration to be applied.
+
+:::info
+If [`publicOverride`](self-hosted/administration/configuration.mdx#publicoverride) is set, its value must also be included in the certificate's `Subject Alternative Name` list. For example, if you use `dev.example.com` as the `publicOverride`, and `okteto.net` as the `subdomain`, you need to generate a certificate that includes `*.okteto.net` and `dev.example.com` in the `Subject Alternative Name` list. 
+:::
 
 ## Bring your own Certificate Authority
 
