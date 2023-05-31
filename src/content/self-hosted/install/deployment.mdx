@@ -10,7 +10,7 @@ import TabItem from '@theme/TabItem';
 
 ## Configuration file
 
-Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the most common options. A complete list of configuration options is [available here](self-hosted/administration/configuration.mdx).
+Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the default installation. A complete list of configuration options is [available here](self-hosted/administration/configuration.mdx).
 
 You can use [this sample configuration file](https://www.okteto.com/docs/self-hosted/install/config.yaml) as a starting point. The different configuration settings are explained below.
 
@@ -27,15 +27,6 @@ Run the following command to obtain your cluster's API server endpoint:
 
 ```
 kubectl config view --minify | grep server
-```
-
-### Domain
-
-You'll need sufficient access to a [subdomain](self-hosted/administration/configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
-By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
-
-```yaml
-subdomain: "dev.example.com"
 ```
 
 ### License
@@ -63,31 +54,33 @@ $ helm install okteto okteto/okteto -f config.yaml --namespace=okteto --create-n
 After a few seconds, all the resources will be created. The output will look something like this:
 
 ```
-Release "okteto" has been installed. Happy Helming!
-NAME: okteto
-LAST DEPLOYED: Thu Mar 26 18:07:55 2020
-NAMESPACE: okteto
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-NOTES:
-1. Create the following DNS record, pointing it to the NGINX controller service External-IP:
-- "*.dev.example.com"
+Congratulations! Okteto is successfully installed!
 
-You can retrieve the External IP by running:
-    kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+Follow these steps to access your Okteto instance:
 
-2. Once you create both DNS entries you can access your Okteto instance at this URL:
-https://okteto.dev.example.com
+1. Start a port-forward to the ingress service by running:
+
+   $ kubectl port-forward service/okteto-ingress-nginx-controller 8443:443 --namespace okteto
+
+2. Access your Okteto instance at https://okteto.localtest.me:8443/login#token=******
+
+Follow these steps to configure the Okteto CLI:
+
+1. Install the Okteto CLI:
+
+   $ curl https://get.okteto.com -sSfL | sh
+
+2. Configure the Okteto CLI context:
+
+   $ okteto context use https://okteto.localtest.me:8443 --token ******
+
+3. You're all set to complete our getting started guide:
+
+   https://www.okteto.com/docs/using-dev-envs/
+
+Happy coding!
 ```
 
 Once the chart is installed, follow the onscreen instructions to finalize the configuration.
 
-## Sign in to your Okteto instance
-
-After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
-
 > **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](administration/dashboard.mdx) before giving your team access to your Okteto instance.
-
-The default installation is all that's required to follow our [getting started](getting-started.mdx) guide.
-Just remember to replace https://cloud.okteto.com by `https://okteto.SUBDOMAIN` and you will be good to go!
