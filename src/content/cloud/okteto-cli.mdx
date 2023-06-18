@@ -74,37 +74,55 @@ The following environment variables are automatically populated to be referred i
 - `OKTETO_GIT_BRANCH`: the name of the Git branch currently being deployed.
 - `OKTETO_GIT_COMMIT`: the SHA1 hash of the last commit of the branch.
 
-#### Build Environment Variables
+#### Built-in Environment Variables for Images stored in the Okteto Registry
 
-In order to refer to images in the [build](reference/manifest.mdx/#build-object-optional) section of the Okteto Manifest, you can use the following environment variables:
+You can refer to the images defined in the [build](reference/manifest.mdx/#build-object-optional) section of the Okteto Manifest using the following environment variables:
 - `OKTETO_BUILD_<image>_IMAGE`: the full image reference
 - `OKTETO_BUILD_<image>_REGISTRY`: the registry URL where the image was pushed
 - `OKTETO_BUILD_<image>_REPOSITORY`: the name of the image that was pushed
 - `OKTETO_BUILD_<image>_SHA`: The latest tag and the SHA of the image
 
-For example, if the image `hello-world` has built the following image tag`registry.cloud.okteto.net/cindy/hello-world:okteto`, you would have the following values:
+For example, for the following `build` section:
+
+```yaml
+build:
+  hello-world:
+    context: .
+```
+
+Okteto will build a random image tag like `registry.cloud.okteto.net/cindy/hello-world:f56119a37b`, and you would have the following environment variables available:
 
 - `OKTETO_BUILD_HELLO_WORLD_IMAGE`: registry.cloud.okteto.net/cindy/hello-world@sha256:xxx
 - `OKTETO_BUILD_HELLO_WORLD_REGISTRY`: registry.cloud.okteto.net
 - `OKTETO_BUILD_HELLO_WORLD_REPOSITORY`: cindy/hello-world
-- `OKTETO_BUILD_HELLO_WORLD_SHA`: okteto@sha256:xxx
+- `OKTETO_BUILD_HELLO_WORLD_SHA`: f56119a37b@sha256:xxx
 
 > if an `<image>` name includes the symbol `-`, in the corresponding `OKTETO_BUILD_<image>` environment variables, the symbol `-` will be replaced by `_`.  For example, if `<image>` is `name-with-hyphen`, the environment variable names will start with `$OKTETO_BUILD_NAME_WITH_HYPHEN_`.
 
-#### Dependencies Environment Variables
+#### Built-in Environment Variables for Dependencies
 
-In order to refer to variables of [dependencies](reference/manifest.mdx/#dependencies-object-optional) you can use the following environment variables:
+You can refer to the variables defined by your [dependencies](reference/manifest.mdx/#dependencies-object-optional) using the following environment variables:
 - `OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`: the value of a variable of a dependency.
 
-For example, if you have a dependency to https://github.com/okteto/my-database, and https://github.com/okteto/my-database has the following Okteto Manifest:
+For example, if you have the following dependency in your Okteto Manifest:
+
+```yaml
+dependencies:
+  database:
+    repository: https://github.com/okteto/my-database
+    variables:
+      USERNAME: okteto
+    wait: true
+```
+
+and the repo https://github.com/okteto/my-database has the following Okteto Manifest:
 
 ```yaml
 deploy:
   - echo "PASSWORD=1234" >> $OKTETO_ENV
-  - ...
 ```
 
-You can refer to the variables of https://github.com/okteto/my-database like this:
+You can refer to the variables of https://github.com/okteto/my-database in the `deploy` section of your Okteto Manifest like this:
 
 ```yaml
 dependencies:
@@ -126,7 +144,6 @@ When deploying your development environment, Okteto executes the sequence of `de
 The commands run in a Debian Linux container with the following tools preinstalled:
 
 - `bash`
-- `bazel`
 - `cue`
 - `curl`
 - `envsubst`
@@ -139,6 +156,12 @@ The commands run in a Debian Linux container with the following tools preinstall
 - `openssh`
 - `wait-for-it`
 
-You can also configure your own [container image](reference/manifest.mdx/#deploy-remotely) to excute your `deploy` commands.
+You can also configure your own [container image](reference/manifest.mdx/#deploy-remotely) to use your own tools in your `deploy` commands.
+For example, if you need to invoke terraform commands, you could do:
 
-> Are we missing any binaries you use? [Join our community and let us know!](https://community.okteto.com/c/feature-requests).
+```yaml
+deploy:
+  image: hashicorp/terraform:1.4
+  commands:
+    - terraform apply -auto-approve
+```
