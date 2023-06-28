@@ -123,4 +123,8 @@ Tiers is a `string` of tier separated by a space
 
 ## Contributors
 
-Made with [contributors-img](https://contrib.rocks).
+<a href="https://github.com/okteto/docs/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=okteto/docs" />
+</a>
+
+<!--  https://contrib.rocks -->
