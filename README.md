@@ -106,6 +106,14 @@ Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/
 
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
 
+### Request a new search index
+Once the new version is live in production, you need to request a new search index to Algolia.
+
+1. Log in [Algolia](https://crawler.algolia.com/admin/crawlers)
+2. On the crawlers’ page, select "Okteto"
+3. Click on "Restart crawling"
+
+It should take a few minutes and the search index will be completed.
 
 ## Components
 
