@@ -1362,11 +1362,23 @@ Each instance has an specific role:
 - `ingress-nginx`: ingress-controller that serves all the inbound traffic to the Okteto cluster, including Buildkit, Registry, Okteto API, Okteto Frontend and users' ingresses.
 - `okteto-nginx`: ingress-controller dedicated to serve users' ingresses inbound traffic. By default, it is deployed behind `ingress-nginx`.
 
-### NGINX Ingress Controller
+### Okteto Ingress Controllers
 
-Use the `ingress-nginx` and `okteto-nginx` keys in your configuration file to modify the configuration.
+Okteto has two nginx-related keys you can define in your configuration file (e.g. `config.yaml` or any other config file where you specify these keys): `ingress-nginx` and `okteto-nginx`. These each serve a different function.
 
-For example, to change the number of replicas in `ingress-nginx`, you'd need to add the following:
+#### ingress-nginx
+
+This key is used to specify ingress behavior for Okteto's platform components (e.g. api, buildkit, registry) and supports passthrough/proxy behavior to `okteto-nginx`. This configuration will serve through a `*.$subdomain` internal ingress pointing to `okteto-nginx`. This ingress controller resides within the control plane of the Okteto cluster.
+
+#### okteto-nginx
+
+This key is used to specify ingress behavior specifically for development environments. This configuration is used to parse and register developer ingresses. This ingress controller resides within the cluster and manages ingress to and between developer applications.
+
+A practical example of how these two ingress controllers interaction is: when a new user request arrives to Okteto it will be served by `ingress-nginx`, which will proxy it to `okteto-nginx`. Then `okteto-nginx` will proxy the request to the backend pod.
+
+#### Sample configuration
+
+One example of modifying the Okteto ingress controllers, to change the number of replicas in `ingress-nginx`, looks like this:
 
 ```yaml
 ingress-nginx:
@@ -1376,9 +1388,9 @@ ingress-nginx:
 
 The full list of values is [available here](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml).
 
-#### Okteto ingress-nginx/okteto-nginx default values
+#### ingress-nginx & okteto-nginx default values
 
-Okteto sets specific values on the embedded ingress-nginx chart to enable features dependend on the ingress-controller. The values can be checked with the following command:
+Okteto sets specific values on the embedded ingress-nginx chart to enable features dependent on the ingress-controller. The values can be checked with the following command:
 
 - `ingress-nginx`:
   ```
