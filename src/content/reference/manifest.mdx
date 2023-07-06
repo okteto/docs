@@ -497,7 +497,7 @@ lifecycle:
 - `postStart`: specifies if the postStart event is enabled when running `okteto up` (default: `false`).
 - `postStop`: specifies if postStop event is enabled when running `okteto up` (default: `false`).
 
-#### metadata (object, optional)
+#### metadatassss (object, optional)
 
 The metadata field allows to inject labels and annotations into your development container.
 
@@ -509,6 +509,28 @@ metadata:
     custom.label/dev: "true"
 ```
 
+#### mode (string, optional)
+
+The development mode used for a development environment. There are two options available for this field:
+
+- `sync`: the standard and default mode. This mode will synchronize your code with the development container.
+- `hybrid`: use this mode if you want to run your service locally but run the rest of your application components in the cluster. 
+
+The motivation for this field comes from the fact that adopting a `hybrid` approach can sometimes provide a faster development experience because in general the local machine is faster than our development containers, saving e.g. service build time. On the other hand, it should be noted that developing with the service running locally breaks replicability between OS in addition to the added latency when accessing the rest of the services in the cluster. 
+
+If you want to use the hybrid mode, you only need to configure the necessary ports to expose the service running on your local machine to the development container in remote so that the rest of the components running on the cluster can communicate with the development container as if it were the one running the application remotely. To do that, you can make use of the [reverse](reference/manifest.mdx#reverse) field, which will expose the indicated port of your local machine to the desired port on the development container.
+
+```yaml
+dev:
+  frontend:
+    mode: hybrid
+    reverse: 
+    - 3000:8080
+    workdir: ./frontend
+    command: ["yarn start"]
+```
+
+in the example shown we have indicated that we develop the `frontend` service locally using the `mode: hybrid` field.  The service running locally will execute the command defined in the `command` field in the directory indicated in `workdir`. In addition, the application will expose on port `3000` of the development container what it exposes on port `8080` of the local machine, making it possible for other components running on the cluster to access the service as if it were running remotely.
 #### nodeSelector (map[string]string, optional)
 
 List of labels that the node must have to include the development container on it.
