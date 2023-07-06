@@ -16,6 +16,7 @@ module.exports = {
         "label": "Getting Started",
         "items": [
           "getting-started",
+          "Okteto License",
           "using-dev-envs"
         ]
       }
