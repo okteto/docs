@@ -511,13 +511,24 @@ metadata:
 
 #### mode (string, optional)
 
-Defines how `okteto up` will behave.
+Defines how `okteto up` will setup the development container and behave within the cluster.
 
 Currently two options are available:
-- `sync`: (default) Run service in a remote development container. Synchronizes your code with the container.
-- `hybrid`: Runs service in your local computer instead of in a remote development container. Traffic needs to be "reversed" in order to communicate with the rest of the components running in your cluster.
+- `sync`: (default) Sync & run your code in a remote development container.
+- `hybrid`: Run your code on your local computer instead of in a remote development container, while rest of your service components runs in your remote cluster.
 
-The motivation for this field comes from the fact that adopting a `hybrid` approach can sometimes provide a faster development experience because in general the local machine is faster than our development containers, saving e.g. service build time. On the other hand, it should be noted that developing with the service running locally breaks replicability between OS in addition to the added latency when accessing the rest of the services in the cluster. 
+Most use-cases should use default `sync` mode, but `hybrid` may be desired to achieve a faster development experience in some scenarios:
+
+|   | `sync` | `hybrid` |
+|---|---|---|
+| Soure code  | Uses Syncthing to sync files bidirectionally with your remote development container | Uses local source code directly, no files syncing needed |
+| `command` context | Runs in the _remote development container_ | Runs on your _local machine_, so traffic need to be rerouted from/to cluster, e.g. using `reverse` option |
+
+##### `hybrid` motivation and example
+
+A typical use-case and motivation for using `hybrid` is when developing a service that require "very fast" file-change-to-reload times. Frontend development tooling (e.g. Webpack) is a common example. Since hybrid mode avoids having to sync file changes to remote development container and wait for the container to detect file changes to trigger a rebuild, it's typically order-of-magnitude faster than `sync` mode.
+
+On the other hand, with the service running locally breaks replicability between OS, and may add latency when accessing the rest of the services in the cluster.  But it's usually an OK tradeoff for development purposes.
 
 If you want to use the hybrid mode, you only need to configure the necessary ports to expose the service running on your local machine to the development container in remote so that the rest of the components running on the cluster can communicate with the development container as if it were the one running the application remotely. To do that, you can make use of the [reverse](reference/manifest.mdx#reverse) field, which will expose the indicated port of your local machine to the desired port on the development container.
 
@@ -528,7 +539,7 @@ dev:
     reverse: 
     - 3000:8080
     workdir: ./frontend
-    command: ["yarn start"]
+    command: ["npx webpack watch --mode development"]
 ```
 
 in the example shown we have indicated that we develop the `frontend` service locally using the `mode: hybrid` field.  The service running locally will execute the command defined in the `command` field in the directory indicated in `workdir`. In addition, the application will expose on port `3000` of the development container what it exposes on port `8080` of the local machine, making it possible for other components running on the cluster to access the service as if it were running remotely.
