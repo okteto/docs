@@ -93,7 +93,6 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
         },
     ```
 
-
 Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/` redirects to `/docs`
 
 ```
@@ -104,7 +103,11 @@ Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/
   status = 301
 ```
 
+Update [/src/pages/archives.md](the archives page) with the new latest version
+
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
+
+
 
 ### Request a new search index
 Once the new version is live in production, you need to request a new search index to Algolia.

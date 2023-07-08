@@ -69,47 +69,6 @@ registry:
 >
 > If you had a custom value for `cloud.secret`, you need to specify the right values under `registry.secret` key.
 
-## Upgrading from Okteto 0.x to 1.x
-
-Okteto 1.x has two major breaking changes that you need to be aware of before upgrading:
-
-- Support for Kubernetes 1.19 has been removed, and 1.20 is deprecated.
-- The helm chart has been renamed from `okteto-enterprise` to `okteto`. All the resources created by the chart will have `okteto` as their prefix instead of `okteto-enterprise`. This change will cause all resources to be recreated upon upgrade.  Depending on your cloud provider and your networking configuration, you might need to update the DNS entry of the [build service](self-hosted/administration/configuration.mdx#buildkit) after upgrading your Okteto instance.
-- The helm chart doesn't install [cert-manager](https://cert-manager.io/) by default.
-
-We recommend that you follow the steps below to reduce the disruption of the service to a minimum:
-
-### Before upgrade
-
-Skip this step if you are [bringing your own certificates](self-hosted/administration/certificates.mdx).
-Check if this is the case by seeing that the wildcard creation is disabled in the Okteto helm values configuration:
-
-```
-wildcardCertificate:
-  create: false
-```
-
-If Okteto was generating the certificates for you, run the following command from your command line to make sure `helm upgrade` doesn't remove the existing cert-manager issuer and certificates:
-
-```
-kubectl -n okteto annotate issuer okteto-okteto-enterprise helm.sh/resource-policy=keep
-kubectl -n okteto annotate certificate default-ssl-certificate helm.sh/resource-policy=keep
-```
-
-Then, add the following configuration to your Okteto helm values file to use the existing certificate:
-
-```
-wildcardCertificate:
-  create: false
-  name: default-ssl-certificate
-
-ingress-nginx:
-  controller:
-    extraArgs:
-      default-ssl-certificate: $(POD_NAMESPACE)/default-ssl-certificate
-```
-
-> Keeping the same `issuer` and `certificate` reduces moving parts during the upgrade, but we recommend you to [bring your own certificate](self-hosted/administration/certificates.mdx) once the Okteto upgrade has been complete succesfully.
 
 ### Upgrade Okteto
 

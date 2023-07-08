@@ -193,26 +193,6 @@ module.exports = {
               label: '1.4',
               path: '1.4',
               banner: 'none',
-            },
-            '1.3': {
-              label: '1.3',
-              path: '1.3',
-              banner: 'none',
-            },
-            '1.2': {
-              label: '1.2',
-              path: '1.2',
-              banner: 'none',
-            },
-            '1.1': {
-              label: '1.1',
-              path: '1.1',
-              banner: 'none',
-            },
-            '1.0': {
-              label: '1.0',
-              path: '1.0',
-              banner: 'none',
             }
           },
           include: [
