@@ -151,6 +151,7 @@ module.exports = {
         docs: {
           path: docsContentPath,
           routeBasePath: '/',
+          editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
           lastVersion: '1.10',
@@ -258,7 +259,7 @@ module.exports = {
         to: '/cloud/starter-plan/',
         from: ['/cloud/developer-plan/']
       }
-    ]
+      ]
     }],
     ['docusaurus-gtm-plugin', {
       id: 'GTM-W6RQFNT'
