@@ -17,6 +17,46 @@ Learn more about the Okteto CLI
 - [FAQs](reference/faqs.mdx)
 - [Known Issues](reference/known-issues.mdx)
 
+## okteto up
+
+The `okteto up` command is one of Okteto CLI's main features and key to the Okteto development experience. This command uses the [Okteto Manifest](/reference/manifest) you define to build, deploy, and synchronize your local files with the remote development container.
+
+This command has two modes: `sync` (default mode) and `hybrid` which are detailed below.
+
+|                   | `sync` (default) | `hybrid` |
+| :---------------- | :--------------- | :------- |
+| Source code       | Source code is edited locally and synchronizes bidirectionally (via Syncthing) with a copy of the source code in the remote development container. | Source code is edited locally for a chosen set of microservices. |
+| App location      | The application exists entirely within the remote development container. | Your application is split between your local environment and the remote development container based on your configuration. |
+| `command` context | CLI commands run in the remote development container. | CLI commands run on your local machine, so traffic need to be rerouted to/from the cluster, e.g. using the reverse option |
+
+### When to use `hybrid` development mode
+
+A typical use case for using `hybrid` development mode is when the filesync or rebuild is significantly slower on the remote dev container, such as when using Webpack where this becomes very noticeable compared to your local environment. 
+
+Another use case is when you’re using a framework that is IDE-heavy. For example, on Java/Spring, IDEs tend to be pre-configured to run tests, start services, and connect debuggers. You lose some of that ‘click and you are done’ when you are using the traditional `okteto up` and the default `sync` mode.
+
+:::info
+Keep in mind that using `hybrid` mode means breaking replicability between Operating Systems (local and remote) and may add latency when accessing other services in the cluster.
+:::
+
+### How to use `hybrid` development mode
+
+In order to use `hybrid` mode you only need to configure the necessary ports to expose the service running on your local machine to the remote development container. This enables other components running on the cluster to communicate with your local service(s) as if your local service(s) was running in the cluster as well.
+
+To do this, you can use the [reverse](/reference/manifest/#reverse-string-optional) field to expose the desired port of your local machine to the desired port on the remote development container.
+
+```yaml
+dev:
+  frontend:
+    mode: hybrid
+    reverse:
+    - 3000:8080
+    workdir: ./frontend
+    command: ["npx webpack watch --mode development"]
+
+```
+
+In the example above we have indicated that we are developing the `frontend` service locally using the `mode: hybrid` field.  The service running locally will execute the `command` instructions in the directory indicated in `workdir`. Additionally, the application will expose port `8080` on the local machine and communicate bidirectionally with port `3000` on the development container. This makes it possible for other components running on the cluster to access the local service as if it were running remotely.
 
 ## Deployment Manifests
 

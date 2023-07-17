@@ -709,8 +709,15 @@ The `status` command should be run from the same location than `okteto up`.
 
 ### up
 
-Activate a development container.
-If needed, `okteto up` builds the images and runs the deploy commands defined in your [Okteto Manifest](reference/manifest.mdx).
+The `okteto up` command is one of Okteto’s key features. This command uses the [Okteto Manifest](/reference/manifest) you define to build, deploy, and synchronize your local files with the remote development container.
+
+This command has two modes: `sync` (default mode) and `hybrid` which are detailed below.
+
+|                   | `sync` (default) | `hybrid` |
+| :---------------- | :--------------- | :------- |
+| Source code       | Source code is edited locally and synchronizes bidirectionally (via Syncthing) with a copy of the source code in the remote development container. | Source code is edited locally for a chosen set of microservices. |
+| App location      | The application exists entirely within the remote development container. | Your application is split between your local environment and the remote development container based on your configuration. |
+| `command` context | CLI commands run in the remote development container. | CLI commands run on your local machine, so traffic need to be rerouted to/from the cluster, e.g. using the reverse option |
 
 ```console
 $ okteto up [devName]
@@ -723,8 +730,11 @@ When you run `okteto up`, okteto scales to zero the specified deployment and cre
 - Automatic local and remote port forwarding using [SSH](reference/ssh-server.mdx). This allows you to do things like access your cluster services via `localhost` or connect a remote debugger.
 - A watcher service to keep the definition of the mirror deployment up to date with original deployment.
 
-It's worth noting that your development deployment inherits the original deployment manifest definition.
-Therefore, the development deployment uses the same service account, environment variables, secrets, volumes, sidecars, ... than the original deployment, providing a fully integrated development environment.
+:::info
+Note: The bidirectional file sync does not apply if using `hybrid` mode.
+:::
+
+It's worth noting that your development deployment inherits the original deployment manifest definition. Therefore, the development deployment uses the same service account, environment variables, secrets, volumes, sidecars, ... as the original deployment, providing a fully integrated development environment.
 
 > Run [`okteto down`](#down) to restore your original deployment.
 
