@@ -16,7 +16,6 @@ module.exports = {
         "label": "Getting Started",
         "items": [
           "getting-started",
-          "okteto-license",
           "using-dev-envs"
         ]
       }
@@ -73,6 +72,7 @@ module.exports = {
   },
   {
     "Administration": [
+      "okteto-license",
       "administration/dashboard",
       "administration/cleanup",
       "administration/catalog",
