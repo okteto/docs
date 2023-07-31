@@ -20,8 +20,7 @@ For this tutorial, we'll be using our sample [movies rental application](https:/
 To deploy a preview environment with Okteto, you need to define the following environment variables:
 
 1. `OKTETO_TOKEN`: an Okteto [personal access token](cloud/personal-access-tokens.mdx).
-1. `OKTETO_USERNAME`: your Okteto username (in Okteto Cloud, this is your GitHub Username).
-1. [Optional] `OKTETO_URL`: Specify the URL of your Okteto instance (e.g., https://okteto.dev.mycompany.com). If empty, it will default to https://cloud.okteto.com.
+1. [Optional] `OKTETO_URL`: Specify the URL of your Okteto instance (e.g., https://okteto.example.com). If empty, it will default to https://cloud.okteto.com.
 
 To add the environment variables:
 
@@ -34,7 +33,7 @@ To add the environment variables:
 
 1. Add *OKTETO_TOKEN* as the key, and your personal access token as the value, and press the *Add Variable* button.
 <p align="center"><Image src="/docs/cloud/preview-environments/images/gitlab-settings-cicd-add-variables-okteto-token.png" alt="update variable with Okteto Token" /></p>
-1. Repeat the same process to add the *OKTETO_USERNAME* and, optionally, the *OKTETO_URL* variables.
+1. Repeat the same process to add the *OKTETO_URL* variables (optional)
 <p align="center"><Image src="/docs/cloud/preview-environments/images/gitlab-settings-cicd-add-variables-added.png" alt="environment variables added" /></p>
 
 ## Step 2: Configure the Preview Environment on the Repository
@@ -58,7 +57,7 @@ The `.gitlab-ci.yml` looks like this:
 
 ```yaml
 # file: .gitlab.ci.yml
-image: okteto/okteto:2.4.2
+image: okteto/okteto:2.18.0
 
 stages:
   - review
@@ -68,11 +67,11 @@ review:
   variables:
     APP: review-$CI_COMMIT_REF_SLUG
   script:
-    - okteto preview deploy review-$CI_COMMIT_REF_SLUG-$OKTETO_USERNAME --scope personal --branch $CI_COMMIT_REF_NAME --repository $CI_REPOSITORY_URL --wait
+    - okteto preview deploy review-$CI_COMMIT_REF_SLUG --scope global --branch $CI_COMMIT_REF_NAME --repository $CI_REPOSITORY_URL --wait
 
   environment:
     name: review/$CI_COMMIT_REF_SLUG
-    url: https://movies-review-$CI_COMMIT_REF_SLUG-$OKTETO_USERNAME.cloud.okteto.net
+    url: https://movies-review-$CI_COMMIT_REF_SLUG.okteto.example.com
     on_stop: stop-review
   only:
     - branches
@@ -86,7 +85,7 @@ stop-review:
     name: review/$CI_COMMIT_REF_SLUG
     action: stop
   script:
-     - okteto preview destroy review-$CI_COMMIT_REF_SLUG-$OKTETO_USERNAME
+     - okteto preview destroy review-$CI_COMMIT_REF_SLUG
   variables:
     GIT_STRATEGY: none
   only:
@@ -98,7 +97,7 @@ stop-review:
 There are two scopes for preview environments, `personal`, where the only one who has access to the environment is the user, and `global`, where all cluster members have access to it and do not need to have the user's name at the end of the preview environment name. To create a preview environment with global scope it is necessary to have administrator permissions.
 
 A few recommendations when creating your preview environment:
-- Create a preview environment per branch/merge request to keep things isolated. We use both `$CI_BUILD_REF_NAME` and `$OKTETO_USERNAME` in the name to ensure the namespace is unique and that we only create one per branch.
+- Create a preview environment per branch/merge request to keep things isolated. We use a preview and `$CI_COMMIT_REF_SLUG` in the name to ensure the namespace is unique and that we only create one per branch.
 - Pass the URL of your preview environment using the `environment.url` key. That way, the reviewers can directly go to the preview environment from GitLab.
 - Delete both the preview environment, and the namespace when the branch is deleted to cut down on manual deletion.
 
