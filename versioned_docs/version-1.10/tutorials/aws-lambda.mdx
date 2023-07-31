@@ -33,19 +33,21 @@ In order for the installer to be able to use this keys, we need to upload them t
 
 You can add them both as an [Admin Secret](administration/dashboard.mdx#secrets-section) (if you want everyone in your instance to be able to use them), or a [User Secret](cloud/secrets.mdx).
 
-## Step 2: Build a custom installer image
+## Step 2: Define a custom installer image
 
 We are going to use the SAM CLI to build and deploy our AWS Lambda function. [SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) is a open-source framework that you can use to build serverless applications in AWS.
 
 You can directly install the SAM CLI in your Okteto manifest. However, this will make every deployment slower than it needs to be. Instead, we recommend that you create your own installer image with `sam`(and any other tool you might need) preinstalled. 
 
-First, build a Docker image using the Dockerfile below:
+To do this, first create a Dockerfile:
 
-``` 
-FROM okteto/pipeline-runner:1.0.0 
+```
+# Dockerfile
+
+FROM python:3.9-buster
 
 RUN apt-get update && \ 
-  apt-get install unzip && \
+  apt-get install unzip curl && \
   curl -o /tmp/awscli-exe-linux-x86_64.zip -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip /tmp/awscli-exe-linux-x86_64.zip -d /tmp/aws-cli && \
   sh /tmp/aws-cli/aws/install && \
@@ -54,11 +56,19 @@ RUN apt-get update && \
   unzip /tmp/aws-sam-cli-linux-x86_64.zip -d /tmp/sam-installation && \
   sh /tmp/sam-installation/install && \
   sam --version
+
 ```
 
-Building this Dockerfile will result in an image that contains everything on the `okteto/pipeline-installer` image, as well as the AWS CLI and the SAM CLI.
+Then [add a `build` section](reference/manifest.mdx#build-object-optional) to your Okteto manifest to tell Okteto to build the image on demand when deploying your development environment:
 
-[Follow this document](self-hosted/administration/custom-installer-image.mdx) to update the configuration of your Okteto instance.
+```
+#okteto.yaml
+# okteto.yaml
+build:
+  sam:
+    context: .
+    dockerfile: Dockerfile
+```
 
 ## Step 3: Create your Okteto manifest
 
@@ -68,19 +78,42 @@ In order to deploy a function in Okteto, you need to create an Okteto manifest s
 
 ```yaml
 # okteto.yaml
+build:
+  sam:
+    context: .
+    dockerfile: Dockerfile
 deploy:
-- sam build
-- sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-prefix "${OKTETO_NAMESPACE}" --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --resolve-s3
-- aws cloudformation describe-stacks --region us-east-1 --stack-name ${OKTETO_NAMESPACE}-okteto-lambda --query "Stacks[0].Outputs[0].OutputValue" --output text > lambda-url
-- cat lambda-url
+  image: ${OKTETO_BUILD_SAM_IMAGE}
+  commands:
+    - name: build function
+      command: sam build
+    - name: deploy function
+      command: |
+        sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-prefix "${OKTETO_NAMESPACE}" --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --resolve-s3
+        FUNCTION_URL=$(aws cloudformation describe-stacks --region us-east-1 --stack-name ${OKTETO_NAMESPACE}-okteto-lambda --query "Stacks[0].Outputs[0].OutputValue" --output text)
+        
+        # use external resources to display the URL the Okteto UI
+        echo "OKTETO_EXTERNAL_LAMBDA_ENDPOINTS_FUNCTION_URL=$FUNCTION_URL" >> $OKTETO_ENV
 destroy:
-  - sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --region us-east-1
+  image: ${OKTETO_BUILD_SAM_IMAGE}
+  commands:
+  - name: destroy function
+    command: sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --region us-east-1
+external:
+  lambda:
+    icon: function
+    endpoints:
+    - name: function
 ```
 
+:::info
+This manifest takes advantage of our [External Resources](cloud/external-resources.mdx) feature manage the lifecycle of external resources as part of your Okteto development environment. [Learn more about External Resources here](cloud/external-resources.mdx).
+:::
+
 Details:
-- The first line of the `deploy` command is going to build the lambda using the source code available in your repository. 
-- The second line will deploy it. We use `--no-confirm-changeset`  and `--no-fail-on-empty-changeset` to ensure that the function can be redeployed if it already exists. 
-- In the third line we use the AWS CLI to get the URL of the newly created lambda function, and we store it as a file. You can then use the content of this file to pass the information to the rest of your applications as an environment variable or as a build argument.
+- The `deploy.image` field tells Okteto to use the image we defined on the `build` section.
+- The `deploy.commands` section includes all the commands needed to build and deploy the function. 
+- The `destroy` section includes the commands needed to destroy the Lambda function. This will be invoked when the environment or the namespace are destroyed. 
 
 ## Step 4: Launch your Development Environment
 
