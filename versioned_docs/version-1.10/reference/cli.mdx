@@ -52,7 +52,7 @@ When you use the okteto CLI, the following information is collected:
 - Your version of the CLI
 - Your OS
 - An anonymous machine ID (we use https://github.com/denisbrodbeck/machineid for this)
-- A user ID if you are currently logged in to https://okteto.example.com
+- A user ID if you are currently logged in to Okteto
 - An action ID (to correlate multiple actions performed during a command's execution)
 
 Please reach [out to us](mailto://hello@okteto.com) if you have any questions or concerns about the information collected.
@@ -77,8 +77,6 @@ The following flags can be used (very similar to `docker build`):
 | _--secret_       |  (list)  | Secret files exposed to the build. Format: `id=mysecret,src=/local/secret` |
 | _--export-cache_ | (string) | Image tag for exported cache when build (optional)                         |
 | _--cache-from_   |  (list)  | List of cache source images (optional)                                     |
-| _--platform_     | (string) | Specify which platform to build the container image for (optional)                                     |
-
 
 >  You can also use the `-f` to point to a Dockerfile. In this mode, `okteto build` will ignore your Okteto manifest, and directly build the image defined in the Dockerfile. Use this to build images that are not defined on your [Okteto manifest](https://www.okteto.com/docs/reference/manifest/).
 
@@ -99,7 +97,7 @@ This will prompt you to select one of your existing contexts or to create a new 
 A context defines the default cluster/namespace for any Okteto CLI command.
 Select the context you want to use:
 Use the arrow keys to navigate: ↓ ↑ → ←
-    https://cloud.okteto.com (Okteto Cloud)
+    https://okteto.example.com (Okteto Cloud)
     minikube
   ▸ https://okteto.example.com *
 
@@ -145,9 +143,9 @@ $ okteto context list
 ```
 
 ```console
-Name                                 Namespace    Builder                                 Registry
-https://okteto.example.com *         cindylopez   tcp://buildkit.cloud.okteto.net:1234    registry.cloud.okteto.net
-minikube                             default      docker                                  -
+Name                                Namespace       Builder                                   Registry
+https://okteto.example.com *        cindylopez      tcp://buildkit.okteto.example.com:1234    registry.okteto.example.com
+minikube                            default         docker                                    -
 ```
 
 #### show
@@ -163,7 +161,7 @@ $ okteto context show
   "name": "https://okteto.example.com",
   "token": "REDACTED",
   "namespace": "cindylopez",
-  "builder": "tcp://buildkit.cloud.okteto.net:1234",
+  "builder": "tcp://buildkit.okteto.example.com:1234",
   "registry": "registry.cloud.okteto.net",
   "isOkteto": true
 }
@@ -384,7 +382,7 @@ Use the arrow keys to navigate: ↓ ↑ → ←
 
 #### create
 
-Create a namespace. By default the command will switch to the new namespace, add `--use=false` to create the namespace, and it will keep the current namespace active.
+Create a namespace.
 
 > This command is only available in clusters that have Okteto installed.
 
@@ -422,9 +420,9 @@ $ okteto namespace list
 ```
 
 ```console
-Namespace          Status
-demos-cindylopez   Active
-cindylopez *       Active
+Namespace       Status
+demos-cindylopez     Active
+cindylopez *         Active
 ```
 
 #### use
@@ -438,6 +436,35 @@ $ okteto namespace use cindylopez
 ```console
  ✓  Using context cindylopez @ okteto.example.com
 ```
+
+#### sleep
+
+Sleeps an okteto namespace. By default, it sleeps the current okteto namespace.
+```console
+$ okteto namespace sleep [name]
+```
+
+```console
+i  Using test-cindylopez @ okteto.example.com as context
+✓  Namespace 'test-cindylopez' is sleeping
+```
+
+If you'd like to sleep a namespace other than the current one, you can provide that namespace name as an argument to the command.
+
+#### wake
+
+Wakes an okteto namespace. By default, it wakes the current okteto namespace.
+
+```console
+$ okteto namespace wake [name]
+```
+
+```console
+i  Using test-cindylopez @ okteto.example.com as context
+✓  Namespace 'test-cindylopez' is awake now
+```
+
+If you'd like to wake a namespace other than the current one, you can provide that namespace name as an argument to the command.
 
 ### pipeline
 
@@ -525,7 +552,7 @@ Only users with [admin access](administration/dashboard.mdx) can deploy a global
 | _--label_                                 |   (list)   | Tag and organize preview environments using labels (multiple _--label_ flags accepted)                                                                                                                                                                    |
 | <em className="no-wrap">--repository</em> |  (string)  | The url of the repository to deploy (e.g. https://github.com/okteto/movies) (defaults to your current git configuration repo)                                                                                                                             |
 | _--scope_                                 |  (string)  | The scope of preview environment to create. Accepted values are ['personal', 'global']. A personal preview environment can only be accessed by its creator, while in a global preview environment all cluster users can access it. (defaults to personal) |
-| _--sourceUrl_                             |  (string)  | The HTTPS url of the pull/merge request to deploy.                                                                                                                                                                                                        |
+| _--sourceUrl_                             |  (string)  | The HTTPS url of the pull/merge request to deploy.                                                                                                                                                                                                        |
 | _--timeout_                               | (duration) | The duration to wait for the preview deployment to complete. Any value should contain a corresponding time unit e.g. 1s, 2m, 3h (default 5m0s)                                                                                                            |
 | _--var_                                   |   (list)   | Set a preview environment variable (can be set more than once)                                                                                                                                                                                            |
 | _--wait_                                  |   (bool)   | Wait until the preview deployment finishes (defaults to false)                                                                                                                                                                                            |
@@ -575,25 +602,6 @@ You need to be [logged in](reference/cli.mdx#context) to Okteto before running t
 |  Options  |  Type  | Description                                                                            |
 | :-------- | :----: | :------------------------------------------------------------------------------------- |
 | _--label_ | (list) | tag and organize preview environments using labels (multiple _--label_ flags accepted) |
-| _--output_|(string)| Output format. One of: ['json', 'yaml']                                                |
-
-#### sleep
-
-Sleeps a given Okteto preview environment. Only users with admin access or who own the preview environment can take this action.
-
-```console
-$ okteto preview sleep [name]
-```
-
-More on sleeping resources [here](administration/cleanup.mdx/#sleeping-resources).
-
-#### wake
-
-Wakes an Okteto preview environment. You must provide the name of a preview environment as an argument for this command.
-
-```console
-$ okteto namespace wake [name]
-```
 
 ### logs
 
