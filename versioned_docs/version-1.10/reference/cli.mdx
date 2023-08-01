@@ -52,7 +52,7 @@ When you use the okteto CLI, the following information is collected:
 - Your version of the CLI
 - Your OS
 - An anonymous machine ID (we use https://github.com/denisbrodbeck/machineid for this)
-- A user ID if you are currently logged in to https://cloud.okteto.com
+- A user ID if you are currently logged in to https://okteto.example.com
 - An action ID (to correlate multiple actions performed during a command's execution)
 
 Please reach [out to us](mailto://hello@okteto.com) if you have any questions or concerns about the information collected.
@@ -77,8 +77,39 @@ The following flags can be used (very similar to `docker build`):
 | _--secret_       |  (list)  | Secret files exposed to the build. Format: `id=mysecret,src=/local/secret` |
 | _--export-cache_ | (string) | Image tag for exported cache when build (optional)                         |
 | _--cache-from_   |  (list)  | List of cache source images (optional)                                     |
+| _--platform_     | (string) | Specify which platform to build the container image for (optional)                                     |
+
 
 >  You can also use the `-f` to point to a Dockerfile. In this mode, `okteto build` will ignore your Okteto manifest, and directly build the image defined in the Dockerfile. Use this to build images that are not defined on your [Okteto manifest](https://www.okteto.com/docs/reference/manifest/).
+
+With `okteto build --platform` you can specify the platform (or architecture) for which you'd like to build the container images. For example, you could use a multiplatform image and the `okteto build --platform` command to deploy your web application on a Kubernetes cluster that consists of nodes running on both x86-64 and ARMv7 architectures.
+By using the multiplatform images built using this method, you can deploy the same images across the cluster without worrying about the underlying hardware differences. 
+
+Let's consider an example where you have a Node.js application that you want to build and deploy on both x86_64 and ARM-based platforms. You have a Dockerfile in your project directory that defines the build process. Here's
+how Okteto CLI can help you build multiplatform images for your application:
+
+1. Building the image for x86_64 architecture:
+
+```console
+okteto build -t myapp:latest --platform linux/amd64
+```
+
+2. Building the image for ARMv7 architecture:
+
+```console
+okteto build -t myapp:latest --platform linux/arm/v7
+```
+
+3. Building a multiarchitectural image:
+
+```console
+okteto build -t myapp:latest --platform linux/amd64,linux/arm/v7
+```
+
+This command builds a multi-architecture Docker image named *myapp* with the latest tag for both x86_64 and ARM platforms.
+
+By using these commands, you can easily build the application image for different platforms without needing to maintain separate Dockerfiles or perform manual modifications. 
+This is particularly useful when you want to deploy your application to heterogeneous environments where you have both x86_64 and ARM-based devices, such as a mixed-cluster Kubernetes setup.
 
 ### context
 
@@ -97,10 +128,9 @@ This will prompt you to select one of your existing contexts or to create a new 
 A context defines the default cluster/namespace for any Okteto CLI command.
 Select the context you want to use:
 Use the arrow keys to navigate: ↓ ↑ → ←
-  ▸ https://cloud.okteto.com (Okteto Cloud) *
+    https://cloud.okteto.com (Okteto Cloud)
     minikube
-    staging
-    production
+  ▸ https://okteto.example.com *
 
     Create new context
 ```
@@ -121,7 +151,7 @@ Environment variables provide another way to specify your credentials. This is t
 The supported environment variables are:
 
 - `OKTETO_TOKEN`: Specifies the [personal access token](cloud/personal-access-tokens.mdx) to use
-- `OKTETO_URL`: Specifies the Okteto URL. If missing, it defaults to https://cloud.okteto.com
+- `OKTETO_URL`: Specifies the Okteto URL. If missing, it defaults to https://okteto.example.com
 
 Available subcommands:
 
@@ -129,10 +159,10 @@ Available subcommands:
 
 Delete a context.
 
-For example, to delete the Okteto Cloud context, run:
+For example, to delete the Okteto context, run:
 
 ```console
-$ okteto context delete https://cloud.okteto.com
+$ okteto context delete https://okteto.example.com
 ```
 
 #### list
@@ -145,7 +175,7 @@ $ okteto context list
 
 ```console
 Name                                            Namespace  Builder                                 Registry
-https://cloud.okteto.com *                      cindy      tcp://buildkit.cloud.okteto.net:1234    registry.cloud.okteto.net
+https://okteto.example.com *                    cindylopez      tcp://buildkit.cloud.okteto.net:1234    registry.cloud.okteto.net
 minikube                                        default    docker                                  -
 ```
 
@@ -159,9 +189,9 @@ $ okteto context show
 
 ```console
 {
-  "name": "https://cloud.okteto.com",
+  "name": "https://okteto.example.com",
   "token": "REDACTED",
-  "namespace": "cindy",
+  "namespace": "cindylopez",
   "builder": "tcp://buildkit.cloud.okteto.net:1234",
   "registry": "registry.cloud.okteto.net",
   "isOkteto": true
@@ -181,11 +211,11 @@ This will prompt you to select one of your existing contexts or to create a new 
 You can also specify an Okteto URL:
 
 ```console
-$ okteto context use https://cloud.okteto.com
+$ okteto context use https://okteto.example.com
 ```
 
 ```console
- ✓  Using context cindy @ cloud.okteto.com
+ ✓  Using context cindylopez @ okteto.example.com
 ```
 
 Or a Kubernetes context:
@@ -356,7 +386,7 @@ $ okteto kubeconfig
 ```
 
 ```console
- i  Updated kubernetes context 'cloud_okteto_com/cindy' in '/Users/cindy/.kube/config'
+ i  Updated kubernetes context 'cloud_okteto_com/cindylopez' in '/Users/cindylopez/.kube/config'
 ```
 
 ### namespace
@@ -372,28 +402,28 @@ This will prompt you to select one of your existing namespaces:
 ```console
 Select the namespace you want to use:
 Use the arrow keys to navigate: ↓ ↑ → ←
-  ▸ cindy
+  ▸ cindylopez
 
     Create new namespace
 ```
 
 ```console
- ✓  Using context cindy @ cloud.okteto.com
+ ✓  Using context cindylopez @ okteto.example.com
 ```
 
 #### create
 
-Create a namespace.
+Create a namespace. By default the command will switch to the new namespace, add `--use=false` to create the namespace, and it will keep the current namespace active.
 
 > This command is only available in clusters that have Okteto installed.
 
 ```console
-$ okteto namespace create test-cindy
+$ okteto namespace create test-cindylopez
 ```
 
 ```console
- ✓  Namespace 'test-cindy' created
- ✓  Using context test-cindy @ cloud.okteto.com
+ ✓  Namespace 'test-cindylopez' created
+ ✓  Using context test-cindylopez @ okteto.example.com
 ```
 
 #### delete
@@ -403,11 +433,11 @@ Delete a namespace. If the manifest includes `destroy` commands, they will be ex
 > This command is only available in clusters that have Okteto installed.
 
 ```console
-$ okteto namespace delete test-cindy
+$ okteto namespace delete test-cindylopez
 ```
 
 ```console
- ✓  Namespace 'test-cindy' deleted
+ ✓  Namespace 'test-cindylopez' deleted
 ```
 
 #### list
@@ -422,8 +452,8 @@ $ okteto namespace list
 
 ```console
 Namespace       Status
-demos-cindy     Active
-cindy *         Active
+demos-cindylopez     Active
+cindylopez *         Active
 ```
 
 #### use
@@ -431,11 +461,11 @@ cindy *         Active
 Set the default okteto namespace.
 
 ```console
-$ okteto namespace use cindy
+$ okteto namespace use cindylopez
 ```
 
 ```console
- ✓  Using context cindy @ cloud.okteto.com
+ ✓  Using context cindylopez @ okteto.example.com
 ```
 
 #### sleep
@@ -446,8 +476,8 @@ $ okteto namespace sleep [name]
 ```
 
 ```console
-i  Using test-cindy @ cloud.okteto.com as context
-✓  Namespace 'test-cindy' is sleeping
+i  Using test-cindylopez @ okteto.example.com as context
+✓  Namespace 'test-cindylopez' is sleeping
 ```
 
 If you'd like to sleep a namespace other than the current one, you can provide that namespace name as an argument to the command.
@@ -461,8 +491,8 @@ $ okteto namespace wake [name]
 ```
 
 ```console
-i  Using test-cindy @ cloud.okteto.com as context
-✓  Namespace 'test-cindy' is awake now
+i  Using test-cindylopez @ okteto.example.com as context
+✓  Namespace 'test-cindylopez' is awake now
 ```
 
 If you'd like to wake a namespace other than the current one, you can provide that namespace name as an argument to the command.
@@ -572,6 +602,10 @@ You need to be [logged in](reference/cli.mdx#context) to Okteto before running t
 Only users with administration privileges can destroy a global preview environment.
 If the manifest includes `destroy` commands, they will be executed as part of this command.
 
+| Options                                   |    Type    | Description                                                                                                                                                                                                                                               |
+| :---------------------------------------- | :--------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _--wait_                                  |   (bool)   | Wait until the preview deletion finishes (defaults to true)                                                                                                                                                                                            |
+
 #### endpoints
 
 List the endpoints of a preview environment.
@@ -603,6 +637,25 @@ You need to be [logged in](reference/cli.mdx#context) to Okteto before running t
 |  Options  |  Type  | Description                                                                            |
 | :-------- | :----: | :------------------------------------------------------------------------------------- |
 | _--label_ | (list) | tag and organize preview environments using labels (multiple _--label_ flags accepted) |
+| _--output_|(string)| Output format. One of: ['json', 'yaml']                                                |
+
+#### sleep
+
+Sleeps a given Okteto preview environment. Only users with admin access or who own the preview environment can take this action.
+
+```console
+$ okteto preview sleep [name]
+```
+
+More on sleeping resources [here](administration/cleanup.mdx/#sleeping-resources).
+
+#### wake
+
+Wakes an Okteto preview environment. You must provide the name of a preview environment as an argument for this command.
+
+```console
+$ okteto namespace wake [name]
+```
 
 ### logs
 
@@ -720,7 +773,7 @@ After you've ran `okteto kubeconfig` you should be able to communicate with the 
 When running
 
 ```console
-$ okteto kubetoken <okteto_url> <namespace> # example: okteto kubetoken https://cloud.okteto.com cindy-lopez
+$ okteto kubetoken <okteto_url> <namespace> # example: okteto kubetoken https://okteto.example.com cindylopez-lopez
 ```
 
 You should see a message like this:
