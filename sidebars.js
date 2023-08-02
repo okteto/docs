@@ -138,7 +138,6 @@ module.exports = {
   {
     "Tutorials": [
       "tutorials/compose-getting-started",
-      "tutorials/preview-environments",
       "tutorials/webpack",
       "tutorials/aws-lambda"
     ],

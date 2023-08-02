@@ -258,7 +258,11 @@ module.exports = {
       {
         to: '/cloud/starter-plan/',
         from: ['/cloud/developer-plan/']
-      }
+      },
+      {
+        to: '/cloud/preview-environments/preview-environments-github/',
+        from: ['/tutorials/preview-environments/']
+      },
       ]
     }],
     ['docusaurus-gtm-plugin', {
