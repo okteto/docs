@@ -10,15 +10,16 @@ module.exports = {
     {
       "Welcome": [
       "overview",
-      "saas-vs-self-hosted",
       {
         "type": "category",
         "label": "Getting Started",
         "items": [
-          "getting-started",
+          "getting-started-install-okteto",
+          "getting-started-install-okteto-cli",
           "using-dev-envs"
         ]
-      }
+      },
+      "saas-vs-self-hosted"
     ],
   },
   {
