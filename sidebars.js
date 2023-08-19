@@ -137,14 +137,10 @@ module.exports = {
     ],
   },
   {
-    "Tutorials": [
+    "Guides and Examples": [
       "tutorials/compose-getting-started",
       "tutorials/webpack",
-      "tutorials/aws-lambda"
-    ],
-  },
-  {
-    "Samples": [
+      "tutorials/aws-lambda",
       "samples/aspnetcore",
       "samples/golang",
       "samples/java",
@@ -153,7 +149,7 @@ module.exports = {
       "samples/python",
       "samples/ruby",
       "samples/more"
-    ]
+    ],
   },
   {
     "type": "link",
