@@ -102,8 +102,9 @@ module.exports = {
         },
         {
           "type": "category",
-          "label": "Configure Okteto Self-Hosted",
+          "label": "Okteto Self-Hosted",
           "items": [
+            "self-hosted",
             "self-hosted/install/releases",
             "self-hosted/administration/configuration",
             "self-hosted/install/upgrade",
