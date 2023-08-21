@@ -74,7 +74,9 @@ clusters:
 ```
 
 ### License
-Okteto is free for small teams. You get all the features of [Okteto](https://okteto.com/docs/self-hosted/) for up to 3 users. Need more? [Let's talk](https://okteto.com/#talktous).
+You'll receive a license kye as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+
+If you are interested in evaulating Okteto, [sign up for our free 30 days trial.  No credit card required.](https://www.okteto.com/free-trial/).
 
 ### Authentication
 
