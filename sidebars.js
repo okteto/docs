@@ -8,7 +8,7 @@
 module.exports = {
   "docs": [
     {
-      "Welcome": [
+      "What is Okteto": [
         "overview",
         {
           "type": "category",
@@ -21,6 +21,71 @@ module.exports = {
         },
         "saas-vs-self-hosted"
       ],
+    },
+    {
+      "Prepare your application for Okteto": [
+        "cloud/okteto-cli",
+        "reference/manifest",
+        "reference/compose",
+      ],
+    },
+    {
+      "Develop with Okteto": [
+        {
+          "Dev Environments": [
+            "reference/development-environments",
+            {
+              "type": "category",
+              "label": "Deploying",
+              "items": [
+                "cloud/launch-from-catalog",
+                "cloud/deploy-from-git",
+                "cloud/private-repositories",
+                "cloud/deploy-from-helm"
+              ]
+            },
+            "cloud/external-resources",
+            "cloud/secrets",
+            {
+              "type": "category",
+              "label": "Exposing Your Application",
+              "items": [
+                "cloud/ssl",
+                "cloud/private-endpoints",
+                "cloud/custom-domains"
+              ]
+            },
+            "cloud/build",
+            "cloud/registry",
+            "cloud/use-volume-snapshots",
+            "cloud/namespaces",
+            "cloud/credentials",
+            "cloud/personal-access-tokens",
+            "reference/file-synchronization",
+            "reference/ssh-server"
+          ],
+        },
+        {
+          "Preview Environments": [
+            "cloud/preview-environments/preview-environments",
+            {
+              "type": "category",
+              "label": "For GitHub",
+              "items": [
+                "cloud/preview-environments/dashboard",
+                "cloud/preview-environments/preview-environments-github",
+                "cloud/permissions",
+              ]
+            },
+            "cloud/preview-environments/preview-environments-gitlab"
+          ]
+        },
+        {
+          "Test Environments": [
+            "cloud/preview-environments/preview-environments",
+          ]
+        }
+      ]
     },
     {
       "Managing Okteto": [
@@ -63,55 +128,6 @@ module.exports = {
       ]
     },
     {
-      "Dev Environments": [
-        "reference/development-environments",
-        "cloud/okteto-cli",
-        {
-          "type": "category",
-          "label": "Deploying",
-          "items": [
-            "cloud/launch-from-catalog",
-            "cloud/deploy-from-git",
-            "cloud/private-repositories",
-            "cloud/deploy-from-helm"
-          ]
-        },
-        "cloud/external-resources",
-        "cloud/secrets",
-        {
-          "type": "category",
-          "label": "Exposing Your Application",
-          "items": [
-            "cloud/ssl",
-            "cloud/private-endpoints",
-            "cloud/custom-domains"
-          ]
-        },
-        "cloud/build",
-        "cloud/registry",
-        "cloud/use-volume-snapshots",
-        "cloud/namespaces",
-        "cloud/credentials",
-        "cloud/personal-access-tokens",
-        "reference/file-synchronization",
-        "reference/ssh-server"
-      ],
-    },
-    {
-      "Preview Environments": [
-        "cloud/preview-environments/preview-environments",
-        {
-          "type": "category",
-          "label": "For GitHub",
-          "items": [
-            "cloud/preview-environments/dashboard",
-            "cloud/preview-environments/preview-environments-github"
-          ]
-        },
-        "cloud/preview-environments/preview-environments-gitlab"
-      ],
-    },
-    {
       "Guides and Examples": [
         "tutorials/compose-getting-started",
         "tutorials/webpack",
@@ -129,11 +145,8 @@ module.exports = {
     {
       "References": [
         "reference/cli",
-        "reference/manifest",
         "reference/manifest-migration",
-        "reference/compose",
         "reference/faqs",
-        "cloud/permissions",
         "reference/known-issues"
       ],
     },
