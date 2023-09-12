@@ -72,6 +72,7 @@ module.exports = {
   },
   {
     "Administration": [
+      "administration/okteto-license",
       "administration/dashboard",
       "administration/cleanup",
       "administration/catalog",
