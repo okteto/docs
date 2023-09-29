@@ -162,11 +162,12 @@ module.exports = {
             },
             '1.13': {
               label: '1.13',
-              path: '1.13',
+              path: '/',
+              banner: 'none',
             },
             '1.12': {
               label: '1.12',
-              path: '/',
+              path: '1.12',
               banner: 'none',
             },
             '1.11': {
