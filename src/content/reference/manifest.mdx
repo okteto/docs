@@ -249,9 +249,7 @@ deploy:
 
 Using the `--remote` flag lets you run the `okteto deploy` commands directly in your Okteto cluster. 
 
-When executing `okteto deploy` with this flag, Okteto will automatically synchronize your local folder, and then it will execute the `build` and `deploy` sections of the manifest directly in your Okteto cluster, using the image defined in the manifest. 
-
-With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required. 
+If you define an image in the okteto manifest, `okteto deploy` will always run in remote mode. If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
 
 ```yaml
 deploy:
@@ -260,16 +258,15 @@ deploy:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-If you define an image in the okteto manifest, `okteto deploy` will always run in remote mode.  If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
+With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required.
 
-Before the okteto CLI synchronizes your files, it looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `deploy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+When running on remote, Okteto will automatically synchronize your local folder. Okteto looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `deploy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 
 You can explicitly set the `remote` field in the `deploy` section without using the `--remote` flag:
 
 ```yaml
 deploy:
   remote: true
-  image: okteto/installer:1.7.6
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
@@ -291,27 +288,28 @@ Follow this document for a [list of variables](cloud/okteto-cli.mdx/#built-in-en
 
 #### Destroy remotely
 
-Using the `--remote` flag lets you run the okteto deploy commands directly in your Okteto cluster. When executing okteto destroy with this flag, Okteto will automatically synchronize your local folder, and then it will run the destroy section of the manifest directly in your Okteto cluster, using the image defined in the manifest.
+Using the `--remote` flag lets you run the okteto destroy commands directly in your Okteto cluster. When executing okteto destroy with this flag, Okteto will automatically synchronize your local folder, and then it will run the destroy section of the manifest directly in your Okteto cluster, using the image defined in the manifest.
 
-With this, you don't have to worry about installing tools like helm, kubectl, and others on your local machine. Instead, you define a container image with all your tools, and you, and everyone else on your team, gets the same experience with zero configuration required.
+If you define an image in the okteto manifest, `okteto destroy` will always run in remote mode. If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
 
 ```yaml
 destroy:
-  image: okteto/pipeline-installer:1.7.6
+  image: okteto/pipeline-runner:1.0.0
   commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - terraform destroy --auto-approve
 ```
 
-Before the okteto CLI synchronizes your files, it looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `deploy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required.
+
+When running on remote, Okteto will automatically synchronize your local folder. Okteto looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `destroy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 
 You can explicitly set the `remote` field in the `destroy` section without using the `--remote` flag:
 
 ```yaml
 destroy:
   remote: true
-  image: okteto/installer:1.7.6
   commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - terraform destroy --auto-approve
 ```
 
 ### dev (object, optional)
