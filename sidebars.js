@@ -32,7 +32,6 @@ module.exports = {
           "cloud/launch-from-catalog",
           "cloud/deploy-from-git",
           "cloud/private-repositories",
-          "cloud/deploy-from-helm"
         ]
       },
       "cloud/external-resources",
