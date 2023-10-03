@@ -1,0 +1,50 @@
+---
+title: Backup and Restore
+description: Backup and Restore your Okteto instance
+id: backup
+sidebar_label: Backup and Restore
+---
+
+Backup and restore planning is essential to ensure the availability and integrity of your Okteto instance in case of unexpected failures or disaster recovery.
+This guide outlines the steps to recover an Okteto instance in such scenarios.
+
+## Critical Resources
+
+To effectively recover an Okteto instance, focus on the following critical resources:
+
+- **Service Accounts**: Preserve service accounts associated with users. These service accounts reside within the `okteto` namespace and are labeled with `dev.okteto.com: "true"`.
+- **Secrets**: Recreate all secrets within the `okteto` namespace.
+- **Custom Resources**: Restore Custom Resources (CRs) corresponding to Okteto's CRDs. They can be identified with the label `app.kubernetes.io/part-of: okteto`.
+
+## Recovery Process
+
+You can follow two different recovery processes:
+
+- **Light recovery processes**: recovers all the users’ metadata, tokens and secrets, but it doesn’t recover users’ namespaces and volumes. All this information is available on the `okteto` namespace.
+- **Full recovery processes**: recovers not only the `okteto` namespace, but also all the users’ namespaces and preview environments, including data in persistent volumes.
+
+### Light Recovery Process
+
+If you do not wish to retain users’ namespaces and their application data, migrating the resources in the `okteto` namespace is sufficient. This is the fastest option, but your users must recreate their development environments.
+
+Follow these steps:
+
+- **Backup the okteto namespace**: backup the [critical resources](self-hosted/administration/configuration.mdx#subdomain) in your `okteto` namespace.
+- **Restore Service Accounts, Secrets, and Custom Resources**: restore service accounts, secrets, and Okteto custom resources in the `okteto` namespace.
+- **Reinstall Okteto**: reinstall the Okteto Helm chart with the same configuration as your previous Okteto instance.
+- **Switch DNS**: the new Ingress-Nginx service will have a new load balancer. Configure your DNS settings to point to the IP of this new load balancer.
+- **Delete the broken cluster**: once the restore work is complete and it has been verified that the new cluster is functioning correctly, proceed to delete the old one.
+
+### Full cluster Recovery Process
+
+If you wish or need to restore all user namespaces, performing the following action before starting the Light Recovery Process guide is necessary.
+
+- **Backup user namespaces**: you can use a tool like [Velero](https://velero.io/) to back up your users’ namespaces. All these namespaces have the label `dev.okteto.com: "true"`.
+- **Backup the okteto namespace**: backup the [critical resources](self-hosted/administration/configuration.mdx#subdomain) in your `okteto` namespace.
+- **Restore user namespaces**: recreate users’s namespaces in the new cluster before reinstalling Okteto.
+- **Restore Service Accounts, Secrets, and Custom Resources**: Restore service accounts, secrets, and Okteto custom resources in the `okteto` namespace.
+- **Reinstall Okteto**: reinstall the Okteto Helm chart with the same configuration as your previous Okteto instance.
+- **Switch DNS**: the new Ingress-Nginx service will have a new load balancer. Configure your DNS settings to point to the IP of this new load balancer.
+- **Delete the broken cluster**: once the restore work is complete and it has been verified that the new cluster is functioning correctly, proceed to delete the old one.
+
+> Keep in mind that private registry configurations are not reestablished until the Helm chart is reinstalled. This may temporarily affect the ability of certain pods to pull images from the Okteto Registry.
