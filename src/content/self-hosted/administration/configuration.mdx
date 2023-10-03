@@ -970,14 +970,34 @@ namespace:
 Configures [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for each namespace to isolate network traffic.
 Disabled by default.
 
-- `ingress`: Ingress list of rules ([NetworkPolicyIngressRule](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#networkpolicyingressrule-v1-networking-k8s-io)) to be applied on every namespace managed by Okteto. (optional).
-- `egress`: Egress list of rules ([NetworkPolicyEgressRule](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#networkpolicyegressrule-v1-networking-k8s-io)) to be applied on every namespace managed by Okteto (optional).
+- `ingress`: Ingress list of rules (NetworkPolicyIngressRule) to be applied on every namespace managed by Okteto. (optional).
+- `egress`: Egress list of rules (NetworkPolicyEgressRule) to be applied on every namespace managed by Okteto (optional).
 
 ```yaml
 networkPolicies:
-  enabled: false
-  ingress: []
-  egress: []
+  enabled: true
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 172.17.0.0/16
+            except:
+              - 172.17.1.0/24
+        - namespaceSelector:
+            matchLabels:
+              project: myproject
+        - podSelector:
+            matchLabels:
+              role: frontend
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+      ports:
+        - protocol: TCP
+          port: 5978
 ```
 
 ### podSecurityPolicy
