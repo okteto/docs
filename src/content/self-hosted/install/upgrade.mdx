@@ -25,6 +25,20 @@ $ helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version 
 
 Please review [the release notes](self-hosted/install/releases.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
 
+## Upgrading to Okteto 1.14.x
+
+As part of [1.14.0](self-hosted/install/releases.mdx#1140), we have changed the way you can configure credentials for private registries. Before, you had to specify them in your helm configuration under `privateRegistry` key. From now on, that section (`privateRegistry`) is deprecated and we have added new options in the [Admin view](administration/dashboard.mdx#registry-credentials) to manage them there.
+
+In order to simplify the migration for all the instances already using that setting, Okteto will automatically migrate the credentials specified in the helm chart to secrets within the cluster **as part of the upgrade process to `1.14.x`**. So, from that moment, any change in those credentials has to be done through the Admin View, and you can remove the `privateRegistry` section from your helm configuration and upgrade Okteto again to completely stop using the deprecated `privateRegistry` section, as they don't apply anymore.
+
+If you don't use `privateRegistry` key, you can just upgrade Okteto as any other release. If you use it, we recommend you the following steps to upgrade your instance to `1.14.x` or higher:
+
+- Make an upgrade to the target version keeping the `privateRegistry` section in your helm configuration.
+- Verify that credentials were successfully migrated. You can do that listing the resources `registries.admin.okteto.com` (`kubectl get registries.admin.okteto.com -n okteto`) present in your cluster. You should see one resource per registry you had configured. Those resources are created by Okteto as part of the upgrade process and they keep the metadata and a reference to the secret which contains the credentials.
+- Once you have verified that the credentials were successfully migrated, you can remove the `privateRegistry` section from your helm configuration and upgrade Okteto again.
+
+If you miss any registry or they weren't migrated at all, you can check the logs of a job called xxxx to see the root cause. You can also contact us to xxxxxx.
+
 ## Upgrading to Okteto 1.7.x
 
 As part of [1.7.0](self-hosted/install/releases.mdx#170), we have changed the default behavior of BuildKit to don't use a persistent volume. You have to include the following setting in your configuration file to keep using persistency:
