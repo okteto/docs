@@ -181,7 +181,7 @@ This section of the Admin dashboard allows you to manage credentials for private
 
 For each configured configured registry, you will see a row with the type (Static or AWS) and the registry hostname. The 2 types of credentials supported are:
 - Static: To configure registries with static username and password like Docker Hub.
-- AWS: To configure [ECR registries](https://docs.aws.amazon.com/ecr/index.html) using Access Key and Access Secret. In this case, Okteto takes care of refreshing docker credentials every 4 hours using the key and secret configured.
+- AWS: To configure [ECR registries](https://docs.aws.amazon.com/ecr/index.html) using Access Key and Access Secret. In this case, Okteto takes care of refreshing docker credentials every 4 hours using the key and secret configured. The hostname of the registry has to end with `.amazonaws.com`.
 
 <p align="center"><Image src="/docs/administration/images/registry_credentials_view.png" alt="Registry credentials view" width="900" /></p>
 
@@ -193,9 +193,9 @@ Apart of adding new credentials, this view also allows you to rotate those crede
 
 ### Advanced configuration
 
-This section simplifies the configuration of these credentials in Okteto, but you can managed them in an advanced way creating directly Kubernetes resources. This is useful for example if you have your own mechanism to provision secrets in the cluster.
+This section of the Admin dashboard simplifies the configuration of these credentials in Okteto, but you can managed them in an advanced way creating directly Kubernetes resources. This is useful, for example, if you have your own mechanism to provision secrets in the cluster.
 
-In order to do that, you need to create an Opaque Kubernetes secret in the cluster with the data needed for the registry. Depending on the type of registry, you will need different fields. Once the secret is created, you will need to create a CRD for the registry refering to the secret which contains the data.
+In order to do that, you need to create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) in the cluster with the data needed for the registry. Depending on the type of registry, you will need different fields. Once the secret is created, you will need to create a CRD for the registry refering to the secret which contains the data.
 
 In that way, if you want to define static credentials (username and password) for a private registry, you just need to create a secret in the Okteto namespace with the user and pass to be used. After that, you have to define a CRD with some information. The name of the resource has to be the hostname of the registry, so imagine you want to add a configuration for docker's registry, you will need to create a resource like this:
 
@@ -217,7 +217,7 @@ spec:
       name: <secret-name> # name of the secret where the username is stored
 ```
 
-In the case of AWS, where you have to specify the Access Key and Access Secret, the process is similar to the static credentials one. You will need to create a secret with those values and then create a CRD like this (the name of the resource has to be the hostname of the registry to be configured):
+In the case of AWS, where you have to specify the Access Key and Access Secret, the process is similar to the static credentials one. You will need to create a secret with those values, and then, create a CRD like this (the name of the resource has to be the hostname of the registry to be configured and it has to end with `.amazonaws.com`):
 
 ```yaml
 apiVersion: admin.okteto.com/v1
