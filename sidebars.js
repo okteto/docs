@@ -83,6 +83,7 @@ module.exports = {
           "administration/private-repositories/ssh-key"
         ]
       },
+      "administration/okteto-insights",
     ],
   },
   {
