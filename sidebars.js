@@ -95,6 +95,7 @@ module.exports = {
           "self-hosted/install/overview",
           "self-hosted/install/preparation",
           "self-hosted/install/deployment",
+          "self-hosted/install/backup",
           "self-hosted/install/upgrade",
           "self-hosted/install/troubleshooting",
           "self-hosted/install/releases"
