@@ -292,7 +292,7 @@ The API service. Account and Kubernetes credentials management, namespace creati
 - `annotations`: Annotations to add to the API pods.
 - `extraEnv`: Environment variables to be set on the API containers.
 - `labels`: Labels to add to the API pods.
-- `priorityClassName`: The priority class to be used by pods of this component.
+- `priorityClassName`: The priority class to be used by the API pods.
 - `replicaCount`: The number of API pods. It defaults to 2.
 - `resources`: The resources for the API pods.
 
@@ -329,6 +329,7 @@ Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluste
 - `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
 - `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
 - `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
+- `priorityClassName`: The priority class to be used by the autoscaler pods.
 - `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
 - `slackWebhook`: A slack webhook url to notify autoscaler events.
 - `volumes.up`: Increase the cluster size when the Volumes in a node vs the max volumes per node is greater than or equal to this value. It defaults to 90 percent.
@@ -372,7 +373,7 @@ The build service. It's used in combination with `okteto build` to build contain
 - `hpa.cpu`: The amount of CPU utilization that will cause the HPA to scale the buildkit pods.
 - `labels`: Labels to add to the buildkit pods.
 - `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
-- `priorityClassName`: The priority class to be used by pods of this component.
+- `priorityClassName`: The priority class to be used by buildkit pods.
 - `replicaCount`: The number of buildkit pods. It defaults to 1.
 - `resources`: The resources for the buildkit pods.
 - `serviceAccount.create`: create a service account for buildkit. True by default.
@@ -422,6 +423,7 @@ The daemonset automatically configures every node of your cluster to work better
 - `labels`: Labels to add to the daemonset pods.
 - `image`: Container image used by the daemonset pods.
 - `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `true`.
+- `priorityClassName`: The priority class to be used by the daemonset pods.
 
 ```yaml
 daemonset:
@@ -458,7 +460,7 @@ The defaultBackend receives errored requests from the ingress-controller and tra
 - `labels`: Labels to add to the defaultBackend pods.
 - `nodeSelector`: Labels to select on which nodes defaultBackend pods will be scheduled.
 - `port`: Internal port used for the defaultBackend. Defaults to `8080`.
-- `priorityClassName`: The priority class to be used by pods of this component.
+- `priorityClassName`: The priority class to be used by the defaultBackend pods.
 - `replicaCount`: The number of defaultBackend pods. It defaults to 2.
 - `resources`: The resources for the defaultBackend pods.
 - `tolerations`: The toletations for the defaultBackend pods.
@@ -491,7 +493,7 @@ The frontend service serves the web application.
 - `annotations`: Annotations to add to the frontend pods.
 - `extraEnv`: Environment variables to be set on the frontend containers.
 - `labels`: Labels to add to the frontend pods.
-- `priorityClassName`: The priority class to be used by pods of this component.
+- `priorityClassName`: The priority class to be used by the frontend pods.
 - `replicaCount`: The number of frontend pods. It defaults to 2.
 - `resources`: The resources for the frontend pods.
 
@@ -516,6 +518,7 @@ The garbage collector service. It automatically scales idle applications to zero
 - `scaleToZeroPeriod`: The duration, in hours, that an application or resource must be idle before the garbage collector scales it to zero. Set to zero to disable.
 - `deleteNamespacePeriod`: The duration, in days, that a namespace must be idle before the garbage collector deletes it. Set to zero to disable.
 - `slackWebhook`: If set, the garbage collector will send a notification when it scales a resource to zero or when it deletes a namespace.
+- `priorityClassName`: The priority class to be used by the gc pods.
 
 ```yaml
 gc:
@@ -538,7 +541,7 @@ The jobs that deploy your [development environments from Git](cloud/deploy-from-
 - `gitSSHUser`: User to be used when cloning git repos using ssh.
 - `sshSecretName`: The name of the secret that contains the private key used when cloning git repos using ssh. If it doesn't exist, the key and the secret will be automatically generated by Okteto.
 - `resources`: The resources for pods created by the installer jobs.
-
+- `priorityClassName`: The priority class for pods created by the installer job pods.
 
 ```yaml
 installer:
@@ -565,7 +568,7 @@ The private container registry.
 - `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precendence over the ones defined in the [ingress](self-hosted/administration/configuration.mdx#ingress) section.
 - `labels`: Labels to add to the registry pods.
 - `pullPolicy`: The security policy for image pulls. If set to `cluster`, any Okteto user can pull any image from the registry. When set to `namespace`, only users with access to the namespace can pull images from the namespace. It defaults to `namespace`.
-- `priorityClassName`: The priority class to be used by pods of this component.
+- `priorityClassName`: The priority class to be used by the registry pods.
 - `replicaCount`: The number of registry pods. It defaults to 1.
 - `resources`: The resources for the registry pods.
 - `serviceAccountName`: Alternative service account to be used by the registry. The service account must exist in the same namespace for the Okteto Helm release. Defaults to none.
@@ -750,7 +753,7 @@ registry:
 
 ### telemetry
 
-You can enable or disable the telemetry job. The telemetry job "phones home" once a day with the following information:
+The telemetry job "phones home" once a day with the following information:
 
 - Number of managed users
 - Number of managed namespaces
@@ -761,6 +764,9 @@ You can enable or disable the telemetry job. The telemetry job "phones home" onc
 - The name of the cloud provider
 
 Okteto uses the information to help us better understand how our customers use Okteto, as well as to help us prioritize fixes and features. We don't share your information with anyone else.
+
+- `enabled`: Enables or disables the telemetry job. Defaults to `true`.
+- `priorityClassName`: The priority class to be used by the telemetry pods.
 
 ```yaml
 telemetry:
@@ -778,7 +784,7 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 - `hostNetwork`: Enables or disables host networking for the webhook deployment. The default is false.
 - `labels`: Labels to add to the webhook pods.
 - `port`: Port sets the port used for the webhook deployment. The default is 443.
-- `priorityClassName`: The priority class to be used by pods of this component.
+- `priorityClassName`: The priority class to be used by the webhook pods.
 - `replicaCount`: The number of webhook pods. It defaults to 2.
 - `resources`: The resources for the webhook pods.
 - `internalCertificate.annotations`: Annotations to add to the internal certificate generated for the webhook.
@@ -1000,31 +1006,6 @@ networkPolicies:
           port: 5978
 ```
 
-### podSecurityPolicy
-
-Decide if you want [pod security policy](https://kubernetes.io/docs/concepts/security/pod-security-policy/) to be added to the service accounts created by Okteto.
-
-#### enabled
-
-Whether to enable pod security policy (defaults to `true`).
-
-#### useAppArmor
-
-Add the apparmor security annotations to the Okteto pod security policies. (defaults to `true`).
-
-If `true` the following annotations are added to the existing pod security policy:
-
-```yaml
-apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
-apparmor.security.beta.kubernetes.io/defaultProfileName: runtime/default
-```
-
-```yaml
-podSecurityPolicy:
-   enabled: true
-   useAppArmor: true
-```
-
 ### overrideFileWatchers
 
 Overrides the default kernel values for file watchers in every node. Recommended if you're running databases, or if you plan on using "okteto up" on the cluster. This requires permission to mount and modify /proc values.
@@ -1048,6 +1029,31 @@ Overrides the registry hostname resolution to use internal IPs. This requires pe
 ```yaml
 overrideRegistryResolution:
   enabled: true
+```
+
+### podSecurityPolicy
+
+Decide if you want [pod security policy](https://kubernetes.io/docs/concepts/security/pod-security-policy/) to be added to the service accounts created by Okteto.
+
+#### enabled
+
+Whether to enable pod security policy (defaults to `true`).
+
+#### useAppArmor
+
+Add the apparmor security annotations to the Okteto pod security policies. (defaults to `true`).
+
+If `true` the following annotations are added to the existing pod security policy:
+
+```yaml
+apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
+apparmor.security.beta.kubernetes.io/defaultProfileName: runtime/default
+```
+
+```yaml
+podSecurityPolicy:
+   enabled: true
+   useAppArmor: true
 ```
 
 ### prepullImages
@@ -1391,6 +1397,7 @@ When [publicOverride](self-hosted/administration/configuration.mdx#publicoverrid
 - `resources`: The resources for the Private Endpoint component pods.
 - `replicaCount`: The number of Private Endpoint component pods. It defaults to 1.
 - `annotations`: Annotations to add to the Private Endpoint component pods.
+- `priorityClassName`: The priority class to be used by the Private Endpoints pods.
 
 By default, the Private Endpoint component will inherit the configuration set at the [`auth`] section, but you can override some values with the following properties:
 
