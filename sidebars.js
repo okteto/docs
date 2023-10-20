@@ -98,6 +98,7 @@ module.exports = {
           "self-hosted/install/deployment",
           "self-hosted/install/backup",
           "self-hosted/install/upgrade",
+          "self-hosted/install/custom-resource-definitions",
           "self-hosted/install/troubleshooting",
           "self-hosted/install/releases"
         ]
