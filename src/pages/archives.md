@@ -10,7 +10,7 @@ Here you can find the documentation for the current released version of Okteto.
 
 | Version    | Documentation        |Release Notes       |
 |:---------|:------:|------:|
-| 1.12     | [Documentation](/)       |  [Release Notes](/self-hosted/install/releases/)
+| 1.14    | [Documentation](/)       |  [Release Notes](/self-hosted/install/releases/)
 
 
 
@@ -20,6 +20,8 @@ Here you can find the documentation for previously released versions of Okteto.
 
 | Version    | Documentation        |Release Notes       |
 |:---------|:------:|------:|
+| 1.13    | [Documentation](/1.13)      |  [Release Notes](/1.13/self-hosted/install/releases/)
+| 1.12    | [Documentation](/1.12)      |  [Release Notes](/1.12/self-hosted/install/releases/)
 | 1.11    | [Documentation](/1.11)      |  [Release Notes](/1.11/self-hosted/install/releases/)
 | 1.10    | [Documentation](/1.10)      |  [Release Notes](/1.10/self-hosted/install/releases/)
 | 1.9     | [Documentation](/1.9)       |  [Release Notes](/1.9/self-hosted/install/releases/)

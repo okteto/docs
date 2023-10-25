@@ -1,0 +1,165 @@
+---
+title: Use Okta as your Authentication Provider
+description: Guide on how use Okta as the authentication provider of your Okteto Self-hosted instance
+id: identity-provider-okta
+---
+
+import Image from '@theme/Image';
+import TiersList from '@theme/TiersList';
+
+#  Use Okta as your Identity Provider<TiersList tiers="Self-Hosted" />
+
+This guide will walk you through the steps necessary to configure Okta as the authentication provider for your instace of Okteto.
+
+Please refer to [Okta's official documentation](https://developer.okta.com/docs/concepts/oauth-openid/) on Open ID Connect for more information.
+
+## Prerequisites
+
+- An instance of [Okteto](https://okteto.com/docs/self-hosted/).
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine.
+- Access to an [Okta account](https://www.okta.com) with permissions to create Applications.
+
+## Create the Okta Application
+
+Create a new app integration, using the values below:
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/new-app.png" alt="Create the new app" /></p>
+
+Then, fill in the following values on the “New Web App Integration” window:
+
+1. Name: The name of your app (e.g. Okteto)
+2. Grant type: authorization code
+3. Sign In Redirect: https://okteto.{YOUR_DOMAIN}/auth/callback
+4. Assignments:  We recommend you create a dedicated group for Okteto, so you can control who can access your instance from Okta.
+
+Leave all the other values empty, and press the save button.
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/new-web-app-integration.png" alt="Create the new app integration" /></p>
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/new-web-app-integration-2.png" alt="Create the new app integration" /></p>
+
+Once the application has been created, copy the ClientID and the Client Secret. You'll need them to configure your Okteto Instance.
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/secrets-sidebar.png" alt="Copy the client ID and the Client Secret" /></p>
+
+Assign the users or groups that will have access to Okteto to the application that you just created.
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/assignment.png" alt="Assign the users to the application" /></p>
+
+By default, Okteto will use the attributes below when creating a user. These will be synchronized when the account is created, and everytime the user logs in.
+
+- `Name` as the display name of the user.
+- `Nickname` as the username of the user.
+- `Email` as the email.
+- `Picture URL` for the user's profile picture.
+
+Authentication will fail if the `Nickname` or `Email` property is missing or empty. Please refer to the [Customize the attributes that Okteto consumes](#customize-the-attributes-that-okteto-consumes) section below on how to change the attributes that Okteto will use during authentication and account creation.
+
+Finally, browse to https://{YOUR_TENANT}.okta.com/.well-known/openid-configuration, and copy the values of `issuer` and `authorization_endpoint`. You'll need this to finish configuration of your Okteto instance.
+
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/well-known.png" alt="Get the URLs for authorization" /></p>
+
+### Update your Users Profile for Okteto
+
+Okta will send the values set on the user profile as part of the authentication process. If you want to set specific values for Okteto, you can set an Application-specific overrride by going to Directory → People  → ${User} → Applications → Okteto → Edit).
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/profile.png" alt="Update the profile in the application assignment" /></p>
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/profile-details.png" alt="Update the profile details in the application assignment" /></p>
+
+> If you want to sync the profile picture from Okta, you'll need to set the Picture URL property in the dialog shown above.
+
+## Configure Okteto
+
+Once you have the Okta application ready, you'll need to update the configuration of your Okteto Self-Hosted instance.
+
+First, update the auth section of your Helm configuration file (e.g. `values.yaml` ) with the values you obtained on the first step of this guide:
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: $CLIENT_ID
+    clientSecret: $CLIENT_SECRET
+    endpoints:
+      issuer: $ISSUER_URL
+      authorization: $AUTHORIZATION_URL
+```
+
+In our demo instance, this looks like:
+
+```yaml
+...
+auth:
+  openid:
+    enabled: true
+    clientId: 0oa76rh0z5zgKG7XXXXX
+    clientSecret: dTgsfHbYV9tt91Ng4dzvpULw6y7kjJaYxzfXXXXX
+    endpoints:
+      issuer: https://dev-6093102.okta.com
+      authorization: https://dev-6093102.okta.com/oauth2/v1/authorize
+...
+```
+
+> You can also store the value of clientSecret [as a secret directly in Kubernetes](self-hosted/administration/configuration.mdx/#store-sensitive-configuration-values-using-a-secret).
+
+Then, [upgrade your installation](self-hosted/install/upgrade.mdx) to apply the changes. We recommend that you upgrade to the same version that you already have to minimize the changes and help with your troubleshooting.
+
+Once the upgrade has been completed, go to your instance and click on the 'Log In' button to access your instance using Okta as the authentication provider.
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/with-okta.png" alt="Log in with Okta" /></p>
+
+### Customize the attributes that Okteto consumes
+
+By default, Okteto will use the following attributes below when creating a user:
+
+- `Name` as the display name of the user.
+- `Nickname` as the username of the user.
+- `Email` as the email.
+- `Picture URL` for the user's profile picture.
+
+If you are not using some of those values, or you want to customize which attributes get mapped, you can customize that by using the `mapping` field inside the `openid` key in your Helm configuration file.
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: $CLIENT_ID
+    clientSecret: $CLIENT_SECRET
+    endpoints:
+      issuer: $ISSUER_URL
+      authorization: $AUTHORIZATION_URL
+    mapping:
+      externalIDKey: nickname
+      nameKey: name
+      emailKey: email
+      pictureKey: picture
+```
+
+The value of every key in the `mapping` section must match a `claim` in your Okta + OpenID configuration, and it must contain a non-empty value.
+
+For example, if you just want to use the `email` instead of the nickname for usernames, use the following configuration:
+
+```yaml
+auth:
+  openid:
+    enabled: true
+    clientId: 0oa76rh0z5zgKG7XXXXX
+    clientSecret: dTgsfHbYV9tt91Ng4dzvpULw6y7kjJaYxzfXXXXX
+    endpoints:
+      issuer: https://dev-6093102.okta.com
+      authorization: https://dev-6093102.okta.com/oauth2/v1/authorize
+     mapping:
+      externalIDKey: email
+```
+
+## Troubleshooting
+
+### Log in fails with a 500 error
+
+This is most likely because the user was not added to the application. Make sure that the user (or group) is assigned to the application that you just created in Okta.
+
+To fix this, go to Application → Okteto → Assignments and add the required users or groups.
+
+<p align="center"><Image src="/docs/self-hosted/guides/okta/images/add-user.png" alt="Add user to the Okta application" /></p>
