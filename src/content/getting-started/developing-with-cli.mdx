@@ -1,0 +1,160 @@
+---
+title: Developing with the Okteto CLI
+description: In this section, we'll show you how to use the Okteto CLI to synchronize code changes between your local machine and your remote development environment in Okteto.
+sidebar_label: Developing with Okteto CLI
+id: developing-with-cli
+---
+
+import Image from "@theme/Image";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+The Okteto CLI allows you to interact with your Okteto-managed remote development environment from your terminal. With the Okteto CLI you can:
+1. Launch a development environment
+1. Synchronize your code between your local machine and your development environment
+1. Execute remote commands
+1. See your logs
+1. And more...
+
+
+In this section, we'll show you how you can use the Okteto CLI to work with the environment that you deployed on the previous section. 
+
+
+## Installing Okteto CLI
+
+Install the Okteto CLI following these steps:
+
+### MacOS / Linux
+
+```console
+$ curl https://get.okteto.com -sSfL | sh
+```
+
+If you need a specific version you can set the OKTETO_VERSION environment variable:
+
+```console
+$ curl https://get.okteto.com -sSfL | OKTETO_VERSION=2.3.3 sh
+```
+
+You can also install it via [brew](https://brew.sh/) by running:
+
+```console
+$ brew install okteto
+```
+
+### Windows
+
+Download https://downloads.okteto.com/cli/stable/okteto.exe and add it to your `$PATH`.
+
+You can also install it via [scoop](https://scoop.sh/) by running:
+
+```console
+$ scoop install okteto
+```
+
+> For updating okteto with scoop, you might need to `scoop unhold okteto & scoop update okteto` or `scoop uninstall okteto & scoop install okteto`
+
+### GitHub
+
+Alternatively, you can directly download the binary [from GitHub](https://github.com/okteto/okteto/releases) or build it directly from the source code.
+
+## Connect the CLI to your Okteto instance
+
+After installing the Okteto CLI, you need to run the command below to log in to your Okteto instance:
+
+```console
+$ okteto context use https://okteto.localtest.me --skip-tls-verify
+```
+
+You can confirm that your CLI is configured by running the command below:
+
+```console
+$ okteto context list
+```
+```console
+Name                          Namespace       Builder                                 Registry
+https://okteto.localtest.me *  cindylopez      tcp://buildkit.okteto.localtest.me:1234  registry.okteto.localtest.me
+```
+
+## Developing with the Okteto CLI
+
+Next, a prompt will ask for the microservice you want to develop.
+
+```console
+    Select the development container you want to activate:
+    Use the arrow keys to navigate: ↓ ↑ → ←
+  ▸ api
+    frontend
+```
+
+Let's go with `api` because we know there's a bug there we need to fix 🙂
+
+```console
+ ✓  Development container 'api' selected
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Context:   okteto.example.com
+    Namespace: cindylopezlopez
+    Name:      api
+    Forward:   9229 -> 9229
+
+yarn run v1.22.19
+$ nodemon server.js
+[nodemon] 2.0.4
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,json
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+Now, you should be able to view your application when you visit these endpoints. Behind the scenes, the Development Environment in Okteto will synchronize your changes everytime you save them locally.
+
+## Development Time!
+
+Visiting the frontend endpoint for the Movies app, something doesn't look right here, does it?
+
+<p align="center">
+  <Image
+    src="/docs/images/next-ui-movies.png"
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+The list of movies is the same as Cindy's list. Let's fix that.
+
+Open your favorite IDE on your local machine and edit line 43 in `/api/server.js` to:
+
+```javascript
+  db.collection('watching').find().toArray( (err, results) =>{
+```
+
+Now save your changes and refresh the browser. Okteto CLI will automatically synchronize your changes to your development environment. Take a look at the development environment shell and notice how the changes are detected by [nodemon](https://www.npmjs.com/package/nodemon) and automatically hot reloaded.
+
+```console
+[nodemon] restarting due to changes...
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+Okteto's Development Environment immediately shows the changes you made on the deployed version of your application. You don't need to wait for a CI pipeline to complete before you can validate the changes you've made. This saves a ton of time.
+
+
+<p align="center">
+  <Image
+    src="/docs/images/next-ui-movies-fixed.png"
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+
+## Next Steps
+
+Congratulations! You successfully developed your first application with Okteto
+
+From here, we recommend:
+- Launching a Development Environment for your own application using this guide
+- Reading about Okteto's [Preview Environments](cloud/preview-environments/overview.mdx)

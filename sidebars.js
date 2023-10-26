@@ -14,9 +14,9 @@ module.exports = {
           "type": "category",
           "label": "Getting Started",
           "items": [
-            "getting-started-install-okteto",
-            "getting-started-install-okteto-cli",
-            "using-dev-envs"
+            "getting-started/install-okteto",
+            "getting-started/deploy-sample-environment",
+            "getting-started/developing-with-cli",
           ]
         },
         "saas-vs-self-hosted"
@@ -105,7 +105,6 @@ module.exports = {
           "label": "Okteto Self-Hosted",
           "items": [
             "self-hosted",
-            "self-hosted/install/releases",
             "self-hosted/administration/configuration",
             "self-hosted/install/upgrade",
             "self-hosted/install/troubleshooting",
@@ -151,6 +150,7 @@ module.exports = {
         "reference/known-issues"
       ],
     },
+    "self-hosted/install/releases",
     {
       "type": "link",
       "label": "Archives",
