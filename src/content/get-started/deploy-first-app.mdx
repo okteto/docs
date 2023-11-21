@@ -1,0 +1,123 @@
+---
+title: Deploy your first application
+description: This page explains the key concepts a user needs to understand to navigate the Okteto documentation and product.
+sidebar_label: Deploy your first application
+id: deploy-first-app
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Once Okteto as been installed (or you've signed in to your Okteto SaaS environment), the next step is to deploy an application to start using Okteto. This process consists of a few simple steps depending on your preferred method of deploying your application.
+
+1. Install the [Okteto CLI](deploy/using-the-cli)
+2. Configure an [Okteto Manifest](reference/okteto-manifest)
+3. Store the manifest in the application's repository
+4. Select a repository to launch
+5. Use `okteto up` locally to start developing
+
+# Install the Okteto CLI
+
+Follow the steps below based on your environment.
+
+<Tabs>
+  <TabItem value="mac_linux" label="MacOS Linux" default>
+Using the default command.
+
+```console
+$ curl https://get.okteto.com -sSfL | sh
+```
+
+If you need a specific version you can set the OKTETO_VERSION environment variable.
+```console
+$ curl https://get.okteto.com -sSfL | OKTETO_VERSION=2.3.3 sh
+```
+
+You can also install it via [brew](https://brew.sh/).
+```console
+$ brew install okteto
+```
+  </TabItem>
+  <TabItem value="windows" label="Windows">
+Download https://downloads.okteto.com/cli/stable/okteto.exe and add it to your <code>$PATH</code>.
+
+You can also install it via [scoop](https://scoop.sh/) by running:
+```console
+$ scoop install okteto
+```
+
+You may need to run the following if updating Okteto with scoop.
+```console
+scoop unhold okteto & scoop update okteto
+```
+Alternatively, you may need to run
+```console
+scoop uninstall okteto & scoop install okteto
+```
+  </TabItem>
+  <TabItem value="github" label="GitHub">
+Alternatively, you can directly download the binary <a href="https://github.com/okteto/okteto/releases">from GitHub</a> or build it directly from the source code.
+  </TabItem>
+</Tabs>
+
+# Configure an Okteto Manifest
+
+Before you can start working with Okteto you will need to define the Okteto Manifest and place it within your application's git repository. The manifest is used to determine how to deploy the development environment. There are specific commands and behaviors that you must configure within the manifest to create the desired development experience in Okteto.
+
+If an Okteto Manifest is not found within the git repository, you will receive an error when deploying in Okteto that looks like this:
+
+```js
+Couldn't detect any manifest (okteto manifest, pipeline, compose, helm chart, k8s manifest)
+deploy command failed: exit status 1
+```
+
+# Store manifest in the repository
+
+Once you've configured your Okteto Manifest, you need to store it somewhere in your git repository. Okteto, by default, will look for the manifest in your repositories root directory. If you choose to store the manifest elsewhere you will need to specify that location when launching a development environment in Okteto.
+
+# Select a repository to launch
+
+Once you've configured an Okteto Manifest for your application and placed it within the git repository you can then use that repository to deploy a development environment in Okteto. You can do this in one of two ways:
+
+- **[Launching from the UI](#launch-from-the-ui)**: Using the Okteto UI `Launch Dev Environment` modal on the `Namespaces` page; or
+- **[Launching from the CLI](#launch-from-the-cli)**: Cloning the repo locally and using `okteto up`
+
+## Launch from the UI
+
+When logged into your Okteto account, click on the `Launch Dev Environment` button at the top of the screen. This will present a modal that looks like this:
+
+<p align="center"><Image src="/docs/get-started/images/ui_launch_modal.png" alt="UI launch modal" width="850" /></p>
+
+From this modal you can select a git repository to launch. There are three ways to select a repository:
+
+- Using the `Catalog` tab (if configured by your administrator): A list of pre-configured development environments set by your administrator that are already linked to specific git repositories
+- Using the `GitHub` tab: A list of all git repositories available in your personal account and any organizations you have access to
+- Using the `Git URL` tab: A way to launch an Okteto development environment using an explicit git repositorty URL
+
+In all of these cases you can optionally specify any [environment variables](reference/okteto-manifest/#environment-variables) to use when launching the development environment as well as the specific location of your Okteto Manifest if it is stored anywhere aside from the root directory. For example:
+
+<p align="center"><Image src="/docs/get-started/images/ui_launch_modal_example.png" alt="UI launch modal" width="850" /></p>
+
+## Launch from the CLI
+
+You can also deploy an application with Okteto, using its git repository, directly from your local machine using the Okteto CLI. The main difference when deploying a development environment from your local machine vs the Okteto UI is you have more control over *how* you develop. We will discuss this more in the [deploy an application](deplo/introduction) section.
+
+The simplest way to deploy your first application using the Okteto CLI is to:
+
+1. Clone your git repository
+2. Configure and add an Okteto Manifest to the repositorty if one does not exist already
+3. Navigate to the directory in your CLI
+4. Run the `okteto up` command
+
+If your Okteto Manifest contains at least the [basic options](reference/okteto-manifest/#example), Okteto will automatically interpret those instructions and start deploying a development environment.
+
+You can log into your account and view the `Namespaces` page to watch this process happen in real time.
+
+# Using okteto up
+
+The Okteto Platform is comprised of two parts: the Okteto CLI and the application (UI). The Okteto CLI, which provides the `okteto up` functionality, is how Okteto launches your development environments and maintains code synchronization. When you run the `okteto up` command, the CLI performs these actions:
+
+- Reads your Okteto Manifest
+- Creates a separate development environment in Okteto based on your manifest (annotated with `Dev Volume`)
+- Enters a "watch mode" to monitor local changes
+- Synchronizes local changes with the remote development environment when the changes are saved

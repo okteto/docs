@@ -1,0 +1,58 @@
+---
+title: Introduction to deploying an application
+description: This page guides you through the high-level process of deploying an application with Okteto.
+sidebar_label: Introduction
+id: introduction
+---
+
+Deploying your application to a development environment on Okteto is a simple process. It consists of installing the [Okteto CLI](deploy/using-the-cli), defining an [Okteto manifest](reference/okteto-manifest), and executing the proper CLI command (or launching from the Okteto UI) to launch your development environment.
+
+If you'd like a higher level view of how to launch your first application with Okteto, check out our [guide](get-started/deploy-first-app).
+
+# Deploy components
+
+The Okteto Platform is comprised of a few key components to enable the deploy functionality:
+
+- A [Build service](deploy/build-servce): enables you to build your container images remotely using Okteto's default build service (Buildkt)
+- A [Container registry](deploy/container-registry): provides container storage for every namespace in your Okteto instance
+- [Volume snapshots](deploy/use-volume-snapshots): lets you initialize persistent volume claims with the contents of a preexisting volume snapshot
+- [Kubernetes credentials](deploy/kubernetes-credentials): a user's unique kubernetes credentials to optionally use Okteto with other CLI tools
+
+# Okteto manifest
+
+Also critical to the deployment of a development environment in Okteto is the manifest itself. Like a Docker compose file the Okteto manifest contains a set of instructions that Okteto uses to deploy your development environment. 
+
+## Configuring the manifest
+
+The Okteto manifest consists of the following sections: `build`, `deploy`, `dev`, `external`, and `destroy`. Each of these sections is responsible for specific behavior when deploying a development environment.
+
+- Build: provides instructions on how to build the images that comprise your application's development environment
+- Deploy: contains the instructions for deploying your development environment, usually consisting of `helm`, `kubectl`, and `okteto` commands
+- Dev: provides a list of development containers to be created when using `okteto up` for synchronizing your code changes from your local machine
+- External: contains a list of external resources that are part of your development environment that you'd like to include in the Okteto experience
+- Destroy: provides the instructions for destroying all resources created by `okteto deploy` as well as any external resources you specified in the `external` section
+
+For this example we'll use a basic Okteto manifest that includes the `build`, `deploy`, and `dev` sections:
+
+```yaml
+build:
+  api:
+    context: api
+  frontend:
+    context: frontend
+deploy:
+  - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+dev:
+  api:
+    command: ["bash"]
+    forward:
+      - 8080:8080
+      - 9229:9229
+    sync:
+      - api:/usr/src/app
+  frontend:
+    command: yarn start
+    sync:
+      - frontend:/usr/src/app
+```
+
