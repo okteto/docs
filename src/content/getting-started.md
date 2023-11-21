@@ -11,7 +11,7 @@ import TabItem from '@theme/TabItem';
 
 Okteto's Development Environments enable you to automatically deploy your application to a cloud development environment and see all of your code changes the moment you hit 'save' locally on your machine.
 
-These Development Environments work using a combination of the [Okteto platform](index), which is used to deploy your application, and [Okteto CLI](deploy/using-the-cli), which is used to launch the Development Environment. This guide will teach how to get started with remote Development Environments.
+These Development Environments work using a combination of the [Okteto platform](index.md), which is used to deploy your application, and [Okteto CLI](deploy/using-the-cli.mdx), which is used to launch the Development Environment. This guide will teach how to get started with remote Development Environments.
 
 ## Installing Okteto CLI
 
@@ -54,7 +54,7 @@ Alternatively, you can directly download the binary [from GitHub](https://github
 
 ## Configuring Okteto CLI with Okteto
 
-You can launch a remote Development Environment on the [Okteto platform](index) or **any** Kubernetes cluster with the Okteto CLI. For this guide, we'll be using Okteto's SaaS platform.
+You can launch a remote Development Environment on the [Okteto platform](index.md) or **any** Kubernetes cluster with the Okteto CLI. For this guide, we'll be using Okteto's SaaS platform.
 
 The first thing you need to do is configure Okteto CLI to use Okteto's platform. To do this, run the command below:
 
@@ -76,11 +76,11 @@ https://okteto.example.com *  cindylopez      tcp://buildkit.okteto.example.com:
 
 ## Define Your Okteto Manifest
 
-For Okteto CLI to know how to launch your Development Environment, it needs an [Okteto manifest](deploy/using-the-cli/#okteto-manifest). This manifest is used to configure for your Development Environment. Okteto CLI will analyze any [existing manifests](deploy/using-the-cli/#deployment-manifests) (Helm, Kubernetes, etc.) in your source code directory and help you write an Okteto manifest for your application.
+For Okteto CLI to know how to launch your Development Environment, it needs an [Okteto manifest](deploy/using-the-cli.mdx#okteto-manifest). This manifest is used to configure for your Development Environment. Okteto CLI will analyze any [existing manifests](deploy/using-the-cli.mdx#deployment-manifests) (Helm, Kubernetes, etc.) in your source code directory and help you write an Okteto manifest for your application.
 
 The Okteto manifest is required in all cases except when a Docker compose file exists and is configured for your application.
 
-If you don't have an Okteto manifest for your application, you can run `okteto init` to generate one. You can then edit the manifest based on your application needs. Learn more about the manifest [here](reference/okteto-manifest).
+If you don't have an Okteto manifest for your application, you can run `okteto init` to generate one. You can then edit the manifest based on your application needs. Learn more about the manifest [here](reference/okteto-manifest.mdx).
 
 For this guide we already have the Okteto manifest configured for our application so this step won't be needed.
 
@@ -88,4 +88,4 @@ For this guide we already have the Okteto manifest configured for our applicatio
 
 In this section we installed Okteto CLI on our machine, configured it to work with Okteto's platform, and provided context for the role the Okteto Manifest plays in deploying a Development Environment.
 
-[Next](using-dev-envs) we're going to launch our Development Environment and fix a bug in a sample application.
+[Next](using-dev-envs.mdx) we're going to launch our Development Environment and fix a bug in a sample application.
