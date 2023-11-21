@@ -15,9 +15,9 @@ Okteto's [Development Environments](reference/development-environments) enable y
 Development Environments solve this problem by allowing you to write code locally on your machine but view your changes live, deployed in a managed Kubernetes cluster **as soon as you hit save**! You don't have to spend time configuring anything to do this. Okteto takes care of it all for you. Try for yourself by [Getting Started](getting-started). We also have more detailed documentation about development environments available [here](reference/development-environments).
 
 ## Preview Environments
-Using Okteto, you can configure [Preview Environments](deploy/preview-environments/preview-environments-overview) for your code repositories. Every pull request will be deployed and will generate its own sharable URL. This helps teams browse the changes in a pull request before it gets merged without having to take care of any deployment-related setup. These URLs can also be shared with other stakeholders so the review process isn't just limited to developers.
+Using Okteto, you can configure [Preview Environments](manage-app/preview-environments/preview-environments-overview) for your code repositories. Every pull request will be deployed and will generate its own sharable URL. This helps teams browse the changes in a pull request before it gets merged without having to take care of any deployment-related setup. These URLs can also be shared with other stakeholders so the review process isn't just limited to developers.
 
-You can learn how to configure Preview Environments [here](deploy/preview-environments/preview-environments-overview).
+You can learn how to configure Preview Environments [here](manage-app/preview-environments/preview-environments-overview).
 
 ## Why Okteto?
 
