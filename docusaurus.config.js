@@ -157,12 +157,17 @@ module.exports = {
           lastVersion: '1.14',
           versions: {
             current: {
+              label: '1.16',
+              path: '1.16',
+            },
+            '1.15': {
               label: '1.15',
-              path: '1.15',
+              path: '/',
+              banner: 'none',
             },
             '1.14': {
               label: '1.14',
-              path: '/',
+              path: '1.14',
               banner: 'none',
             },
             '1.13': {
