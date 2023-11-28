@@ -27,18 +27,18 @@ module.exports = {
       "cloud/okteto-cli",
       {
         "type": "category",
-        "label": "Deploying",
+        "label": "Tutorials",
         "items": [
-          "cloud/launch-from-catalog",
-          "cloud/deploy-from-git",
-          "cloud/private-repositories",
+          "tutorials/compose-getting-started",
+          "tutorials/webpack",
+          "tutorials/aws-lambda",
         ]
       },
       "cloud/external-resources",
       "cloud/secrets",
       {
         "type": "category",
-        "label": "Exposing Your Application",
+        "label": "Samples",
         "items": [
           "cloud/ssl",
           "cloud/private-endpoints",
@@ -60,7 +60,7 @@ module.exports = {
       "cloud/preview-environments/preview-environments",
       {
         "type": "category",
-        "label": "For GitHub",
+        "label": "Deploy Components",
         "items": [
           "cloud/preview-environments/dashboard",
           "cloud/preview-environments/preview-environments-github"
@@ -77,7 +77,7 @@ module.exports = {
       "administration/catalog",
       {
         "type": "category",
-        "label": "Private Repositories",
+        "label": "Okteto Manifest",
         "items": [
           "administration/private-repositories/github-app",
           "administration/private-repositories/ssh-key"
@@ -91,7 +91,7 @@ module.exports = {
       "self-hosted",
       {
         "type": "category",
-        "label": "Installation",
+        "label": "Preview Environments",
         "items": [
           "self-hosted/install/overview",
           "self-hosted/install/preparation",
