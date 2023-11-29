@@ -7,160 +7,192 @@
 
 module.exports = {
   "docs": [
-    {
-      "Welcome": [
-      "overview",
-      "saas-vs-self-hosted",
+  {
+    "Get started": [
+      "introduction",
       {
         "type": "category",
-        "label": "Getting Started",
+        "label": "Installing Okteto",
         "items": [
-          "getting-started",
-          "using-dev-envs"
+          "get-started/install/overview",
+          "get-started/install/prerequisites",
+          {
+            "type": "category",
+            "label": "Configuration",
+            "items": [
+              "get-started/configure/custom-certificates",
+              "get-started/configure/custom-installer-image",
+              "get-started/configure/configuration-settings",
+              "get-started/configure/github-integration",
+              "get-started/configure/configure-volume-snapshots"
+            ]
+          },
+          "get-started/install/deploy-okteto-instance",
+          "get-started/install/upgrade-okteto-instance",
+        ]
+          
+      },
+      "get-started/deploy-first-app"
+    ],
+  },
+  {
+    "Core concepts": [
+      "core-concepts/key-terminology",
+      "core-concepts/okteto-architecture"
+    ],
+  },
+  {
+    "Guides": [
+      {
+        "type": "category",
+        "label": "Tutorials",
+        "items": [
+          "tutorials/compose-getting-started",
+          "tutorials/webpack",
+          "tutorials/aws-lambda"
+        ]
+      },
+      {
+        "type": "category",
+        "label": "Samples",
+        "items": [
+          "samples/aspnetcore",
+          "samples/golang",
+          "samples/java",
+          "samples/node",
+          "samples/php",
+          "samples/python",
+          "samples/ruby",
+          "samples/more"
         ]
       }
     ],
   },
   {
-    "Dev Environments": [
-      "reference/development-environments",
-      "cloud/okteto-cli",
+    "Deploy an application": [
+      "deploy/introduction",
+//      "deploy/key-concepts-features",
       {
         "type": "category",
-        "label": "Deploying",
+        "label": "Deploy Components",
         "items": [
-          "cloud/launch-from-catalog",
-          "cloud/deploy-from-git",
-          "cloud/private-repositories",
+          "deploy/components/build-service",
+          "deploy/components/container-registry",
+          "deploy/components/use-volume-snapshots",
+          "deploy/components/kubernetes-credentials"
         ]
       },
-      "cloud/external-resources",
-      "cloud/secrets",
       {
         "type": "category",
-        "label": "Exposing Your Application",
+        "label": "Okteto Manifest",
         "items": [
-          "cloud/ssl",
-          "cloud/private-endpoints",
-          "cloud/custom-domains"
+          "deploy/manifest/configure-manifest",
+          "deploy/manifest/external-resources",
+          "deploy/manifest/secrets"
         ]
       },
-      "cloud/build",
-      "cloud/registry",
-      "cloud/use-volume-snapshots",
-      "cloud/namespaces",
-      "cloud/credentials",
-      "cloud/personal-access-tokens",
-      "reference/file-synchronization",
-      "reference/ssh-server"
+      "deploy/deploy-from-catalog",
+      "deploy/deploy-from-git",
+      "deploy/using-the-cli"
     ],
   },
   {
-    "Preview Environments": [
-      "cloud/preview-environments/preview-environments",
+    "Manage an application": [
       {
         "type": "category",
-        "label": "For GitHub",
+        "label": "Expose your application",
         "items": [
-          "cloud/preview-environments/dashboard",
-          "cloud/preview-environments/preview-environments-github"
+          "manage-app/automatic-ssl",
+          "manage-app/private-endpoints",
+          "manage-app/custom-domains"
         ]
       },
-      "cloud/preview-environments/preview-environments-gitlab"
+      {
+        "type": "category",
+        "label": "Preview Environments",
+        "items": [
+          "manage-app/preview-environments/preview-environments-overview",
+          {
+            "type": "category",
+            "label": "For GitHub",
+            "items": [
+              "manage-app/preview-environments/configure-github",
+              "manage-app/preview-environments/configure-github-actions"
+            ]
+          },
+          "manage-app/preview-environments/configure-gitlab"
+        ]
+      },
+      "manage-app/namespaces",
+      "manage-app/personal-access-tokens",
+      "manage-app/file-synchronization",
+      "manage-app/connect-via-ssh"
     ],
   },
   {
-    "Administration": [
-      "administration/okteto-license",
-      "administration/dashboard",
-      "administration/cleanup",
-      "administration/catalog",
+    "Manage Okteto": [
+      "manage-okteto/okteto-license",
+      "manage-okteto/admin-dashboard",
+      "manage-okteto/catalog",
+      "manage-okteto/okteto-insights",
       {
         "type": "category",
-        "label": "Private Repositories",
+        "label": "Private repositories",
         "items": [
-          "administration/private-repositories/github-app",
-          "administration/private-repositories/ssh-key"
+          "manage-okteto/private-repositories/connect-github",
+          "manage-okteto/private-repositories/ssh-key-auth"
         ]
       },
-      "administration/okteto-insights",
+      "manage-okteto/manage/backup-restore",
+      "manage-okteto/manage/custom-resource-definitions",
+      "manage-okteto/manage/troubleshooting"
     ],
   },
   {
-    "Okteto Self-Hosted": [
-      "self-hosted",
+    "Okteto self-hosted": [
+      "self-hosted/self-hosted-introduction",
       {
         "type": "category",
-        "label": "Installation",
+        "label": "Guides",
         "items": [
-          "self-hosted/install/overview",
-          "self-hosted/install/preparation",
-          "self-hosted/install/deployment",
-          "self-hosted/install/backup",
-          "self-hosted/install/upgrade",
-          "self-hosted/install/custom-resource-definitions",
-          "self-hosted/install/troubleshooting",
-          "self-hosted/install/releases"
-        ]
-      },
-      {
-        "type": "category",
-        "label": "Cloud Providers Guides",
-        "items": [
-          "self-hosted/eks",
-          "self-hosted/aks",
-          "self-hosted/civo",
-          "self-hosted/do",
-          "self-hosted/gke"
-        ]
-      },
-      {
-        "type": "category",
-        "label": "Configuration",
-        "items": [
-          "self-hosted/administration/certificates",
-          "self-hosted/administration/custom-installer-image",
-          "self-hosted/administration/configuration",
-          "self-hosted/administration/github",
-          "self-hosted/administration/volume-snapshots"
+          "self-hosted/guides/amazon-eks",
+          "self-hosted/guides/microsoft-aks",
+          "self-hosted/guides/digitalocean-doks",
+          "self-hosted/guides/google-gke",
+          "self-hosted/guides/civo"
         ]
       }
     ],
   },
   {
     "References": [
-      "reference/cli",
-      "reference/manifest",
-      "reference/manifest-migration",
-      "reference/compose",
-      "reference/faqs",
-      "cloud/permissions",
-      "reference/known-issues"
-    ],
-  },
-  {
-    "Tutorials": [
-      "tutorials/compose-getting-started",
-      "tutorials/webpack",
-      "tutorials/aws-lambda"
-    ],
-  },
-  {
-    "Samples": [
-      "samples/aspnetcore",
-      "samples/golang",
-      "samples/java",
-      "samples/node",
-      "samples/php",
-      "samples/python",
-      "samples/ruby",
-      "samples/more"
+      "reference/okteto-cli",
+      "reference/okteto-manifest",
+      "reference/migrate-cli-10-20",
+      "reference/docker-compose",
+      "reference/github-permissions"
     ]
   },
   {
-    "type": "link",
-    "label": "Archives",
-    "href": "/archives"
-  }
+    "Additional resources": [
+      "additional-resources/optimize-dev-workflow",
+      "additional-resources/security-practices",
+      "additional-resources/upcoming-releases",
+      "additional-resources/releases",
+      "additional-resources/contributors-guide",
+      "additional-resources/glossary"
+    ],
+  },
+  {
+    "Community & Support": [
+      "community-support/faqs",
+      "community-support/support-channels",
+      {
+        "type": "link",
+        "label": "Forums & Discussions",
+        "href": "https://community.okteto.com"
+      }
+    ],  
+  },
   ],
 }
