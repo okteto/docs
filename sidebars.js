@@ -32,13 +32,6 @@ module.exports = {
         ]
           
       },
-      "get-started/deploy-first-app"
-    ],
-  },
-  {
-    "Core concepts": [
-      "core-concepts/key-terminology",
-      "core-concepts/okteto-architecture"
     ],
   },
   {
@@ -70,8 +63,6 @@ module.exports = {
   },
   {
     "Deploy an application": [
-      "deploy/introduction",
-//      "deploy/key-concepts-features",
       {
         "type": "category",
         "label": "Deploy Components",
@@ -86,7 +77,6 @@ module.exports = {
         "type": "category",
         "label": "Okteto Manifest",
         "items": [
-          "deploy/manifest/configure-manifest",
           "deploy/manifest/external-resources",
           "deploy/manifest/secrets"
         ]
@@ -175,18 +165,11 @@ module.exports = {
   },
   {
     "Additional resources": [
-      "additional-resources/optimize-dev-workflow",
-      "additional-resources/security-practices",
-      "additional-resources/upcoming-releases",
       "additional-resources/releases",
-      "additional-resources/contributors-guide",
-      "additional-resources/glossary"
     ],
   },
   {
     "Community & Support": [
-      "community-support/faqs",
-      "community-support/support-channels",
       {
         "type": "link",
         "label": "Forums & Discussions",
