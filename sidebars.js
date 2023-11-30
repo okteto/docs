@@ -35,6 +35,11 @@ module.exports = {
     ],
   },
   {
+    "Core concepts": [
+        "core-concepts/key-terminology"
+    ]  
+  },
+  {
     "Guides": [
       {
         "type": "category",
