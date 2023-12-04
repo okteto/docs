@@ -159,10 +159,6 @@ module.exports = {
               "administration/private-repositories/ssh-key"
             ]
           },
-<<<<<<< HEAD
-=======
-          "self-hosted/install/releases"
->>>>>>> 22efcbf (Reorganized docs sidebar navigation to create a more intuitive structure.)
         ]
       },
     ],
