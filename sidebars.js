@@ -144,7 +144,8 @@ module.exports = {
           "self-hosted/manage/okteto-license",
           "self-hosted/manage/backup",
           "self-hosted/manage/custom-resource-definitions",
-          "self-hosted/manage/troubleshooting"
+          "self-hosted/manage/troubleshooting",
+          "self-hosted/manage/diagnostics",
         ]
       },
       {
