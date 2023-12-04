@@ -159,7 +159,6 @@ module.exports = {
               "administration/private-repositories/ssh-key"
             ]
           },
-          "self-hosted/install/releases"
         ]
       },
     ],
@@ -184,6 +183,7 @@ module.exports = {
       },
     ]  
   },
+  "self-hosted/install/releases",
   {
     "type": "link",
     "label": "Archives",
