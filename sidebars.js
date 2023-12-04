@@ -10,27 +10,27 @@ module.exports = {
     {
       "Get started": [
       "overview",
-      "self-hosted/install/preparation",
+      "get-started/preparation",
       {
         "type": "category",
-        "label": "Installing Okteto",
+        "label": "Install Okteto",
         "items": [
-          "self-hosted/install/deployment",
+          "get-started/quickstart-guide",
           {
             "type": "category",
             "label": "Cloud provider guides",
             "items": [
-              "self-hosted/eks",
-              "self-hosted/aks",
-              "self-hosted/civo",
-              "self-hosted/do",
-              "self-hosted/gke"
+              "get-started/cloud-provider-guides/amazon-eks",
+              "get-started/cloud-provider-guides/civo",
+              "get-started/cloud-provider-guides/digitalocean-doks",
+              "get-started/cloud-provider-guides/google-gke",
+              "get-started/cloud-provider-guides/microsoft-aks"
             ]
           },
         ]
       },
-      "getting-started",
-      "using-dev-envs"
+      "get-started/install-okteto-cli",
+      "get-started/deploy-first-environment"
     ],
   },
   {

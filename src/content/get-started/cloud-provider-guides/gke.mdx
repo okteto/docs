@@ -1,19 +1,20 @@
 ---
-title: Amazon Elastic Kubernetes Service (EKS)
-description: How to install Okteto onto Amazon Elastic Kubernetes Service (EKS)
-id: eks
+title: Google Kubernetes Engine (GKE)
+description: How to install Okteto onto Google Kubernetes Engine (GKE)
+sidebar_label: Google GKE
+id: google-gke
 ---
 
-This guide will show you how to install Okteto onto Amazon Elastic Kubernetes Service (EKS). We'll be focusing exclusively on EKS in order to keep it as simple as possible.
+This guide will show you how to install Okteto onto Google Kubernetes Engine (GKE). We'll be focusing exclusively on GKE in order to keep it as simple as possible.
 
 ## Requirements
 
-In order to fully install Okteto, you'll need the following:
+In order to fully install Okteto, you will need the following:
 
 - A subdomain to which you can add a wildcard DNS record
 - A Kubernetes cluster
 - A working installation of kubectl
-- A working installation of Helm v3 (v3.8 or higher)
+- A working installation of Helm v3 (v3.8 or higher) (v3.8 or higher)
 - An Okteto License
 
 ### Subdomain
@@ -21,17 +22,17 @@ In order to fully install Okteto, you'll need the following:
 You'll need sufficient access to a [subdomain](self-hosted/administration/configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
 By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
 
-This guide assumes your domain is registered in [Amazon Route53](https://aws.amazon.com/route53/) service.
-You can use any DNS service you prefer, but this guide focuses specifically on Amazon Route53.
+This guide assumes your domain is registered in [Google Cloud DNS](https://cloud.google.com/dns) service.
+You can use any DNS service you prefer, but this guide focuses specifically on Google Cloud DNS.
 
 ### Deploy a Kubernetes cluster
 
-We recommend that you follow Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html).
+We recommend that you follow Google's [GKE cluster creation guide](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster).
 Okteto supports Kubernetes versions 1.24 through 1.26.
 
 We recommend the following specs:
 - v1.26
-- A pool with at least 3 `m5.xlarge` nodes
+- A pool with at least 3 `n2-standard-4` nodes
 - 250 GB per disk
 
 You'll be using the cluster's API server endpoint when configuring Okteto.
@@ -45,7 +46,7 @@ kubectl config view --minify | grep server
 
 ### Installing kubectl
 
-Follow Amazon's documentation for [installing kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html). Once installed, configure `kubectl` to [talk to your new cluster](https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html).
+Follow the official documentation for [installing kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Once installed, configure `kubectl` to [talk to your new cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#generate_kubeconfig_entry).
 
 ### Installing Helm v3 (v3.8 or higher)
 
@@ -53,7 +54,7 @@ Follow the official documentation for [installing the latest release of Helm v3 
 
 ### Adding the Okteto Helm repository
 
-You'll need to add the Okteto repository to be able to install Okteto:
+You'll need to add the Okteto repository in order to be able to install Okteto:
 
 ```console
 helm repo add okteto https://charts.okteto.com
@@ -70,7 +71,7 @@ If you are interested in evaluating Okteto, [sign up for our free 30 days trial.
 
 ### Configuring your Okteto instance
 
-Download a copy of the [Okteto EKS configuration file](https://www.okteto.com/docs/self-hosted/eks/config.yaml), open it, and update the following values:
+Download a copy of the [Okteto GKE configuration file](https://www.okteto.com/docs/self-hosted/gke/config.yaml), open it, and set the following values:
 
 - Your `license`
 - A `subdomain`
@@ -81,17 +82,20 @@ For example:
 ```yaml
 license: 1234567890ABCD==
 subdomain: dev.example.com
+
 cluster:
-  endpoint: "https://XXXXXX.gr7.us-west-2.eks.amazonaws.com"
+  endpoint: https://35.205.100.149
 
-ingress-nginx:
-  controller:
-    service:
-      annotations:
-        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+buildkit:
+  persistence:
+    enabled: true
+
+registry:
+  storage:
+    filesystem:
+      persistence:
+        enabled: true
 ```
-
-The `service.beta.kubernetes.io/aws-load-balancer-type: nlb` annotation is used to tell AWS to create a [Network Load Balancer (NLB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) instead of the default [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html) to expose the ingress controller. We recommend to use a NLB as it provides benefits like: websocket support, static IPs, and better performance. You can see a full comparison between the load balancers [here](https://aws.amazon.com/elasticloadbalancing/features/).
 
 ### Installing your Okteto instance
 
@@ -115,7 +119,7 @@ STATUS: deployed
 
 ### Retrieve the Ingress Controller IP address
 
-You can use `kubectl` to fetch the address that has been dynamically allocated by EKS to the NGINX Ingress we've just installed and configured as a part of Okteto:
+You can use `kubectl` to fetch the address that has been dynamically allocated by GKE to the NGINX Ingress we've just installed and configured as a part of Okteto:
 
 ```console
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
@@ -124,13 +128,11 @@ kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/co
 The output will look something like this:
 
 ```
-NAME                             TYPE           CLUSTER-IP   EXTERNAL-IP                          PORT(S)                                     AGE
-okteto-ingress-nginx-controller  LoadBalancer   10.0.7.73    a519c8b3b27f94...elb.amazonaws.com   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
+NAME                              TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)                                     AGE
+okteto-ingress-nginx-controller   LoadBalancer   10.0.7.73    34.68.230.234   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
 ```
 
-You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. In Route 53, this is done by creating an `A` record with the name  `*`, pointing to the alias of the Elastic Load Balancer.
-
-> Note: avoid using a `CNAME` record for `*` pointing to the public hostname of the Elastic Load Balancer, as it will block the cert-manager default capability for issuing/renewing certificates via ACME dns01.
+You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. In Google Cloud DNS, this is done by creating an `A` record with the name  `*`. We also suggest you set the TTL to 1 minute.
 
 ## Sign in to your Okteto instance
 
@@ -138,4 +140,4 @@ After a successful installation, you can access your Okteto instance at `https:/
 
 > **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](administration/dashboard.mdx#installation) before giving your team access to your Okteto instance.
 
-The default installation is all that's required to follow our [getting started](getting-started.mdx) guide.
+The default installation is all that's required to follow our [getting started](get-started/install-okteto-cli.mdx) guide.
