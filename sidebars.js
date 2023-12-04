@@ -15,7 +15,11 @@ module.exports = {
         "type": "category",
         "label": "Install Okteto",
         "items": [
+<<<<<<< HEAD
           "get-started/quickstart-guide",
+=======
+          "self-hosted/install/deployment",
+>>>>>>> b2d2999 (Updating sidebar label for various pages.)
           {
             "type": "category",
             "label": "Cloud provider guides",
