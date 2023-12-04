@@ -16,7 +16,6 @@ module.exports = {
         "label": "Installing Okteto",
         "items": [
           "self-hosted/install/deployment",
-          "getting-started",
           {
             "type": "category",
             "label": "Cloud provider guides",
@@ -30,6 +29,7 @@ module.exports = {
           },
         ]
       },
+      "getting-started",
       "using-dev-envs"
     ],
   },
