@@ -28,7 +28,8 @@ module.exports = {
             ]
           },
         ]
-      }
+      },
+      "using-dev-envs"
     ],
   },
   {
