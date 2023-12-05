@@ -42,7 +42,7 @@ module.exports = {
         "items": [
           "core/components/namespaces",
           "core/components/build-service",
-          "core/components/registry",
+          "core/components/container-registry",
           "core/components/use-volume-snapshots",
         ],
       },
