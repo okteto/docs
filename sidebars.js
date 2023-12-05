@@ -35,31 +35,31 @@ module.exports = {
   },
   {
     "Core concepts": [
-      "cloud/okteto-cli",
+      "core/using-okteto-cli",
       {
         "type": "category",
         "label": "Okteto components",
         "items": [
-          "cloud/namespaces",
-          "cloud/build",
-          "cloud/registry",
-          "cloud/use-volume-snapshots",
+          "core/components/namespaces",
+          "core/components/build-service",
+          "core/components/registry",
+          "core/components/use-volume-snapshots",
         ],
       },
       {
         "type": "category",
         "label": "Ingress",
         "items": [
-          "cloud/ssl",
-          "cloud/private-endpoints",
+          "core/ingress/automatic-ssl",
+          "core/ingress/private-endpoints",
         ],
       },
       {
         "type": "category",
         "label": "Credentials",
         "items": [
-          "cloud/credentials",
-          "cloud/personal-access-tokens",
+          "core/credentials/kubernetes-credentials",
+          "core/credentials/personal-access-tokens",
         ],
       },
     ]
