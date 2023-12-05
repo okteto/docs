@@ -10,56 +10,56 @@ module.exports = {
     {
       "Get started": [
       "overview",
-      "self-hosted/install/preparation",
+      "get-started/preparation",
       {
         "type": "category",
-        "label": "Installing Okteto",
+        "label": "Install Okteto",
         "items": [
-          "self-hosted/install/deployment",
+          "get-started/quickstart-guide",
           {
             "type": "category",
             "label": "Cloud provider guides",
             "items": [
-              "self-hosted/eks",
-              "self-hosted/aks",
-              "self-hosted/civo",
-              "self-hosted/do",
-              "self-hosted/gke"
+              "get-started/cloud-provider-guides/amazon-eks",
+              "get-started/cloud-provider-guides/civo",
+              "get-started/cloud-provider-guides/digitalocean-doks",
+              "get-started/cloud-provider-guides/google-gke",
+              "get-started/cloud-provider-guides/microsoft-aks"
             ]
           },
         ]
       },
-      "getting-started",
-      "using-dev-envs"
+      "get-started/install-okteto-cli",
+      "get-started/deploy-first-environment"
     ],
   },
   {
     "Core concepts": [
-      "cloud/okteto-cli",
+      "core/using-okteto-cli",
       {
         "type": "category",
         "label": "Okteto components",
         "items": [
-          "cloud/namespaces",
-          "cloud/build",
-          "cloud/registry",
-          "cloud/use-volume-snapshots",
+          "core/components/namespaces",
+          "core/components/build-service",
+          "core/components/container-registry",
+          "core/components/use-volume-snapshots",
         ],
       },
       {
         "type": "category",
         "label": "Ingress",
         "items": [
-          "cloud/ssl",
-          "cloud/private-endpoints",
+          "core/ingress/automatic-ssl",
+          "core/ingress/private-endpoints",
         ],
       },
       {
         "type": "category",
         "label": "Credentials",
         "items": [
-          "cloud/credentials",
-          "cloud/personal-access-tokens",
+          "core/credentials/kubernetes-credentials",
+          "core/credentials/personal-access-tokens",
         ],
       },
     ]

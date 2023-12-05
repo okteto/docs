@@ -1,19 +1,22 @@
 ---
-title: Google Kubernetes Engine (GKE)
-description: How to install Okteto onto Google Kubernetes Engine (GKE)
-id: gke
+title: Civo
+description: How to install Okteto onto Civo
+sidebar_label: Civo
+id: civo
 ---
 
-This guide will show you how to install Okteto onto Google Kubernetes Engine (GKE). We'll be focusing exclusively on GKE in order to keep it as simple as possible.
+import Image from '@theme/Image';
+
+This guide will show you how to install Okteto onto Civo's Kubernetes Service.
 
 ## Requirements
 
-In order to fully install Okteto, you will need the following:
+In order to fully install Okteto, you'll need the following:
 
 - A subdomain to which you can add a wildcard DNS record
 - A Kubernetes cluster
 - A working installation of kubectl
-- A working installation of Helm v3 (v3.8 or higher) (v3.8 or higher)
+- A working installation of Helm v3 (v3.8 or higher)
 - An Okteto License
 
 ### Subdomain
@@ -21,31 +24,25 @@ In order to fully install Okteto, you will need the following:
 You'll need sufficient access to a [subdomain](self-hosted/administration/configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
 By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
 
-This guide assumes your domain is registered in [Google Cloud DNS](https://cloud.google.com/dns) service.
-You can use any DNS service you prefer, but this guide focuses specifically on Google Cloud DNS.
+This guide assumes your domain is registered in [Civo DNS](https://www.civo.com/account/dns).
+You can use any DNS service you prefer, but this guide focuses specifically on Civo DNS.
+
 
 ### Deploy a Kubernetes cluster
 
-We recommend that you follow Google's [GKE cluster creation guide](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster).
-Okteto supports Kubernetes versions 1.24 through 1.26.
+If you are not familiar with this step, we recommend that you follow Civos's [cluster creation guide](https://www.civo.com/learn/kubernetes-cluster-administration-using-civo-cli).
 
-We recommend the following specs:
-- v1.26
-- A pool with at least 3 `n2-standard-4` nodes
-- 250 GB per disk
+To get started with Okteto, we recommend that you create a Kubernetes cluster with the following configuration:
 
-You'll be using the cluster's API server endpoint when configuring Okteto.
-Run the following command to obtain your cluster's API server endpoint:
-
-```
-kubectl config view --minify | grep server
-```
+- 3 large nodes
+- Default network
+- Without Traefik (you'll need to remove it from the default apps)
 
 > Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
 
 ### Installing kubectl
 
-Follow the official documentation for [installing kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Once installed, configure `kubectl` to [talk to your new cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#generate_kubeconfig_entry).
+Follow the official documentation for [installing kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Once installed, configure `kubectl` to [talk to your new cluster](https://www.civo.com/learn/kubernetes-cluster-administration-using-civo-cli#downloading-the-cluster-39-s-configuration).
 
 ### Installing Helm v3 (v3.8 or higher)
 
@@ -70,7 +67,7 @@ If you are interested in evaluating Okteto, [sign up for our free 30 days trial.
 
 ### Configuring your Okteto instance
 
-Download a copy of the [Okteto GKE configuration file](https://www.okteto.com/docs/self-hosted/gke/config.yaml), open it, and set the following values:
+Download a copy of the [Okteto Civo configuration file](https://www.okteto.com/docs/self-hosted/civo/config.yaml), open it, and update the following values:
 
 - Your `license`
 - A `subdomain`
@@ -81,19 +78,8 @@ For example:
 ```yaml
 license: 1234567890ABCD==
 subdomain: dev.example.com
-
 cluster:
-  endpoint: https://35.205.100.149
-
-buildkit:
-  persistence:
-    enabled: true
-
-registry:
-  storage:
-    filesystem:
-      persistence:
-        enabled: true
+  endpoint: "https://35.205.100.149"
 ```
 
 ### Installing your Okteto instance
@@ -118,7 +104,7 @@ STATUS: deployed
 
 ### Retrieve the Ingress Controller IP address
 
-You can use `kubectl` to fetch the address that has been dynamically allocated by GKE to the NGINX Ingress we've just installed and configured as a part of Okteto:
+You can use `kubectl` to fetch the address that has been dynamically allocated by Civo to the NGINX Ingress you've just installed and configured as a part of Okteto:
 
 ```console
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
@@ -127,11 +113,24 @@ kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/co
 The output will look something like this:
 
 ```
-NAME                              TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)                                     AGE
-okteto-ingress-nginx-controller   LoadBalancer   10.0.7.73    34.68.230.234   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
+NAME                             TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                                     AGE
+okteto-ingress-nginx-controller  LoadBalancer   10.245.147.23  91.211.154.196  80:30087/TCP,443:31799/TCP,1234:31412/TC    2m
 ```
 
-You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. In Google Cloud DNS, this is done by creating an `A` record with the name  `*`. We also suggest you set the TTL to 1 minute.
+You'll need to create a wildcard DNS record for this IP. To do that, log in to your Civo account, click on the "Manage" option on the left part of the dashboard, and click on "DNS".
+
+Select the domain you're using for your Okteto instance, and click on the "DNS Records" option.
+
+<p align="center"><Image src="images/civo-dns-records.png" width="650" alt="Screenshot of the CIVO app and the DNS Records settings" /></p>
+
+Click on the "Add a Record" button and use the following values:
+- Type: A
+- Name: *
+- Value: Your EXTERNAL-IP
+
+<p align="center"><Image src="images/civo-add-a-new-domain-record.png" width="650" alt="Screenshot of the CIVO app and the New Domain Record component" /></p>
+
+Click on the "Add Record" button to create the DNS record.
 
 ## Sign in to your Okteto instance
 
@@ -139,4 +138,4 @@ After a successful installation, you can access your Okteto instance at `https:/
 
 > **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](administration/dashboard.mdx#installation) before giving your team access to your Okteto instance.
 
-The default installation is all that's required to follow our [getting started](getting-started.mdx) guide.
+The default installation is all that's required to follow our [getting started](get-started/install-okteto-cli.mdx) guide.
