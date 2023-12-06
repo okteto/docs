@@ -108,16 +108,16 @@ module.exports = {
   },
   {
     "Deploy preview environments": [
-      "cloud/preview-environments/preview-environments",
+      "preview/overview-prev-env",
       {
         "type": "category",
         "label": "For GitHub",
         "items": [
-          "cloud/preview-environments/dashboard",
-          "cloud/preview-environments/preview-environments-github"
+          "preview/github/configure-github-prev",
+          "preview/github/using-github-actions"
         ]
       },
-      "cloud/preview-environments/preview-environments-gitlab"
+      "preview/using-gitlab-cicd"
     ],
   },
   {
