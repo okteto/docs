@@ -7,6 +7,11 @@ id: diagnostics
 
 Okteto provides a diagnostics tool through the [Replicated Troubleshoot](https://troubleshoot.sh) framework. This tool is completely optional but can help troubleshoot complex issues, specially if you are getting assistance through Okteto Support.
 
+Starting in Okteto 1.16, as part of the helm installation we deploy two configmaps in the okteto namespace that contain the specs to run preflights checks and create a support bundle. These configmaps are:
+
+- `okteto-preflight`
+- `okteto-support-bundle`
+
 ## Installation
 
 You'll need to install the `kubectl` plugins:
@@ -25,7 +30,7 @@ Provides sanity checks for the okteto installation.
 Simply run:
 
 ```
-kubectl preflight -n okteto https://downloads.okteto.com/diagnostics/preflight.yaml
+kubectl configmap get okteto-preflight -o yaml | kubectl preflight -n okteto -
 ```
 
 This is a read-only interactive command that will provide a summary of the state of the cluster that is relevant to the okteto installation:
@@ -33,6 +38,8 @@ This is a read-only interactive command that will provide a summary of the state
 
 {/* TODO: Add GIF or image showing what this looks like */}
 
+
+More info about preflight checks here: https://troubleshoot.sh/docs/preflight/introduction/
 
 # Support bundle
 
@@ -44,12 +51,12 @@ kubectl support-bundle \
   --debug \
   -n okteto \
   -o okteto-support.tar.gz \
-  https://downloads.okteto.com/diagnostics/support-bundle.yaml
+  --load-cluster-specs
 ```
 
 This bundle can help troubleshoot issues with the cluster specially in an incident in which you are getting assistance from Okteto Support.
 
-
+More info about the support bundle here: https://troubleshoot.sh/docs/support-bundle/introduction/
 
 
 
