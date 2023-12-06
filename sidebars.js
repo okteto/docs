@@ -95,8 +95,8 @@ module.exports = {
   },
   {
     "Okteto manifest": [
-      "cloud/external-resources",
-      "cloud/secrets"
+      "manifest/external-resources",
+      "manifest/okteto-secrets"
     ]  
   },
   {
