@@ -70,23 +70,25 @@ module.exports = {
         "type": "category",
         "label": "Tutorials",
         "items": [
-          "tutorials/compose-getting-started",
-          "tutorials/webpack",
-          "tutorials/aws-lambda"
+          "guides/tutorials/aws-lambda",
+          "guides/tutorials/compose-getting-started",
+          "guides/tutorials/getting-started-with-okteto",
+          "guides/tutorials/getting-started-with-pipelines",
+          "guides/tutorials/webpack"
         ],
       },
       {
         "type": "category",
         "label": "Samples",
         "items": [
-          "samples/aspnetcore",
-          "samples/golang",
-          "samples/java",
-          "samples/node",
-          "samples/php",
-          "samples/python",
-          "samples/ruby",
-          "samples/more"
+          "guides/samples/aspnetcore",
+          "guides/samples/golang",
+          "guides/samples/java",
+          "guides/samples/node",
+          "guides/samples/php",
+          "guides/samples/python",
+          "guides/samples/ruby",
+          "guides/samples/more"
         ],
       },
     ]
