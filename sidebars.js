@@ -101,9 +101,9 @@ module.exports = {
   },
   {
     "Deploy development environments": [
-      "reference/development-environments",
-      "cloud/launch-from-catalog",
-      "cloud/deploy-from-git",
+      "deploy/development-environments",
+      "deploy/launch-from-catalog",
+      "deploy/deploy-from-git",
     ],
   },
   {
