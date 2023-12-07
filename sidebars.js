@@ -166,9 +166,9 @@ module.exports = {
   },
   {
     "References": [
-      "reference/cli",
-      "reference/manifest",
-      "reference/compose",
+      "reference/okteto-cli",
+      "reference/okteto-manifest",
+      "reference/docker-compose",
       "reference/helm-chart-settings",
       "reference/file-synchronization",
       "reference/ssh-server",
