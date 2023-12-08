@@ -108,57 +108,56 @@ module.exports = {
   },
   {
     "Deploy preview environments": [
-      "cloud/preview-environments/preview-environments",
+      "preview/overview-prev-env",
       {
         "type": "category",
         "label": "For GitHub",
         "items": [
-          "cloud/preview-environments/dashboard",
-          "cloud/preview-environments/preview-environments-github"
+          "preview/github/configure-github-prev",
+          "preview/github/using-github-actions"
         ]
       },
-      "cloud/preview-environments/preview-environments-gitlab"
+      "preview/using-gitlab-cicd"
     ],
   },
   {
     "Okteto Self-Hosted": [
-      "self-hosted",
-      "self-hosted/install/overview",
+      "self-hosted/overview-self-hosted",
       {
         "type": "category",
         "label": "Admin features",
         "items": [
-          "administration/dashboard",
-          "administration/catalog",
-          "administration/okteto-insights",
-          "administration/cleanup"
+          "self-hosted/admin/dashboard",
+          "self-hosted/admin/catalog",
+          "self-hosted/admin/okteto-insights",
+          "self-hosted/admin/cleanup"
         ]
       },
       {
         "type": "category",
         "label": "Manage Okteto",
         "items": [
-          "self-hosted/install/upgrade",
-          "administration/okteto-license",
-          "self-hosted/install/backup",
-          "self-hosted/install/custom-resource-definitions",
-          "self-hosted/install/troubleshooting"
+          "self-hosted/manage/upgrade",
+          "self-hosted/manage/okteto-license",
+          "self-hosted/manage/backup",
+          "self-hosted/manage/custom-resource-definitions",
+          "self-hosted/manage/troubleshooting"
         ]
       },
       {
         "type": "category",
         "label": "Complete the installation",
         "items": [
-          "self-hosted/administration/certificates",
-          "self-hosted/administration/custom-installer-image",
-          "self-hosted/administration/github",
-          "self-hosted/administration/volume-snapshots",
+          "self-hosted/install/certificates",
+          "self-hosted/install/custom-installer-image",
+          "self-hosted/install/github-integration",
+          "self-hosted/install/volume-snapshots",
           {
             "type": "category",
             "label": "Private Repositories",
             "items": [
-              "administration/private-repositories/github-app",
-              "administration/private-repositories/ssh-key"
+              "self-hosted/install/private-repositories/github-app",
+              "self-hosted/install/private-repositories/ssh-key"
             ]
           },
         ]
@@ -167,10 +166,10 @@ module.exports = {
   },
   {
     "References": [
-      "reference/cli",
-      "reference/manifest",
-      "reference/compose",
-      "self-hosted/administration/configuration",
+      "reference/okteto-cli",
+      "reference/okteto-manifest",
+      "reference/docker-compose",
+      "reference/helm-chart-values",
       "reference/file-synchronization",
       "reference/ssh-server",
     ],
@@ -185,7 +184,7 @@ module.exports = {
       },
     ]  
   },
-  "self-hosted/install/releases",
+  "release-notes",
   {
     "type": "link",
     "label": "Archives",
