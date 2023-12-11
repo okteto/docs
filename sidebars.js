@@ -40,6 +40,7 @@ module.exports = {
         "type": "category",
         "label": "Okteto components",
         "items": [
+          "core/components/development-containers",
           "core/components/namespaces",
           "core/components/build-service",
           "core/components/container-registry",
@@ -104,6 +105,8 @@ module.exports = {
       "deploy/development-environments",
       "deploy/launch-from-catalog",
       "deploy/deploy-from-git",
+      "deploy/from-private-repositories",
+      "deploy/develop-on-okteto-button"
     ],
   },
   {
@@ -170,6 +173,7 @@ module.exports = {
       "reference/okteto-manifest",
       "reference/docker-compose",
       "reference/helm-chart-values",
+      "reference/supported-github-actions",
       "reference/file-synchronization",
       "reference/ssh-server",
     ],
