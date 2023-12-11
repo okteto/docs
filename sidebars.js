@@ -40,6 +40,7 @@ module.exports = {
         "type": "category",
         "label": "Okteto components",
         "items": [
+          "core/components/development-containers",
           "core/components/namespaces",
           "core/components/build-service",
           "core/components/container-registry",
