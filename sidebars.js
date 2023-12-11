@@ -104,6 +104,8 @@ module.exports = {
       "deploy/development-environments",
       "deploy/launch-from-catalog",
       "deploy/deploy-from-git",
+      "deploy/from-private-repositories",
+      "deploy/develop-on-okteto-button"
     ],
   },
   {
@@ -170,6 +172,7 @@ module.exports = {
       "reference/okteto-manifest",
       "reference/docker-compose",
       "reference/helm-chart-values",
+      "reference/supported-github-actions",
       "reference/file-synchronization",
       "reference/ssh-server",
     ],
