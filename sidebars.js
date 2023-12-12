@@ -132,7 +132,6 @@ module.exports = {
         "items": [
           "self-hosted/admin/dashboard",
           "self-hosted/admin/catalog",
-          "self-hosted/admin/okteto-insights",
           "self-hosted/admin/cleanup"
         ]
       },
@@ -176,6 +175,7 @@ module.exports = {
       "reference/supported-github-actions",
       "reference/file-synchronization",
       "reference/ssh-server",
+      "reference/okteto-insights"
     ],
   },
   {
