@@ -1,0 +1,46 @@
+---
+title: Hybrid development
+description: Hybrid development allows you to develop a service on-premises and run a service on-premises while the other components of your app run in the cloud.
+sidebar_label: Hybrid development
+id: hybrid-development
+---
+
+import Image from '@theme/Image';
+
+## Hybrid development
+
+Okteto offers two different approaches to service development: sync ot hybrid mode. The command affected by this is the `okteto up` command but it is at the manifest level where this feature is configured.
+
+The default mode used is the *sync* mode in which changes made to the local service are synchronized with the remote development container deployed in the cluster. On the other hand, the *hybrid* mode allows to run the development service locally and the rest of the application components in the cloud.
+
+### Problem to solve
+
+Sometimes running the service locally is faster than the original approach taken in okteto where the service runs in the cloud and changes are synchronized from local to the remote development container. Another possibility can be if you’re using a framework that is IDE-heavy like on Java/Spring, IDEs tend to be pre-configured to run tests, start services, and connect debuggers. You lose some of that ‘click and you are done’ when you  run your development service in the cluster. This is where hybrid development comes in.
+
+If you want to adopt this approach, you need to keep in mind that developing with the service running locally breaks the replicability between OSs in addition to the added latency when accessing the rest of the services in the cluster. 
+
+### How hybrid development works?
+Usually, okteto allows you to develop a service locally and run it in a production-like cloud environment synchronizing the local changes with the development container running in the cloud (sync mode) but okteto also allows you to use another approach in which the service to be developed runs locally and the rest of the application components run in the cloud (hybrid mode).
+
+By using the hybrid mode, the process running locally is intended to have an environment similar to the one it would have if it were running in sync mode. As part of this, the following values are added to the local process running the service in hybrid mode as environment variables, in order of highest to lowest prevalence:
+- Environment variables declared in the dev section of the manifest.
+- Environment variables of the remote development container
+- Environment variables of the commit associated with the dev environment
+- User-defined secrets
+- Environment variables declared in the image of the remote development container
+
+### How to use the development in hybrid mode
+
+Using hybrid mode is very simple. If you want to use the hybrid mode, you only need to configure the necessary ports to expose the service running on your local machine to the development container in remote so that the rest of the components running on the cluster can communicate with the development container if needed as if it were the one running the application remotely. To do that, you can make use of the  field, which will expose the indicated port of your local machine to the desired port on the development container.
+
+```yaml
+dev:
+  frontend:
+    mode: hybrid
+    reverse: 
+    - 3000:8080
+    workdir: ./frontend
+    command: ["yarn start"]
+```
+
+in the example shown we have indicated that we develop the `frontend` service locally using the `mode: hybrid` field.  The service running locally will execute the command defined in the `command` field in the directory indicated in `workdir`. In addition, the application will expose on port `3000` of the development container what it exposes on port `8080` of the local machine, making it possible for other components running on the cluster to access the service as if it were running remotely.
