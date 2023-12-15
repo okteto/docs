@@ -5,7 +5,7 @@ sidebar_label: External resources
 id: external-resources
 ---
 
-import Image from '@theme/Image';
+import Image from "@theme/Image";
 
 The External Resources feature in Okteto is a powerful mechanism that enables you to manage the lifecycle of external resources as part of your Okteto development environment. This means you can define the external resources that comprise your application, include those resources in Okteto's garbage collection process, and even destroy those resources when you finish working with your development environment.
 
@@ -24,7 +24,7 @@ Here are just a few examples of external resources you can use with Okteto:
 - Backstage
 - Atlassian Confluence Documents
 
-This is not an exhaustive list and only demonstrates the flexibility of this feature. You can include *anything* as an external resource. You no longer need to use different tools to work on your application in Okteto and you won't need to worry about rogue external resources continuing to run once you are done with your work.
+This is not an exhaustive list and only demonstrates the flexibility of this feature. You can include _anything_ as an external resource. You no longer need to use different tools to work on your application in Okteto and you won't need to worry about rogue external resources continuing to run once you are done with your work.
 
 When you configure External Resources in Okteto you can see those resources within the Okteto UI, can click to go directly to those resources in their respective platform, and include them in your Okteto `deploy` and `destroy` configurations.
 
@@ -35,7 +35,7 @@ When you configure the `external` section in your [Okteto manifest](/reference/m
 - You can create a container image that includes any external tools (to Okteto) that you need in order to provision or access your external resources.
 - This container image can be included in your Okteto manifest's `deploy` and `destroy` sections
 - External resources are destroyed when your Okteto namespace is deleted
-- External resources are covered by Okteto's [garbage collection process](self-hosted/admin/cleanup.mdx#delete-unused-namespaces)
+- External resources are covered by Okteto's [garbage collection process](admin/cleanup.mdx#delete-unused-namespaces)
 
 ## Configuring external resources
 
@@ -51,11 +51,11 @@ Using external resources with Okteto requires configuring three areas of your Ok
 
 :::
 
-You can leverage [Okteto secrets](/cloud/secrets/) to pre-define access keys or credentials for these external resources and use those secrets (using the `$SECRET_NAME` syntax) within your Okteto manifest.
+You can leverage [Okteto secrets](okteto-secrets.mdx) to pre-define access keys or credentials for these external resources and use those secrets (using the `$SECRET_NAME` syntax) within your Okteto manifest.
 
 :::info
 
-Note for `Admins`: We strongly recommend configuring external resource secrets in your [admin dashboard](self-hosted/admin/dashboard.mdx#secrets-section) to centralize and manage these secrets securely.
+Note for `Admins`: We strongly recommend configuring external resource secrets in your [admin dashboard](admin/dashboard.mdx#secrets-section) to centralize and manage these secrets securely.
 
 :::
 
@@ -67,9 +67,9 @@ When you use an external resource with Okteto it needs to be provisioned like an
 deploy:
   image: okteto/pipeline-runner:1.0.0-sam
   commands:
-  - name: Create an AWS S3 bucket
-    command: |
-      sh s3/deploy.sh
+    - name: Create an AWS S3 bucket
+      command: |
+        sh s3/deploy.sh
 ```
 
 In this example we're using a [script](https://github.com/okteto/external-resources-aws/blob/main/s3/deploy.sh) that contains all of the instructions to do the provisioning work and executing that script in this particular stage of the Okteto `deploy` section.
@@ -88,9 +88,9 @@ We also need to ensure that the external resources we provision are destroyed wh
 destroy:
   image: okteto/pipeline-runner:1.0.0-sam
   commands:
-  - name: Delete AWS S3 bucket
-    command: |
-      sh s3/destroy.sh
+    - name: Delete AWS S3 bucket
+      command: |
+        sh s3/destroy.sh
 ```
 
 ### Configuring the `external` section
@@ -105,13 +105,13 @@ external:
     icon: okteto
     notes: README.md
     endpoints:
-    - name: readme
-      url: https://github.com/okteto/external-resources-aws
+      - name: readme
+        url: https://github.com/okteto/external-resources-aws
   s3:
     icon: aws
     notes: s3/notes.md
     endpoints:
-    - name: bucket
+      - name: bucket
 ```
 
 :::tip
@@ -130,7 +130,15 @@ As you configure your external resources in this section, keep in mind the follo
 
 `notes:` is used to provide context in the form of a relative link to a markdown file. The contents are displayed in the Okteto UI (see below).
 
-<p align="center"><Image src="/docs/manifest/images/external_resources_notes_example.png" alt="External resources notes section" width="600" /></p>
+<p align="center">
+  <Image
+    src={
+      require("@site/static/img/external_resources_notes_example.png").default
+    }
+    alt="External resources notes section"
+    width="600"
+  />
+</p>
 
 `icon:` specifies one of several predefined icons you can use when this resource is rendered in the Okteto UI. The current list of supported icons is:
 
@@ -146,7 +154,13 @@ As you configure your external resources in this section, keep in mind the follo
 - okteto
 - storage
 
-<p align="center"><Image src="/docs/manifest/images/external_resource_list.png" alt="External resources listed in dev environment" width="450" /></p>
+<p align="center">
+  <Image
+    src={require("@site/static/img/external_resource_list.png").default}
+    alt="External resources listed in dev environment"
+    width="450"
+  />
+</p>
 
 `endpoints:` contain information on how to access the external resource using:
 
@@ -173,9 +187,9 @@ For example, if have the following `deploy` section defined:
 deploy:
   image: okteto/pipeline-runner:1.0.0-sam
   commands:
-  - name: Create an AWS SQS queue
-    command: |
-      sh sqs/deploy.sh
+    - name: Create an AWS SQS queue
+      command: |
+        sh sqs/deploy.sh
 ```
 
 We can define the endpoint dynamically within the `deploy.sh` script ([example here](https://github.com/okteto/external-resources-aws/blob/main/sqs/deploy.sh)). In simpler terms, the URL is dynamically compiled on this line:
@@ -186,7 +200,13 @@ dashboard="https://${AWS_REGION}.console.aws.amazon.com/sqs/v2/home?region=${AWS
 
 That will compile the appropriate URL, using Okteto environment variables, that specify where a developer in the same namespace will go when they click on the AWS SQS external resource component in the Okteto UI (see below).
 
-<p align="center"><Image src="/docs/manifest/images/external_resources_sqs_demo.png" alt="AWS SQS external resource demo UI component" width="450" /></p>
+<p align="center">
+  <Image
+    src={require("@site/static/img/external_resources_sqs_demo.png").default}
+    alt="AWS SQS external resource demo UI component"
+    width="450"
+  />
+</p>
 
 ## `Destroy` external resources from the Okteto UI
 
@@ -200,15 +220,23 @@ Now that we've walked through a sample of an `external` configuration, let's loo
 
 In this example we'll be configuring and deploying a development environment that includes polyglot microservices, an AWS SQS queue, and an S3 bucket.
 
-<p align="center"><Image src="/docs/manifest/images/external_resources_architecture.png" alt="Application architecture diagram" width="450" /></p>
+<p align="center">
+  <Image
+    src={
+      require("@site/static/img/external_resources_architecture.png").default
+    }
+    alt="Application architecture diagram"
+    width="450"
+  />
+</p>
 
 ### Prerequisites
 
-1. Okteto CLI 2.14 or newer
-1. An AWS account
-1. An Okteto account
-1. Create a set of [IAM keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for your AWS account (If you are using Okteto Self-Hosted, you can [directly assign an AWS Role](/self-hosted/install/preparation/#creating-an-iam))
-1. Create the following [Okteto secrets](/cloud/secrets/):
+1.  Okteto CLI 2.14 or newer
+1.  An AWS account
+1.  An Okteto account
+1.  Create a set of [IAM keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for your AWS account (If you are using Okteto Self-Hosted, you can [directly assign an AWS Role](/self-hosted/install/preparation/#creating-an-iam))
+1.  Create the following [Okteto secrets](okteto-secrets.mdx):
 
         AWS_ACCESS_KEY_ID: The Acces Key ID of your IAM user
         AWS_SECRET_ACCESS_KEY: The Secret Acces Key of your IAM user
@@ -222,26 +250,26 @@ external:
     icon: okteto
     notes: README.md
     endpoints:
-    - name: readme
-      url: https://github.com/okteto/external-resources-aws
+      - name: readme
+        url: https://github.com/okteto/external-resources-aws
   sqs:
     icon: aws
     notes: sqs/notes.md
     endpoints:
-    - name: queue
+      - name: queue
   s3:
     icon: aws
     notes: s3/notes.md
     endpoints:
-    - name: bucket
+      - name: bucket
   api-docs:
     icon: dashboard
     notes: check/notes.md
     endpoints:
-    - name: docs
+      - name: docs
 ```
 
-The `url:` keys are missing from most external resource (`sqs`, `s3`, and `api-docs`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](/cloud/secrets) you defined [above](#prerequisites) and the [dynamic endpoints](#using-dynamic-endpoints-with-external-resources) feature.
+The `url:` keys are missing from most external resource (`sqs`, `s3`, and `api-docs`) because they've been defined in the `deploy` > `commands` > `command` section using the [Okteto Secrets](okteto-secrets.mdx) you defined [above](#prerequisites) and the [dynamic endpoints](#using-dynamic-endpoints-with-external-resources) feature.
 
 Alternatively, you could remove the respective `deploy` commands and add the `url` endpoints here manually, but this is a good example of how flexible the manifest file can be.
 
@@ -261,6 +289,7 @@ Once the application has been deployed in Okteto, you can work on the `menu` mic
 :::tip
 
 To start the other services in this example (`kitchen` and `check`) you'll need to run these commands from the container, respectively:
+
 - go run main.go
 - python main.py
 

@@ -129,23 +129,14 @@ module.exports = {
       "self-hosted/overview-self-hosted",
       {
         "type": "category",
-        "label": "Admin features",
-        "items": [
-          "self-hosted/admin/dashboard",
-          "self-hosted/admin/catalog",
-          "self-hosted/admin/okteto-insights",
-          "self-hosted/admin/cleanup"
-        ]
-      },
-      {
-        "type": "category",
         "label": "Manage Okteto",
         "items": [
           "self-hosted/manage/upgrade",
           "self-hosted/manage/okteto-license",
           "self-hosted/manage/backup",
           "self-hosted/manage/custom-resource-definitions",
-          "self-hosted/manage/troubleshooting"
+          "self-hosted/manage/troubleshooting",
+          "self-hosted/manage/diagnostics",
         ]
       },
       {
@@ -167,6 +158,14 @@ module.exports = {
         ]
       },
     ],
+  },
+  {
+    "Admin features": [
+      "admin/dashboard",
+      "admin/catalog",
+      "admin/cleanup",
+      "admin/okteto-insights"
+    ]
   },
   {
     "References": [

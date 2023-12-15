@@ -47,7 +47,7 @@ kubectl get svc -n=okteto -l="app=nginx-ingress,component=controller"
 
 Create a [wildcard A record](https://cloud.digitalocean.com/networking/domains) for the entire subdomain and point it to the load balancer's external IP.
 
-![DNS configuration](https://www.okteto.com/docs/self-hosted/digitalocean/dns.png)
+<Image src={require('@site/static/img/dns.png').default} alt="Digital Ocean DNS" />
 
 ## More information
 
@@ -74,16 +74,17 @@ clusters:
 ```
 
 ### License
+
 Okteto is free for small teams. You get all the features of [Okteto](https://okteto.com/docs/self-hosted/) for up to 3 users. Need more? [Let's talk](https://okteto.com/#talktous).
 
 ### Authentication
 
 Okteto uses GitHub OAuth as the authentication provider. You'll need to create a [GitHub OAuth app](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/) with the following values:
 
-*Homepage URL:*
+_Homepage URL:_
 https://okteto.$SUBDOMAIN
 
-*Authorization callback URL:*
+_Authorization callback URL:_
 https://okteto.$SUBDOMAIN/auth/callback
 
 ### Personal Access Token
