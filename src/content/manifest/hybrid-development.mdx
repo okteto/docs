@@ -20,7 +20,15 @@ Sometimes running the service locally is faster than the original approach taken
 ### How hybrid development works?
 Usually, okteto allows you to develop a service locally and run it in a production-like cloud environment synchronizing the local changes with the development container running in the cloud (*sync* mode).
 
-Using *hybrid* mode a remote container is also created but it will not run the application. The purpose of the existence of the development container in this case is because when a component of the cluster needs to consume the service being developed locally so it is forwarded to the remote container using a reverse configuration. In this way, for the rest of the cluster components the *hybrid* or *sync* mode is indifferent.
+As shown in the image below, in order to allow communication from the cluster to the local machine and vice versa an SSH server is still deployed in the development container. So if we want to expose the local service in the development container we will use the [`reverse`](/reference/okteto-manifest/#reverse-string-optional) configuration for the development environment. In case we want to forward to the local machine a service exposed in the cluster, we can use the [`forward`](/reference/okteto-manifest/#forward-string-optional) configuration.
+
+<p align="center">
+  <Image
+    src="/docs/manifest/images/delete-secret.png"
+    alt="Hybrid development architecture"
+    width="850"
+  />
+</p>
 
 By using the *hybrid* mode, the process running locally is intended to have an environment similar to the one it would have if it were running in *sync* mode. As part of this, the following values are added to the local process running the service in *hybrid* mode as environment variables, in order of highest to lowest prevalence:
 - Environment variables declared in the dev section of the manifest.
