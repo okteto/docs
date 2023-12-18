@@ -54,6 +54,14 @@ helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
+### Configure the Amazon EBS CSI storage driver
+Install the Amazon EBS CSI storage driver as an EKS add-on so that your cluster knows how to provision storage. Follow the [official documentation here.](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on)
+
+Verify that your storage driver has been installed and is running correctly:
+```
+kubectl get pods -n kube-system | grep ebs-csi
+```
+
 ### Getting your Okteto License
 
 You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
@@ -80,6 +88,16 @@ ingress-nginx:
     service:
       annotations:
         service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+buildkit:
+  persistence:
+    enabled: true
+
+registry:
+  storage:
+    filesystem:
+      persistence:
+        enabled: true
 ```
 _Note: This is a very basic configuration. Learn more about the rest of the configuration options [here](reference/helm-chart-values.mdx)._
 
