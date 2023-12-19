@@ -10,7 +10,7 @@ Here you can find the documentation for the current released version of Okteto.
 
 | Version    | Documentation        |Release Notes       |
 |:---------|:------:|------:|
-| 1.14    | [Documentation](/)       |  [Release Notes](/self-hosted/install/releases/)
+| 1.14    | [Documentation](/1.14)       |  [Release Notes](/1.14/self-hosted/install/releases/)
 
 
 
