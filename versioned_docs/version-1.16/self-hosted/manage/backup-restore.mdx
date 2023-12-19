@@ -1,0 +1,53 @@
+---
+title: Backup and Restore
+description: Backup and Restore your Okteto instance
+id: backup
+sidebar_label: Backup and Restore
+---
+
+This guide outlines the steps to recover an Okteto instance in the event of an unexpected failure and for disaster recovery preparedness.
+
+## Okteto Metadata
+
+The most important resources to backup so you can effectively recover an Okteto instance are:
+
+- **Service Accounts**: A Kubernetes service account is created for every user that logs in to Okteto. Backing up all the service accounts in the `okteto` namespace with the label `dev.okteto.com: "true"` will ensure your users do not need to recreate their Okteto accounts.
+- **Secrets**: This consists of all Okteto Secrets, tokens, certificates, ssh keypairs, and any other secrets in the `okteto` namespace. Backing up this data will save a lot of time reconfiguring all of these secrets during a recovery process.
+- **Custom Resources**: Any Custom Resources in the `okteto` namespace corresponding to the Okteto CRDs. These CRDs can be identified with the label `app.kubernetes.io/part-of: okteto`. Okteto uses CRDs to store your Catalog, Container Registry Credentials, and more
+
+We recommend to backup these resources every 24h.
+
+## Recovery Process
+
+You can follow two different recovery processes:
+
+- **Okteto Metadata recovery process**: recovers all the users’ metadata, tokens, secrets and custom resources mentioned [in the section above](self-hosted/manage/backup-restore.mdx/#okteto-metadata). It doesn’t recover users’ namespaces, preview environments and volumes.
+- **Okteto Metadata and Users' Namespaces recovery process**: recovers the Okteto metadata, namespaces, preview environments, and volumes for all users. This is a full and complete recovery of the Okteto instance
+
+Namespaces are ephemeral in Okteto so we recommend using the `Okteto Metadata recovery process` and let your developers recreate their namespaces as needed.
+
+### Okteto Metadata Recovery Process
+
+This is the fastest and easiest recovery process. This recovery process will **not** restore users' namespaces and application data.
+
+- Backup the [Okteto Metadata](self-hosted/manage/backup-restore.mdx/#okteto-metadata) in your `okteto` namespace.
+- Create a new cluster
+- Reinstall the Okteto Helm chart with the same configuration as your previous Okteto instance in the new cluster.
+- Restore the [Okteto Metadata](self-hosted/manage/backup-restore.mdx/#okteto-metadata) in the `okteto` namespace of the new cluster.
+- The Ingress-Nginx service in the new cluster will have a new load balancer. Configure your DNS settings to point to the IP of this new load balancer.
+- Once the restore work is complete and it has been verified that the new cluster is functioning correctly you can delete the old cluster
+
+### Users and Namespaces Recovery
+
+This option requires more time and the use of external tools to backup all your namespaces:
+
+- Backup users' namespaces using a tool like [Velero](https://velero.io/). All these namespaces have the label `dev.okteto.com: "true"`.
+- Backup the [Okteto Metadata](self-hosted/manage/backup-restore.mdx/#okteto-metadata) in your `okteto` namespace.
+- Create a new cluster
+- Restore users' namespaces using a tool like [Velero](https://velero.io/) in the new cluster before reinstalling Okteto.
+- Reinstall the Okteto Helm chart with the same configuration as your previous Okteto instance in the new cluster.
+- Restore the [Okteto Metadata](self-hosted/manage/backup-restore.mdx/#okteto-metadata) in the `okteto` namespace of the new cluster.
+- The Ingress-Nginx service in the new cluster will have a new load balancer. Configure your DNS settings to point to the IP of this new load balancer.
+- Once the restore work is complete and it has been verified that the new cluster is functioning correctly you can delete the old cluster
+
+> Keep in mind that private registry configurations are not reestablished until the Helm chart is reinstalled. This may temporarily affect the ability of certain pods to pull images from the Okteto Registry.
