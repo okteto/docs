@@ -255,43 +255,31 @@ module.exports = {
     ['@docusaurus/plugin-client-redirects', {
       fromExtensions: ['html'],
       redirects: [{
-        to: '/self-hosted/install/overview/',
+        to: '/self-hosted/overview-self-hosted/',
         from: ['/enterprise/dns/']
       }, {
-        to: '/tutorials/compose-getting-started/',
+        to: '/guides/tutorials/compose-getting-started/',
         from: ['/tutorials/stacks-getting-started/']
       },
       {
-        to: '/reference/compose/',
+        to: '/reference/docker-compose/',
         from: ['/reference/stacks/']
       },
       {
-        to: '/administration/dashboard/',
+        to: '/admin/dashboard/',
         from: ['/enterprise/administration/dashboard/']
       },
       {
-        to: '/administration/cleanup/',
+        to: '/admin/cleanup/',
         from: ['/enterprise/administration/cleanup/']
       },
       {
-        to: '/administration/private-repositories/github-app/',
+        to: '/self-hosted/install/github-integration/',
         from: ['/enterprise/administration/private-repositories/github-app/']
       },
       {
-        to: '/administration/private-repositories/ssh-key/',
+        to: '/self-hosted/install/private-repositories/ssh-key',
         from: ['/enterprise/administration/private-repositories/ssh-key/']
-      },
-      {
-        to: '/',
-        from: ['/cloud/']
-      },
-      {
-        to: '/cloud/starter-plan/',
-        from: ['/cloud/developer-plan/']
-      },
-      {
-        to: '/cloud/preview-environments/preview-environments-github/',
-        from: ['/tutorials/preview-environments/']
       },
       ]
     }],
