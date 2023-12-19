@@ -256,30 +256,51 @@ module.exports = {
       fromExtensions: ['html'],
       redirects: [{
         to: '/self-hosted/overview-self-hosted/',
-        from: ['/enterprise/dns/']
+        from: [
+          '/enterprise/dns/',
+          '/self-hosted/install/overview/'
+        ]
       }, {
         to: '/guides/tutorials/compose-getting-started/',
-        from: ['/tutorials/stacks-getting-started/']
+        from: [
+          '/tutorials/stacks-getting-started/',
+          '/tutorials/compose-getting-started/'
+        ]
       },
       {
         to: '/reference/docker-compose/',
-        from: ['/reference/stacks/']
+        from: [
+          '/reference/stacks/',
+          '/reference/compose/'
+        ]
       },
       {
         to: '/admin/dashboard/',
-        from: ['/enterprise/administration/dashboard/']
+        from: [
+          '/enterprise/administration/dashboard/',
+          '/administration/dashboard/'
+        ]
       },
       {
         to: '/admin/cleanup/',
-        from: ['/enterprise/administration/cleanup/']
+        from: [
+          '/enterprise/administration/cleanup/',
+          '/administration/cleanup/'
+        ]
       },
       {
         to: '/self-hosted/install/github-integration/',
-        from: ['/enterprise/administration/private-repositories/github-app/']
+        from: [
+          '/enterprise/administration/private-repositories/github-app/',
+          '/administration/private-repositories/github-app/'
+        ]
       },
       {
         to: '/self-hosted/install/private-repositories/ssh-key',
-        from: ['/enterprise/administration/private-repositories/ssh-key/']
+        from: [
+          '/enterprise/administration/private-repositories/ssh-key/',
+          '/administration/private-repositories/ssh-key/'
+        ]
       },
       ]
     }],
