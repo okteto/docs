@@ -97,7 +97,8 @@ module.exports = {
   {
     "Okteto manifest": [
       "manifest/external-resources",
-      "manifest/okteto-secrets"
+      "manifest/okteto-secrets",
+      "manifest/hybrid-development"
     ]  
   },
   {
