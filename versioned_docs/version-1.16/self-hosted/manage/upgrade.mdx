@@ -1,0 +1,176 @@
+---
+title: Upgrade your Okteto instance
+description: How to upgrade your Okteto instance
+sidebar_label: Upgrade
+id: upgrade
+---
+
+##  Upgrade your Okteto Instance
+
+> To ensure a successful Okteto upgrade, we recommend testing it on a dedicated test cluster. Please contact your sales representative to request a test license for your test cluster.
+
+To upgrade a new release, modify the `config.yaml` with your desired changes and then use:
+
+```console
+$ helm repo update
+$ helm upgrade <your-release-name> okteto/okteto -f config.yaml --namespace=okteto --version <version_number>
+```
+
+For example:
+```console
+$ helm repo update
+$ helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version 1.7.0
+```
+*You can use `helm ls` to find the name of your release.*
+
+Please review [the release notes](release-notes.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
+
+## Upgrading to Okteto 1.15.x
+
+As part of [1.15.0](release-notes.mdx#1150), we have enabled by default [chroot mode](https://kubernetes.io/blog/2022/04/28/ingress-nginx-1-2-0/) of the ingress controllers deployed as part of Okteto in order to reduce the resources accessible by the nginx process. This change will be applied automatically as part of the upgrade process to `1.15.x`, but it is important to know that the ingress controller pods need the capability `SYS_CHROOT` to work, so you have to make sure you can use it in your cluster.
+
+Chroot mode can be disabled anytime in both ingress controllers by setting the following values in your helm configuration:
+
+```yaml
+ingress-nginx:
+  controller:
+    image:
+      chroot: false
+
+okteto-nginx:
+  controller:
+    image:
+      chroot: false
+```
+
+## Upgrading to Okteto 1.14.x
+
+As part of [1.14.0](release-notes.mdx#1140), we have changed the way you can configure credentials for private registries. Before, you had to specify them in your helm configuration under `privateRegistry` key. From now on, that section (`privateRegistry`) is deprecated and we have added new options in the [Admin view](admin/dashboard.mdx#registry-credentials) to manage them there.
+
+In order to simplify the migration for all the instances already using that setting, Okteto will automatically migrate the credentials specified in the helm chart to secrets within the cluster **as part of the upgrade process to `1.14.x`**. So, from that moment, any change in those credentials has to be done through the Admin View, and you can remove the `privateRegistry` section from your helm configuration and upgrade Okteto again to completely stop using the deprecated `privateRegistry` section, as they don't apply anymore.
+
+If you don't use `privateRegistry` key, you can just upgrade Okteto as any other release. If you do use it, we recommend you follow these steps to upgrade your instance to `1.14.x` or higher:
+
+- Make an upgrade to the target version keeping the `privateRegistry` section in your helm configuration.
+- Verify that credentials were successfully migrated. You can do that going to [Registry Credentials](admin/dashboard.mdx/#registry-credentials) section within Admin Dashboard and checking that all credentials are there.
+- Once you have verified that the credentials were successfully migrated, you can remove the `privateRegistry` section from your helm configuration and upgrade Okteto again.
+
+If you miss any registry or they weren't migrated at all, you can check the logs of a job called `<helm-release>-regcreds-migration` to see the root cause.
+
+## Upgrading to Okteto 1.7.x
+
+As part of [1.7.0](release-notes.mdx#170), we have changed the default behavior of BuildKit to don't use a persistent volume. You have to include the following setting in your configuration file to keep using persistency:
+
+```yaml
+buildkit:
+  persistence:
+    enabled: true
+```
+
+We have also moved the configuration settings needed to configure the external storage for the registry. Before, it was configured under `cloud` key and now it has to be configured under `registry` key.
+
+So, before `1.7.X`, the configuration to configure external storage would look like this:
+
+```yaml
+cloud:
+  provider:
+    aws:
+      enabled: true
+      region: us-west-2
+      bucket: okteto-private-images
+      iam:
+        accessKeyID: "XXXXXX"
+```
+
+That configuration will still work for backward compatibility, but we recommmend you to update it to the new keys. In order to do so, you need to change to this:
+
+```yaml
+registry:
+  secret:
+    name: "okteto-cloud-secret"
+    secretKey: "key"
+  storage:
+    provider:
+      aws:
+        enabled: true
+        region: us-west-2
+        bucket: okteto-private-images
+        iam:
+          accessKeyID: "XXXXXX"
+```
+
+> If you didn't override a value for `cloud.secret`, you need to include the `registry.secret` section as posted in the previous snippet to keep working with the previous default values specified by the Okteto chart.
+>
+> If you had a custom value for `cloud.secret`, you need to specify the right values under `registry.secret` key.
+
+
+### Upgrade Okteto
+
+Run the following commands to upgrade your Okteto instance:
+
+```
+helm repo update
+```
+
+```
+helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto
+```
+
+#### After upgrade
+
+Use `kubectl` to get the new address of the build service:
+
+```console
+kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
+```
+
+Update your DNS configuration with the `EXTERNAL-IP` address.
+
+If you are [bringing your own certificates](self-hosted/install/certificates.mdx), your Okteto instance is now fully upgraded. The rest of the guide doesn't apply to your configuration.
+
+### Install cert-manager
+
+Okteto will remove the instance of `cert-manager` that was installed by older versions of the helm chart. If you plan on using `cert-manager` as your certificate provider, you'll need to install it manually in your cluster using the instructions below:
+
+```
+helm repo add jetstack https://charts.jetstack.io
+```
+
+```
+helm repo update
+```
+
+```
+helm install cert-manager jetstack/cert-manager --namespace=okteto --version=v1.10.2
+```
+
+Once installed, cert-manager will continue to renew your existing certificates.
+Please refer to [their docs](https://cert-manager.io/docs/) if you run into any installation or certificate renewal issues.
+
+## Upgrade to Kubernetes 1.25
+
+Kubernetes version 1.25 no longer supports pod security policies.
+If you are running Okteto in Kubernetes < 1.25, the default installation of Okteto creates pod security policies.
+If you upgrade Kubernetes to version 1.25 before upgrading Okteto, you will encounter the following error during the upgrade process:
+
+```
+Error: UPGRADE FAILED: unable to build kubernetes objects from current release manifest: [resource mapping not found for name: "okteto-permissive" namespace: "" from "": no matches for kind "PodSecurityPolicy" in version "policy/v1beta1"
+ensure CRDs are installed first, resource mapping not found for name: "okteto-restrictive" namespace: "" from "": no matches for kind "PodSecurityPolicy" in version "policy/v1beta1"
+ensure CRDs are installed first]
+```
+
+> You can find more information about how to recover from this state in this [community link](https://community.okteto.com/t/upgrade-failed-with-no-matches-for-kind-podsecuritypolicy-in-version-policy-v1beta1/802).
+
+To avoid this issue, upgrade Okteto before upgrading Kubernetes to version 1.25 and add the following configuration to your helm values file:
+
+```
+podSecurityPolicy:
+   enabled: false
+```
