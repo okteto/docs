@@ -5,32 +5,94 @@ sidebar_label: Overview
 id: overview-manifest
 ---
 
-The Okteto manifest enables you to provide configuration for building, deploying, and developing your application in a Development Environment. This file is optional if you already have a Docker Compose file for your application. Learn more about the Okteto Manifest in our reference section [here](reference/okteto-manifest.mdx).
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+The Okteto manifest is how you configure the behavior for building, deploying, and developing your application in an Okteto development environment. If you already have a Docker Compose file for your application, then the Okteto manifest is optional. 
+
+There are five sections of the Okteto manifest that define how your development environments and containers behave.
+
+| Section | Description | Reference |
+| ------- | ----------- | --------- |
+| build | Configure a list of images to build for your application's development environment. | [Learn more](reference/okteto-manifest.mdx#build-object-optional) |
+| deploy | Configure a list of commands to execute within the development environment to deploy your application. | [Learn more](reference/okteto-manifest.mdx#deploy-string-optional) |
+| destroy | Configure a list of commands to destroy all resources created in the `deploy` and `external` sections. | [Learn more](reference/okteto-manifest.mdx#destroy-string-optional) |
+| dev | Configure a list of development containers and their behavior to define how `okteto up` works when you start working on a specific, configured service in your development environment. | [Learn more](reference/okteto-manifest.mdx#dev-object-optional) |
+| external | Configure a list of external resources used by your application's development environment. These are resources that exist outside of the Okteto cluster (e.g. cloud resources, dashboards). | [Learn more](reference/okteto-manifest.mdx#external-object-optional). |
+
+There are other sections to help you build your ideal development experience in Okteto, but this document focuses solely on configuring your Okteto manifest to build and deploy your development environments using the three most common sections: `build`, `deploy`, and `dev`. You can learn more about the other Okteto manifest options in the [manifest reference](reference/okteto-manifest.mdx).
 
 ### Sample Okteto Manifest
 
+The following manifest example is from our demo [movies repo](https://github.com/okteto/movies) if you'd like to explore further. It has been pared down for brevity and contains only the `build`, `deploy`, and `dev` sections. 
+
+We'll explain each section, including the `destroy` and `external` sections, in other pages of our documentation.
+
 ```yaml
 icon: https://apps.okteto.com/movies/icon.png
+
 build:
-  api:
-    context: .
+    frontend:
+        context: frontend
+    frontend-dev:
+        context: frontend
+        target: dev
+    catalog:
+        context: catalog
+    api:
+        context: api
+
 deploy:
-  - helm upgrade --install app chart --set image=${OKTETO_BUILD_API_IMAGE}
+    - name: Deploy Frontend
+        command: helm upgrade --install frontend frontend/chart --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - name: Deploy Catalog
+        command: helm upgrade --install catalog catalog/chart --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+    - name: Deploy API
+        command: helm upgrade --install api api/chart --set image=${OKTETO_BUILD_API_IMAGE} --set load=${API_LOAD_DATA:-true}
+
 dev:
-  api:
-    command: ["bash"]
-    forward:
-      - 8080:8080
-      - 9229:9229
-    sync:
-      - .:/usr/src/app
+    frontend:
+        image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
+        command: bash
+        sync:
+        - frontend:/usr/src/app
+    catalog:
+        command: yarn start
+        sync:
+        - catalog:/src
+        forward:
+        - 9229:9229
+    api:
+        image: ${OKTETO_BUILD_API_DEV_IMAGE}
+        command: bash
+        securityContext:
+        capabilities:
+            add:
+            - SYS_PTRACE
+        sync:
+        - api:/usr/src/app
+        forward:
+        - 2346:2345
+```
+### Using the Okteto CLI
+
+When using this manifest Okteto will create a development environment with each of the services or components listed in the configuration. When you start working on any of these services you'll use the `okteto up` command. When issuing this command, you'll be presented with terminal output that looks like this:
+
+```console
+Using your_user_name @ example.yourdomain.dev as context
+'Movies App' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
+Select which development container to activate:
+Use the arrow keys to navigate: ↓ ↑ → ← 
+  ▸ api
+    catalog
+    frontend
 ```
 
-This example shows how to [build](reference/okteto-manifest.mdx/#build-object-optional) the container image of the **api** microservice, how to [deploy](reference/okteto-manifest.mdx/#deploy-object-optional) the application using its helm chart,
-and how to [develop](reference/okteto-manifest.mdx/#dev-object-optional) on the **api** microservice by synchronizing the local filesystem on the container path `/usr/src/app`.
-If you want to learn more about what all you can configure in this manifest, head over to the [Okteto Manifest Reference](reference/okteto-manifest.mdx).
+This example [builds](reference/okteto-manifest.mdx/#build-object-optional) the container image of the **api** microservice, [deploys](reference/okteto-manifest.mdx/#deploy-object-optional) the application using its helm chart, and creates a [dev](reference/okteto-manifest.mdx/#dev-object-optional) container for the **api** microservice that can be synchronized with your local filesystem on the container path `/usr/src/app`.
 
-### Built-in Environment Variables
+### Environment Variables
+
+The Okteto manifest also uses environment variables and each section supports specific ENV VARs. We are regularly adding additional ENV VARs but for now it's most important to know which ones exist and how and where to use them. There are three types of ENV VARs to know about today:
 
 #### Default Environment Variables
 
