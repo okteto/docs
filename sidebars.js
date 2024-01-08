@@ -104,7 +104,7 @@ module.exports = {
   {
     "Deploy development environments": [
       "deploy/development-environments",
-      "deploy/launch-from-catalog",
+      "deploy/deploy-from-catalog",
       "deploy/deploy-from-git",
       "deploy/from-private-repositories",
       "deploy/develop-on-okteto-button"
