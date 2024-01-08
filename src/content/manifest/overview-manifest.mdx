@@ -14,69 +14,131 @@ There are five sections of the Okteto manifest that define how your development 
 
 | Section | Description | Reference |
 | ------- | ----------- | --------- |
-| build | Configure a list of images to build for your application's development environment. | [Learn more](reference/okteto-manifest.mdx#build-object-optional) |
-| deploy | Configure a list of commands to execute within the development environment to deploy your application. | [Learn more](reference/okteto-manifest.mdx#deploy-string-optional) |
-| destroy | Configure a list of commands to destroy all resources created in the `deploy` and `external` sections. | [Learn more](reference/okteto-manifest.mdx#destroy-string-optional) |
-| dev | Configure a list of development containers and their behavior to define how `okteto up` works when you start working on a specific, configured service in your development environment. | [Learn more](reference/okteto-manifest.mdx#dev-object-optional) |
-| external | Configure a list of external resources used by your application's development environment. These are resources that exist outside of the Okteto cluster (e.g. cloud resources, dashboards). | [Learn more](reference/okteto-manifest.mdx#external-object-optional). |
+| [build](#build) | Configure a list of images to build for your application's development environment. | [Learn more](reference/okteto-manifest.mdx#build-object-optional) |
+| [deploy](#deploy) | Configure a list of commands to execute within the development environment to deploy your application. | [Learn more](reference/okteto-manifest.mdx#deploy-string-optional) |
+| [destroy](#destroy) | Configure a list of commands to destroy all resources created in the `deploy` and `external` sections. | [Learn more](reference/okteto-manifest.mdx#destroy-string-optional) |
+| [dev](#dev) | Configure a list of development containers and their behavior to define how `okteto up` works when you start working on a specific, configured service in your development environment. | [Learn more](reference/okteto-manifest.mdx#dev-object-optional) |
+| [external](#external) | Configure a list of external resources used by your application's development environment. These are resources that exist outside of the Okteto cluster (e.g. cloud resources, dashboards). | [Learn more](reference/okteto-manifest.mdx#external-object-optional). |
 
-There are other sections to help you build your ideal development experience in Okteto, but this document focuses solely on configuring your Okteto manifest to build and deploy your development environments using the three most common sections: `build`, `deploy`, and `dev`. You can learn more about the other Okteto manifest options in the [manifest reference](reference/okteto-manifest.mdx).
+There are other sections to help you build your ideal development experience in Okteto, but this document focuses solely on introducing you to the core concepts of the Okteto manifest. You can learn more about the other Okteto manifest options in the [manifest reference](reference/okteto-manifest.mdx).
 
-### Sample Okteto Manifest
+## Build
 
-The following manifest example is from our demo [movies repo](https://github.com/okteto/movies) if you'd like to explore further. It has been pared down for brevity and contains only the `build`, `deploy`, and `dev` sections. 
+This section contains the instructions for Okteto to build the images for each service in your application. All services defined in this section will appear in the Okteto UI as part of a single development environment that represents the whole of your application. Each individual service will appear as its own development container that’s part of the development environment for your application.
 
-We'll explain each section, including the `destroy` and `external` sections, in other pages of our documentation.
+Your `build` section might look like this:
 
 ```yaml
-icon: https://apps.okteto.com/movies/icon.png
-
 build:
-    frontend:
-        context: frontend
-    frontend-dev:
-        context: frontend
-        target: dev
-    catalog:
-        context: catalog
-    api:
-        context: api
-
-deploy:
-    - name: Deploy Frontend
-        command: helm upgrade --install frontend frontend/chart --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
-    - name: Deploy Catalog
-        command: helm upgrade --install catalog catalog/chart --set image=${OKTETO_BUILD_CATALOG_IMAGE}
-    - name: Deploy API
-        command: helm upgrade --install api api/chart --set image=${OKTETO_BUILD_API_IMAGE} --set load=${API_LOAD_DATA:-true}
-
-dev:
-    frontend:
-        image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
-        command: bash
-        sync:
-        - frontend:/usr/src/app
-    catalog:
-        command: yarn start
-        sync:
-        - catalog:/src
-        forward:
-        - 9229:9229
-    api:
-        image: ${OKTETO_BUILD_API_DEV_IMAGE}
-        command: bash
-        securityContext:
-        capabilities:
-            add:
-            - SYS_PTRACE
-        sync:
-        - api:/usr/src/app
-        forward:
-        - 2346:2345
+  base:
+    context: .
+  api:
+    context: api
+  frontend:
+    context: frontend
+    dockerfile: Dockerfile
+    target: dev
+    depends_on: base
+    args:
+      SOURCE_IMAGE: ${OKTETO_BUILD_BASE_IMAGE}
+    secrets:
+      npmrc: .npmrc
 ```
+
+This configuration defines images to be built for three services: `base`, `api`, and `frontend`. It also defines a `context` for each image, which tells Okteto which folder/subfolder to use for building each container image. For example: `default (.)` tells Okteto to use the current folder for the `base` image, the `api` subfolder for the `api` image, and the `frontend` subfolder for the `frontend` image.
+
+You can learn more about these additional parameters [here](reference/okteto-manifest.mdx).
+
+## Deploy
+
+This section tells Okteto how, specifically, to deploy your development environment. It typically uses a combination of `helm`, `kubectl`, and `okteto` commands. You can execute multiple commands and label them.
+
+> Note: If you have external resources you'd like to configure and show within the Okteto development environment, you must configure those in this section.
+
+Your `deploy` section might look like this:
+
+```yaml
+deploy:
+    - name: Deploy PostgreSQL
+    command: helm upgrade --install postgresql postgresql/postgresql-11.6.21.tgz -f postgresql/values.yml --version 11.6.21
+    - name: Deploy Frontend
+    command: helm upgrade --install frontend frontend/chart --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - name: Deploy API
+    command: helm upgrade --install api api/chart --set image=${OKTETO_BUILD_API_IMAGE} --set load=${API_LOAD_DATA:-true}
+```
+
+In this section the manifest instructs Okteto to execute three commands: deploy a postgresql database, deploy the `frontend` image (using an environment variable), and deploy the `api` image (also using environment variables).
+
+These commands are executed within the development environment created by Okteto enabling you to create a production-like environment for developing your application.
+
+## Destroy
+
+The commands you define in this section will ensure any resources external to the Kubernetes cluster Okteto manages are destroyed when deleting the development environment. 
+
+> Note: The Okteto CLI command `okteto destroy` will automatically destroy any Kubernetes resources created by the `okteto deploy` command.
+
+Your `destroy` section might look like this:
+
+```yaml
+destroy:
+  image: okteto/pipeline-runner:1.0.0-sam
+  commands:
+    - name: destroy worker service
+      command: |
+        sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-voting-texkhnclxd" --region us-east-1
+```
+
+In this example `destroy` section we are deleting the worker service running on the image container specified in the `image:` attribute. When the development environment is deleted, Okteto will execute this command ensuring orphaned resources don't remain active.
+
+## External
+
+This section contains a list of resources external to the Okteto cluster such as cloud resources or dashboards, but that are part of your development environment. Configuring your external resources enables you to build a more complete development experience in Okteto. 
+
+Your `external` section might look like this:
+
+```yaml
+external:
+  readme:
+    icon: okteto
+    notes: README.md
+    endpoints:
+    - name: Try it out!
+      url: https://github.com/okteto/voting-app-with-external-resources
+  lambda:
+    icon: aws
+    notes: docs/lambda.md
+    endpoints:
+    - name: function
+```
+
+This section provides only the metadata to represent and link to external resources in the Okteto UI and does not create any resources in a cloud provider. Creating or destroying the resources themselves is done in the [deploy](#deploy) and [destroy](#destroy) sections, respectively.
+
+## Dev
+
+This section contains a list of instructions that determine how the Okteto CLI and, specifically, the `okteto up` command behave. This section is how Okteto will synchronize the code between your local computer and the remote development container in Okteto.
+
+Your `dev` section might look like this:
+
+```yaml
+dev:
+  api:
+    command: ["bash"]
+    forward:
+      - 8080:8080
+      - 9229:9229
+    sync:
+      - api:/usr/src/app
+  frontend:
+    command: yarn start
+    sync:
+      - frontend:/usr/src/app
+```
+
+In this example, the `api` service you define is *separate* from the original `api` service created in the `build` and `deploy` sections. This `api` service in the `dev` section will tell Okteto to create a new development container that exists specifically to sync code between your local computer and the remote Okteto development container so you can see your changes in real-time within a production-like environment. This also enables you to share an endpoint for others to view and collaborate on your work with you without having to do any extra work.
+
 ### Using the Okteto CLI
 
-When using this manifest Okteto will create a development environment with each of the services or components listed in the configuration. When you start working on any of these services you'll use the `okteto up` command. When issuing this command, you'll be presented with terminal output that looks like this:
+Okteto will create a development environment with each of the services or components listed in your Okteto manifest. When you start working on any of these services you'll use the `okteto up` command. When issuing this command, you'll be presented with terminal output that looks like this:
 
 ```console
 Using your_user_name @ example.yourdomain.dev as context
@@ -88,82 +150,4 @@ Use the arrow keys to navigate: ↓ ↑ → ←
     frontend
 ```
 
-This example [builds](reference/okteto-manifest.mdx/#build-object-optional) the container image of the **api** microservice, [deploys](reference/okteto-manifest.mdx/#deploy-object-optional) the application using its helm chart, and creates a [dev](reference/okteto-manifest.mdx/#dev-object-optional) container for the **api** microservice that can be synchronized with your local filesystem on the container path `/usr/src/app`.
-
-### Environment Variables
-
-The Okteto manifest also uses environment variables and each section supports specific ENV VARs. We are regularly adding additional ENV VARs but for now it's most important to know which ones exist and how and where to use them. There are three types of ENV VARs to know about today:
-
-#### Default Environment Variables
-
-The following environment variables are automatically populated to be referred in your Okteto Manifest or deploy/destroy commands:
-- `OKTETO_DOMAIN`: the domain where Okteto exposes your application endpoints.
-- `OKTETO_NAMESPACE`: the namespace where your application is going to be installed.
-- `OKTETO_USERNAME`: your username in Okteto.
-- `OKTETO_REGISTRY_URL`: the url of the [Okteto Registry](core/components/container-registry.mdx).
-- `OKTETO_GIT_BRANCH`: the name of the Git branch currently being deployed.
-- `OKTETO_GIT_COMMIT`: the SHA1 hash of the last commit of the branch.
-
-#### Built-in Environment Variables for Images stored in the Okteto Registry
-
-You can refer to the images defined in the [build](reference/okteto-manifest.mdx/#build-object-optional) section of the Okteto Manifest using the following environment variables:
-- `OKTETO_BUILD_<image>_IMAGE`: the full image reference
-- `OKTETO_BUILD_<image>_REGISTRY`: the registry URL where the image was pushed
-- `OKTETO_BUILD_<image>_REPOSITORY`: the name of the image that was pushed
-- `OKTETO_BUILD_<image>_SHA`: The latest tag and the SHA of the image
-
-For example, for the following `build` section:
-
-```yaml
-build:
-  hello-world:
-    context: .
-```
-
-Okteto will build a random image tag like `registry.okteto.example.com/cindy/hello-world:f56119a37b`, and you would have the following environment variables available:
-
-- `OKTETO_BUILD_HELLO_WORLD_IMAGE`: registry.okteto.example.com/cindy/hello-world@sha256:xxx
-- `OKTETO_BUILD_HELLO_WORLD_REGISTRY`: registry.okteto.example.com
-- `OKTETO_BUILD_HELLO_WORLD_REPOSITORY`: cindy/hello-world
-- `OKTETO_BUILD_HELLO_WORLD_SHA`: f56119a37b@sha256:xxx
-
-> if an `<image>` name includes the symbol `-`, in the corresponding `OKTETO_BUILD_<image>` environment variables, the symbol `-` will be replaced by `_`.  For example, if `<image>` is `name-with-hyphen`, the environment variable names will start with `$OKTETO_BUILD_NAME_WITH_HYPHEN_`.
-
-#### Built-in Environment Variables for Dependencies
-
-You can refer to the variables defined by your [dependencies](reference/okteto-manifest.mdx/#dependencies-object-optional) using the following environment variables:
-- `OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`: the value of a variable of a dependency.
-
-For example, if you have the following dependency in your Okteto Manifest:
-
-```yaml
-dependencies:
-  database:
-    repository: https://github.com/okteto/my-database
-    variables:
-      USERNAME: okteto
-    wait: true
-```
-
-and the repo https://github.com/okteto/my-database has the following Okteto Manifest:
-
-```yaml
-deploy:
-  - echo "PASSWORD=1234" >> $OKTETO_ENV
-```
-
-You can refer to the variables of https://github.com/okteto/my-database in the `deploy` section of your Okteto Manifest like this:
-
-```yaml
-dependencies:
-  database:
-    repository: https://github.com/okteto/my-database
-    variables:
-      USERNAME: okteto
-    wait: true
-deploy:
-  - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_USERNAME}
-  - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_PASSWORD}
-```
-
-Note that `USERNAME` has an static value, and `PASSWORD` is dynamically generated.
+In our [example](#build) above, selecting the `api` service from this prompt tells Okteto to [build](reference/okteto-manifest.mdx/#build-object-optional) the container image of the **api** microservice and [deploy](reference/okteto-manifest.mdx/#deploy-object-optional) the application using the configuration in the `api` subfolder. Then it creates a [dev](reference/okteto-manifest.mdx/#dev-object-optional) container for the **api** microservice that can be synchronized with your local filesystem on the container path `/usr/src/app`.
