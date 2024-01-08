@@ -1,0 +1,104 @@
+---
+title: Environment variables
+description: Use Okteto's built-in environment variables to streamline your Okteto manifest.
+sidebar_label: Environment variables
+id: environment-variables
+---
+
+The Okteto manifest utilizes environment variables with each section supporting specific ENV VARs. Additional ENV VARs are added regularly and it's important to understand the existing ones and their usage. Currently, there are three types of ENV VARs to be aware of:
+
+## Using environment variables
+
+In order to use environment variables within your Okteto manifest you must add them to `$OKTETO_ENV` within your `deploy` section. This will make the environment variables available in all following manifest sections (e.g. `destroy`, `dev`) as well as in the Okteto UI. To do this you’ll add something similar to this in your `deploy` section (using your actual variable names):
+
+```yaml
+{
+  echo "OKTETO_EXTERNAL_S3_ENDPOINTS_BUCKET_URL=$s3Dashboard"
+  echo "S3_BUCKET_NAME=$resourceName"
+  echo "OKTETO_EXTERNAL_SQS_ENDPOINTS_QUEUE_URL=$queueDashboard"
+  echo "SQS_QUEUE_URL=$queueUrl"
+  echo "SQS_QUEUE_NAME=$resourceName"
+} >> "$OKTETO_ENV"
+```
+
+### **Default Environment Variables**
+
+These are automatically populated and can be referenced in your Okteto manifest’s `deploy`/`destroy` commands:
+
+- **`OKTETO_DOMAIN`**: The domain where Okteto exposes your application endpoints.
+- **`OKTETO_NAMESPACE`**: The namespace where your application is installed.
+- **`OKTETO_USERNAME`**: Your username in Okteto.
+- **`OKTETO_REGISTRY_URL`**: The URL of the Okteto Registry.
+- **`OKTETO_GIT_BRANCH`**: The name of the Git branch being deployed.
+- **`OKTETO_GIT_COMMIT`**: The SHA1 hash of the last commit of the branch.
+
+### **Built-in Environment Variables for Images in Okteto Registry**
+
+Reference images defined in the `build` section of the Okteto manifest using the following environment variables:
+
+- **`OKTETO_BUILD_<image>_IMAGE`**: Full image reference.
+- **`OKTETO_BUILD_<image>_REGISTRY`**: Registry URL where the image was pushed.
+- **`OKTETO_BUILD_<image>_REPOSITORY`**: Name of the image that was pushed.
+- **`OKTETO_BUILD_<image>_SHA`**: Latest tag and SHA of the image.
+
+For instance, with a build section like:
+
+```yaml
+yamlCopy code
+build:
+  hello-world:
+    context: .
+```
+
+Okteto will generate environment variables such as:
+
+- **`OKTETO_BUILD_HELLO_WORLD_IMAGE`**: registry.okteto.example.com/cindy/hello-world@sha256:xxx
+- **`OKTETO_BUILD_HELLO_WORLD_REGISTRY`**: registry.okteto.example.com
+- **`OKTETO_BUILD_HELLO_WORLD_REPOSITORY`**: cindy/hello-world
+- **`OKTETO_BUILD_HELLO_WORLD_SHA`**: f56119a37b@sha256:xxx
+
+Note: If an <image> name includes '-', it will be replaced by '_' in the corresponding environment variables.
+
+1. **Built-in Environment Variables for Dependencies:**
+Reference variables defined by your dependencies using the following pattern:
+    - **`OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`**: The value of a variable of a dependency.
+    
+    For example, if you have a dependency in your Okteto Manifest:
+    
+    ```yaml
+    yamlCopy code
+    dependencies:
+      database:
+        repository: https://github.com/okteto/my-database
+        variables:
+          USERNAME: okteto
+        wait: true
+    
+    ```
+    
+    And the repository has this Okteto Manifest:
+    
+    ```yaml
+    yamlCopy code
+    deploy:
+      - echo "PASSWORD=1234" >> $OKTETO_ENV
+    
+    ```
+    
+    Reference the variables in your Okteto Manifest deploy section like this:
+    
+    ```yaml
+    yamlCopy code
+    dependencies:
+      database:
+        repository: https://github.com/okteto/my-database
+        variables:
+          USERNAME: okteto
+        wait: true
+    deploy:
+      - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_USERNAME}
+      - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_PASSWORD}
+    
+    ```
+    
+    Note: USERNAME has a static value, and PASSWORD is dynamically generated.
