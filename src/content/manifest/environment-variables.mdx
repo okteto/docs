@@ -45,8 +45,8 @@ deploy:
 
       # ... shortened for brevity
     {
-    echo "OKTETO_EXTERNAL_S3_ENDPOINTS_BUCKET_URL=$s3Dashboard"
-    echo "S3_BUCKET_NAME=$resourceName"
+      echo "OKTETO_EXTERNAL_S3_ENDPOINTS_BUCKET_URL=$s3Dashboard"
+      echo "S3_BUCKET_NAME=$resourceName"
     } >> "$OKTETO_ENV"
 
 destroy:
@@ -78,15 +78,15 @@ These are automatically populated and can be referenced in your Okteto manifestâ
 
 Reference images defined in the `build` section of the Okteto manifest using the following environment variables:
 
-- **`OKTETO_BUILD_<image>_IMAGE`**: Full image reference.
-- **`OKTETO_BUILD_<image>_REGISTRY`**: Registry URL where the image was pushed.
-- **`OKTETO_BUILD_<image>_REPOSITORY`**: Name of the image that was pushed.
-- **`OKTETO_BUILD_<image>_SHA`**: Latest tag and SHA of the image.
+- **`OKTETO_BUILD_(IMAGE)_IMAGE`**: Full image reference.
+- **`OKTETO_BUILD_(IMAGE)_REGISTRY`**: Registry URL where the image was pushed.
+- **`OKTETO_BUILD_(IMAGE)_REPOSITORY`**: Name of the image that was pushed.
+- **`OKTETO_BUILD_(IMAGE)_SHA`**: Latest tag and SHA of the image.
 
 For instance, with a build section like:
 
 ```yaml
-yamlCopy code
+yaml
 build:
   hello-world:
     context: .
@@ -99,51 +99,46 @@ Okteto will generate environment variables such as:
 - **`OKTETO_BUILD_HELLO_WORLD_REPOSITORY`**: cindy/hello-world
 - **`OKTETO_BUILD_HELLO_WORLD_SHA`**: f56119a37b@sha256:xxx
 
-Note: If an <image> name includes '-', it will be replaced by '_' in the corresponding environment variables.
+> Note: If an `image` name includes '-', it will be replaced by '_' in the corresponding environment variables.
 
 ### **Built-in Environment Variables for Dependencies:**
 Reference variables defined by your dependencies using the following pattern:
-    - **`OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`**: The value of a variable of a dependency.
+
+- **`OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`**: The value of a variable of a dependency.
     
-    For example, if you have a dependency in your Okteto Manifest:
-    
-    ```yaml
-    yamlCopy code
+For example, if you have a dependency in your Okteto Manifest:
+
+```yaml
     dependencies:
-      database:
+    database:
         repository: https://github.com/okteto/my-database
         variables:
-          USERNAME: okteto
+        USERNAME: okteto
         wait: true
-    
-    ```
-    
-    And the repository has this Okteto Manifest:
-    
-    ```yaml
-    yamlCopy code
+```
+
+And the repository has this Okteto Manifest:
+
+```yaml
     deploy:
-      - echo "PASSWORD=1234" >> $OKTETO_ENV
-    
-    ```
-    
-    Reference the variables in your Okteto Manifest deploy section like this:
-    
-    ```yaml
-    yamlCopy code
+    - echo "PASSWORD=1234" >> $OKTETO_ENV
+```
+
+Reference the variables in your Okteto Manifest deploy section like this:
+
+```yaml
     dependencies:
-      database:
+    database:
         repository: https://github.com/okteto/my-database
         variables:
-          USERNAME: okteto
+        USERNAME: okteto
         wait: true
     deploy:
-      - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_USERNAME}
-      - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_PASSWORD}
+    - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_USERNAME}
+    - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_PASSWORD}
+```
     
-    ```
-    
-    Note: USERNAME has a static value, and PASSWORD is dynamically generated.
+> Note: USERNAME has a static value, and PASSWORD is dynamically generated.
 
 ## Feature flag variables
 
