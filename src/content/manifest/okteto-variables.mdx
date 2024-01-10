@@ -16,7 +16,7 @@ There are a few different ways to leverage variables. In short:
 - You can define variables manually in the manifest or in the Okteto UI
 - There are some default variables built in to the Okteto platform
 - All variables used in the Okteto manifest are automatically expanded
-- Variables referenced in the `deploy` and `destroy` sections are automatically injected into those environments
+- All variables are injected as runtime environment variables in the execution of your `deploy` and `destroy` scripts
 
 We will cover each of these behaviors in more detail below.
 
@@ -30,7 +30,7 @@ Okteto supports manual definition of variables, offering significant flexibility
 - User variables (in settings)
 - Admin variables
 
-> Note: Variables defined using methods lower in this list (e.g. admin variables) will override mentions of the same variable defined by methods higher in this list (e.g. deploy time variables)
+> Note: Variables will be overridden by those above them in this list. For example, local variables will override admin variables.
 
 ## Manage Okteto Variables from the Okteto dashboard
 
@@ -66,9 +66,9 @@ To delete an existing variable, click on the **Delete** button on the right. You
 
 ## Configuring dynamic endpoints
 
-You can create dynamic endpoints for external resources within your Okteto environment using `$OKTETO_ENV`. You can define `$variables`, assign them to an `OKTETO_ENV_VAR`, and make those ENV VARs available in other sections (e.g. `deploy`, `destroy`) of the Oketo manifest to generate dynamic endpoints for external resources. 
+You can create dynamic endpoints for external resources within your Okteto environment using `$OKTETO_ENV`. You can define `$variables`, assign them to `OKTETO_ENV`, and make those variables available in other sections (e.g. `deploy`, `destroy`) of the Okteto manifest or to generate dynamic endpoints for external resources. 
 
-The example below demonstrates adding variables to `$OKTETO_ENV` in the `deploy` section and then access those variables in a sample `destroy` section:
+The example below demonstrates adding variables to `$OKTETO_ENV` in the `deploy` section and then accessing those variables in a sample `destroy` section:
 
 ```yaml
 deploy:
@@ -85,6 +85,8 @@ deploy:
 
       # ... shortened for brevity
     {
+      echo "$resourceName"
+      echo "$region"
       echo "OKTETO_EXTERNAL_S3_ENDPOINTS_BUCKET_URL=$s3Dashboard"
       echo "S3_BUCKET_NAME=$resourceName"
     } >> "$OKTETO_ENV"
@@ -95,17 +97,15 @@ destroy:
   - name: Delete the AWS infrastructure
     command: |
       set -e
-      resourceName="${OKTETO_NAMESPACE}-oktacoshop"
-      region=$AWS_REGION
       
       # omitted for brevity 
 
-      terraform apply -input=false -var "bucket_name=$resourceName" -var "queue_name=$resourceName" -var "region=$region" -auto-approve --destroy
+      terraform apply -input=false -var "bucket_name=${S3_BUCKET_NAME}" -var "queue_name=$resourceName" -var "region=$region" -auto-approve --destroy
 ```
 
 ### **Default Environment Variables**
 
-These are automatically populated and can be referenced in your Okteto manifest’s `deploy`/`destroy` commands:
+These are automatically expanded and can be referenced in your Okteto manifest’s `deploy`/`destroy` sections either directly (within the manifest) or in external files (e.g. a `Makefile`):
 
 - **`OKTETO_DOMAIN`**: The domain where Okteto exposes your application endpoints.
 - **`OKTETO_NAMESPACE`**: The namespace where your application is installed.
@@ -184,8 +184,14 @@ deploy:
 Okteto provides a list of variables that serve as feature flags for some of the features we release in our product. Below is a list of those variables that you can use to leverage these newer and experimental features:
 
 - `OKTETO_SMART_BUILDS_ENABLED`: enables the "smart builds" feature that uses a hash of the build context to determine if an image needs to be rebuilt or can be pulled from the registry. This can accelerate build times.
+- `OKTETO_COMPOSE_VOLUME_AFFINITY_ENABLED`: 
+- `OKTETO_KUBERNETES_TIMEOUT`: 
+- `OKTETO_HOME`: 
+- `OKTETO_FORCE_REMOTE`: 
+- `OKTETO_FOLDER`: 
+- `OKTETO_REMOTE_CLI_IMAGE`: 
 
-## Accessing Okteto Variables from your Okteto Pipeline
+## Accessing Okteto variables at deploy time
 
 Okteto Variables are automatically injected in your [Okteto CLI](core/using-okteto-cli.mdx) commands as environment variables.
 
