@@ -1,6 +1,4 @@
-# Dockerfile.buildkit
-
-FROM node:16
+FROM node:21.5.0-bookworm
 
 WORKDIR /app
 
