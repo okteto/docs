@@ -33,7 +33,7 @@ function DocSearch() {
           {`  window.Widget = Object.assign({}, window.Widget, {
                 baseUrl: "https://search.orbit.love/widget/0f886bc2-4085-476d-94d2-de69a7c2a438",
                 options: {
-                    docResultsLinkTarget: "_blank",
+                    docResultsLinkTarget: "_top",
                     showCornerIcon: false
                 },
             });
