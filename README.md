@@ -22,18 +22,18 @@ However, it is possible to build the website locally using okteto itself without
 
 ### 💻 Develop locally (using Okteto)
 
-You can launch a remote Development Environment on [Okteto Cloud](https://cloud.okteto.com) or any Kubernetes cluster with the Okteto CLI.
+You can launch a remote Development Environment with [Okteto](https://okteto.com) or any Kubernetes cluster with the Okteto CLI.
 
-1. In order to configure Okteto CLI to use Okteto Cloud, run the following command at the root:
+1. In order to configure Okteto CLI to use Okteto, run the following command at the root (replace the URL with your Okteto instance):
 
     ```
-    okteto context use https://cloud.okteto.com
+    okteto context use https://okteto.example.com
     ```
     **Note:** If you'd like to use any Kubernetes cluster with Okteto CLI, run the `okteto context` command and select the context you'd like to go with using arrows key
 
 2. Once the context is setup, run the `okteto up` command. This will make sure the required docker images are built by Okteto CLI.
    
-3. Once the development environment is built, go to [Okteto Cloud](https://cloud.okteto.com) and preview your changes. As soon as you hit the save, the changes will be reflected in the Okteto cloud as it'd look like in production.
+3. Once the development environment is built, go to your [Okteto](https://okteto.com/docs) and preview your changes. As soon as you hit the save, the changes will be reflected in the Okteto cloud as it'd look like in production.
 
 
 ## Create a new version of the Docs

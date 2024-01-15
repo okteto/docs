@@ -114,14 +114,7 @@ module.exports = {
   {
     "Deploy preview environments": [
       "preview/overview-prev-env",
-      {
-        "type": "category",
-        "label": "For GitHub",
-        "items": [
-          "preview/github/configure-github-prev",
-          "preview/github/using-github-actions"
-        ]
-      },
+      "preview/github/using-github-actions",
       "preview/using-gitlab-cicd"
     ],
   },
