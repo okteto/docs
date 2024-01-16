@@ -1,0 +1,40 @@
+---
+title: Diagnostics
+description: Okteto Diagnostics
+sidebar_label: Diagnostics
+id: diagnostics
+---
+
+Okteto provides a diagnostics tool through the [Replicated Troubleshoot](https://troubleshoot.sh) framework. This tool is completely optional but can help troubleshoot complex issues, specially if you are getting assistance through Okteto Support.
+
+Starting in Okteto 1.16, as part of the helm installation we deploy a `okteto-support-bundle` configmaps in the okteto namespace that contain the specs to create a support bundle.
+
+## Installation
+
+The support-bundle provided by Replicated Troubleshoot is a client-side utility, packaged as a kubectl plugin and distributed through the [krew](https://github.com/kubernetes-sigs/krew/) package manager. Make sure to have it installed as per the [installation guide](https://krew.sigs.k8s.io/docs/user-guide/setup/install/)
+
+:::note
+Run `kubectl krew` to check the installation and make sure `krew` is in your $PATH as described in the installation guide
+:::
+
+Once krew is installed, you can install the `kubectl` plugin:
+
+```bash
+kubectl krew install support-bundle
+```
+
+More info about the installation [here](https://troubleshoot.sh/docs/#installation).
+
+# Support bundle
+
+Creates a gzipped tarball which includes cluster information, logs for okteto components, and other relevant information. This bundle can help troubleshoot issues with the cluster specially during an incident in which you are getting assistance from Okteto Support.
+
+```
+kubectl support-bundle \
+  --interactive=false \
+  --debug \
+  -n okteto \
+  --load-cluster-specs
+```
+
+The default file name for the bundle is `support-bundle-TIMESTAMP.tar.gz` but it can be overriden with `-o <filename>`. More info about the support bundle command, extra arguments, etc can be found here: https://troubleshoot.sh/docs/support-bundle/introduction/

@@ -1,0 +1,167 @@
+---
+title: Using the Okteto CLI
+description: Introduction to Okteto CLI
+sidebar_label: Using the Okteto CLI
+id: using-okteto-cli
+---
+
+[Dev Environments](deploy/development-environments.mdx) allow you to develop your deployed application locally. You continue coding in your favorite IDE and see the changes live on the deployed version of your application as soon as you hit save.
+Okteto CLI is an [open source](https://github.com/okteto/okteto) client-side only tool that allows you to launch Dev Environments in any Kubernetes cluster: your own, [Okteto SaaS](saas-vs-selfhosted.mdx), or [Okteto Self-Hosted](self-hosted.mdx).
+
+Learn more about the Okteto CLI
+
+- [Installation guide](get-started/install-okteto-cli.mdx#installing-okteto-cli)
+- [Okteto CLI Reference](reference/okteto-cli.mdx)
+- [File Synchronization](reference/file-synchronization.mdx)
+- [SSH Server](reference/ssh-server.mdx)
+- [FAQs](reference/faqs.mdx)
+- [Known Issues](reference/known-issues.mdx)
+
+
+## Deployment Manifests
+
+You need one of the following deployment manifests for your application so that Okteto CLI knows how to launch a Dev Environment for it. Okteto CLI will analyze your existing manifests (Helm, Kubernetes, etc.) and help you write an [Okteto Manifest](#okteto-manifest) for your application. It will then use this Okteto Manifest instead of your existing deployment manifests to spin up Dev Environments.
+
+If you're using a Docker Compose file, then Okteto CLI can directly launch a Dev Environment for your application without generating an Okteto Manifest. However, you can still choose to create the Okteto Manifest if you want more configuration over your environment.
+
+Okteto CLI will look for deployment manifests for your application in the following order:
+
+1. [Okteto Manifest](reference/okteto-manifest.mdx) file: if there is an `okteto.yaml` or `.okteto/okteto.yaml` file in your folder, Okteto will use this file to deploy your development environment.
+1. [Docker Compose](reference/docker-compose.mdx) file: if there is an `okteto-compose.yaml` or `docker-compose.yaml` file, Okteto will use this file to deploy your development environment.
+1. [Helm Chart](https://helm.sh/docs/topics/charts/): if there is a `chart`, `charts`, `helm/chart`, or `helm/charts` directory with a `Chart.yaml` file in it, Okteto will detect the chart and run `helm upgrade --install` on it to deploy your development environment.
+1. [Kubernetes manifests](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/) folder: if there is a `manifests`, `kubernetes`, or `k8s` folder, Okteto will detect it and run `kubectl apply` to deploy your development environment.
+1. [Kubernetes manifests](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/) file: if there is a `manifests.yaml`, `kubernetes.yaml`, or `k8s.yaml` file, Okteto will detect it and run `kubectl apply` to deploy your development environment
+
+You can also explicitly define the location of the Okteto Manifest using the `-f` flag on any Okteto CLI command.
+
+
+## Okteto manifest
+
+The Okteto manifest allows you to provide configuration for building, deploying, and developing your application in a Development Environment. This file is optional if you already have a Docker Compose file for your application. Learn more about the Okteto manifest [here](reference/okteto-manifest.mdx).
+
+### Sample Okteto Manifest
+
+```yaml
+icon: https://apps.okteto.com/movies/icon.png
+build:
+  api:
+    context: .
+deploy:
+  - helm upgrade --install app chart --set image=${OKTETO_BUILD_API_IMAGE}
+dev:
+  api:
+    command: ["bash"]
+    forward:
+      - 8080:8080
+      - 9229:9229
+    sync:
+      - .:/usr/src/app
+```
+
+This example shows how to [build](reference/okteto-manifest.mdx/#build-object-optional) the container image of the **api** microservice, how to [deploy](reference/okteto-manifest.mdx/#deploy-object-optional) the application using its helm chart,
+and how to [develop](reference/okteto-manifest.mdx/#dev-object-optional) on the **api** microservice by synchronizing the local filesystem on the container path `/usr/src/app`.
+If you want to learn more about what all you can configure in this manifest, head over to the [Okteto Manifest Reference](reference/okteto-manifest.mdx).
+
+### Built-in Environment Variables
+
+#### Default Environment Variables
+
+The following environment variables are automatically populated to be referred in your Okteto Manifest or deploy/destroy commands:
+- `OKTETO_DOMAIN`: the domain where Okteto exposes your application endpoints.
+- `OKTETO_NAMESPACE`: the namespace where your application is going to be installed.
+- `OKTETO_USERNAME`: your username in Okteto.
+- `OKTETO_REGISTRY_URL`: the url of the [Okteto Registry](core/components/container-registry.mdx).
+- `OKTETO_GIT_BRANCH`: the name of the Git branch currently being deployed.
+- `OKTETO_GIT_COMMIT`: the SHA1 hash of the last commit of the branch.
+
+#### Built-in Environment Variables for Images stored in the Okteto Registry
+
+You can refer to the images defined in the [build](reference/okteto-manifest.mdx/#build-object-optional) section of the Okteto Manifest using the following environment variables:
+- `OKTETO_BUILD_<image>_IMAGE`: the full image reference
+- `OKTETO_BUILD_<image>_REGISTRY`: the registry URL where the image was pushed
+- `OKTETO_BUILD_<image>_REPOSITORY`: the name of the image that was pushed
+- `OKTETO_BUILD_<image>_SHA`: The latest tag and the SHA of the image
+
+For example, for the following `build` section:
+
+```yaml
+build:
+  hello-world:
+    context: .
+```
+
+Okteto will build a random image tag like `registry.okteto.example.com/cindy/hello-world:f56119a37b`, and you would have the following environment variables available:
+
+- `OKTETO_BUILD_HELLO_WORLD_IMAGE`: registry.okteto.example.com/cindy/hello-world@sha256:xxx
+- `OKTETO_BUILD_HELLO_WORLD_REGISTRY`: registry.okteto.example.com
+- `OKTETO_BUILD_HELLO_WORLD_REPOSITORY`: cindy/hello-world
+- `OKTETO_BUILD_HELLO_WORLD_SHA`: f56119a37b@sha256:xxx
+
+> if an `<image>` name includes the symbol `-`, in the corresponding `OKTETO_BUILD_<image>` environment variables, the symbol `-` will be replaced by `_`.  For example, if `<image>` is `name-with-hyphen`, the environment variable names will start with `$OKTETO_BUILD_NAME_WITH_HYPHEN_`.
+
+#### Built-in Environment Variables for Dependencies
+
+You can refer to the variables defined by your [dependencies](reference/okteto-manifest.mdx/#dependencies-object-optional) using the following environment variables:
+- `OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`: the value of a variable of a dependency.
+
+For example, if you have the following dependency in your Okteto Manifest:
+
+```yaml
+dependencies:
+  database:
+    repository: https://github.com/okteto/my-database
+    variables:
+      USERNAME: okteto
+    wait: true
+```
+
+and the repo https://github.com/okteto/my-database has the following Okteto Manifest:
+
+```yaml
+deploy:
+  - echo "PASSWORD=1234" >> $OKTETO_ENV
+```
+
+You can refer to the variables of https://github.com/okteto/my-database in the `deploy` section of your Okteto Manifest like this:
+
+```yaml
+dependencies:
+  database:
+    repository: https://github.com/okteto/my-database
+    variables:
+      USERNAME: okteto
+    wait: true
+deploy:
+  - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_USERNAME}
+  - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_PASSWORD}
+```
+
+Note that `USERNAME` has an static value, and `PASSWORD` is dynamically generated.
+
+### Built-in Tools When Deploying To Okteto
+
+When deploying your development environment, Okteto executes the sequence of `deploy` commands.
+The commands run in a Debian Linux container with the following tools preinstalled:
+
+- `bash`
+- `cue`
+- `curl`
+- `envsubst`
+- `git`
+- `helm`
+- `kubectl`
+- `kustomize`
+- `make`
+- `okteto`
+- `openssh`
+- `wait-for-it`
+
+You can also configure your own [container image](reference/okteto-manifest.mdx/#deploy-remotely) to use your own tools in your `deploy` commands.
+For example, if you need to invoke terraform commands, you could do:
+
+```yaml
+deploy:
+  image: hashicorp/terraform:1.4
+  commands:
+    - terraform apply -auto-approve
+```

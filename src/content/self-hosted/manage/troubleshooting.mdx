@@ -1,0 +1,57 @@
+---
+title: Troubleshoot your Okteto instance
+description: Questions and answers to common issues when installing or upgrading your Okteto instance
+sidebar_label: Troubleshooting
+id: troubleshooting
+---
+
+## UPGRADE FAILED: “okteto” has no deployed releases
+
+This error will occur on your second install/upgrade if your initial install failed. If the first instal failed, delete the existing install before trying again:
+
+```
+helm uninstall okteto
+```
+
+## Registry pods keep restarting
+
+This can happen when the pods can't read/write from your cloud storage bucket. Double check that the cloud IAM you created has read/write access to the specified bucket.
+
+## Deployment pipelines stay in "progressing" forever
+
+This can happen for several reasons, among others, the installer job couldn't be started due to an error in Kubernetes API, or due to an overload in the cluster.
+In order to find out what the problem is, there's a way to list all the jobs and pods for a specific pipeline.
+
+You need the pipeline name (it is the name displayed on Okteto UI) and the namespace where it is deployed. With that information, you can get jobs and pods running these commands:
+
+```console
+kubectl get jobs -l=dev.okteto.com/pipeline-name=movies -l=dev.okteto.com/pipeline-namespace=cindylopez --namespace=okteto
+```
+
+```console
+kubectl get pods -l=dev.okteto.com/pipeline-name=movies -l=dev.okteto.com/pipeline-namespace=cindylopez --namespace=okteto
+```
+
+## Using a Custom CNI
+
+If you're using a custom CNI on your cluster then there may be some additional configuration needed for webhooks.
+In certain cases the CNI used on the worker nodes is not the same as the CNI used by the control plane and host networking will need to be used for webhooks.
+In addition, the ports may need to be changed to avoid collisions.
+
+The Okteto Webhook is configured by setting`webhook.hostNetwork` to `true`. The ports are set with `webhook.port`.
+More information on the Okteto Webhook configuration can be found [here](reference/helm-chart-values.mdx#webhook).
+
+## Docker Hub credentials misconfiguration
+
+As you can [configure your own Docker Hub account](reference/helm-chart-values.mdx#privateregistry) in Okteto, it could happen that the credentials are not properly set. If that is the case, kubelet won't be able to pull public images from Docker Hub, which can be an important issue in the cluster.
+
+If this ever happens in your cluster, there is a way to fix it:
+- [Update the container image used by the daemonset pods](reference/helm-chart-values.mdx#daemonset). **Important note**, use a container registry different than Docker Hub to pull the image without credential problems. For example, you can use `ghcr.io/okteto/busybox`.
+- Change or remove the credentials for the Docker Hub registry.
+- [Upgrade your cluster](self-hosted/manage/upgrade.mdx) with the new configuration.
+
+After this, the Okteto daemonset will be able to configure the right credentials for Docker Hub. Once you verify everything is working, you can restore the original base image for the Okteto daemonset.
+
+## We are here to help
+
+[Reach out to us](https://community.okteto.com/), we're always happy to help!
