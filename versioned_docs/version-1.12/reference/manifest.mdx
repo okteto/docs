@@ -70,7 +70,7 @@ Each image supports the following fields:
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
 
-Follow this document for a list of [environment variables](cloud/okteto-cli.mdx/#build-environment-variables) available in your deploy commands to refer to the images built in the `build` section of your Okteto Manifest.
+Follow this document for a list of [environment variables](cloud/okteto-cli.mdx#build-environment-variables) available in your deploy commands to refer to the images built in the `build` section of your Okteto Manifest.
 
 > Okteto will automatically add all the build environment variables from all previous images in the dependency chain as build arguments. To refer to them, remember to add the `ARG` instruction on your Dockerfile.
 
@@ -101,7 +101,7 @@ dependencies:
   - https://github.com/okteto/movies-frontend
 ```
 
-Follow this document for a list of [environment variables](cloud/okteto-cli.mdx/#dependencies-environment-variables) available in your deploy commands to refer to `variables` of your `dependencies`.
+Follow this document for a list of [environment variables](cloud/okteto-cli.mdx#dependencies-environment-variables) available in your deploy commands to refer to `variables` of your `dependencies`.
 
 Use `okteto deploy --dependencies` to force the redeployment of your dependencies.
 
@@ -170,7 +170,7 @@ deploy:
     command: echo "$OKTETO_FOLDER" # Prints /app
 ```
 
-Follow this document for a list of [environment variables](cloud/okteto-cli.mdx/#built-in-environment-variables) available in your deploy commands.
+Follow this document for a list of [environment variables](cloud/okteto-cli.mdx#built-in-environment-variables) available in your deploy commands.
 
 #### Deploy with Docker Compose
 
@@ -247,11 +247,11 @@ deploy:
 
 #### Deploy remotely
 
-Using the `--remote` flag lets you run the `okteto deploy` commands directly in your Okteto cluster. 
+Using the `--remote` flag lets you run the `okteto deploy` commands directly in your Okteto cluster.
 
-When executing `okteto deploy` with this flag, Okteto will automatically synchronize your local folder, and then it will execute the `build` and `deploy` sections of the manifest directly in your Okteto cluster, using the image defined in the manifest. 
+When executing `okteto deploy` with this flag, Okteto will automatically synchronize your local folder, and then it will execute the `build` and `deploy` sections of the manifest directly in your Okteto cluster, using the image defined in the manifest.
 
-With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required. 
+With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required.
 
 ```yaml
 deploy:
@@ -260,7 +260,7 @@ deploy:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-If you define an image in the okteto manifest, `okteto deploy` will always run in remote mode.  If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
+If you define an image in the okteto manifest, `okteto deploy` will always run in remote mode. If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
 
 Before the okteto CLI synchronizes your files, it looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `deploy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 
@@ -287,7 +287,7 @@ destroy:
   - terraform destroy --auto-approve
 ```
 
-Follow this document for a [list of variables](cloud/okteto-cli.mdx/#built-in-environment-variables) available in your destroy commands.
+Follow this document for a [list of variables](cloud/okteto-cli.mdx#built-in-environment-variables) available in your destroy commands.
 
 #### Destroy remotely
 
@@ -675,7 +675,6 @@ Allows you to override the [serviceAccount](https://kubernetes.io/docs/tasks/con
 serviceAccount: default
 ```
 
-
 #### services ([object], optional)
 
 A list of services that you want to put on developer mode along your development container.
@@ -692,7 +691,17 @@ dev:
     services:
       - name: worker
         replicas: 2
-        command: ["celery", "worker", "-A", "myproject.celeryconf", "-Q", "default", "-n", "default@%h"]
+        command:
+          [
+            "celery",
+            "worker",
+            "-A",
+            "myproject.celeryconf",
+            "-Q",
+            "default",
+            "-n",
+            "default@%h",
+          ]
         sync:
           - .:/app
 ```
@@ -813,7 +822,7 @@ Sets the working directory of your development container.
 
 ### external (object, optional)
 
-A list of external resources that are part of your development environment.  Use this section for resources that are deployed outside of the okteto cluster, like Cloud resources or dashboards.
+A list of external resources that are part of your development environment. Use this section for resources that are deployed outside of the okteto cluster, like Cloud resources or dashboards.
 
 ```yaml
 external:
@@ -821,16 +830,16 @@ external:
     notes: docs/database.md
     icon: database
     endpoints:
-    - name: db
-      url: https://localhost:3306
+      - name: db
+        url: https://localhost:3306
   functions:
     notes: docs/lambdas.md
     icon: function
     endpoints:
-    - name: data-aggregator
-      url: https://fake-id.lambda-url.us-east-1.on.aws.aggregator
-    - name: data-processor
-      url: https://fake-id.lambda-url.us-east-1.on.aws.processor
+      - name: data-aggregator
+        url: https://fake-id.lambda-url.us-east-1.on.aws.aggregator
+      - name: data-processor
+        url: https://fake-id.lambda-url.us-east-1.on.aws.processor
 ```
 
 #### endpoints ([object], required)
@@ -839,7 +848,7 @@ Endpoints contain information on how to access the external resource.
 
 ##### name (string, required)
 
-The name of the endpoint. 
+The name of the endpoint.
 
 ##### url (string, optional)
 
@@ -860,34 +869,35 @@ external:
     notes: docs/database.md
     icon: database
     endpoints:
-    - name: db
+      - name: db
     # url: is not set because it is dynamically generated in the deploy section.
 ```
 
-If the url value is declared in both places, the one declared in the deploy section will prevail. 
+If the url value is declared in both places, the one declared in the deploy section will prevail.
 
 #### icon (string, optional)
 
- Sets the icon that will be shown in the Okteto UI. The supported values for icons are listed below. If empty, it will default to `default`.
+Sets the icon that will be shown in the Okteto UI. The supported values for icons are listed below. If empty, it will default to `default`.
 
- - `container`
- - `dashboard`
- - `database`
- - `default`
- - `function`
- - `graph`
- - `storage`
- - `launchdarkly`
- - `mongodb`
- - `gcp`
- - `aws`
- - `okteto`
+- `container`
+- `dashboard`
+- `database`
+- `default`
+- `function`
+- `graph`
+- `storage`
+- `launchdarkly`
+- `mongodb`
+- `gcp`
+- `aws`
+- `okteto`
 
 #### notes (string, optional)
 
 A relative path to a markdown file. The contents of the file will be displayed in the Okteto UI. You can use this to describe the resource or share instructions on how to use it.
 
 [GitHub Flavored Markdown (GFM)](https://github.github.com/gfm/) is supported, which adds the following to standard [Markdown](https://www.markdownguide.org/):
+
 - Autolink literals (`www.x.com`)
 - Footnotes (`[^1]`)
 - Strikethrough (`~~stuff~~`)
@@ -900,7 +910,7 @@ Inline HTML markup will be escaped and render as text.
 
 ### forward ([string], optional)
 
-When declaring a global forward, Okteto will automatically handle port collision when two or more `okteto up` sessions are running simultaneously. If the `okteto up` session detects that the port is already in use, and said port is defined as global forward,  `okteto up` will ignore the port collision and continue the `up` sequence. If the port is later available, `okteto up` session will automatically connect to it without interrupting the session.
+When declaring a global forward, Okteto will automatically handle port collision when two or more `okteto up` sessions are running simultaneously. If the `okteto up` session detects that the port is already in use, and said port is defined as global forward, `okteto up` will ignore the port collision and continue the `up` sequence. If the port is later available, `okteto up` session will automatically connect to it without interrupting the session.
 
 Global forward uses the same format than [forward](#forward-string-optional):
 
