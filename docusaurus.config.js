@@ -26,7 +26,7 @@ module.exports = {
       maxHeadingLevel: 4,
     },
     prism: {
-      theme: require("./src/theme/CodeBlock/theme-okteto.js"),
+      theme: require("./src/theme/theme-okteto.js"),
     },
     algolia: {
       appId: "RS9BKUCQCT",
