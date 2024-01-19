@@ -5,37 +5,53 @@ sidebar_label: Amazon EKS
 id: amazon-eks
 ---
 
-This guide will show you how to install Okteto onto Amazon Elastic Kubernetes Service (EKS). We'll be focusing exclusively on EKS in order to keep it as simple as possible.
+This guide will show you how to install Okteto onto Amazon Elastic Kubernetes Service (EKS).
 
-## Requirements
+## Installation Requirements
 
 In order to fully install Okteto, you'll need the following:
 
-- A subdomain to which you can add a wildcard DNS record
+- An Okteto License
 - A Kubernetes cluster
+- Amazon EBS CSI storage driver installed in your Kubernetes cluster
+- A domain and the ability to create wildcard DNS records for it
 - A working installation of kubectl
 - A working installation of Helm v3 (v3.8 or higher)
-- An Okteto License
 
-### Subdomain
+### Getting your Okteto License
+
+A license is mandatory to use Okteto. You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+
+If you are interested in evaluating Okteto, [sign up for our free 30 days trial.  No credit card required](https://www.okteto.com/free-trial/).
+
+### Deploy a Kubernetes cluster
+
+We recommend that you follow Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html).
+Okteto supports Kubernetes versions 1.25 through 1.28.
+
+We recommend the following specs:
+- Kubernetes v1.28
+- A pool with at least 3 `m5.xlarge` nodes
+- 250 GB per disk
+
+> Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
+
+### Install the Amazon EBS CSI storage driver
+
+Install the Amazon EBS CSI storage driver as an EKS add-on so that your cluster knows how to provision storage. Follow the [official documentation here.](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on)
+
+Verify that your storage driver has been installed and is running correctly:
+```
+kubectl get pods -n kube-system | grep ebs-csi
+```
+
+### Domain
 
 You'll need sufficient access to a [subdomain](reference/helm-chart-values.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
 By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
 
 This guide assumes your domain is registered in [Amazon Route53](https://aws.amazon.com/route53/) service.
 You can use any DNS service you prefer, but this guide focuses specifically on Amazon Route53.
-
-### Deploy a Kubernetes cluster
-
-We recommend that you follow Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html).
-Okteto supports Kubernetes versions 1.24 through 1.26.
-
-We recommend the following specs:
-- v1.26
-- A pool with at least 3 `m5.xlarge` nodes
-- 250 GB per disk
-
-> Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
 
 ### Installing kubectl
 
@@ -45,6 +61,8 @@ Follow Amazon's documentation for [installing kubectl](https://docs.aws.amazon.c
 
 Follow the official documentation for [installing the latest release of Helm v3 (v3.8 or higher)](https://helm.sh/docs/intro/install/).
 
+## Installing Okteto
+
 ### Adding the Okteto Helm repository
 
 You'll need to add the Okteto repository to be able to install Okteto:
@@ -53,22 +71,6 @@ You'll need to add the Okteto repository to be able to install Okteto:
 helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
-
-### Configure the Amazon EBS CSI storage driver
-Install the Amazon EBS CSI storage driver as an EKS add-on so that your cluster knows how to provision storage. Follow the [official documentation here.](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on)
-
-Verify that your storage driver has been installed and is running correctly:
-```
-kubectl get pods -n kube-system | grep ebs-csi
-```
-
-### Getting your Okteto License
-
-You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
-
-If you are interested in evaluating Okteto, [sign up for our free 30 days trial.  No credit card required](https://www.okteto.com/free-trial/).
-
-## Installing Okteto
 
 ### Configuring your Okteto instance
 
@@ -148,4 +150,4 @@ After a successful installation, you can access your Okteto instance at `https:/
 
 > **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](admin/dashboard.mdx#installation) before giving your team access to your Okteto instance.
 
-The default installation is all that's required to follow our [getting started](get-started/install-okteto-cli.mdx) guide.
+[Next](get-started/install-okteto-cli.mdx) we're going to install and configure the Okteto CLI with your Okteto instance.
