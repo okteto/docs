@@ -12,7 +12,7 @@ module.exports = {
       "overview",
       {
         "type": "category",
-        "label": "Install Okteto SH",
+        "label": "Install Okteto",
         "items": [
           "get-started/overview",
           {
