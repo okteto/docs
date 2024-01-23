@@ -13,7 +13,7 @@ This tutorial will show you how to develop and debug an ASP.NET application usin
 
 ## Prerequisites
 
-Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our getting started guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
+Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
 
 ## Step 1: Deploy the ASP.NET Sample App
 
@@ -24,16 +24,9 @@ $ git clone https://github.com/okteto/aspnetcore-getting-started
 $ cd aspnetcore-getting-started
 ```
 
-At the root of the directory, you'll find the `okteto.yaml` file. This describes how to [build](reference/okteto-manifest.mdx#build-object-optional) and [deploy](reference/okteto-manifest.mdx#deploy-string-optional) the ASP.NET Sample App.
+At the root of the directory, you'll find the `okteto.yml` file. This file describes how to [deploy](reference/okteto-manifest.mdx#deploy-string-optional) the ASP.NET Sample App.
 
-```
-build:
-  hello-world:
-    image: okteto.dev/aspnet-hello-world:1.0.0
-    context: .
-  hello-world-dev:
-    context: .
-    target: dev
+```yaml
 deploy:
   - kubectl apply -f k8s.yml
 ```
@@ -41,16 +34,11 @@ deploy:
 Deploy your development environment by executing:
 
 ```console
-$ okteto deploy --build
+$ okteto deploy
 ```
 
 ```console
  i  Using cindy @ okteto.example.com as context
- i  Building image for service 'hello-world'
- i  Building the image 'okteto.dev/aspnet-hello-world:1.0.0' in tcp://buildkit.okteto.example.com:1234...
-[+] Building 5.9s (11/11) FINISHED
- ...
- ✓  Image 'registry.okteto.example.com/cindy/aspnet-hello-world:1.0.0' successfully pushed
  i  Running kubectl apply -f k8s.yml
 deployment.apps/hello-world created
 service/hello-world created
@@ -73,10 +61,10 @@ Did you notice that you're accessing your application through an HTTPs endpoint?
 
 The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the ASP.NET Sample App:
 
-```
+```yaml
 dev:
   hello-world:
-    image: ${OKTETO_BUILD_HELLO_WORLD_DEV_IMAGE}
+    image: okteto/aspnetcore-getting-started:dev
     command: bash
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -85,7 +73,7 @@ dev:
 
 The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
 
-- `image`: the image used by the development container. More information on development images [here](deploy/development-environments.mdx) and [dynamic value for the tag](reference/okteto-manifest.mdx#build-object-optional)
+- `image`: the image used by the development container (built from this [Dockerfile](https://github.com/okteto/aspnetcore-getting-started/blob/main/Dockerfile)).
 - `command`: the start command of the development container.
 - `environment`: the environment variables added or overwritten in your development container.
 - `remote`: the local port to use for SSH communication with your development environment.
