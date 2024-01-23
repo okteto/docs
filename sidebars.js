@@ -9,7 +9,7 @@ module.exports = {
   "docs": [
     {
       "Get started": [
-      "overview",
+      "welcome",
       {
         "type": "category",
         "label": "Install Okteto",
@@ -29,7 +29,8 @@ module.exports = {
         ]
       },
       "get-started/install-okteto-cli",
-      "get-started/deploy-first-environment"
+      "get-started/deploy-first-environment",
+      "get-started/onboard-your-app"
     ],
   },
   {
