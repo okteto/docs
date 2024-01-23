@@ -10,12 +10,11 @@ module.exports = {
     {
       "Get started": [
       "overview",
-      "get-started/preparation",
       {
         "type": "category",
         "label": "Install Okteto",
         "items": [
-          "get-started/quickstart-guide",
+          "get-started/overview",
           {
             "type": "category",
             "label": "Cloud provider guides",
@@ -120,7 +119,6 @@ module.exports = {
   },
   {
     "Okteto Self-Hosted": [
-      "self-hosted/overview-self-hosted",
       {
         "type": "category",
         "label": "Manage Okteto",
