@@ -263,7 +263,7 @@ module.exports = {
         fromExtensions: ["html"],
         redirects: [
           {
-            to: "/self-hosted/overview-self-hosted/",
+            to: "/get-started/overview/",
             from: ["/enterprise/dns/", "/self-hosted/install/overview/"],
           },
           {
