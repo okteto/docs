@@ -8,7 +8,7 @@ This repository is the source for https://okteto.com/docs. If you'd like to cont
 
 ### 💻 Develop locally
 
-*You'll need to install `node` 16+ and `yarn` 1.22+ locally in order to be able to build the doc site locally.* 
+*You'll need to install `node` 20+ and `yarn` 1.22+ locally in order to be able to build the doc site locally.* 
 
 
 Clone the repo and then run:
@@ -22,7 +22,7 @@ However, it is possible to build the website locally using okteto itself without
 
 ### 💻 Develop locally (using Okteto)
 
-You can launch a remote Development Environment with [Okteto](https://okteto.com) or any Kubernetes cluster with the Okteto CLI.
+You can launch a remote Development Environment with [Okteto](https://okteto.com) on any Kubernetes cluster with the Okteto CLI.
 
 1. In order to configure Okteto CLI to use Okteto, run the following command at the root (replace the URL with your Okteto instance):
 
