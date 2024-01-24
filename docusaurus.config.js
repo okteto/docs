@@ -168,7 +168,7 @@ module.exports = {
             1.16: {
               label: "1.16",
               path: "1.16",
-              banner: "none",
+              banner: "unmaintained",
             },
             1.15: {
               label: "1.15",
