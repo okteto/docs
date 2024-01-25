@@ -1,0 +1,92 @@
+---
+title: Using the Okteto CLI
+description: Introduction to Okteto CLI
+sidebar_label: Using the Okteto CLI
+id: using-okteto-cli
+---
+
+import Image from "@theme/Image";
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+The Okteto CLI is our [open-source](https://github.com/okteto/okteto) tool that helps you launch development containers anywhere you choose to deploy your application code. The core experience of the Okteto CLI consists of the following:
+
+1. The Okteto CLI
+1. A deployment manifest
+1. A development environment
+1. A development container
+
+## Okteto CLI
+
+The Okteto CLI is the primary way you will interact with your Kubernetes clusters and development environments. There are three ways you can deploy your application code to a development environment using Okteto:
+
+- Deploy your application on an existing cluster you manage
+- Use [Okteto SaaS](https://www.okteto.com/pricing/?plan=SaaS), a single-tenant environment fully managed by Okteto
+- Install and manage [Okteto Self-Hosted](https://www.okteto.com/pricing/) yourself for full control and flexibility
+
+In each of these deployment models you'll need to define and specify a [deployment manifest](#deployment-manifests) for your development environment. We recommend using an [Okteto manifest](reference/okteto-manifest.mdx) for the best experience using our platform.
+
+## Deployment manifests
+
+Using Okteto rquires one of the following deployment manifests so the Okteto CLI knows how to launch a development environment for your application. The Okteto CLI will look for a manifest in the following order:
+
+1. [Okteto manifest](reference/okteto-manifest.mdx) file: if there is an `okteto.yaml` or `.okteto/okteto.yaml` file in your folder, Okteto will use this file to deploy your development environment
+1. [Docker Compose](reference/docker-compose.mdx) file: if there is an `okteto-compose.yaml` or `docker-compose.yaml` file, Okteto will use this file to deploy your development environment
+1. [Helm Chart](https://helm.sh/docs/topics/charts/): if there is a `chart`, `charts`, `helm/chart`, or `helm/charts` directory with a `chart.yaml` file in it, Okteto will detect the chart and run `helm upgrade --install` on it to deploy your development environment
+1. [Kubernetes manifests](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/) folder: if there is a `manifests`, `kubernetes`, or `k8s` folder, Okteto will detect it and run `kubectl apply` to deploy your development environment
+1. [Kubernetes manifests](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/) file: if there is a `manifests.yaml`, `kubernetes.yaml`, or `k8s.yaml` file, Okteto will detect it and run `kubectl apply` to deploy your development environment
+
+### Creating an Okteto manifest
+
+If you do not yet have an Okteto manifest the Okteto CLI will analyze your existing manifests (Helm, Kubernetes, etc.) and help you write one for your application. It will then use this Okteto manifest instead of your existing deployment manifests to spin up your application's development environment.
+
+If you're using a Docker Compose file, then Okteto CLI can directly launch a development environment for your application without generating an Okteto manifest. However, you can still choose to create the Okteto manifest if you want more control over the configuration of your environment.
+
+> Note: You can use the `-f` flag on any Okteto CLI command to explicitly define the location of an Okteto manifest.
+
+## Development environments
+
+When you deploy an application to Okteto we create a development environment for you using your deployment manifest's instructions. A developer environment consists of the various services and components of your application and are represented within the Okteto UI like so:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/okteto-ui-dev-env.png").default}
+    alt="UI showing the movies app dev environment"
+    width="350"
+  />
+</p>
+
+### Built-in Tools When Deploying To Okteto
+
+When deploying your development environment Okteto executes the sequence of `deploy` commands you specify in your Okteto manifest. The commands run in a Debian Linux container with the following tools preinstalled:
+
+- `bash`
+- `cue`
+- `curl`
+- `envsubst`
+- `git`
+- `helm`
+- `kubectl`
+- `kustomize`
+- `make`
+- `okteto`
+- `openssh`
+- `wait-for-it`
+
+You can also configure your own [container image](reference/okteto-manifest.mdx#deploy-remotely) to use your own tools in your `deploy` commands. For example, if you need to invoke terraform commands, you could do:
+
+```yaml
+deploy:
+  image: hashicorp/terraform:1.4
+  commands:
+    - terraform apply -auto-approve
+```
+
+## Additional resources
+
+- [Installation guide](get-started/install-okteto-cli.mdx#installing-okteto-cli)
+- [Okteto CLI Reference](reference/okteto-cli.mdx)
+- [File Synchronization](reference/file-synchronization.mdx)
+- [SSH Server](reference/ssh-server.mdx)
+- [FAQs](reference/faqs.mdx)
+- [Known Issues](reference/known-issues.mdx)

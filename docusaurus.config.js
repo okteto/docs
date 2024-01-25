@@ -154,16 +154,21 @@ module.exports = {
           editUrl: "https://github.com/okteto/docs/edit/main",
           breadcrumbs: false,
           sidebarPath: require.resolve("./sidebars.js"),
-          lastVersion: "1.16",
+          lastVersion: "1.17",
           versions: {
             current: {
+              label: "1.18",
+              path: "1.18",
+            },
+            1.17: {
               label: "1.17",
-              path: "1.17",
+              path: "/",
+              banner: "none",
             },
             1.16: {
               label: "1.16",
-              path: "/",
-              banner: "none",
+              path: "1.16",
+              banner: "unmaintained",
             },
             1.15: {
               label: "1.15",
@@ -258,7 +263,7 @@ module.exports = {
         fromExtensions: ["html"],
         redirects: [
           {
-            to: "/self-hosted/overview-self-hosted/",
+            to: "/get-started/overview/",
             from: ["/enterprise/dns/", "/self-hosted/install/overview/"],
           },
           {
