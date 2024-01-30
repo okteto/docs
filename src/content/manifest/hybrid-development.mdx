@@ -9,7 +9,7 @@ import Image from "@theme/Image";
 
 Okteto offers two different approaches to service development: `sync` or `hybrid` mode. This mode is configured in your Okteto manifest and affects the behavior of [`okteto up`](/reference/okteto-cli.mdx#up).
 
-`Sync` is the default mode and code changes made to the local filesystem are synchronized to the remote development container deployed in the cluster. Alternatively, `hybrid` mode enables you to run the service in development locally while keeping the rest of the application components in the cloud.
+`Sync` is the default mode and code changes made to the local filesystem are synchronized to the remote development container deployed in the cluster. Alternatively, `hybrid` mode enables you to run the service in development locally while keeping the rest of the application components in the cluster.
 
 ### Deciding which mode to use
 
@@ -33,11 +33,11 @@ To allow communication to and from the cluster and your local machine an SSH ser
 
 When using `hybrid` mode the process running locally is designed to run with the same environment as the original service running in the cluster. To achieve this, the following environment variables are added to the local process running the service in `hybrid` mode. This list is ordered from highest to lowest prevalence:
 
-- Environment variables declared in the `dev` section of the manifest. More info about this [here](reference/okteto-manifest.mdx#environment-string-optional)
-- Environment variables defined in the original container spec. More info about this [here](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
-- Environment variables of the configmap associated with the dev environment. More info about this [here](https://kubernetes.io/es/docs/concepts/configuration/configmap/#configmaps-y-pods)
-- Environment variables coming from secrets defined in the original container spec. More info about this [here](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data)
-- Environment variables declared in the image of the original container. More info about this [here](https://kubernetes.io/docs/concepts/containers/#container-images)
+- Environment variables defined in the [environment](reference/okteto-manifest.mdx#environment-string-optional) of the development container
+- Environment variables defined in the original [container spec](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
+- Environment variables coming from [configmaps](https://kubernetes.io/es/docs/concepts/configuration/configmap/#configmaps-y-pods) defined in the original container spec
+- Environment variables coming from [secrets](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data) defined in the original container spec
+- Environment variables defined in the [container image](https://kubernetes.io/docs/concepts/containers/#container-images)
 
 ### How to develop in hybrid mode
 
@@ -58,3 +58,8 @@ dev:
 In this example we have configured the `frontend` service to use `mode: hybrid`. This means Okteto will redirect requests to the frontend service in the cluster to your local machine.
 
 Okteto will execute (locally) the command defined in the `command` field and in the directory specified in `workdir`. To simulate the same environment as the original container, certain environment variables are autoinjected into the process running locally. More about which environment variables are added to the local process [here](#how-hybrid-development-works). Additionally, anything exposed locally on port `8080` will be exposed on port `3000` of the development container. This makes it possible for other components running on the cluster to access the local service as if it were running remotely in the cluster.
+
+You can find full samples of hybrid mode in the following links:
+
+- [Java development](https://github.com/okteto/microservices-demo/tree/hybrid#hybrid-mode)
+- [Frontend development](https://github.com/okteto/movies-with-helm/tree/hybrid#hybrid-mode)
