@@ -1,0 +1,72 @@
+---
+title: Build your container images with Okteto
+description: In this section, we'll see how you can build your container images with Okteto
+sidebar_label: Build
+id: build
+---
+
+The Movies App is using pre-built images to deploy the Development Environment.
+Let's change that, to make it possible to deploy the latest bits of your application.
+
+To instruct Okteto to build your images, add the following content to your `okteto.yml` file:
+
+```yaml
+build:
+  api:
+    context: api
+  frontend:
+    context: frontend
+```
+
+And build your images with `okteto build`:
+
+```console
+$ okteto build
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.sample.com:443...
+ ...
+ ✓  Image 'registry.okteto.sample.com/cindylopez/movies-with-helm-api:okteto' successfully pushed
+ i  Building 'frontend/Dockerfile' in tcp://buildkit.okteto.sample.com:443...
+ ...
+ ✓  Image 'registry.okteto.sample.com/cindylopez/movies-with-helm-frontend:okteto' successfully pushed
+```
+
+Finally, update your `deploy` section in the `okteto.yml` to use these images in the helm installation:
+
+```yaml
+deploy:
+  - helm upgrade --install movies chart
+    --set api.image=${OKTETO_BUILD_API_IMAGE}
+    --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+```
+
+And run `okteto deploy` to upgrade your applications with the images built by Okteto.
+
+## Configure an Okteto Variable for a database password
+
+The file `chart/values.yaml` has a password hardcoded. This is not a good security practice :-)
+
+Luckily, [Okteto Variables](admin/dashboard.mdx/#variables) can be used to inject sensitive information at runtime in your deploy commands.
+
+Create an Okteto Variable called `MONGODB_PASSWORD` from the [Okteto Admin Dashboard](admin/dashboard.mdx/#variables), and use it this way in your `okteto.yml` file to configure the MongoDB password:
+
+```yaml
+deploy:
+  - helm upgrade --install movies chart
+    --set api.image=${OKTETO_BUILD_API_IMAGE}
+    --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    --set mongodb.password=${MONGODB_PASSWORD}
+```
+
+## Next steps
+
+Congratulations! You successfully onboarded your first application to Okteto.
+
+From here, we recommend:
+
+- Check our samples for [ASP.NET](guides/samples/aspnetcore.mdx), [Go](guides/samples/golang.mdx), [Java](guides/samples/java.mdx), [Node.js](guides/samples/node.mdx), [PHP](guides/samples/php.mdx), [Python](guides/samples/python.mdx) or [Ruby](guides/samples/ruby.mdx) to configure your Development Containers
+- Learn about [Okteto Dependencies](reference/okteto-manifest/#dependencies-string-optional) to deploy multiple repositories in your Development Environment
+- Read about [Okteto Preview Environments](preview/overview.mdx)
