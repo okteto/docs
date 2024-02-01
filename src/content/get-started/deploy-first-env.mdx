@@ -1,24 +1,23 @@
 ---
 title: Development Environments
 description: In this section, we'll see how you can start using your Development Environment.
-sidebar_label: Deploy your first environment
+sidebar_label: Your first environment
 id: deploy-first-environment
 ---
 
 import Image from "@theme/Image";
-import Tabs from "@theme/Tabs";
-import TabItem from "@theme/TabItem";
 
-We configured Okteto CLI to use the Okteto platform in the [previous section](get-started/install-okteto-cli.mdx). In this section, we'll do the fun part: work on our application in our Okteto Development Environment.
+You configured the Okteto CLI to use your Okteto cluster in the [previous section](get-started/install-okteto-cli.mdx). In this section, you'll do the fun part: work on your application in a Development Environment.
 
 ## One Command To Rule Them All
 
 `okteto up` is the focal point of the Okteto CLI experience and is a big part of what makes Okteto so easy to use.
 
-In this guide we'll be fixing a bug in our sample Movies application. The application consists of:
+In this guide you'll be fixing a bug in the Movies app. The application consists of:
 
 - a React frontend
 - a Node.js backend API
+- a MongoDB database
 
 The frontend uses the REST endpoints of the backend API and loads two different lists of movies based on its response. Ideally, the application looks like this:
 
@@ -30,65 +29,22 @@ The frontend uses the REST endpoints of the backend API and loads two different 
   />
 </p>
 
-But there is a bug in the backend code we need to fix to get to this working state 🙂
+But there is a bug in the backend code you need to fix to get to this working state 🙂. Let's fix it using an Okteto Development Environment.
 
-We'll be using two different versions of this Movies application to demonstrate this. One [using Docker Compose](https://github.com/okteto/movies-with-compose) and one [using Helm charts](https://github.com/okteto/movies-with-helm) to deploy the application.
-
-<Tabs>
-<TabItem value="docker" label="Movies App with Docker Compose" default>
-
-```console
-$ git clone https://github.com/okteto/movies-with-compose
-$ cd movies-with-compose
-```
-
-```console
-$ okteto up
-```
-
-Since we already have a [Docker compose file](https://github.com/okteto/movies-with-compose/blob/main/docker-compose.yml), running `okteto up` should show Okteto CLI building the required Docker images for your microservices.
-
-When it's done building the images, it will start deploying your application to the Okteto platform. You should see the deployed endpoints as part of the output in the CLI:
-
-```console
- ✓  Endpoint 'movies' created
- ✓  Volume 'data' created
- ✓  Service 'frontend' created
- ✓  Service 'mongodb' created
- ✓  Service 'api' created
- ✓  Service 'init' created
- ✓  Service 'movies' created
- ✓  Compose 'movies-with-compose' successfully deployed
- i  Endpoints available:
-  - https://movies-with-compose-cindylopez.okteto.example.com/
-```
-
-The deployed endpoint is also shown in the Okteto dashboard.
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/compose-endpoints.png").default}
-    alt="UI showing the movies app"
-    width="850"
-  />
-</p>
-
-</TabItem>
-
-<TabItem value="helm" label="Movies App with Helm">
+Start by cloning the Movies app repository:
 
 ```console
 $ git clone https://github.com/okteto/movies-with-helm
 $ cd movies-with-helm
 ```
 
+Since the repo already has an [Okteto manifest](https://github.com/okteto/movies-with-helm/blob/main/okteto.yml), running `okteto up` will start your Development Environment:
+
 ```console
 $ okteto up
 ```
 
-Since we already have an [Okteto manifest](https://github.com/okteto/movies-with-helm/blob/main/okteto.yml), running `okteto up` should show Okteto CLI building the required Docker images for your microservices.
-
-When it's done building the images, it will start deploying your application to the Okteto platform. You should see the deployed endpoints as part of the output in the CLI:
+You should see the deployed endpoints as part of the output in the CLI:
 
 ```console
 Release "movies" does not exist. Installing it now.
@@ -105,19 +61,15 @@ Success! Your application will be available shortly.
   - https://movies-cindylopez.okteto.example.com/api
 ```
 
-These endpoints are also shown in the Okteto dashboard:
+These endpoints are also shown in the Okteto UI:
 
 <p align="center">
   <Image
     src={require("@site/static/img/next-endpoints.png").default}
-    alt="UI showing the movies app"
+    alt="UI showing the Movies app"
     width="850"
   />
 </p>
-
-</TabItem>
-
-</Tabs>
 
 Next, a prompt will ask for the microservice you want to develop.
 
@@ -128,7 +80,7 @@ Next, a prompt will ask for the microservice you want to develop.
     frontend
 ```
 
-Let's go with `api` because we know there's a bug there we need to fix 🙂
+Let's go with `api` because you know there's a bug there you need to fix 🙂
 
 ```console
  ✓  Development container 'api' selected
@@ -136,7 +88,7 @@ Let's go with `api` because we know there's a bug there we need to fix 🙂
  ✓  Images successfully pulled
  ✓  Files synchronized
     Context:   okteto.example.com
-    Namespace: cindylopezlopez
+    Namespace: cindylopez
     Name:      api
     Forward:   9229 -> 9229
 
@@ -150,7 +102,7 @@ $ nodemon server.js
 Server running on port 8080.
 ```
 
-You should be able to view your application when you visit this endpoint. Behind the scenes, the Development Environment in Okteto will synchronize your changes every time you save them locally.
+You should be able to view your application when you visit this endpoint. Behind the scenes, Okteto will synchronize your changes to your Development Environment every time you save them locally.
 
 ## Development Time!
 
@@ -159,7 +111,7 @@ Visiting the frontend endpoint for the Movies app, something doesn't look right 
 <p align="center">
   <Image
     src={require("@site/static/img/next-ui-movies.png").default}
-    alt="UI showing the movies app"
+    alt="UI showing the Movies app"
     width="850"
   />
 </p>
@@ -172,7 +124,8 @@ Open your favorite IDE on your local machine and edit line 43 in `/api/server.js
   db.collection('watching').find().toArray( (err, results) =>{
 ```
 
-Now save your changes and refresh the browser. Okteto CLI will automatically synchronize your changes to your development environment. Take a look at the development environment shell and notice how the changes are detected by [nodemon](https://www.npmjs.com/package/nodemon) and automatically hot reloaded.
+Now save your changes. Okteto will automatically synchronize your changes to your Development Environment.
+Take a look at the shell and notice how the changes are detected by [nodemon](https://www.npmjs.com/package/nodemon) and automatically hot reloaded.
 
 ```console
 [nodemon] restarting due to changes...
@@ -180,21 +133,22 @@ Now save your changes and refresh the browser. Okteto CLI will automatically syn
 Server running on port 8080.
 ```
 
-Okteto's Development Environment immediately picks up the changes you made on the deployed version of your application. You can see your changes by simply refreshing the browser. You don't need to wait for a CI pipeline to complete before you can validate the changes you've made. This saves a ton of time.
+Great, you can see your changes by simply refreshing the browser. This saves a ton of time!
 
 <p align="center">
   <Image
     src={require("@site/static/img/next-ui-movies-fixed.png").default}
-    alt="UI showing the movies app"
+    alt="UI showing the Movies app"
     width="850"
   />
 </p>
 
 ## Next Steps
 
-Congratulations! You successfully developed your first application in a Remote Development Environment.
+Congratulations! You successfully developed your first application in an Okteto Development Environment.
 
-In this Getting Started guide, we learned how to install Okteto CLI and configure it with the Okteto platform. Then we launched a Development Environment using a single command: `okteto up`. After that, we fixed a bug in our Movies application using the Development Environment we just set up.
+In this Getting Started guide, we launched an Okteto Development Environment using a single command: `okteto up`.
+After that, we fixed a bug in our Movies app taking advantage of a blazing fast feedback loop 🚀
 
 From here, we recommend:
 
