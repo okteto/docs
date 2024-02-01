@@ -1,8 +1,123 @@
 ---
-title: Deploy dependencies as part of your environment
+title: Add dependencies to your Development Environment
 description: In this section, we'll see how you can deploy dependencies in other repositories
 sidebar_label: Dependencies
 id: dependencies
 ---
 
-TBD
+import Image from "@theme/Image";
+
+Our app requires an instance of MongoDB to be running in our Development Environment.
+
+You could deploy MongoDB as part of your `deploy` section in your `okteto.yaml` file, but in this case, you are going to use the repo https://github.com/okteto/mongodb, which is already pre-configured with a Docker Compose file to deploy MongoDB in Okteto.
+
+To instruct Okteto to deploy this repository in your Development Environment, add the following section to your `okteto.yaml` file:
+
+```yaml
+dependencies:
+  mongodb:
+    repository: https://github.com/okteto/mongodb
+    wait: true
+```
+
+Deploy your app to apply the changes:
+
+```console
+$ okteto deploy
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Deploying dependency 'mongodb'
+ ...
+ ✓  Repository 'mongodb' successfully deployed
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindylopez
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindylopez.okteto.example.com
+  - https://movies-cindylopez.okteto.example.com/api
+ ✓  Development environment 'movies-onboard' successfully deployed
+```
+
+You can see that MongoDB is now running from the Okteto UI:
+
+<Image
+  src={require("@site/static/img/movies-onboard-mongodb-ui.png").default}
+  alt="Movies Onboard MongoDB"
+  width="850"
+/>
+
+But looks like the **api** Deployment is still unable to connect to MongoDB...
+
+Note that the file [chart/values.yaml](https://github.com/okteto/movies-onboard/blob/onboarded/chart/values.yaml#L13) has a password hardcoded.
+This won't probably be compliant with your security practices...
+
+Also, the default MongoDB password is `password` instead of `change-me!`. Luckily, you can pass runtime configuration to your Development Environment using [Okteto Variables](manifest/okteto-variables.mdx).
+For example, you can define a local environment variable to configure the MongoDB password:
+
+```console
+export MONGODB_PASSWORD=password
+```
+
+Or even better, create an [Okteto Admin Variable](admin/dashboard.mdx/#variables) to make this variable available across all your Development Environments in Okteto.
+
+Once you have done this, update your `okteto.yaml` file to configure the MongoDB password using this environment variable.
+You can also enable the `seed` job to load the MongoDB instance with initial data:
+
+```yaml
+deploy:
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set mongodb.password=${MONGODB_PASSWORD} \
+          --set seed.enabled=true
+```
+
+> Running seed data scripts can be slow with real world databases. For those scenarios, you can use our [Data Cloning](core/components/use-volume-snapshots.mdx) feature to clone this data from an existing database in seconds 🚀
+
+Deploy your app to apply the changes:
+
+```console
+$ okteto deploy
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindylopez
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindylopez.okteto.example.com
+  - https://movies-cindylopez.okteto.example.com/api
+ ✓  Development environment 'movies-onboard' successfully deployed
+```
+
+Finally, you can access the endpoint of your Movies app to see something like this:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/next-ui-movies.png").default}
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+But the Movies app is using pre-built images to deploy your Development Environment.
+
+This is not ideal since you won't be able to deploy your local changes, let's fix that in the [next step](onboard-your-app/build.mdx) of this guide!

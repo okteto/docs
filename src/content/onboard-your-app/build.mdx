@@ -5,10 +5,10 @@ sidebar_label: Build
 id: build
 ---
 
-The Movies App is using pre-built images to deploy the Development Environment.
-Let's change that, to make it possible to deploy the latest bits of your application.
+The Movies app is using pre-built images to deploy your Development Environment.
+In this step you will use Okteto to build these images on demand in order to deploy the latest bits of your application.
 
-To instruct Okteto to build your images, add the following content to your `okteto.yml` file:
+To instruct Okteto to build your images, add the following content to your `okteto.yaml` file:
 
 ```yaml
 build:
@@ -34,39 +34,48 @@ $ okteto build
  ✓  Image 'registry.okteto.sample.com/cindylopez/movies-with-helm-frontend:okteto' successfully pushed
 ```
 
-Finally, update your `deploy` section in the `okteto.yml` to use these images in the helm installation:
+Finally, update your `deploy` section in your `okteto.yaml` file to use these images in the helm installation:
 
 ```yaml
 deploy:
-  - helm upgrade --install movies chart
-    --set api.image=${OKTETO_BUILD_API_IMAGE}
-    --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set mongodb.password=${MONGODB_PASSWORD} \
+          --set seed.enabled=true \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-And run `okteto deploy` to upgrade your applications with the images built by Okteto.
+> More information about the `OKTETO_BUILD_XXX` environment variables on [this link](manifest/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
 
-## Configure an Okteto Variable for a database password
+Deploy your app to apply the changes:
 
-The file `chart/values.yaml` has a password hardcoded. This is not a good security practice :-)
-
-Luckily, [Okteto Variables](admin/dashboard.mdx/#variables) can be used to inject sensitive information at runtime in your deploy commands.
-
-Create an Okteto Variable called `MONGODB_PASSWORD` from the [Okteto Admin Dashboard](admin/dashboard.mdx/#variables), and use it this way in your `okteto.yml` file to configure the MongoDB password:
-
-```yaml
-deploy:
-  - helm upgrade --install movies chart
-    --set api.image=${OKTETO_BUILD_API_IMAGE}
-    --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
-    --set mongodb.password=${MONGODB_PASSWORD}
+```console
+$ okteto deploy
 ```
 
-## Next steps
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindylopez
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindylopez.okteto.example.com
+  - https://movies-cindylopez.okteto.example.com/api
+ ✓  Development environment 'movies-onboard' successfully deployed
+```
 
-Congratulations! You successfully onboarded your first application to Okteto.
+Great, now you local changes are applied to your Development Environment 🚀
 
-From here, we recommend:
+This flow is great, but building and redeploying you application delays your feedback loop while you are iterating on a feature.
 
-- Check our samples for [ASP.NET](guides/samples/aspnetcore.mdx), [Go](guides/samples/golang.mdx), [Java](guides/samples/java.mdx), [Node.js](guides/samples/node.mdx), [PHP](guides/samples/php.mdx), [Python](guides/samples/python.mdx) or [Ruby](guides/samples/ruby.mdx) to configure your Development Containers
-- Learn about [Okteto Dependencies](reference/okteto-manifest/#dependencies-string-optional) to deploy multiple repositories in your Development Environment
-- Read about [Okteto Preview Environments](preview/overview.mdx)
+Let's fix that by using Development Containers in the [next step](onboard-your-app/dev.mdx) of this guide!
