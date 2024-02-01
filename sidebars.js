@@ -10,27 +10,10 @@ module.exports = {
     {
       "Get started": [
       "welcome",
-      {
-        "type": "category",
-        "label": "Install Okteto",
-        "items": [
-          "get-started/overview",
-          {
-            "type": "category",
-            "label": "Cloud provider guides",
-            "items": [
-              "get-started/cloud-provider-guides/amazon-eks",
-              "get-started/cloud-provider-guides/civo",
-              "get-started/cloud-provider-guides/digitalocean-doks",
-              "get-started/cloud-provider-guides/google-gke",
-              "get-started/cloud-provider-guides/microsoft-aks"
-            ]
-          },
-        ]
-      },
-      "get-started/install-okteto-cli",
+      "get-started/start-trial",
+      "get-started/quickstart-guide",
       "get-started/deploy-first-environment",
-      "get-started/onboard-your-app"
+      "get-started/next-steps"
     ],
   },
   {
@@ -120,6 +103,18 @@ module.exports = {
   },
   {
     "Okteto Self-Hosted": [
+      "get-started/overview",
+      {
+        "type": "category",
+        "label": "Cloud provider guides",
+        "items": [
+          "get-started/cloud-provider-guides/amazon-eks",
+          "get-started/cloud-provider-guides/civo",
+          "get-started/cloud-provider-guides/digitalocean-doks",
+          "get-started/cloud-provider-guides/google-gke",
+          "get-started/cloud-provider-guides/microsoft-aks"
+        ]
+      },
       {
         "type": "category",
         "label": "Manage Okteto",
