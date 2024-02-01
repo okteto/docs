@@ -305,6 +305,12 @@ module.exports = {
               "/administration/private-repositories/ssh-key/",
             ],
           },
+          {
+            to: "manifest/index/",
+            from: [
+              "/manifest/overview-manifest/"
+            ]
+          }
         ],
       },
     ],
