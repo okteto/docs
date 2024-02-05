@@ -20,6 +20,7 @@ module.exports = {
             {
               type: "category",
               label: "Cloud provider guides",
+              link: { type: 'doc', id: 'get-started/cloud-provider-guides/index' },
               items: [
                 "get-started/cloud-provider-guides/amazon-eks",
                 "get-started/cloud-provider-guides/civo",
