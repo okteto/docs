@@ -83,6 +83,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Samples',
+          link: { type: 'doc', id: 'guides/samples/more' },
           items: [
             'guides/samples/aspnetcore',
             'guides/samples/golang',
@@ -91,7 +92,6 @@ module.exports = {
             'guides/samples/php',
             'guides/samples/python',
             'guides/samples/ruby',
-            'guides/samples/more',
           ],
         },
       ],
