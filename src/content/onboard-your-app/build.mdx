@@ -1,0 +1,79 @@
+---
+title: Build your container images with Okteto
+description: In this section, we'll see how you can build your container images with Okteto
+sidebar_label: Build
+id: build
+---
+
+The Movies app is using pre-built images to deploy your Development Environment.
+In this step you will use Okteto to build these images on demand in order to deploy the latest bits of your application.
+
+To instruct Okteto to build your images, add the following content to your `okteto.yaml` file:
+
+```yaml
+build:
+  api:
+    context: api
+  frontend:
+    context: frontend
+```
+
+And build your images with `okteto build`:
+
+```console
+$ okteto build
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.sample.com:443...
+ ...
+ ✓  Image 'registry.okteto.sample.com/cindylopez/movies-with-helm-api:okteto' successfully pushed
+ i  Building 'frontend/Dockerfile' in tcp://buildkit.okteto.sample.com:443...
+ ...
+ ✓  Image 'registry.okteto.sample.com/cindylopez/movies-with-helm-frontend:okteto' successfully pushed
+```
+
+Finally, update your `deploy` section in your `okteto.yaml` file to use these images in the helm installation:
+
+```yaml
+deploy:
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set mongodb.password=${MONGODB_PASSWORD} \
+          --set seed.enabled=true \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+```
+
+> More information about the `OKTETO_BUILD_XXX` environment variables on [this link](manifest/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+Deploy your app to apply the changes:
+
+```console
+$ okteto deploy
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindylopez
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindylopez.okteto.example.com
+  - https://movies-cindylopez.okteto.example.com/api
+ ✓  Development environment 'movies-onboard' successfully deployed
+```
+
+Great, now you local changes are applied to your Development Environment 🚀
+
+It's time to summarize what you have accomplished on this guide and define the [Next Steps](onboard-your-app/next-steps.mdx) in your Okteto journey!

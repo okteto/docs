@@ -1,0 +1,107 @@
+---
+title: Expose your application using Okteto Endpoints
+description: In this section, we'll see how to expose your app endpoints
+sidebar_label: Endpoints
+id: endpoints
+---
+
+import Image from "@theme/Image";
+
+In this step you will learn how to expose your application using Okteto Endpoints.
+
+In order to create endpoints for your application, you need to add the following annotation to your [Ingress](https://github.com/okteto/movies-onboard/blob/main/chart/templates/ingress.yaml) resource:
+
+```yaml
+annotations:
+  dev.okteto.com/generate-host: "true"
+```
+
+The full Ingress object will look like this:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+This instructs Okteto to create an endpoint in the [Okteto Subdomain](reference/helm-chart-values.mdx#subdomain).
+For example, if your Ingress name is `movies` in the `cindylopez` namespace, your app will be accessible at https://movies-cindylopez.okteto.example.com if your Okteto domain is okteto.example.com.
+
+Deploy your app to apply the changes:
+
+```console
+$ okteto deploy
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindylopez
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindylopez.okteto.example.com
+  - https://movies-cindylopez.okteto.example.com/api
+ ✓  Development environment 'movies-onboard' successfully deployed
+```
+
+Notice how the endpoints are shown by the Okteto CLI. You can also see the endpoints from the Okteto UI:
+
+<Image
+  src={require("@site/static/img/movies-onboard-endpoints-ui.png").default}
+  alt="Movies Onboard Endpoints"
+  width="850"
+/>
+
+> More information about how to configure Okteto Endpoints is available [on this link](core/ingress/automatic-ssl.mdx).
+
+But looks like there is an issue with our app. If you check the logs of the **api** Kubernetes Deployment:
+
+```console
+$ okteto logs api
+```
+
+```
+ i  Using cindylopez @ okteto.example.com as context
++ api-646fdf88d6-267sn › api
+api-646fdf88d6-267sn api yarn run v1.22.19
+api-646fdf88d6-267sn api $ nodemon server.js
+api-646fdf88d6-267sn api [nodemon] 2.0.4
+api-646fdf88d6-267sn api [nodemon] to restart at any time, enter `rs`
+api-646fdf88d6-267sn api [nodemon] watching path(s): *.*
+api-646fdf88d6-267sn api [nodemon] watching extensions: js,mjs,json
+api-646fdf88d6-267sn api [nodemon] starting `node server.js`
+api-646fdf88d6-267sn api Error connecting, retrying in 1 sec: MongoServerSelectionError: getaddrinfo ENOTFOUND mongodb
+api-646fdf88d6-267sn api Error connecting, retrying in 1 sec: MongoServerSelectionError: getaddrinfo ENOTFOUND mongodb
+...
+```
+
+You can see that the **api** is failing to connect to MongoDB... Let's fix that in the [next step](onboard-your-app/dependencies.mdx) of this guide!

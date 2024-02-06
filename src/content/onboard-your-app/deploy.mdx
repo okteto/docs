@@ -1,0 +1,100 @@
+---
+title: Deploy your application in a Development Environment
+description: In this section, we'll see how you can configure Okteto to deploy your app
+sidebar_label: Deploy
+id: deploy
+---
+
+import Image from "@theme/Image";
+
+For this tutorial, you will be using a variation of our Movies app, but removing all the Okteto specific configuration first.
+
+Start by cloning Movies app repo:
+
+```console
+$ git clone https://github.com/okteto/movies-onboard
+$ cd movies-onboard
+```
+
+> The branch `onboarded` of the https://github.com/okteto/movies-onboard repo contains all the changes you will be doing through this tutorial. It can be useful to visualize all the changes you finish the tutorial.
+
+The Movies app comes with a Helm chart to deploy the application on Kubernetes.
+To instruct Okteto to deploy this application, create an `okteto.yaml` file at the root of the repo with the following content:
+
+```yaml
+deploy:
+  commands:
+    - name: Helm Install
+      command: helm upgrade --install movies chart
+```
+
+Now deploy your app with Okteto running `okteto deploy`:
+
+```console
+$ okteto deploy
+```
+
+```console
+ i  Using cindylopez @ okteto.sample.com as context
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindylopez
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  There are no available endpoints for 'movies-onboard'.
+    Follow this link to know more about how to create public endpoints for your application:
+    https://www.okteto.com/docs/core/ingress/automatic-ssl
+ ✓  Development environment 'movies-onboard' successfully deployed
+```
+
+Check that you app is up un running by login into the Okteto UI:
+
+<Image
+  src={require("@site/static/img/movies-onboard-deploy-ui.png").default}
+  alt="Movies Onboard Deploy"
+  width="850"
+/>
+
+Or by configuring your Kubernetes credentials to access your Okteto Namespace:
+
+```console
+$ okteto kubeconfig
+```
+
+```
+Updated kubernetes context 'okteto_example_com/cindylopez' in '[/Users/cindylopez/.kube/config]'
+```
+
+And using `kubectl` to visualize your Okteto Namespace:
+
+```console
+$ kubectl get all
+```
+
+```
+pod/api-646fdf88d6-267sn       1/1     Running   0          10m
+pod/frontend-54d9d5d87-2tq6x   1/1     Running   0          10m
+
+NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/api        ClusterIP   10.155.253.185   <none>        8080/TCP   10m
+service/frontend   ClusterIP   10.155.41.122    <none>        80/TCP     10m
+
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/api        1/1     1            1           10m
+deployment.apps/frontend   1/1     1            1           10m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/api-646fdf88d6       1         1         1       10m
+replicaset.apps/frontend-54d9d5d87   1         1         1       10m
+```
+
+Awesome, you have deployed your first Development Environment 🚀
+
+But note that the Okteto CLI is informing that `There are no available endpoints for 'movies-onboard'`.
+
+Let's fix that in the [next step](onboard-your-app/endpoints.mdx) of this guide!

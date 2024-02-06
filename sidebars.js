@@ -19,6 +19,19 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'Onboard your app',
+      link: { type: 'doc', id: 'onboard-your-app/index' },
+      items: [
+        "onboard-your-app/deploy",
+        "onboard-your-app/endpoints",
+        "onboard-your-app/dependencies",
+        "onboard-your-app/build",
+        "onboard-your-app/dev",
+        "onboard-your-app/next-steps",
+      ],
+    },
+    {
+      type: 'category',
       label: 'Core concepts',
       items: [
         'core/using-okteto-cli',

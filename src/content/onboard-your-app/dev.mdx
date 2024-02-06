@@ -1,0 +1,107 @@
+---
+title: Configure a Development Container to iterate on your app
+description: In this section, we'll see how you can create Development Containers
+sidebar_label: Dev
+id: dev
+---
+
+import Image from "@theme/Image";
+
+In this step we you configure a Development Container to iterate on your app and fix a bug.
+
+To configure a Development Container for the **api** Kubernetes Deployment, add the following section to your `okteto.yaml` file:
+
+```yaml
+dev:
+  api:
+    command: yarn start
+    sync:
+      - api:/src
+    forward:
+      - 9229:9229
+```
+
+The `api` key matches the name of the **api** Kubernetes Deployment. The meaning of the rest of fields is:
+
+- `command`: the start command of the Development Container.
+- `sync`: the folders that will be synchronized between your local machine and the Development Container.
+- `forward`: a list of ports to forward from your Development Container to localhost in your machine. This is needed to configure the Node debugger.
+
+You can fine tune the synchronization protocol by adding a `.stignore` file to indicate which files shouldn't be synchronized to your Development Container.
+For example, in this case you add add a `.stignore` file with this content in the `api` subfolder:
+
+```
+.git
+/node_modules
+```
+
+This is useful to avoid synchronizing binaries, build artifacts, git metadata, or dependencies like the `node_modules` folder.
+
+Next, execute the following command to activate your Development Container:
+
+```console
+$ okteto up
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Context:   okteto.example.com
+    Namespace: cindylopezlopez
+    Name:      api
+    Forward:   9229 -> 9229
+
+yarn run v1.22.19
+$ nodemon server.js
+[nodemon] 2.0.4
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,json
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+Visiting the frontend endpoint for the Movies app, something doesn't look right here, does it?
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/next-ui-movies.png").default}
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+The list of movies is the same as Cindy's continue watching list. Let's fix that.
+
+Open your local IDE and edit line 43 in `/api/server.js` to:
+
+```javascript
+  db.collection('watching').find().toArray( (err, results) =>{
+```
+
+Now save your changes. Okteto will automatically synchronize your changes to your Development Container.
+Take a look at your shell and notice how the changes are detected by [nodemon](https://www.npmjs.com/package/nodemon) and automatically hot reloaded.
+
+```console
+[nodemon] restarting due to changes...
+[nodemon] starting `node server.js`
+Server running on port 8080.
+```
+
+You can see your changes by simply refreshing the browser:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/next-ui-movies-fixed.png").default}
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+This feedback loop is incredible fast and saves a lot of of time while you are developing 🚀
+
+Finaly, it's time to summarize what you have accomplished on this guide and define the [Next Steps](onboard-your-app/next-steps.mdx) in your Okteto journey!
+
+
+
