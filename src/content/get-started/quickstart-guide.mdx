@@ -1,32 +1,58 @@
 ---
-title: Deploy your Okteto instance
+title: Quickstart installation guide
 description: How to Deploy Okteto in your Kubernetes cluster
 id: quickstart-guide
-sidebar_label: Quickstart guide
+sidebar_label: Quickstart installation guide
 ---
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+## Installation Requirements
 
-## Configuration file
+In order to fully install Okteto in your Kubernetes cluster, you will need the following:
 
-Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto. This guide will walk you through the default installation. A complete list of configuration options is [available here](reference/helm-chart-values.mdx).
+- An Okteto License
+- A Kubernetes cluster
+- A working installation of kubectl
+- A working installation of Helm v3 (v3.8 or higher)
 
-You can use [this sample configuration file](https://www.okteto.com/docs/self-hosted/install/config.yaml) as a starting point. The different configuration settings are explained below.
+#### Getting your Okteto License
 
-### License
+If you haven't done it yet, follow this doc to obtain your Okteto License.
 
-You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+#### Kubernetes cluster
 
-If you are interested in evaluating Okteto, [sign up for our free 30 days trial.  No credit card required](https://www.okteto.com/free-trial/).
+The default installation guide works on any Kubernetes cluster, all the way from local distibutions like Minikube or KinD, to cloud provider services like EKS, GKE, AKS, Civo or DigitalOcean.
+
+Make sure your current Kubernetes context is pointing to the cluster where you want to install Okteto.
+
+#### Installing kubectl
+
+Follow the official documentation for [installing kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Once installed, configure `kubectl` to [talk to your new cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#generate_kubeconfig_entry).
+
+#### Installing Helm v3 (v3.8 or higher)
+
+Follow the official documentation for [installing the latest release of Helm v3 (v3.8 or higher)](https://helm.sh/docs/intro/install/).
+
+
+## Deploying Okteto
+
+#### Configuration file
+
+Before running `helm install`, we recommend that you create a yaml configuration file with your choices about how to install Okteto.
+This guide will walk you through the default installation. A complete list of configuration options is [available here](reference/helm-chart-values.mdx).
+
+You can use [this sample configuration file](https://www.okteto.com/docs/self-hosted/install/config.yaml) as a starting point.
+
+Start by adding your license to this configuration file:
 
 ```yaml
-license: XXXXX
+license: <<your-okteto-license>>
 ```
 
-## Deploy the Okteto Chart
+Where `<<your-okteto-license>>` is the license key you have received by email when starting your trial.
 
-Run `helm install` to deploy your Okteto instance. In this example, we have named our Helm release okteto.
+#### Installing with Helm
+
+Run the following `helm` commands to deploy Okteto in the `okteto` namespace:
 
 ```console
 $ helm repo add okteto https://charts.okteto.com
@@ -36,9 +62,7 @@ $ helm install okteto okteto/okteto -f config.yaml --namespace=okteto --create-n
 
 > You can also use `--version version` if you would like to install a specific version of Okteto.
 
-After a few seconds, all the resources will be created. The output will look something like this:
-
-```
+```console
 Congratulations! Okteto is successfully installed!
 
 Follow these steps to access your Okteto instance:
@@ -48,24 +72,62 @@ Follow these steps to access your Okteto instance:
    $ sudo kubectl port-forward service/okteto-ingress-nginx-controller 443:443 --namespace okteto
 
 2. Access your Okteto instance at https://okteto.localtest.me/login#token=******
-
-Follow these steps to configure the Okteto CLI:
-
-1. Install the Okteto CLI:
-
-   $ curl https://get.okteto.com -sSfL | sh
-
-2. Configure the Okteto CLI context:
-
-   $ okteto context use https://okteto.localtest.me --token ****** --insecure-skip-tls-verify
-
-3. You're all set to complete our getting started guide:
-
-   https://www.okteto.com/docs/using-dev-envs/
-
-Happy coding!
 ```
 
-Once the chart is installed, follow the onscreen instructions to finalize the configuration.
+#### Access yuor Okteto instance
 
-> **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](admin/dashboard.mdx#installation) before giving your team access to your Okteto instance.
+Once the Okteto Helm Chart is installed, follow the onscreen instructions to login to your Okteto instance.
+
+First, create a port forward to expose Okteto in localhost. Okteto only works on port 443, you will need `sudo` access to run this command:
+
+```console
+$ sudo kubectl port-forward service/okteto-ingress-nginx-controller 443:443 --namespace okteto
+```
+
+```console
+Forwarding from 127.0.0.1:443 -> 443
+Forwarding from [::1]:433 -> 443
+```
+
+Now access your Okteto instance at https://okteto.localtest.me/login#token=******, the token is shown in the helm post installation logs.
+The [*.localtest.me](https://readme.localtest.me/) is a special domain which resolves to 127.0.0.1.
+Note that the default installation uses self-signed certificates. You will need to accept the certificate to login to your Okteto instance.
+
+#### Install the Okteto CLI
+
+The next step is to install the Okteto CLI:
+
+##### MacOS / Linux
+
+```console
+$ curl https://get.okteto.com -sSfL | sh
+```
+
+##### Windows
+
+Download https://downloads.okteto.com/cli/stable/okteto.exe and add it to your `$PATH`.
+
+#### Configure the Okteto CLI
+
+Configure the Okteto CLI with your Okteto instance by running the following command:
+
+```console
+$ okteto context use https://okteto.localtest.me --token ****** --insecure-skip-tls-verify
+```
+
+```console
+ !  Insecure mode enabled
+ ✓  Using okteto-admin @ okteto.localtest.me
+```
+
+Note that you will need the `--insecure-skip-tls-verify` flag while using self-signed certificates.
+
+This token is the one shown in the helm post installation logs.
+
+You will need this token for authentication you configure an [auth provider](reference/helm-chart-values.mdx#auth) in your Okteto instance.
+
+## Next Steps
+
+Congratulations! You successfully deployed Okteto and configured the Okteto CLI 🚀
+
+Are you ready to deploy your first Development Enviroment? Let's do that in the [next step](get-started/deploy-first-env.mdx) of the getting started guide!
