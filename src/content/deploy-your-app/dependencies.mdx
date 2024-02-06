@@ -1,15 +1,16 @@
 ---
-title: Add dependencies to your Development Environment
-description: In this section, we'll see how you can deploy dependencies in other repositories
+title: Add a database as a dependency
+description: In this section, we'll see how you can deploy dependencies on other repositories
 sidebar_label: Dependencies
 id: dependencies
 ---
 
 import Image from "@theme/Image";
 
-Our app requires an instance of MongoDB to be running in our Development Environment.
+The Movies app requires an instance of MongoDB to be running in your Development Environment.
 
-You could deploy MongoDB as part of your `deploy` section in your `okteto.yaml` file, but in this case, you are going to use the repo https://github.com/okteto/mongodb, which is already pre-configured with a Docker Compose file to deploy MongoDB in Okteto.
+You could deploy MongoDB as part of your `deploy` section in the `okteto.yaml` file, but in this case, you are going to use the repo https://github.com/okteto/mongodb as a dependency.
+This repo is already pre-configured with a Docker Compose file to deploy MongoDB in Okteto.
 
 To instruct Okteto to deploy this repository in your Development Environment, add the following section to your `okteto.yaml` file:
 
@@ -20,7 +21,7 @@ dependencies:
     wait: true
 ```
 
-Deploy your app to apply the changes:
+Deploy the Movies app to apply the changes:
 
 ```console
 $ okteto deploy
@@ -55,22 +56,24 @@ You can see that MongoDB is now running from the Okteto UI:
   width="850"
 />
 
+### Using variables to set runtime configurations
+
 But looks like the **api** Deployment is still unable to connect to MongoDB...
 
-Note that the file [chart/values.yaml](https://github.com/okteto/movies-onboard/blob/onboarded/chart/values.yaml#L13) has a password hardcoded.
+Note that the file `chart/values.yaml` has a password hardcoded.
 This won't probably be compliant with your security practices...
 
 Also, the default MongoDB password is `password` instead of `change-me!`. Luckily, you can pass runtime configuration to your Development Environment using [Okteto Variables](manifest/okteto-variables.mdx).
 For example, you can define a local environment variable to configure the MongoDB password:
 
 ```console
-export MONGODB_PASSWORD=password
+$ export MONGODB_PASSWORD=password
 ```
 
 Or even better, create an [Okteto Admin Variable](admin/dashboard.mdx#variables) to make this variable available across all your Development Environments in Okteto.
 
 Once you have done this, update your `okteto.yaml` file to configure the MongoDB password using this environment variable.
-You can also enable the `seed` job to load the MongoDB instance with initial data:
+You should also enable the `seed` job to load the MongoDB instance with initial data:
 
 ```yaml
 deploy:
@@ -84,7 +87,7 @@ deploy:
 
 > Running seed data scripts can be slow with real world databases. For those scenarios, you can use our [Data Cloning](core/components/use-volume-snapshots.mdx) feature to clone this data from an existing database in seconds 🚀
 
-Deploy your app to apply the changes:
+Deploy the Movies app to apply the changes:
 
 ```console
 $ okteto deploy
@@ -108,7 +111,7 @@ Success! Your application will be available shortly.
  ✓  Development environment 'movies-onboard' successfully deployed
 ```
 
-Finally, you can access the endpoint of your Movies app to see something like this:
+Finally, you can access the endpoint of the Movies app to see something like this:
 
 <p align="center">
   <Image
@@ -118,6 +121,8 @@ Finally, you can access the endpoint of your Movies app to see something like th
   />
 </p>
 
-But the Movies app is using pre-built images to deploy your Development Environment.
+## Next Steps
 
-This is not ideal since you won't be able to deploy your local changes, let's fix that in the [next step](onboard-your-app/build.mdx) of this guide!
+The Movies app is using pre-built images to deploy your Development Environment...
+
+This is not ideal since you won't be able to deploy your local changes, let's fix that in the [next step](deploy-your-app/build.mdx) of this guide!

@@ -10,7 +10,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Get Started',
-      link: { type: 'doc', id: 'overview' },
+      link: { type: 'doc', id: 'index' },
       items: [
         'get-started/quickstart-guide',
         'get-started/deploy-first-environment',
@@ -19,27 +19,67 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Onboard your app',
-      link: { type: 'doc', id: 'onboard-your-app/index' },
+      label: 'Deploy your app',
+      link: { type: 'doc', id: 'deploy-your-app/index' },
       items: [
-        "onboard-your-app/deploy",
-        "onboard-your-app/endpoints",
-        "onboard-your-app/dependencies",
-        "onboard-your-app/build",
-        "onboard-your-app/dev",
-        "onboard-your-app/next-steps",
+        "deploy-your-app/deploy",
+        "deploy-your-app/endpoints",
+        "deploy-your-app/dependencies",
+        "deploy-your-app/build",
+        "deploy-your-app/next-steps",
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Development environments',
+      link: { type: 'doc', id: 'deploy/index' },
+      items: [
+        'get-started/install-okteto-cli',
+        {
+          type: 'category',
+          label: 'Development containers',
+          link: { type: 'doc', id: 'guides/samples/more' },
+          items: [
+            'guides/samples/aspnetcore',
+            'guides/samples/golang',
+            'guides/samples/java',
+            'guides/samples/node',
+            'guides/samples/php',
+            'guides/samples/python',
+            'guides/samples/ruby',
+          ],
+        },
+        "deploy/development-environments",
+        {
+          type: 'category',
+          label: 'Deploy environments',
+          link: { type: 'doc', id: 'deploy/deploy-index' },
+          items: [
+            'deploy/deploy-from-catalog',
+            'deploy/deploy-from-git',
+            'deploy/from-private-repositories',
+            'deploy/develop-on-okteto-button',
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Preview environments',
+      link: { type: 'doc', id: 'preview/overview-prev-env' },
+      items: [
+        'preview/github/using-github-actions',
+        'preview/using-gitlab-cicd',
       ],
     },
     {
       type: 'category',
       label: 'Core concepts',
       items: [
-        'core/using-okteto-cli',
         {
           type: 'category',
           label: 'Okteto components',
           items: [
-            'core/components/development-containers',
             'core/components/namespaces',
             'core/components/build-service',
             'core/components/container-registry',
@@ -48,7 +88,7 @@ module.exports = {
         },
         {
           type: 'category',
-          label: 'Ingress',
+          label: 'Endpoints',
           items: ['core/ingress/automatic-ssl', 'core/ingress/private-endpoints'],
         },
         {
@@ -63,33 +103,11 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Guides',
+      label: 'Tutorials',
       items: [
-        {
-          type: 'category',
-          label: 'Tutorials',
-          items: [
-            'guides/tutorials/aws-lambda',
-            'guides/tutorials/compose-getting-started',
-            'guides/tutorials/getting-started-with-okteto',
-            'guides/tutorials/getting-started-with-pipelines',
-            'guides/tutorials/webpack',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Samples',
-          link: { type: 'doc', id: 'guides/samples/more' },
-          items: [
-            'guides/samples/aspnetcore',
-            'guides/samples/golang',
-            'guides/samples/java',
-            'guides/samples/node',
-            'guides/samples/php',
-            'guides/samples/python',
-            'guides/samples/ruby',
-          ],
-        },
+        'guides/tutorials/aws-lambda',
+        'guides/tutorials/compose-getting-started',
+        'guides/tutorials/webpack',
       ],
     },
     {
@@ -100,26 +118,6 @@ module.exports = {
         'manifest/external-resources',
         'manifest/okteto-variables',
         'manifest/hybrid-development',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Deploy development environments',
-      items: [
-        "deploy/development-environments",
-        'deploy/deploy-from-catalog',
-        'deploy/deploy-from-git',
-        'deploy/from-private-repositories',
-        'deploy/develop-on-okteto-button',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Deploy preview environments',
-      link: { type: 'doc', id: 'preview/overview-prev-env' },
-      items: [
-        'preview/github/using-github-actions',
-        'preview/using-gitlab-cicd',
       ],
     },
     {
