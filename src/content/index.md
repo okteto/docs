@@ -3,26 +3,35 @@ title: Welcome to Okteto!
 description: This section will give you a brief overview of Okteto and its features
 ---
 
-Okteto is a platform that simplifies the process of launching cloud development environments without requiring the expertise to do this yourself. This enables developers to automatically spin up fully-managed development environments that emulate production as closely as possible. Okteto eliminates the friction of local development environments, the many deviations that can exist for the same engineering organization, and the troubleshooting that comes with them.
+## Build modern development experiences with Okteto
+Okteto transforms the way developers code, test, and deploy applications by offering a seamless, cloud-native development experience. Say goodbye to the complexities of setting up local environments and the discrepancies between development and production. With Okteto, you get a powerful platform that emulates your production environment in the cloud, ensuring that you can focus on what you do best: building great applications.
 
-This overview covers what Okteto offers and how you can get started.
+## Why Platform Teams choose Okteto?
+- **Simplify Your Development Workflow**: Okteto abstracts the complexity of Kubernetes, providing developers with a straightforward path from code to deployment, all within the cloud. This means no more wrestling with local setup or inconsistencies between environments.
+- **Develop in Production-like Environments**: With Okteto, your development environment is a replica of your production environment. This ensures that your applications run just as smoothly in development as they do in production, eliminating the "it works on my machine" problem.
+- **Instantaneous Code Sync and Live Updates**: Experience the magic of seeing your code changes reflected instantly in your cloud environment. Okteto's live update feature accelerates your development loop, allowing for rapid testing and iteration without the need for rebuilds or redeployments.
 
-## Development Environments
-Okteto's [Development Environments](deploy/development-environments.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](core/using-okteto-cli.mdx). Traditional development workflows involve committing and pushing your changes, then waiting for the CI pipeline to build and deploy them before you can take a look. If you have to do this multiple times a day this can be frustrating and time-consuming. The problem only compounds when multiple developers are using a single staging environment.
+## Key Features
 
-Development Environments solve this problem by allowing you to write code locally on your machine but view your changes live, deployed in a managed Kubernetes cluster **as soon as you hit save**! You don't have to spend time configuring anything to do this. Okteto takes care of it all for you. Try for yourself by [Getting Started](get-started/install-okteto-cli.mdx). We also have more detailed documentation about development environments available [here](deploy/development-environments.mdx).
+### **Okteto CLI**
+Command your development with the [Okteto Command Line Interface (CLI)](get-started/install-okteto-cli.mdx). It's your tool to activate development environments, control your applications, and streamline your workflow directly from your terminal.
 
-## Preview Environments
-Using Okteto, you can configure [Preview Environments](preview/overview.mdx) for your code repositories. Every pull request will be deployed and will generate its own sharable URL. This helps teams browse the changes in a pull request before it gets merged without having to take care of any deployment-related setup. These URLs can also be shared with other stakeholders so the review process isn't just limited to developers.
+### Development Environments
+Okteto's [Development Environments](deploy/development-environments.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](core/using-okteto-cli.mdx). Traditional development workflows involve committing and pushing your changes, then waiting for the CI pipeline to build and deploy them before you can take a look. Okteto solves this by allowing you to write code locally on your machine but view your changes live, deployed in a managed Kubernetes cluster **as soon as you hit save**! You don't have to spend time configuring anything to do this.
 
-You can learn how to configure Preview Environments [here](preview/overview.mdx).
+### Automated Preview Environments
+Collaborate and share your progress with ease. Okteto's [Preview Environments](preview/overview.mdx) automatically generate a unique, shareable version of your application for each pull request, making code reviews and stakeholder feedback a breeze.
 
-## Why Okteto?
+### Okteto Catalog and External Resources
+Browse and deploy from the [Okteto Catalog](deploy/deploy-from-catalog.mdx), a curated collection of ready-to-use applications and development tools. Integrate [External Resources](manifest/external-resources.mdx) seamlessly to enhance your development environments with the tools your team relies on.
 
-Okteto was built for developers, by developers. We understand how frustrating it is to deal with the modern-day challenges of cloud-native development.
+### Manifest simplifies environment automation
+Utilize the [Okteto Manifest](manifest/overview-manifest.mdx) to define and configure your development environments and applications declaratively. This powerful feature ensures consistent and reproducible environments across your team, tailored to your projects' needs.
 
-Seeing what you're developing, deployed in a realistic production-like environment, while you're still actively writing the code is a problem multiple tools try to solve, but none are as effective as Okteto. We know that developers want to focus on writing code, not setting up or troubleshooting environments. We abstract away the complexities of developing on a cloud environment so you can focus only on what you enjoy: solving problems with code.
+### Unified management interface
+Manage your team's development environments, applications, workflows, and roles all from Okteto's [Admin Dashboard](admin/dashboard.mdx). This central hub provides visibility and control over your team's cloud-native development processes, making management straightforward and efficient.
 
-Okteto's goal is to give developers the freedom they love. Developers can focus on writing code and Okteto takes care of setting up and managing the development infrastructure.
+## Get Started Today
+Jump into our [quickstart guide](get-started/quickstart-guide.mdx) to get started with Okteto. Or [Talk to us](https://okteto.com/schedule/) to let us show you how.
 
-Simplify your development process with Okteto. Let us show you how. [Talk to us](https://okteto.com/schedule/)!
+Need a license key? [Sign-up for a free 30-day trial](https://www.okteto.com/free-trial/).
