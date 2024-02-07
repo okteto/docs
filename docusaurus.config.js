@@ -28,13 +28,6 @@ module.exports = {
     prism: {
       theme: require("./src/theme/theme-okteto.js"),
     },
-    algolia: {
-      appId: "RS9BKUCQCT",
-      apiKey: "ac5c1ba5f3d4e8eceb4ce860d568da39",
-      indexName: "okteto",
-      algoliaOptions: {},
-      position: "left",
-    },
     navbar: {
       title: "Okteto",
       hideOnScroll: false,
@@ -46,8 +39,10 @@ module.exports = {
       },
       items: [
         {
-          type: "search",
+          type: "html",
           position: "left",
+          className: "community-search",
+          value: '<div style="width: 288.75px; height: 42px;"></div>',
         },
         {
           href: "https://www.okteto.com",
@@ -316,4 +311,5 @@ module.exports = {
     ],
   ],
   scripts: ["//js.hs-scripts.com/5418301.js"],
+  clientModules: ["./globalJs.js"],
 };
