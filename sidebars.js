@@ -160,6 +160,7 @@ module.exports = {
           items: [
             'self-hosted/install/certificates',
             'self-hosted/install/custom-installer-image',
+            'self-hosted/install/argocd',
             'self-hosted/install/github-integration',
             'self-hosted/install/volume-snapshots',
             {
