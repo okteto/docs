@@ -20,7 +20,7 @@ module.exports = {
   themeConfig: {
     colorMode: {
       defaultMode: "light",
-      disableSwitch: true,
+      disableSwitch: false,
     },
     tableOfContents: {
       maxHeadingLevel: 4,
