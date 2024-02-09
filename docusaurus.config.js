@@ -106,9 +106,21 @@ module.exports = {
               to: "/",
             },
             {
+              label: "Okteto CLI Reference",
+              to: "/reference/okteto-cli"
+            },
+            {
+              label: "Okteto Manifest",
+              to: "/manifest/overview-manifest",
+            },
+            {
               label: "Samples",
               to: "guides/samples/golang",
             },
+            {
+              label: "Release Notes",
+              to: "/release-notes"
+            }
           ],
         },
         {
@@ -129,6 +141,10 @@ module.exports = {
               href: "https://github.com/okteto/okteto",
             },
             {
+              label: "YouTube",
+              href: "https://www.youtube.com/@OktetoHQ",
+            },
+            {
               label: "Pricing",
               href: "https://www.okteto.com/pricing",
               target: "_self",
@@ -146,6 +162,10 @@ module.exports = {
               label: "Twitter",
               href: "https://twitter.com/oktetohq",
             },
+            {
+              label: "Get 30 Days Free",
+              href: "https://www.okteto.com/free-trial",
+            }
           ],
         },
       ],
