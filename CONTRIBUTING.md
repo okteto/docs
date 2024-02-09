@@ -21,7 +21,11 @@ When adding new documentation, it'll be helpful to keep the following things in 
 
 Discussing your changes with the maintainers before you start writing is one of the most important steps, as this sets you in the right direction before you begin. The best way to communicate this is through a detailed GitHub issue. Another way to discuss changes with maintainers is using the [#okteto](https://kubernetes.slack.com/messages/CM1QMQGS0/) channel on the Kubernetes slack.
 
-> Please note that all PRs should be made to the "Current" [version](/src/content) of the docs only.
+:::note
+
+All PRs should be made to the "Current" [version](/src/content) "/src/content" of the docs only.
+
+:::
 
 #### Making a Pull Request
 
@@ -65,7 +69,11 @@ This can easily be done with the `-s' command-line option to append this automat
 git commit -s -m' Meaningful commit message'
 ```
 
-> In order to use the `-s' flag for auto signing the commits, you'll need to set your `user. name'and'user.email` git configs
+:::note
+
+In order to use the `-s' flag for auto signing the commits, you'll need to set your `user. name'and'user.email` git configs
+
+:::
 
 Finally, you can push your changes to GitHub using:
 
