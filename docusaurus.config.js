@@ -223,41 +223,6 @@ module.exports = {
               path: "1.11",
               banner: "unmaintained",
             },
-            "1.10": {
-              label: "1.10",
-              path: "1.10",
-              banner: "unmaintained",
-            },
-            1.9: {
-              label: "1.9",
-              path: "1.9",
-              banner: "unmaintained",
-            },
-            1.8: {
-              label: "1.8",
-              path: "1.8",
-              banner: "unmaintained",
-            },
-            1.7: {
-              label: "1.7",
-              path: "1.7",
-              banner: "unmaintained",
-            },
-            1.6: {
-              label: "1.6",
-              path: "1.6",
-              banner: "unmaintained",
-            },
-            1.5: {
-              label: "1.5",
-              path: "1.5",
-              banner: "unmaintained",
-            },
-            1.4: {
-              label: "1.4",
-              path: "1.4",
-              banner: "unmaintained",
-            },
           },
           include: ["**/*.md", "**/*.mdx"],
         },
