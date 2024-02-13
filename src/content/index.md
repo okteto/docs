@@ -1,8 +1,6 @@
 ---
 title: Welcome to Okteto!
 description: This section will give you a brief overview of Okteto and its features
-sidebar_label: Overview
-id: overview
 ---
 
 Okteto is a platform that simplifies the process of launching cloud development environments without requiring the expertise to do this yourself. This enables developers to automatically spin up fully-managed development environments that emulate production as closely as possible. Okteto eliminates the friction of local development environments, the many deviations that can exist for the same engineering organization, and the troubleshooting that comes with them.
