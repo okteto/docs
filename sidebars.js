@@ -134,19 +134,9 @@ module.exports = {
     {
       type: 'category',
       label: 'Okteto Self-Hosted',
+      link: { type: 'doc', id: 'self-hosted/index' },
       items: [
-        'get-started/overview',
-        {
-          type: 'category',
-          label: 'Cloud provider guides',
-          items: [
-            'get-started/cloud-provider-guides/amazon-eks',
-            'get-started/cloud-provider-guides/civo',
-            'get-started/cloud-provider-guides/digitalocean-doks',
-            'get-started/cloud-provider-guides/google-gke',
-            'get-started/cloud-provider-guides/microsoft-aks',
-          ],
-        },
+        'reference/helm-chart-values',
         {
           type: 'category',
           label: 'Manage Okteto',
@@ -197,7 +187,6 @@ module.exports = {
         'reference/okteto-cli',
         'reference/okteto-manifest',
         'reference/docker-compose',
-        'reference/helm-chart-values',
         'reference/supported-github-actions',
         'reference/file-synchronization',
         'reference/ssh-server',
