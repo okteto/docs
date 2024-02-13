@@ -12,11 +12,11 @@ Okteto transforms the way developers code, test, and deploy applications by offe
 - **Control, Governance, and Self-service access**: Enable your developers access to easily access secure and reproducible ephemeral environments. Okteto abstracts the complexity of Kubernetes, providing developers with a straightforward path from code to deployment, all within the cloud. This means no more wrestling with local setup or inconsistencies between environments.
 ![Platform team using Okteto diagram](../../static/img/platform-team-diagram.jpg)
 
+- **Develop in Production-like Environments**: With Okteto, your development environment is a replica of your production environment. Featuring instantaneous Code Sync and Live Updates, experience the magic of seeing your code changes reflected instantly in your cloud environment. This allows for rapid testing and iteration without the need for rebuilds or redeployments, ensuring that your applications run just as smoothly in development as they do in production.
+![Developing with Okteto Example](../../static/img/dev-environment-example.jpg)
 
-- **Develop in Production-like Environments**: With Okteto, your development environment is a replica of your production environment. This ensures that your applications run just as smoothly in development as they do in production, eliminating the "it works on my machine" problem.
-- ![Developing with Okteto Example](../../static/img/dev-environment-example.jpg)
-
-- **Instantaneous Code Sync and Live Updates**: Experience the magic of seeing your code changes reflected instantly in your cloud environment. Okteto's live update feature accelerates your development loop, allowing for rapid testing and iteration without the need for rebuilds or redeployments.
+- **Okteto Manifest simplifies environment automation**: Utilize the [Okteto Manifest](manifest/overview-manifest.mdx) to define and configure your development environments and applications declaratively. This powerful feature ensures consistent and reproducible environments across your team, tailored to your projects' needs. Use the [Okteto Catalog](deploy/deploy-from-catalog.mdx) to create a collection of ready-to-use applications for your development team.
+![Platform team using Okteto diagram](../../static/img/manifest.jpg)
 
 ## Key Features
 
@@ -25,10 +25,6 @@ Okteto's [Development Environments](deploy/development-environments.mdx) enable 
 
 ### Automated Preview Environments
 Collaborate and share your progress with ease. Okteto's [Preview Environments](preview/overview.mdx) automatically generate a unique, shareable version of your application for each pull request, making code reviews and stakeholder feedback a breeze.
-
-### Okteto Manifest simplifies environment automation
-Utilize the [Okteto Manifest](manifest/overview-manifest.mdx) to define and configure your development environments and applications declaratively. This powerful feature ensures consistent and reproducible environments across your team, tailored to your projects' needs. Use the [Okteto Catalog](deploy/deploy-from-catalog.mdx) to create a collection of ready-to-use applications for your development team.
-![Platform team using Okteto diagram](../../static/img/manifest.jpg)
 
 ### Unified management interface
 Manage your team's development environments, applications, workflows, and roles all from Okteto's [Admin Dashboard](admin/dashboard.mdx). This central hub provides visibility and control over your team's cloud-native development processes, making management straightforward and efficient.
