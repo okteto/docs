@@ -20,7 +20,7 @@ module.exports = {
   themeConfig: {
     colorMode: {
       defaultMode: "light",
-      disableSwitch: true,
+      disableSwitch: false,
     },
     tableOfContents: {
       maxHeadingLevel: 4,
@@ -73,8 +73,16 @@ module.exports = {
           dropdownActiveClassDisabled: true,
           dropdownItemsAfter: [
             {
+              type: 'html',
+              value: '<hr class="dropdown-separator">',
+            },
+            {
               to: "/archives",
               label: "Archives",
+            },
+            {
+              to: "/release-notes",
+              label: "Release Notes",
             },
           ],
         },
@@ -98,9 +106,21 @@ module.exports = {
               to: "/",
             },
             {
+              label: "Okteto CLI Reference",
+              to: "/reference/okteto-cli"
+            },
+            {
+              label: "Okteto Manifest",
+              to: "/manifest/overview-manifest",
+            },
+            {
               label: "Samples",
               to: "guides/samples/golang",
             },
+            {
+              label: "Release Notes",
+              to: "/release-notes"
+            }
           ],
         },
         {
@@ -121,6 +141,10 @@ module.exports = {
               href: "https://github.com/okteto/okteto",
             },
             {
+              label: "YouTube",
+              href: "https://www.youtube.com/@OktetoHQ",
+            },
+            {
               label: "Pricing",
               href: "https://www.okteto.com/pricing",
               target: "_self",
@@ -138,6 +162,10 @@ module.exports = {
               label: "Twitter",
               href: "https://twitter.com/oktetohq",
             },
+            {
+              label: "Get 30 Days Free",
+              href: "https://www.okteto.com/free-trial",
+            }
           ],
         },
       ],
@@ -193,41 +221,6 @@ module.exports = {
             1.11: {
               label: "1.11",
               path: "1.11",
-              banner: "unmaintained",
-            },
-            "1.10": {
-              label: "1.10",
-              path: "1.10",
-              banner: "unmaintained",
-            },
-            1.9: {
-              label: "1.9",
-              path: "1.9",
-              banner: "unmaintained",
-            },
-            1.8: {
-              label: "1.8",
-              path: "1.8",
-              banner: "unmaintained",
-            },
-            1.7: {
-              label: "1.7",
-              path: "1.7",
-              banner: "unmaintained",
-            },
-            1.6: {
-              label: "1.6",
-              path: "1.6",
-              banner: "unmaintained",
-            },
-            1.5: {
-              label: "1.5",
-              path: "1.5",
-              banner: "unmaintained",
-            },
-            1.4: {
-              label: "1.4",
-              path: "1.4",
               banner: "unmaintained",
             },
           },
