@@ -1,0 +1,126 @@
+---
+title: Getting Started with Hybrid Mode for Java Development
+description: This tutorial will show you how to develop a java service using hybrid mode
+sidebar_label: Java
+id: hybrid-java
+---
+
+import Image from "@theme/Image";
+
+This tutorial will show you how to develop and debug a Java application using Okteto Hybrid Mode.
+
+## Prerequisites
+
+Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
+
+## Step 1: Deploy the Sample App
+
+Get a local version of the Sample App by executing the following commands:
+
+```console
+git clone https://github.com/okteto/microservices-demo
+cd microservices-demo
+```
+
+Checkout the branch with the Hybrid Mode configuration:
+
+```console
+git checkout hybrid
+```
+
+At the root of the directory, you'll find the `okteto.yml` file.
+This file describes how to deploy the Sample App.
+
+```yaml
+deploy:
+  - helm upgrade --install postgresql postgresql/postgresql-11.6.2.tgz -f postgresql/values.yml
+  - helm upgrade --install kafka kafka/kafka-17.1.0.tgz -f kafka/values.yml
+  - helm upgrade --install vote vote/chart --set image=${OKTETO_BUILD_VOTE_IMAGE}
+  - helm upgrade --install result result/chart --set image=${OKTETO_BUILD_RESULT_IMAGE}
+  - helm upgrade --install worker worker/chart --set image=${OKTETO_BUILD_WORKER_IMAGE}
+```
+
+The Sample App consists of the following services:
+
+- A front-end web app in Java which lets you vote between Tacos and Burritos
+- A [Kafka](https://bitnami.com/stack/kafka/helm) queue which collects new votes
+- A Golang worker which consumes votes from Kafka and stores them in PostgresQL
+- A [PostgresQL](https://bitnami.com/stack/postgresql/helm) database
+- A Node.js webapp which shows the results of the voting in real time
+
+Deploy the Sample App by executing:
+
+```console
+okteto deploy
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Running 'helm upgrade --install postgresql postgresql/postgresql-11.6.2.tgz -f postgresql/values.yml'
+...
+ i  Running 'helm upgrade --install kafka kafka/kafka-17.1.0.tgz -f kafka/values.yml'
+...
+ i  Running 'helm upgrade --install vote vote/chart --set image=${OKTETO_BUILD_VOTE_IMAGE}'
+...
+ i  Running 'helm upgrade --install result result/chart --set image=${OKTETO_BUILD_RESULT_IMAGE}'
+...
+ i  Running 'helm upgrade --install worker worker/chart --set image=${OKTETO_BUILD_WORKER_IMAGE}'
+...
+ ✓  Development environment 'microservices-demo' successfully deployed
+ i  Endpoints available:
+  - https://vote-cindy.okteto.example.dev
+  - https://result-cindy.okteto.example.dev
+  ```
+
+## Step 2: Activate your Development Container
+
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a Development Container for the Sample App:
+
+```yaml
+dev:
+  vote:
+    mode: hybrid
+    command: bash # mvn spring-boot:run
+    workdir: vote
+    reverse:
+      - 8080:8080
+    forward:
+      9092:kafka:9092
+```
+
+The `vote` key matches the name of the **hello world** Deployment. The meaning of the rest of fields is:
+
+- `mode`: to configure Hybrid development mode
+- `command`: the command to start the java service locally
+- `workdir`: the working dir of the command
+- `reverse`: to expose the local port 8080 in the Development Container port 8080 using a reverse tunnel
+- `forward`: to expose the kafka port 9092 on localhost to access kafka fron your local machine
+
+Next, execute the following command to activate your Development Container:
+
+```console
+okteto up vote
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Development environment 'microservices-demo' already deployed.
+ ✓  Reverse tunnel configured
+    Context:   okteto.example.com
+    Namespace: cindy
+    Name:      vote
+    Forward:   9092 -> kafka:9092
+    Reverse:   8080 <- 8080
+
+bash-3.2$
+```
+
+You can run `mvn spring-boot:run` to start the **vote** service locally.
+Your local maven process will be still available from its okteto endpoint because the local port `8080` is accessible via a reverse tunnel to the cluster.
+
+The *vote* needs to connect to Kafka. You can change the code of the *vote*  service to connect to kafka on `localhost`, or add the following entries to your `/etc/hosts` file:
+
+```
+127.0.0.1 kafka
+127.0.0.1 kafka-0.kafka-headless.<<your-namespace>>.svc.cluster.local
+```
