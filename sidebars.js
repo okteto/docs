@@ -25,7 +25,18 @@ module.exports = {
           ]
         },
         "get-started/install-okteto-cli",
-        "get-started/deploy-first-environment"
+        {
+          type: "category",
+          label: "Deploy your app",
+          link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
+          items: [
+            "get-started/deploy-your-app/deploy",
+            "get-started/deploy-your-app/endpoints",
+            "get-started/deploy-your-app/dependencies",
+            "get-started/deploy-your-app/build",
+          ]
+        },
+        "get-started/next-steps",
       ],
     },
     {
@@ -46,7 +57,7 @@ module.exports = {
         },
         {
           type: 'category',
-          label: 'Ingress',
+          label: 'Endpoints',
           items: ['core/ingress/automatic-ssl', 'core/ingress/private-endpoints'],
         },
         {
