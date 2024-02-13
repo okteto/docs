@@ -30,8 +30,47 @@ export default function DocsVersionDropdownNavbarItem({
   const latestVersion = useLatestVersion(docsPluginId);
   const { preferredVersion, savePreferredVersionName } = useDocsPreferredVersion(docsPluginId);
 
+  const MAX_VERSIONS = 8;
+  const versionRegex =
+    /^(0|[1-9]\d*\.)?(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/gm;
+
+  const compareVersions = (versionA, versionB) => {
+    const a = versionA?.label ?? '';
+    const b = versionB?.label ?? '';
+    const matchA = [...a.matchAll(versionRegex)][0];
+    const matchB = [...b.matchAll(versionRegex)][0];
+
+    // Check if version format is invalid for a
+    if (!matchA) return 1;
+    // Check if version format is invalid for b
+    if (!matchB) return -1;
+
+    // Extract version components
+    const [, aMajor = '0', aMinor, aPatch] = matchA.slice(1);
+    const [, bMajor = '0', bMinor, bPatch] = matchB.slice(1);
+
+    const aMajorInt = parseInt(aMajor);
+    const aMinorInt = parseInt(aMinor);
+    const aPatchInt = parseInt(aPatch);
+
+    const bMajorInt = parseInt(bMajor);
+    const bMinorInt = parseInt(bMinor);
+    const bPatchInt = parseInt(bPatch);
+
+    if (aMajorInt !== bMajorInt) {
+      return bMajorInt - aMajorInt;
+    }
+    if (aMinorInt !== bMinorInt) {
+      return bMinorInt - aMinorInt;
+    }
+    if (aPatchInt !== bPatchInt) {
+      return bPatchInt - aPatchInt;
+    }
+    return 0;
+  };
+
   function getItems() {
-    const versionLinks = versions.map((version) => {
+    const versionLinks = versions.sort(compareVersions).slice(0, MAX_VERSIONS).map((version) => {
       // We try to link to the same doc, in another version
       // When not possible, fallback to the "main doc" of the version
       const versionDoc =
@@ -49,27 +88,7 @@ export default function DocsVersionDropdownNavbarItem({
     return [...dropdownItemsBefore, ...versionLinks, ...dropdownItemsAfter];
   }
 
-  function compareLinkVersions(a, b) {
-    const partsA = a.label?.split?.('.').map(Number) ?? 0;
-    const partsB = b.label?.split?.('.').map(Number) ?? 0;
-    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-      const numA = partsA[i] || 0;
-      const numB = partsB[i] || 0;
-
-      if (numA < numB) {
-        return 1; // Reverse the order for descending
-      } else if (numA > numB) {
-        return -1; // Reverse the order for descending
-      }
-    }
-    return 0;
-  }
-
-  let items = getItems();
-  const navLinks = items.filter((item) => !!item.isNavLink);
-  const restLinks = items.filter((item) => !item.isNavLink);
-  items = [...navLinks.sort(compareLinkVersions).slice(0, 8), ...restLinks];
-
+  const items = getItems();
   const dropdownVersion = activeDocContext.activeVersion ?? preferredVersion ?? latestVersion; // Mobile dropdown is handled a bit differently
 
   const dropdownLabel =
