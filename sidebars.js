@@ -10,25 +10,18 @@ module.exports = {
     {
       type: 'category',
       label: 'Get Started',
+      link: { type: 'doc', id: 'index' },
       items: [
-        "overview",
         {
           type: "category",
           label: "Install Okteto",
+          link: { type: 'doc', id: 'get-started/overview' },
           items: [
-            "get-started/overview",
-            {
-              type: "category",
-              label: "Cloud provider guides",
-              link: { type: 'doc', id: 'get-started/cloud-provider-guides/index' },
-              items: [
-                "get-started/cloud-provider-guides/amazon-eks",
-                "get-started/cloud-provider-guides/civo",
-                "get-started/cloud-provider-guides/digitalocean-doks",
-                "get-started/cloud-provider-guides/google-gke",
-                "get-started/cloud-provider-guides/microsoft-aks"
-              ]
-            },
+            "get-started/cloud-provider-guides/amazon-eks",
+            "get-started/cloud-provider-guides/civo",
+            "get-started/cloud-provider-guides/digitalocean-doks",
+            "get-started/cloud-provider-guides/google-gke",
+            "get-started/cloud-provider-guides/microsoft-aks"
           ]
         },
         "get-started/install-okteto-cli",
