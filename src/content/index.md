@@ -30,6 +30,6 @@ Collaborate and share your progress with ease. Okteto's [Preview Environments](p
 Manage your team's development environments, applications, workflows, and roles all from Okteto's [Admin Dashboard](admin/dashboard.mdx). This central hub provides visibility and control over your team's cloud-native development processes, making management straightforward and efficient.
 
 ## Get Started Today
-Jump into our [quickstart guide](get-started/quickstart-guide.mdx) to get started with Okteto. Or [Talk to us](https://okteto.com/schedule/) to let us show you how.
+Jump into our [installation guide](get-started/overview.mdx) to get started with Okteto. Or [Talk to us](https://okteto.com/schedule/) to let us show you how.
 
 Need a license key? [Sign-up for a free 30-day trial](https://www.okteto.com/free-trial/).
