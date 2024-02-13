@@ -1,0 +1,206 @@
+---
+title: AWS EKS reference cluster
+description: How to create an AWS EKS cluster
+id: eks-reference-cluster
+---
+
+# How to Create an AWS EKS Cluster
+
+## Requirements
+
+- Ensure you have the following tools installed:
+  - `eksctl` version 0.171 or higher. You can find installation instructions for `eksctl` [here](https://eksctl.io/installation/).
+  - `kubectl` version 1.28 or higher. Installation instructions for `kubectl` can be found [here](https://kubernetes.io/docs/tasks/tools/#kubectl).
+  - `aws` CLI v2 version 2.15 or higher. Follow the installation instructions for `aws` CLI v2 [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions).
+  - `helm` v3 version 3.14 or higher. Installation instructions for `helm` are available [here](https://helm.sh/docs/intro/install/).
+
+## Set Up Variables
+
+### Cluster Name
+
+```bash
+export CLUSTER_NAME="okteto-cluster"
+```
+
+### AWS Account ID
+
+Use the following snippet to use your current AWS Account ID or choose your own value.
+
+```bash
+export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query "Account" --output text)"
+```
+
+### AWS Region
+
+Use the snippet below to use your current AWS Region or choose your own value.
+
+```bash
+export AWS_REGION="$(aws configure get region)"
+```
+
+### Kubernetes Version
+
+```bash
+export K8S_VERSION="1.28"
+```
+
+:::note
+Ensure the Kubernetes version you select meets the following requirements:
+- Supported versions for your `eksctl` installation can be checked using the command:
+  ```
+  eksctl create cluster -h | grep 'Kubernetes version'
+  ```
+- Check the [available versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) for AWS EKS service.
+- Verify the [supported K8s versions](release-notes.mdx#1170) for the Okteto chart version you plan to install.
+:::
+
+## Create the Cluster
+
+```bash
+eksctl create cluster \
+  --region="${AWS_REGION}" \
+  --name="${CLUSTER_NAME}" \
+  --with-oidc \
+  --version="${K8S_VERSION}" \
+  --nodes=3 \
+  --node-type="m5.xlarge" \
+  --node-volume-size="250" \
+  --node-volume-type="gp3" \
+  --node-ami-family="AmazonLinux2"
+```
+
+:::note
+If you intend to customize the eksctl create cluster command, ensure OIDC (OpenID Connect) is enabled when executing the command. Additionally, the recommended specifications for the node group are:
+
+- 3 instances or more
+- AMD64 architecture
+- Amazon Linux 2 AMI
+- Specs:
+  - 4 vCPUs or higher
+  - 16 GB RAM or higher
+  - 250 GB storage (SSD preferred) or higher
+
+These requirements align with those specified in the [Getting Started guide](eks.mdx#deploy-a-kubernetes-cluster).
+:::
+
+Let me know if you need further assistance!
+
+## Create EBS CSI Addon IAM Role
+
+```bash
+eksctl create iamserviceaccount \
+  --region="${AWS_REGION}" \
+  --name="ebs-csi-controller-sa" \
+  --namespace="kube-system" \
+  --cluster="${CLUSTER_NAME}" \
+  --role-name="${CLUSTER_NAME}-ebs-csi-driver-role" \
+  --role-only \
+  --attach-policy-arn="arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" \
+  --approve
+```
+
+Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/csi-iam-role.html) for the required AWS IAM Role for the EBS CSI addon.
+
+## Deploy EBS CSI Addon
+
+```bash
+eksctl create addon \
+  --region="${AWS_REGION}" \
+  --name="aws-ebs-csi-driver" \
+  --cluster="${CLUSTER_NAME}" \
+  --service-account-role-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}-ebs-csi-driver-role" \
+  --force
+```
+
+Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on) for managing an EBS CSI addon installation.
+
+## Create Load Balancer Controller IAM Role
+
+Download the IAM Policy manifest:
+
+```bash
+curl \
+  -o iam-policy.json \
+  https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.2.1/docs/install/iam_policy.json
+```
+
+Create the IAM Policy:
+
+```bash
+aws iam create-policy \
+  --policy-name AWSLoadBalancerControllerIAMPolicy \
+  --policy-document file://iam-policy.json
+```
+
+:::note
+
+If you encounter the error `EntityAlreadyExists`, either delete the policy and try again or review if the policy matches the downloaded manifest.
+
+Error example:
+
+```
+An error occurred (EntityAlreadyExists) when calling the CreatePolicy operation: A policy called AWSLoadBalancerControllerIAMPolicy already exists. Duplicate names are not allowed.
+```
+
+To delete the policy, use the following command:
+
+```bash
+aws iam delete-policy \
+  --policy-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy"
+```
+:::
+
+Create the IAM Role:
+
+```bash
+eksctl create iamserviceaccount \
+  --region="${AWS_REGION}" \
+  --name="aws-load-balancer-controller" \
+  --namespace="kube-system" \
+  --cluster="${CLUSTER_NAME}" \
+  --role-name="${CLUSTER_NAME}-aws-load-balancer-controller-role" \
+  --role-only \
+  --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy" \
+  --approve
+```
+
+## Deploy Load Balancer Controller
+
+Add the EKS Helm Chart Repository:
+
+```bash
+helm repo add eks https://aws.github.io/eks-charts
+```
+
+Install the chart:
+
+```bash
+helm install \
+  aws-load-balancer-controller \
+  eks/aws-load-balancer-controller \
+  --namespace="kube-system" \
+  --set clusterName=${CLUSTER_NAME} \
+  --set serviceAccount.create=true \
+  --set serviceAccount.name=aws-load-balancer-controller
+```
+
+## Wrapping Up
+
+Congratulations! Your cluster has been deployed successfully.
+
+### Clean Up Instructions
+
+To delete the cluster, run:
+
+```bash
+eksctl delete cluster \
+  --name="${CLUSTER_NAME}" \
+  --wait
+```
+
+To delete the Load Balancer Controller IAM policy, execute:
+
+```bash
+aws iam delete-policy \
+  --policy-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy"
+```
