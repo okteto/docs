@@ -70,7 +70,6 @@ module.exports = {
       link: { type: 'doc', id: 'deploy/index' },
       items: [
         'core/using-okteto-cli',
-        "deploy/development-environments",
         {
           type: 'category',
           label: 'Development Containers',
@@ -101,6 +100,7 @@ module.exports = {
             },
           ],
         },
+        "deploy/development-environments",
         {
           type: 'category',
           label: 'Deploy environments',
