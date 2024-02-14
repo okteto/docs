@@ -36,7 +36,6 @@ module.exports = {
       position: "left",
     },
     navbar: {
-      title: "Okteto",
       hideOnScroll: false,
       logo: {
         alt: "Okteto Logo",
