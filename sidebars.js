@@ -136,19 +136,6 @@ module.exports = {
       label: 'Okteto Self-Hosted',
       link: { type: 'doc', id: 'self-hosted/index' },
       items: [
-        'reference/helm-chart-values',
-        {
-          type: 'category',
-          label: 'Manage Okteto',
-          items: [
-            'self-hosted/manage/upgrade',
-            'self-hosted/manage/okteto-license',
-            'self-hosted/manage/backup',
-            'self-hosted/manage/custom-resource-definitions',
-            'self-hosted/manage/troubleshooting',
-            'self-hosted/manage/diagnostics',
-          ],
-        },
         {
           type: 'category',
           label: 'Complete the installation',
@@ -166,6 +153,19 @@ module.exports = {
                 'self-hosted/install/private-repositories/ssh-key',
               ],
             },
+          ],
+        },
+        'reference/helm-chart-values',
+        {
+          type: 'category',
+          label: 'Manage Okteto',
+          items: [
+            'self-hosted/manage/upgrade',
+            'self-hosted/manage/okteto-license',
+            'self-hosted/manage/backup',
+            'self-hosted/manage/custom-resource-definitions',
+            'self-hosted/manage/troubleshooting',
+            'self-hosted/manage/diagnostics',
           ],
         },
       ],
