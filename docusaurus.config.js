@@ -36,7 +36,6 @@ module.exports = {
       position: "left",
     },
     navbar: {
-      title: "Okteto",
       hideOnScroll: false,
       logo: {
         alt: "Okteto Logo",
@@ -91,7 +90,7 @@ module.exports = {
           label: "Get Free Trial",
           position: "right",
           target: "_self",
-          className: "Button teal",
+          className: "Button teal GetFreeTrialButton",
         },
       ],
     },
