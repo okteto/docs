@@ -21,7 +21,7 @@ Okteto transforms the way developers code, test, and deploy applications by offe
 ## Key Features
 
 ### Development Environments
-Okteto's [Development Environments](deploy/development-environments.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](core/using-okteto-cli.mdx). Write code locally on your machine and view your changes live, deployed in a managed Kubernetes cluster **as soon as you hit save**! You don't have to spend time configuring anything to do this.
+Okteto's [Development Environments](deploy/development-environments.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](core/using-okteto-cli.mdx) or click of a button. Write code locally on your machine and view your changes live, deployed in the cloud **as soon as you hit save**! You don't have to spend time configuring anything to do this.
 
 ### Automated Preview Environments
 Collaborate and share your progress with ease. Okteto's [Preview Environments](preview/overview.mdx) automatically generate a unique, shareable version of your application for each pull request, making code reviews, automated end-to-end testing, and stakeholder feedback a breeze.
