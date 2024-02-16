@@ -16,8 +16,6 @@ module.exports = {
   onDuplicateRoutes: "warn",
   customFields: {
     image: "https://www.okteto.com/docs/okteto-meta-image.png",
-    kubernetesMinVersion: process.env.KUBERNETES_MIN_VERSION ?? "1.25",
-    kubernetesMaxVersion: process.env.KUBERNETES_MIN_VERSION ?? "1.28",
   },
   themeConfig: {
     colorMode: {
