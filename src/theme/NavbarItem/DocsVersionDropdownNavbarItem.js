@@ -77,7 +77,7 @@ export default function DocsVersionDropdownNavbarItem({
         activeDocContext?.alternateDocVersions[version.name] || getVersionMainDoc(version);
       return {
         isNavLink: true,
-        label: version.label,
+        label: `${version.label} ${version.isLast ? '(Latest)' : ''}`,
         to: versionDoc.path,
         isActive: () => version === activeDocContext?.activeVersion,
         onClick: () => {
