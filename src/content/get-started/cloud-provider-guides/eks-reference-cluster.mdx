@@ -137,27 +137,9 @@ Create the IAM Policy:
 
 ```bash
 aws iam create-policy \
-  --policy-name AWSLoadBalancerControllerIAMPolicy \
+  --policy-name="${CLUSTER_NAME}-load-balancer-controller-policy" \
   --policy-document file://iam-policy.json
 ```
-
-:::note
-
-If you encounter the error `EntityAlreadyExists`, either delete the policy and try again or review if the policy matches the downloaded manifest.
-
-Error example:
-
-```
-An error occurred (EntityAlreadyExists) when calling the CreatePolicy operation: A policy called AWSLoadBalancerControllerIAMPolicy already exists. Duplicate names are not allowed.
-```
-
-To delete the policy, use the following command:
-
-```bash
-aws iam delete-policy \
-  --policy-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy"
-```
-:::
 
 Create the IAM Role:
 
@@ -168,7 +150,7 @@ eksctl create iamserviceaccount \
   --namespace="kube-system" \
   --cluster="${CLUSTER_NAME}" \
   --role-name="${CLUSTER_NAME}-aws-load-balancer-controller-role" \
-  --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy" \
+  --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${CLUSTER_NAME}-load-balancer-controller-policy" \
   --approve
 ```
 
