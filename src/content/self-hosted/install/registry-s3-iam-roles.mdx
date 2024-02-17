@@ -4,16 +4,15 @@ description: How to Setup Okteto Self Hosted Registry with S3 access via IAM Rol
 id: registry-s3-iam-roles
 ---
 
-# Setup Registry with S3 Access via IAM Roles
+# Setting Up Registry with S3 Access via IAM Roles
 
-This guide will show you how to setup Okteto Self Hosted Registry with S3 access via IAM Roles.
+This guide will walk you through the process of setting up Okteto Self Hosted Registry with S3 access via IAM Roles.
 
 ## Requirements
 
-- Ensure you have the following tool installed:
+- Ensure you have the following tools installed:
   - `eksctl` version 0.171 or higher. You can find installation instructions for `eksctl` [here](https://eksctl.io/installation/).
   - `aws` CLI v2 version 2.15 or higher. Follow the installation instructions for `aws` CLI v2 [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions).
-
 
 ## Set Up Variables
 
@@ -25,19 +24,19 @@ export CLUSTER_NAME="okteto-cluster"
 
 ### Bucket Name
 
-Use the snippet below to use your own bucket name or choose your own value.
+Use the snippet below to assign your own bucket name or choose a unique value.
 
 ```bash
 export BUCKET_NAME="${CLUSTER_NAME}-registry-bucket"
 ```
 
 :::tip
-S3 bucket names are globally unique. You will need to choose a unique name for your bucket. You can include a random string in the bucket name to ensure it is unique.
+S3 bucket names must be globally unique. Ensure you select a unique name for your bucket. You may include a random string in the bucket name to guarantee its uniqueness.
 :::
 
 ### AWS Region
 
-Use the snippet below to use your current AWS Region or choose your own value.
+Use the snippet below to set your current AWS Region or choose your preferred value.
 
 ```bash
 export AWS_REGION="$(aws configure get region)"
@@ -45,7 +44,7 @@ export AWS_REGION="$(aws configure get region)"
 
 ### AWS Account ID
 
-Use the following snippet to use your current AWS Account ID or choose your own value.
+Use the following snippet to set your current AWS Account ID or specify your desired value.
 
 ```bash
 export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query "Account" --output text)"
@@ -57,7 +56,7 @@ export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query "Account" --output 
 export AWS_PAGER=""
 ```
 
-## Create S3 bucket
+## Create S3 Bucket
 
 ```bash
 aws s3api create-bucket \
@@ -68,7 +67,7 @@ aws s3api create-bucket \
 
 ## Create IAM Role
 
-Save the following IAM Policy definition to a file and modify the `Resource` field to match your S3 bucket name:
+Save the provided IAM Policy definition to a file and adjust the `Resource` field to match your S3 bucket name:
 
 ```json title="okteto-registry-iam-policy.json"
 {
@@ -101,7 +100,7 @@ Save the following IAM Policy definition to a file and modify the `Resource` fie
 ```
 
 :::note
-The IAM policy is maintained by `distribution/distribution` project. You can find the latest version of the policy [here](https://distribution.github.io/distribution/storage-drivers/s3/#s3-permission-scopes).
+The IAM policy is maintained by the `distribution/distribution` project. You can find the latest version of the policy [here](https://distribution.github.io/distribution/storage-drivers/s3/#s3-permission-scopes).
 :::
 
 Create the IAM Policy:
@@ -132,7 +131,7 @@ eksctl create iamserviceaccount \
   --approve
 ```
 
-## Use the Role in Your Okteto Self Hosted Instances
+## Integrating the Role in Your Okteto Self Hosted Instances
 
 Set the IAM Role ARN:
 
@@ -140,7 +139,7 @@ Set the IAM Role ARN:
 export ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}-okteto-registry-role"
 ```
 
-Apply the following snippet to your Helm release configuration and replace the highlighted value:
+Apply the following snippet to your Helm release configuration and replace the highlighted values:
 
 ```yaml title="Registry S3 IAM Role"
 registry:
@@ -161,5 +160,5 @@ registry:
 ```
 
 :::note
-If you followed the [AWS Cloud Provider guide](get-started/cloud-provider-guides/eks.mdx), replace the whole `registry.storage` section with the one above.
+If you followed the [AWS Cloud Provider guide](get-started/cloud-provider-guides/eks.mdx), replace the entire `registry.storage` section with the one above.
 :::
