@@ -75,9 +75,18 @@ export default function DocsVersionDropdownNavbarItem({
       // When not possible, fallback to the "main doc" of the version
       const versionDoc =
         activeDocContext?.alternateDocVersions[version.name] || getVersionMainDoc(version);
+
+      let versionDetails = '';
+      if (version.name === 'current') {
+        versionDetails = '(Unreleased)';
+      } else if (version.isLast) {
+        versionDetails = '(Latest release)';
+      }
+
+      console.log(version);
       return {
         isNavLink: true,
-        label: version.label,
+        label: `${version.label} ${versionDetails}`,
         to: versionDoc.path,
         isActive: () => version === activeDocContext?.activeVersion,
         onClick: () => {
@@ -99,6 +108,7 @@ export default function DocsVersionDropdownNavbarItem({
           description: 'The label for the navbar versions dropdown on mobile view',
         })
       : dropdownVersion.label;
+
   const dropdownTo =
     mobile && items.length > 1 ? undefined : getVersionMainDoc(dropdownVersion).path; // We don't want to render a version dropdown with 0 or 1 item. If we build
   // the site with a single docs version (onlyIncludeVersions: ['1.0.0']),
