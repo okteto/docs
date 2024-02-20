@@ -41,6 +41,12 @@ You can launch a remote Development Environment with [Okteto](https://okteto.com
 *A new version of the docs is created once the documentation for a certain version is "finished". This is typically done in preparation of a new release.*
 
 
+### Update Variables
+
+Review the content of `src/content/variables.json` and update the values of `cliVersion` and `chartVersion`.
+
+If the release comes with a new or a removed Kubernetes version, update `kubernetesMinVersion` and `kubernetesMaxVersion` accordingly.
+
 ### Create a new version
 To create a new version, run the following commands:
 
@@ -106,7 +112,6 @@ Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/
 Update [/src/pages/archives.md](the archives page) with the new latest version
 
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
-
 
 
 ### Request a new search index
