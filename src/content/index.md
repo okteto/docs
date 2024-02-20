@@ -9,7 +9,7 @@ Okteto transforms the way developers code, test, and deploy applications by offe
 [If you haven’t already, get your free 30-day license key to get started here ->](https://www.okteto.com/free-trial/)
 
 ## Why Platform Teams choose Okteto?
-- **Control, Governance, and Self-service access**: Enable your developers access to easily access secure and reproducible ephemeral environments. Okteto abstracts the complexity of Kubernetes, providing developers with a straightforward path from code to deployment, all within the cloud. This means no more wrestling with local setup or inconsistencies between environments.
+- **Control, Governance, and Self-service access**: Enable your developers to easily access secure and reproducible ephemeral environments. Okteto abstracts the complexity of Kubernetes, providing developers with a straightforward path from code to deployment, all within the cloud. This means no more wrestling with local setup or inconsistencies between environments.
 ![Platform team using Okteto diagram](../../static/img/platform-team-diagram.jpg)
 
 - **Create a seamless development experience**: With Okteto, your development environment is a one-click experience for everyone on the team. Featuring instantaneous Code Sync and Live Updates, experience the magic of seeing your code changes reflected instantly in your cloud environment. This allows for rapid testing and iteration without the need for rebuilds or redeployments, ensuring that your applications run just as smoothly in development as they do in production.
