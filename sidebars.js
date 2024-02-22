@@ -18,6 +18,7 @@ module.exports = {
           link: { type: 'doc', id: 'get-started/overview' },
           items: [
             "get-started/cloud-provider-guides/amazon-eks",
+            "get-started/cloud-provider-guides/eks-reference-cluster",
             "get-started/cloud-provider-guides/civo",
             "get-started/cloud-provider-guides/digitalocean-doks",
             "get-started/cloud-provider-guides/google-gke",
@@ -143,10 +144,12 @@ module.exports = {
           label: 'Complete the installation',
           items: [
             'self-hosted/install/certificates',
+            'self-hosted/install/aws-acm',
             'self-hosted/install/custom-installer-image',
             'self-hosted/install/argocd',
             'self-hosted/install/github-integration',
             'self-hosted/install/volume-snapshots',
+            'self-hosted/install/registry-s3-iam-roles',
             {
               type: 'category',
               label: 'Private Repositories',
