@@ -168,6 +168,7 @@ module.exports = {
             'self-hosted/manage/custom-resource-definitions',
             'self-hosted/manage/troubleshooting',
             'self-hosted/manage/diagnostics',
+            'self-hosted/manage/uninstall-okteto',
           ],
         },
       ],
