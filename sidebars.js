@@ -208,11 +208,7 @@ module.exports = {
         },
       ],
     },
-    {
-      type: 'link',
-      label: 'Release notes',
-      href: '/release-notes',
-    },
+    "release-notes",
     {
       type: 'link',
       label: 'Archives',
