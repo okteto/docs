@@ -73,29 +73,29 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
 
     Before
     ```
-        '1.4': {
-            label: '1.4',
-            path: '/'
-            banner: 'none',
+        "1.4": {
+            label: "1.4",
+            path: "/",
+            banner: "none",
         },
     ```
 
     After
     ```
-        '1.4': {
-            label: '1.4',
-            path: '1.4'
-            banner: 'none',
+        "1.4": {
+            label: "1.4",
+            path: "1.4",
+            banner: "none",
         },
     ```
 
 4. Add a new entry in the `versions` subsection to match the new official version, with `/` as the path.
     
     ```
-        '1.5': {
-            label: '1.5',
-            path: '/'
-            banner: 'none',
+        "1.5": {
+            label: "1.5",
+            path: "/",
+            banner: "none",
         },
     ```
 
@@ -109,7 +109,7 @@ Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/
   status = 301
 ```
 
-Update [/src/pages/archives.md](the archives page) with the new latest version
+Update `/src/pages/archives.md` with the new latest version
 
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
 
