@@ -187,7 +187,7 @@ module.exports = {
               label: "1.19",
               path: "1.19",
             },
-            "1.18": {
+            1.18: {
               label: "1.18",
               path: "/",
               banner: "none",
