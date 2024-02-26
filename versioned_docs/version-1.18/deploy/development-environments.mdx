@@ -1,0 +1,51 @@
+---
+title: Development images
+description: Configure development images for your Development Containers
+sidebar_label: Development images
+id: development-environments
+---
+
+Development images allow you to configure the runtime of your Development Containers.
+Instead of having to keep a wiki with a never-ending list of tools, dependencies, and scripts to install and run, you can pack all of it in the development images of your Development Containers.
+
+## Overview
+
+At a high level, a development image is a Docker container image that contains:
+
+- One or more language runtimes (e.g python, ruby, node)
+- SDKs for your language runtime (e.g JDK, python-dev)
+- Binary dependencies (e.g. openssl, git)
+- Tools to manage and install dependencies (e.g. pip, bundler, yarn)
+- Tools to run your tests and analyze your code (e.g nosetest, pylint)
+- Your source code
+
+Out of the box, Okteto maintains pre-configured development images in this [GitHub repository](https://github.com/okteto/devenv) for the following languages:
+
+- dotnetcore
+- golang
+- java
+- node
+- php
+- python
+- ruby
+- rust
+
+## Create your own
+
+The default development images are a great way to start.
+They use the latest official docker images for your language runtime and include the most common developer tools and a custom bash prompt.
+But they might not have everything you need. Your team might need to support a very specific version of your runtime, or you might need some extra tooling available.
+
+Do the following to create your own development image:
+
+1. Create a Dockerfile
+1. Pick a base image
+1. Add your extra dependencies, tools, and files
+1. Build your image in the [build](manifest/overview-manifest.mdx#build) section of the Okteto manifest
+1. Update the `image` key in your `okteto.yaml` with your new image using the [OKTETO_BUILD_XXX](manifest/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) variables
+
+Besides following [Docker's best practices](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/), we also recommend the following:
+
+- Pin all your dependencies, so there aren't any surprises
+- Keep the Dockerfile in your repository, next to your code
+- When using [multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/), use your builder stage to build your development image

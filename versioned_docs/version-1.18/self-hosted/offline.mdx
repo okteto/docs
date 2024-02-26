@@ -1,0 +1,133 @@
+---
+title:  Okteto Offline Installation
+description: How to install and manage Okteto in an offline environment
+id: offline
+---
+
+This guide will show you how to install Okteto onto Azure Kubernetes Service (AKS). We'll be focusing exclusively on AKS in order to keep it as simple as possible.
+
+## Requirements
+
+In order to fully install Okteto, you'll need the following:
+
+- A subdomain to which you can add a wildcard DNS record
+- A Kubernetes cluster
+- A working installation of kubectl
+- A working installation of Helm v3 (v3.8 or higher)
+- An Okteto License
+
+### Subdomain
+
+You'll need access to a subdomain to which you can add a wildcard DNS record, such as dev.example.com.
+
+This guide will assume that your domain is registered in [AzureDNS](https://docs.microsoft.com/en-us/azure/dns/dns-overview). Other DNS services can be used, but aren't covered here.
+
+### Deploy a Kubernetes cluster
+
+We recommend that you follow Azure's [cluster creation guide](https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough) and check our [getting started guide](get-started/overview.mdx).
+
+You'll be using the cluster's API server endpoint when configuring Okteto.
+Run the following command to obtain your cluster's API server endpoint:
+
+```
+kubectl config view --minify | grep server
+```
+
+> Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
+
+### Installing kubectl
+
+Follow Azure's documentation for [installing kubectl](https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough#connect-to-the-clusterl). Once installed, configure `kubectl` to talk to your new cluster.
+
+### Installing Helm v3 (v3.8 or higher)
+
+Follow the official documentation for [installing the latest release of Helm v3 (v3.8 or higher)](https://helm.sh/docs/intro/install/).
+
+### Adding the Okteto Helm repository
+
+You'll need to add the Okteto repository in order to be able to install Okteto:
+
+```console
+helm repo add okteto https://charts.okteto.com
+helm repo update
+```
+
+### Getting your Okteto License
+
+You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+
+If you are interested in evaluating Okteto, [sign up for our free 30 days trial.  No credit card required](https://www.okteto.com/free-trial/).
+
+## Installing Okteto
+
+### Configuring your Okteto instance
+
+Download a copy of the [Okteto AKS configuration file](https://www.okteto.com/docs/self-hosted/aks/config.yaml), open it, and update the following values:
+
+- Your `license`
+- A `subdomain`
+- Your cluster's API server endpoint
+
+For example:
+
+```yaml
+license: 1234567890ABCD==
+subdomain: dev.example.com
+cluster:
+  endpoint: "https://XXXXXX.aks.microsoft.com"
+
+buildkit:
+  persistence:
+    enabled: true
+
+registry:
+  storage:
+    filesystem:
+      persistence:
+        enabled: true
+```
+
+### Installing your Okteto instance
+
+Install the latest version of Okteto by running:
+
+```console
+helm install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace
+```
+
+> You can also install a specific version by including the `--version` argument.
+
+After a few seconds, all the resources will be created. The output will look something like this:
+
+```
+Release "okteto" has been installed. Happy Helming!
+NAME: okteto
+LAST DEPLOYED: Thu Mar 26 18:07:55 2020
+NAMESPACE: okteto
+STATUS: deployed
+```
+
+### Retrieve the Ingress Controller IP address
+
+You can use `kubectl` to fetch the address that has been dynamically allocated by AKS to the NGINX Ingress we've just installed and configured as a part of Okteto:
+
+```console
+kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                             TYPE           CLUSTER-IP   EXTERNAL-IP                          PORT(S)                                     AGE
+okteto-ingress-nginx-controller  LoadBalancer   10.0.7.73    a519c8b3b27f94...aks.microsoft.com   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
+```
+
+You'll need to take the `EXTERNAL-IP` address and add it to your DNS for the domain you have chosen to use. In AzureDNS, this is done by creating an `A` record with the name  `*`, pointing to the IP of the Load Balancer.
+
+## Sign in to your Okteto instance
+
+After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+
+> **Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](admin/dashboard.mdx#installation) before giving your team access to your Okteto instance.
+
+The default installation is all that's required to follow our [getting started](get-started/install-okteto-cli.mdx) guide.
