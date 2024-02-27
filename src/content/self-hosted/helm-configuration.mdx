@@ -601,7 +601,9 @@ By default, the Private Endpoint component will inherit the configuration set at
 
 ### registry
 
-The private container registry.
+Use this section to configure the [Okteto Registry](core/container-registry.mdx). We have dedicated guides to [configure the Okteto Registry](self-hosted/install/okteto-registry-storage/index.mdx) to store your images in the storage driver of your choice.
+
+These are all the settings available to configure your Okteto Registry:
 
 - `annotations`: Annotations to add to the registry pods.
 - `extraEnv`: Environment variables to be set on the registry containers.
@@ -616,184 +618,6 @@ The private container registry.
 - `secret.name`: when using external storage, the name of the secret with the values of your cloud provider credentials.
 - `secret.accessKey`: the key of the access key in the secret referenced by `secret.name` (defaults to `accessKey`).
 - `secret.secretKey`: the key of the secret key in the secret referenced by `secret.name` (defaults to `secretKey`).
-- `storage`: The storage mechanism for the images.
-
-#### storage
-
-Okteto supports different storage drivers to store the images inside the [Okteto Registry](core/container-registry.mdx). Check out our video tutorial on how to configure a persistent storage for your Okteto installation:
-
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/eaKc05Qzlvw"
-  title="YouTube video player"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  allowfullscreen
-></iframe>
-
-##### filesystem
-
-Set `filesystem.enabled` to true if you want to store the images in the container filesystem.
-Additionally, set `filesystem.persistence.enabled` to true if you want to store the images in a PVC attached to the registry.
-Both options might limit your ability to scale up the registry, depending on the type of storage you are using.
-You can also customize the `storageClass` (optional), the `size` of the volume (defaults to 40Gi), or attach an existing volume claim via `claimName`.
-
-```yaml
-registry:
-  storage:
-    filesystem:
-      enabled: true
-      persistence:
-        enabled: true
-        claimName: ""
-        accessMode: ReadWriteOnce
-        storageClass: ""
-        size: 40Gi
-```
-
-##### azure
-
-Use this to use Azure Storage to store your private images.
-
-`STORAGE_ACCOUNT_ACCESS_KEY` refers to a storage account access key with read/write permissions to the storage container specified in the Okteto configuration.
-Create a secret with the value of `STORAGE_ACCOUNT_ACCESS_KEY` using the command below.
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=STORAGE_ACCOUNT_ACCESS_KEY
-```
-
-Then, add the following configuration to your Okteto helm values file:
-
-```yaml
-registry:
-  storage:
-    provider:
-      azure:
-        enabled: true
-        storage:
-          container: "storage-container-name"
-          accountName: "service-account-name"
-```
-
-##### aws
-
-Use this to use S3 to store your private images.
-
-###### IAM Role for Service Account (recommended)
-
-Use this option to give the registry pods a role to authenticate with the S3 bucket.
-
-To do that, add the following configuration to your Okteto helm values file:
-
-```yaml
-registry:
-  storage:
-    provider:
-      aws:
-        enabled: true
-        bucket: "bucket-name"
-        region: "aws-region"
-        iam:
-          enabled: false
-  serviceAccount:
-    annotations:
-      eks.amazonaws.com/role-arn: "arn:aws:iam::111122223333:role/okteto-registry-role-name"
-```
-
-###### IAM User
-
-`IAM_SECRET_KEY` refers to the secret key of an IAM with read/write permissions to the bucket specified in the Okteto configuration.
-Create a secret with the value of `IAM_SECRET_KEY` using the command below.
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=IAM_SECRET_KEY
-```
-
-Then, add the following configuration to your Okteto helm values file:
-
-```yaml
-registry:
-  storage:
-    provider:
-      aws:
-        enabled: true
-        bucket: "bucket-name"
-        region: "aws-region"
-        iam:
-          enabled: true
-          accessKeyID: "XXXXXX"
-```
-
-##### digitalocean
-
-Use this to use DigitalOcean Spaces to store your private images.
-
-`ACCESS_KEY` refers to the access key of the storage space specified in the Okteto configuration.
-Create a secret with the value of `ACCESS_KEY` using the command below.
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=ACCESS_KEY
-```
-
-Then, add the following configuration to your Okteto helm values file:
-
-```yaml
-registry:
-  storage:
-    provider:
-      digitalocean:
-        enabled: true
-        space:
-          name: "space-name"
-          accessKeyID: "access-key"
-```
-
-##### gcp
-
-Use this to use Google Cloud Storage to store your private images.
-
-###### Workload Identity (recommended)
-
-Use this option to configure the registry pods with a workload id to authenticate with the bucket.
-
-To do that, add the following configuration to your Okteto helm values file:
-
-```yaml
-registry:
-  storage:
-    provider:
-      gcp:
-        enabled: true
-        bucket: "bucket-name"
-        project: "project-id"
-        workloadIdentity:
-          enabled: true
-  serviceAccount:
-    annotations:
-      iam.gke.io/gcp-service-account: "GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com"
-```
-
-###### Service Account Key (JSON)
-
-`key.json` refers to a file containing the key of a service account with read/write permissions to the storage bucket specified in the Okteto configuration.
-Create a secret with the value of `key.json` using the command below.
-
-```console
-$ kubectl create secret generic okteto-registry-secret --namespace=okteto --from-file=key=key.json
-```
-
-Then, add the following configuration to your Okteto helm values file:
-
-```yaml
-registry:
-  storage:
-    provider:
-      gcp:
-        enabled: true
-        bucket: "bucket-name"
-        project: "project-id"
-```
 
 ### telemetry
 
@@ -1382,15 +1206,18 @@ When a persistent volume claim resource is created, Okteto will import the snaps
 
 ### wildcardCertificate
 
-Disable if you want to bring your own certificates and/or certificate authority. Enabled by default.
+By default, Okteto configures a self-signed wildcard certificate for your instance to simplify your product evaluation.
+For a production-ready installation, follow our docs to [configure your wildcard certificate](self-hosted/install/certificates/index.mdx) and disable the default behavior.
 
-- `create`: If set to false, Okteto will not create the wildcard certificate automatically.
-- `duration`: The duration of the certificate. Ignored if `create` is set to `false`.
-- `name`: The name of the secret where the certificate will be stored.
-- `privateCA.enabled`: Set to true when using a private certificate authority.
-- `privateCA.secret.name`: The name of the secret that stores the private certificate authority's certificate.
-- `privateCA.secret.key`: The key in the secret that stores the private certificate authority's certificate.
-- `annotations`: Annotations to add to the wildcard certificate generated by Okteto.
+These are all the settings available to configure certificates:
+
+- `create`: If set to false, Okteto will not create a self-signed wildcard certificate
+- `duration`: The duration of the self-signed certificate. Ignored if `create` is set to `false`
+- `name`: The name of the secret where the certificate is stored
+- `privateCA.enabled`: Set to true when using a private certificate authority
+- `privateCA.secret.name`: The name of the secret that stores the private certificate authority's certificate
+- `privateCA.secret.key`: The key in the secret that stores the private certificate authority's certificate
+- `annotations`: Annotations to add to the self-signed certificate generated by Okteto
 
 ```yaml
 wildcardCertificate:
