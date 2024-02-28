@@ -1,0 +1,63 @@
+---
+title: Use Bitbucket as your Authentication Provider
+description: Use Bitbucket as the authentication provider of your Okteto Self-hosted instance
+sidebar_label: Bitbucket
+id: bitbucket
+---
+
+This guide will walk you through the steps necessary to configure Bitbucket as the authentication provider for Okteto.
+
+Please refer to [Bitbucket's official documentation](https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/) on how to create an OAuth Consumer for more information.
+
+## Prerequisites
+
+- A working installation of [Okteto](get-started/install/index.mdx)
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine
+- Access to a [Bitbucket account](https://bitbucket.org/) with permissions to create an OAuth Consumer
+
+## Create the OAuth Consumer
+
+When creating the OAuth Consumer, you will need to provide the following values:
+
+**Callback URL**:
+
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+**URL**:
+
+```
+https://okteto.DOMAIN
+```
+
+**Permissions**:
+Account: Email
+Account: Read
+
+Copy the `OAauth Consumer Key` and `OAauth Consumer Secret` values. You'll need them to configure Okteto.
+
+## Configure Okteto
+
+Once you have the Bitbucket OAuth Consumer ready, update the `auth` section of your Helm configuration file with the following values:
+
+```yaml title="config.yaml"
+auth:
+  bitbucket:
+    enabled: true
+    // highlight-next-line
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_CONSUMER_KEY"
+    // highlight-next-line
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_CONSUMER_SECRET"
+    // highlight-next-line
+    workspace: "REPLACE_ME_WITH_YOUR_BITBUCKET_WORKSPACE"
+```
+
+> You can also use a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the sensitive part of these credentials.
+
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
+We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+
+The `workspace` field is optional. Only members of the workspace will be allowed to login into Okteto.
+An empty `workspace` field permits any user to log in.
+

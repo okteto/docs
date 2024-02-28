@@ -166,6 +166,21 @@ module.exports = {
             },
             {
               type: 'category',
+              label: 'Authentication',
+              link: { type: 'doc', id: 'self-hosted/install/auth/index' },
+              items: [
+                'self-hosted/install/auth/azure-ad',
+                'self-hosted/install/auth/bitbucket',
+                'self-hosted/install/auth/github',
+                'self-hosted/install/auth/gitlab',
+                'self-hosted/install/auth/google',
+                'self-hosted/install/auth/okta',
+                'self-hosted/install/auth/openid-connect',
+                'self-hosted/install/auth/token',
+              ],
+            },
+            {
+              type: 'category',
               label: 'Private Repositories',
               items: [
                 'self-hosted/install/private-repositories/github-app',
