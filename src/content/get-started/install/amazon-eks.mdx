@@ -10,7 +10,7 @@ pagination_next: get-started/install-okteto-cli
 import variables from '../../variables.json';
 import CodeBlock from '@theme/CodeBlock';
 
-This guide will show you how to install Okteto in Amazon Elastic Kubernetes Service (EKS).
+This guide will walk you through the process of installing Okteto in Amazon Elastic Kubernetes Service (EKS).
 
 ## Installation Requirements
 
@@ -24,7 +24,7 @@ Before you start, make sure you have the following CLIs installed in your machin
 You'll also need the following:
 
 - An Okteto License
-- A domain and the ability to create wildcard DNS records for it
+- A Domain and the ability to create wildcard DNS records for it
 - A Kubernetes cluster
 
 ## Getting your Okteto License
@@ -51,7 +51,7 @@ If you plan on installing Okteto in an existing cluster with other workloads, we
 
 ### Setting up environment variables
 
-We recommend configuring the following variables to help you scripting the cluster creation:
+We recommend configuring the following environment variables to help you scripting the cluster creation:
 
 Your Kubernetes cluster version:
 
@@ -89,7 +89,7 @@ export AWS_PAGER=""
 
 ### Create the Cluster
 
-For initial evaluation, we recommend the following a cluster with a pool of 3 `m5.xlarge` nodes with 250 GB each:
+For initial evaluation, we recommend a Kubernetes cluster with a pool of 3 `m5.xlarge` nodes with 250 GB each:
 
 ```bash
 eksctl create cluster \
@@ -118,7 +118,11 @@ Follow Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/
 
 ### Create EBS CSI Addon IAM Role
 
-Okteto requires the EBS CSI Addon to be installed in your cluster. To do that, you need to create its IAM Role first:
+Okteto requires the EBS CSI Addon to be able to create persistent volumes.
+Okteto uses persistent volumes to persist the cache of the [Okteto Build](core/build-service.mdx) service (buildkit).
+The default installation also uses persistent volumes to store your container images in the [Okteto Registry](core/container-registry.mdx).
+
+To install the EBS CSI Addon in your Kubernetes cluster, you need to create the EBS CSI Addon's IAM Role first:
 
 ```bash
 eksctl create iamserviceaccount \
@@ -151,7 +155,10 @@ Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest
 
 ### Create Load Balancer Controller IAM Role
 
-Okteto requires the Load Balancer Controller to be installed in your cluster. To do that, download the IAM Policy manifest:
+Okteto requires the Load Balancer Controller to manage the Okteto certificates with Amazon Certificate Manager.
+Refer to the [Load Balancer Controller AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html) for more details.
+
+To install the Load Balancer Controller in your Kubernetes cluster, download its IAM Policy manifest first:
 
 ```bash
 curl \
