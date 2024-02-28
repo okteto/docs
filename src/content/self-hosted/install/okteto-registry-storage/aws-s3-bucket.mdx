@@ -1,0 +1,161 @@
+---
+title: Okteto Registry with Amazon S3 Bucket
+description: Configure the Okteto Registry with Amazon S3 Bucket
+sidebar_label: AWS S3 Bucket
+id: aws-s3-bucket
+---
+
+This guide will walk you through the process of setting up the Okteto Registry with S3 storage to store your container images.
+
+## Requirements
+
+Before you start, make sure you have the following CLI installed in your machine:
+
+- `eksctl` >= 0.171 ([eksctl installation guides](https://eksctl.io/installation/))
+- `aws` >= 2.15 ([aws installation guides](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions))
+- `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
+
+## Setting up environment variables
+
+We recommend configuring the following environment variables to help you scripting the Okteto Registry configuration:
+
+Your Kubernetes cluster name:
+
+```bash
+export CLUSTER_NAME="okteto"
+```
+
+Your bucket name:
+
+```bash
+export BUCKET_NAME="${CLUSTER_NAME}-registry-bucket"
+```
+
+:::tip
+S3 bucket names must be globally unique. Ensure you select a unique name for your bucket. You may include a random string in the bucket name to guarantee its uniqueness.
+:::
+
+Your AWS Account ID:
+
+```bash
+export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query "Account" --output text)"
+```
+
+Your AWS Region:
+
+```bash
+export AWS_REGION="$(aws configure get region)"
+```
+
+Disable AWS CLI pagination (optional):
+
+```bash
+export AWS_PAGER=""
+```
+
+## Create S3 Bucket
+
+Create your S3 bucket with the following command:
+
+```bash
+aws s3api create-bucket \
+  --bucket="${BUCKET_NAME}" \
+  --region="${AWS_REGION}" \
+  --create-bucket-configuration=LocationConstraint="${AWS_REGION}"
+```
+
+## Create IAM Role
+
+Save the following IAM Policy definition to a file and update the `Resource` field to match your S3 bucket name:
+
+```json title="okteto-registry-iam-policy.json"
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:ListBucketMultipartUploads"
+      ],
+      // highlight-next-line
+      "Resource": "arn:aws:s3:::REPLACE-ME-WITH-YOUR-BUCKET-NAME"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListMultipartUploadParts",
+        "s3:AbortMultipartUpload"
+      ],
+      // highlight-next-line
+      "Resource": "arn:aws:s3:::REPLACE-ME-WITH-YOUR-BUCKET-NAME/*"
+    }
+  ]
+}
+```
+
+:::note
+The IAM policy is maintained by the `distribution/distribution` project. You can find the latest version of the policy [here](https://distribution.github.io/distribution/storage-drivers/s3/#s3-permission-scopes).
+:::
+
+Create the IAM Policy with the following command:
+
+```bash
+aws iam create-policy \
+  --policy-name="${CLUSTER_NAME}-okteto-registry-policy" \
+  --policy-document="file://okteto-registry-iam-policy.json"
+```
+
+Configure your Kubernetes context to the cluster where Okteto is installed and get the Okteto Registry service account name with the following command:
+
+```bash
+export OKTETO_REGISTRY_SERVICE_ACCOUNT_NAME="$(kubectl get sa -n=okteto -l=app.kubernetes.io/component=registry -o=jsonpath='{.items[0].metadata.name}')"
+```
+
+Create the IAM Role with the following command:
+
+```bash
+eksctl create iamserviceaccount \
+  --region="${AWS_REGION}" \
+  --name="${OKTETO_REGISTRY_SERVICE_ACCOUNT_NAME}" \
+  --namespace="okteto" \
+  --cluster="${CLUSTER_NAME}" \
+  --role-name="${CLUSTER_NAME}-okteto-registry-role" \
+  --role-only \
+  --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${CLUSTER_NAME}-okteto-registry-policy" \
+  --approve
+```
+
+## Configure Okteto to use your IAM Role
+
+Set the IAM Role ARN with the following command:
+
+```bash
+export ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}-okteto-registry-role"
+```
+
+Apply the following snippet to your Okteto Helm configuration file and replace the highlighted values:
+
+```yaml title="config.yaml"
+registry:
+  storage:
+    provider:
+      aws:
+        enabled: true
+        // highlight-next-line
+        bucket: "REPLACE ME WITH YOUR BUCKET NAME"
+        // highlight-next-line
+        region: "REPLACE ME WITH YOUR AWS REGION"
+        iam:
+          enabled: false
+  serviceAccount:
+    annotations:
+      // highlight-next-line
+      eks.amazonaws.com/role-arn: "REPLACE_ME_WITH_YOUR_ROLE_ARN"
+```
+
+Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation for the new configuration to be applied.

@@ -1,0 +1,190 @@
+---
+title: Setting up certificates with AWS ACM
+description: Setting up certificates with AWS ACM
+sidebar_label: AWS ACM
+id: aws-acm
+---
+
+# Setting up certificates with AWS ACM
+
+This guide will walk you through the process of setting certificates issued by or imported into Amazon Certificate Manager.
+
+## Requirements
+
+Before you start, make sure you have the following CLI installed in your machine:
+
+- `aws` >= 2.15 ([aws installation guides](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions))
+
+You'll also need to install the Load Balancer Controller in your Kubernetes cluster.
+If you haven't done it yet, follow our guide to [create the Load Balancer Controller IAM Role](get-started/install/amazon-eks.mdx#create-load-balancer-controller-iam-role) and [deploy the Load Balancer Controller](get-started/install/amazon-eks.mdx#deploy-load-balancer-controller) to your Kubernetes cluster.
+
+:::note
+If you don't install the Load Balancer Controller, you will need to setup the ALPN policy to HTTP2Preferred in the AWS NLB TLS listener at port 443.
+:::
+
+## Setting up environment variables
+
+We recommend configuring the following environment variables to help you scripting the certificate configuration:
+
+The [Okteto Domain](get-started/install/amazon-eks.mdx#a-domain-and-the-ability-to-create-wildcard-dns-records-for-it) used in your Okteto installation:
+
+```bash
+export OKTETO_DOMAIN="<<your-okteto-domain>>"
+```
+
+Your AWS Region:
+
+```bash
+export AWS_REGION="$(aws configure get region)"
+```
+
+Disable AWS CLI pagination (optional):
+
+```bash
+export AWS_PAGER=""
+```
+
+## Create an AWS Route 53 DNS Zone
+
+Okteto uses a DNS zone for both its internal endpoints (e.g., registry, kubernetes, buildkit) and also your application endpoints.
+Create a DNS zone with the following command:
+
+```bash
+aws route53 create-hosted-zone \
+    --name="${OKTETO_DOMAIN}" \
+    --caller-reference="$(date +%s)"
+```
+
+From the output, take note of the following properties:
+
+- `HostedZone.Id`, set it as the value of the following environment variable:
+  
+```bash
+export HOSTED_ZONE_ID="<<your-hosted-zone-id>>"
+```
+
+- `DelegationSet.Nameservers[]`, use them to delegate the DNS zone from your domain nameservers.
+
+:::tip
+You can recover the nameservers of your DNS zone with the following command:
+```bash
+aws route53 get-hosted-zone --id="${HOSTED_ZONE_ID}"
+```
+:::
+
+## Request a Certificate Using AWS ACM with DNS Validation
+
+Okteto requires a wildcard certificate that matches its DNS zone.
+Request a certificate with the following command:
+
+
+```bash
+aws acm request-certificate \
+    --domain-name="*.${OKTETO_DOMAIN}" \
+    --validation-method="DNS" \
+    --region="${AWS_REGION}"
+```
+
+From the output, take note of the following property:
+
+- `CertificateArn`, it identifies the certificate for usage in AWS integrated services.
+  
+```bash
+export CERTIFICATE_ARN="<<your-certificate-arn>>"
+```
+
+## Publish the Validation Records to the DNS Zone
+
+:::warning
+Before continuing, ensure that the DNS zone you created is authoritative and correctly delegated from your main domain
+:::
+
+First, get the validation records with the following command:
+
+```bash
+aws acm describe-certificate \
+  --certificate-arn="${CERTIFICATE_ARN}" \
+  --region="${AWS_REGION}" \
+  --query='Certificate.DomainValidationOptions[0].ResourceRecord'
+```
+
+Create a change batch file and replace the values highlighted:
+
+```json title="resource-record.json"
+{
+  "Comment": "Add a CNAME record for foo to point to bar.com",
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        // highlight-next-line
+        "Name": "REPLACE ME WITH RESOURCE RECORD NAME",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            // highlight-next-line
+            "Value": "REPLACE ME WITH RESOURCE RECORD VALUE"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Publish the validation records:
+
+```bash
+aws route53 change-resource-record-sets \
+  --hosted-zone-id="${HOSTED_ZONE_ID}" \
+  --change-batch=file://resource-record.json
+```
+
+Watch the status of the validation:
+
+```bash
+aws acm describe-certificate \
+  --certificate-arn="${CERTIFICATE_ARN}" \
+  --region="${AWS_REGION}" \
+  --query='Certificate.DomainValidationOptions[0].ValidationStatus'
+```
+
+It will eventually change from `PENDING_VALIDATION` to `SUCCESS`.
+
+:::tip
+You can wait until your certificate is validated with the following command:
+
+```bash
+aws acm wait certificate-validated \
+  --certificate-arn="${CERTIFICATE_ARN}" \
+  --region="${AWS_REGION}"
+```
+
+It internally polls the AWS API every 60 seconds. It will exit with a 255 exit code after 40 failed attempts.
+:::
+
+## Configure Okteto to use your ACM Certificate
+
+Apply the following snippet to your Okteto Helm configuration file and replace the highlighted value:
+
+```yaml title="config.yaml"
+ingress-nginx:
+  controller:
+    service:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+        service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "ssl"
+        // highlight-next-line
+        service.beta.kubernetes.io/aws-load-balancer-ssl-cert: <<your-certificate-arn>>"
+        service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+        service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing" 
+        service.beta.kubernetes.io/aws-load-balancer-alpn-policy: "HTTP2Preferred"
+```
+
+Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto instance for the new configuration to be applied.
+
+:::note
+If you didn't install the Load Balancer Controller, you will need to setup the ALPN policy to HTTP2Preferred in the AWS NLB TLS listener at port 443.
+[Use the official AWS Docs](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/listener-update-certificates.html#update-alpn-policy) for instructions on how to do this using the console or through the AWS CLI.
+:::

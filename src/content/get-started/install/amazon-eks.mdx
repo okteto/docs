@@ -8,54 +8,32 @@ pagination_next: get-started/install-okteto-cli
 ---
 
 import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
 
-This guide will show you how to install Okteto onto Amazon Elastic Kubernetes Service (EKS).
+This guide will walk you through the process of installing Okteto in Amazon Elastic Kubernetes Service (EKS).
 
 ## Installation Requirements
 
-In order to fully install Okteto, you'll need the following:
+Before you start, make sure you have the following CLIs installed in your machine:
+
+- `eksctl` >= 0.171 ([eksctl installation guides](https://eksctl.io/installation/))
+- `aws` >= 2.15 ([aws installation guides](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions))
+- `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
+- `helm` >= 3.14 ([helm installation guides](https://helm.sh/docs/intro/install/))
+
+You'll also need the following:
 
 - An Okteto License
+- A Domain and the ability to create wildcard DNS records for it
 - A Kubernetes cluster
-- A domain and the ability to create wildcard DNS records for it
-- A working installation of kubectl
-- Amazon EBS CSI storage driver installed in your Kubernetes cluster
-- A working installation of Helm v3 (v3.8 or higher)
 
-### Getting your Okteto License
+## Getting your Okteto License
 
 A license is mandatory to use Okteto. You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
 
 If you are interested in evaluating Okteto, [sign up for our free 30 days trial](https://www.okteto.com/free-trial/). No credit card required.
 
-### Deploy a Kubernetes cluster
-
-We recommend that you follow Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html).
-
-Okteto supports Kubernetes versions {variables.kubernetesMinVersion} through {variables.kubernetesMaxVersion}.
-
-We recommend the following specs:
-- Kubernetes v{variables.kubernetesMaxVersion}
-- A pool with at least 3 `m5.xlarge` nodes
-- 250 GB per disk
-
-Amazon Linux 2 is the recommended AMI for the nodes. To obtain the ID for an Amazon Linux 2 EKS-compatible AMI, use the following command (replace `$K8S_VERSION` and `$AWS_REGION` with the desired Kubernetes version and AWS region, respectively):
-
-```
-aws ssm get-parameter \
-    --name /aws/service/eks/optimized-ami/$K8S_VERSION/amazon-linux-2/recommended/image_id \
-    --region $AWS_REGION \
-    --query 'Parameter.Value' \
-    --output text
-```
-
-:::note
-
-Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
-
-:::
-
-### Domain
+## A Domain and the ability to create wildcard DNS records for it
 
 You'll need sufficient access to a [subdomain](self-hosted/helm-configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
 By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
@@ -63,46 +41,204 @@ By default, all endpoints created by Okteto for your development environments wi
 This guide assumes your domain is registered in [Amazon Route53](https://aws.amazon.com/route53/) service.
 You can use any DNS service you prefer, but this guide focuses specifically on Amazon Route53.
 
-### Installing kubectl
+## Deploy a Kubernetes cluster
 
-Follow Amazon's documentation for [installing kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html). Once installed, configure `kubectl` to [talk to your new cluster](https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html).
+Our installation guides assume Okteto will be running in a new dedicated cluster.
 
-### Install the Amazon EBS CSI storage driver
+:::note
+If you plan on installing Okteto in an existing cluster with other workloads, we recommend to read this section to make sure your cluster satisfies the requirements to install Okteto
+:::
 
-Install the Amazon EBS CSI storage driver as an EKS add-on so that your cluster knows how to provision storage. Follow the [official documentation here.](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on)
+### Setting up environment variables
 
-Verify that your storage driver has been installed and is running correctly:
+We recommend configuring the following environment variables to help you scripting the cluster creation:
+
+Your Kubernetes cluster version:
+
+<CodeBlock language="bash">
+  {`export K8S_VERSION="${variables.kubernetesMaxVersion}"`}
+</CodeBlock>
+
+:::note
+Okteto supports Kubernetes versions {variables.kubernetesMinVersion} through {variables.kubernetesMaxVersion}.
+:::
+
+Your Kubernetes cluster name:
+
+```bash
+export CLUSTER_NAME="okteto"
 ```
-kubectl get pods -n kube-system | grep ebs-csi
+
+Your AWS Account ID:
+
+```bash
+export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query "Account" --output text)"
 ```
 
-### Installing Helm v3 (v3.8 or higher)
+Your AWS Region:
 
-Follow the official documentation for [installing the latest release of Helm v3 (v3.8 or higher)](https://helm.sh/docs/intro/install/).
+```bash
+export AWS_REGION="$(aws configure get region)"
+```
+
+Disable AWS CLI pagination (optional):
+
+```bash
+export AWS_PAGER=""
+```
+
+### Create the Cluster
+
+For initial evaluation, we recommend a Kubernetes cluster with a pool of 3 `m5.xlarge` nodes with 250 GB each:
+
+```bash
+eksctl create cluster \
+  --region="${AWS_REGION}" \
+  --name="${CLUSTER_NAME}" \
+  --with-oidc \
+  --version="${K8S_VERSION}" \
+  --nodes=3 \
+  --node-type="m5.xlarge" \
+  --node-volume-size="250" \
+  --node-volume-type="gp3" \
+  --node-ami-family="AmazonLinux2"
+```
+
+:::note
+Ensure the Kubernetes version you select meets the following requirements:
+- Supported versions for your `eksctl` installation can be checked using the command:
+  ```
+  eksctl create cluster -h | grep 'Kubernetes version'
+  ```
+- Check the [available versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) for AWS EKS service.
+- Verify the [supported K8s versions](release-notes.mdx) for the Okteto Helm chart version you plan to install.
+:::
+
+Follow Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html) for more details.
+
+### Create EBS CSI Addon IAM Role
+
+Okteto requires the EBS CSI Addon to be able to create persistent volumes.
+Okteto uses persistent volumes to persist the cache of the [Okteto Build](core/build-service.mdx) service (buildkit).
+The default installation also uses persistent volumes to store your container images in the [Okteto Registry](core/container-registry.mdx).
+
+To install the EBS CSI Addon in your Kubernetes cluster, you need to create the EBS CSI Addon's IAM Role first:
+
+```bash
+eksctl create iamserviceaccount \
+  --region="${AWS_REGION}" \
+  --name="ebs-csi-controller-sa" \
+  --namespace="kube-system" \
+  --cluster="${CLUSTER_NAME}" \
+  --role-name="${CLUSTER_NAME}-ebs-csi-driver-role" \
+  --role-only \
+  --attach-policy-arn="arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" \
+  --approve
+```
+
+Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/csi-iam-role.html) for more details.
+
+### Deploy EBS CSI Addon
+
+Once you have the EBS CSI IAM Role created, deploy the EBS CSI Addon with the following command:
+
+```bash
+eksctl create addon \
+  --region="${AWS_REGION}" \
+  --name="aws-ebs-csi-driver" \
+  --cluster="${CLUSTER_NAME}" \
+  --service-account-role-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}-ebs-csi-driver-role" \
+  --force
+```
+
+Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on) for more details.
+
+### Create Load Balancer Controller IAM Role
+
+Okteto requires the Load Balancer Controller to manage the Okteto certificates with Amazon Certificate Manager.
+Refer to the [Load Balancer Controller AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html) for more details.
+
+To install the Load Balancer Controller in your Kubernetes cluster, download its IAM Policy manifest first:
+
+```bash
+curl \
+  -s \
+  -o iam-policy.json \
+  https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.1/docs/install/iam_policy.json
+```
+
+:::note
+`kubernetes-sigs/aws-load-balancer-controller` maintainers recomends further scoping down this configuration based on the VPC ID or the Cluster Name resource tag. Checkout [their docs](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.7/deploy/installation/#option-a-recommended-iam-roles-for-service-accounts-irsa) for official instructions on it.
+:::
+
+Create the IAM Policy for the Load Balancer Controller IAM Role:
+
+```bash
+aws iam create-policy \
+  --policy-name="${CLUSTER_NAME}-load-balancer-controller-policy" \
+  --policy-document file://iam-policy.json
+```
+
+Create the IAM Role for the Load Balancer Controller:
+
+```bash
+eksctl create iamserviceaccount \
+  --region="${AWS_REGION}" \
+  --name="aws-load-balancer-controller" \
+  --namespace="kube-system" \
+  --cluster="${CLUSTER_NAME}" \
+  --role-name="${CLUSTER_NAME}-aws-load-balancer-controller-role" \
+  --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${CLUSTER_NAME}-load-balancer-controller-policy" \
+  --approve
+```
+
+### Deploy Load Balancer Controller
+
+Once you have the Load Balancer Controller IAM Role created, let's deploy the Load Balancer Controller.
+
+First, add the EKS Helm chart repository:
+
+```bash
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update
+```
+
+Install the Load Balancer Controller chart:
+
+```bash
+helm upgrade --install \
+  aws-load-balancer-controller \
+  eks/aws-load-balancer-controller \
+  --version="1.7.1" \
+  --namespace="kube-system" \
+  --set clusterName=${CLUSTER_NAME} \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller
+```
 
 ## Installing Okteto
 
-### Adding the Okteto Helm repository
+Okteto is installed using a Helm chart. Let's start the process:
 
-You'll need to add the Okteto repository to be able to install Okteto:
+### Add the Okteto Helm repository
 
-```console
+You'll need to add the Okteto Helm repository to be able to install Okteto:
+
+```bash
 helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
-### Configuring your Okteto instance
+### Create the Helm configuration file
 
-In order to install Okteto you need to first create a `config.yaml` for the installation process. This file requires two things:
+In order to install Okteto you need to first create a `config.yaml` for the installation process.
+Replace `license` and `subdomain` with your own values, and initialize your Helm configuration file with these settings:
 
-- Your Okteto `license`
-- A `subdomain`
-
-For example:
-
-```yaml
-license: 1234567890ABCD==
-subdomain: dev.example.com
+```yaml title="config.yaml"
+// highlight-next-line
+license: "REPLACE ME WITH YOUR OKTETO LICENSE"
+// highlight-next-line
+subdomain: "REPLACE ME WITH YOUR OKTETO DOMAIN"
 
 ingress-nginx:
   controller:
@@ -121,27 +257,22 @@ registry:
       persistence:
         enabled: true
 ```
-_Note: This is a very basic configuration. Learn more about the rest of the configuration options [here](self-hosted/helm-configuration.mdx)._
+
+_Note: This is the minimum configuration. Check our [Helm configuration](self-hosted/helm-configuration.mdx) docs to learn more_
 
 The `service.beta.kubernetes.io/aws-load-balancer-type: nlb` annotation is used to tell AWS to create a [Network Load Balancer (NLB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) instead of the default [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html) to expose the ingress controller. We recommend to use a NLB as it provides benefits like: websocket support, static IPs, and better performance. You can see a full comparison between the load balancers [here](https://aws.amazon.com/elasticloadbalancing/features/).
 
-### Installing your Okteto instance
+### Installing the Okteto Helm chart
 
 Install the latest version of Okteto by running:
 
-```console
-helm install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace
-```
-
-:::tip
-
-You can also install a specific version by including the `--version` argument.
-
-:::
+<CodeBlock language="bash">
+  {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
+</CodeBlock>
 
 After a few seconds, all the resources will be created. The output will look something like this:
 
-```
+```bash
 Release "okteto" has been installed. Happy Helming!
 NAME: okteto
 LAST DEPLOYED: Thu Mar 26 18:07:55 2020
@@ -153,7 +284,7 @@ STATUS: deployed
 
 You can use `kubectl` to fetch the address that has been dynamically allocated by EKS to the NGINX Ingress we've just installed and configured as a part of Okteto:
 
-```console
+```bash
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
 ```
 
@@ -172,14 +303,14 @@ Avoid using a `CNAME` record for `*` pointing to the public hostname of the Elas
 
 :::
 
-## Sign in to your Okteto instance
-
-After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+### Sign in to your Okteto instance
 
 :::warning
 
-**Important**: The default installation is not recommended for production use. We highly advise following the steps outlined in the [Admin Dashboard](admin/dashboard.mdx#installation) after finishing your trial and giving your team access to your Okteto instance.
+**Important**: The default installation is not recommended for production use. We highly advise configuring a wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx) and [Okteto Registry storage with S3](self-hosted/install/okteto-registry-storage/aws-s3-bucket.mdx) after finishing your evaluation and giving your team access to your Okteto instance.
 
 :::
 
-[Next](get-started/install-okteto-cli.mdx) we're going to install and configure the Okteto CLI with your Okteto instance.
+After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+
+Once your Okteto instance is up and running, you're going to [install and configure the Okteto CLI](get-started/install-okteto-cli.mdx) with your Okteto instance.

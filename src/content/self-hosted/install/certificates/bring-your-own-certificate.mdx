@@ -1,0 +1,68 @@
+---
+title: Bring your own wildcard certificate
+description: Bring your own wildcard certificate
+sidebar_label: Bring your own certificate
+id: bring-your-own-certificate
+---
+
+# Bring your own Wildcard Certificate
+
+For this, you'll need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate in PKCS1 format, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
+
+Import the secret into your kubernetes cluster by running the command below:
+
+```bash
+kubectl create secret tls ${CERT_NAME} --key ${KEY_FILE} --cert ${CERT_FILE} --namespace okteto
+```
+
+After you create the secret, add the following to your Helm configuration file to tell Okteto and NGINX to use your certificate.
+
+```yaml title="config.yaml"
+wildcardCertificate:
+  create: false
+  name: your-ssl-certificate-secret
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/your-ssl-certificate-secret
+```
+
+You can use any certificate provider you are familiar with if it's compatible with the x.509 and PKCS1 standards.
+For example, we have a guide maintained by the community to [configure your certificate with GoDaddy](https://community.okteto.com/t/how-do-i-bring-my-godaddy-certificate-to-okteto/578/1).
+
+Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation for the new configuration to be applied.
+
+:::info
+If [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride) is set, its value must also be included in the certificate's `Subject Alternative Name` list. For example, if you use `dev.example.com` as the `publicOverride`, and `okteto.net` as the `subdomain`, you need to generate a certificate that includes `*.okteto.net` and `dev.example.com` in the `Subject Alternative Name` list.
+:::
+
+# Bring your own Certificate Authority
+
+By default, Okteto will trust a certificate issued by any well-know certificate authority. If your certificate is self-signed, issued by a new certificate authority, or issued by a private certificate authority, you'll need to import your certificate authority's public key.
+
+First import your certificate authority by running the command below:
+
+```bash
+kubectl create secret generic ${CA_NAME} --from-file=ca.crt=${CA_FILE} --namespace okteto
+```
+
+After you create the secret, add the following to your Helm configuration file to tell Okteto to use your certificate authority:
+
+```yaml title="config.yaml"
+wildcardCertificate:
+  create: false
+  name: your-ssl-certificate-secret
+  privateCA:
+    enabled: true
+    secret:
+      name: your-ca-secret
+      key: ca.crt
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/your-ssl-certificate-secret
+```
+
+Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto instance for the new configuration to be applied.
