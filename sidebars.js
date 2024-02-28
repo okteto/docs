@@ -131,6 +131,15 @@ module.exports = {
         'admin/catalog',
         'admin/cleanup',
         'admin/okteto-insights',
+        {
+          type: 'category',
+          label: 'Private Repositories',
+          items: [
+            'admin/private-repositories/github-app',
+            'admin/private-repositories/ssh-key',
+          ],
+        },
+        'admin/custom-installer-image',
       ],
     },
     {
@@ -179,16 +188,6 @@ module.exports = {
                 'self-hosted/install/auth/token',
               ],
             },
-            {
-              type: 'category',
-              label: 'Private Repositories',
-              items: [
-                'self-hosted/install/private-repositories/github-app',
-                'self-hosted/install/private-repositories/ssh-key',
-              ],
-            },
-            'self-hosted/install/custom-installer-image',
-            'self-hosted/install/argocd',
             'self-hosted/install/github-integration',
             'self-hosted/install/volume-snapshots',
           ],
@@ -196,9 +195,10 @@ module.exports = {
         'self-hosted/helm-configuration',
         {
           type: 'category',
-          label: 'Manage Okteto',
+          label: 'Operating Okteto',
           items: [
             'self-hosted/manage/upgrade',
+            'self-hosted/manage/argocd',
             'self-hosted/manage/okteto-license',
             'self-hosted/manage/backup',
             'self-hosted/manage/custom-resource-definitions',
