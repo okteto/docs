@@ -51,7 +51,6 @@ If the release comes with a new or a removed Kubernetes version, update `kuberne
 To create a new version, run the following commands:
 
 ```
-yarn add docusaurus
 yarn run docusaurus docs:version 1.XX
 ```
 
@@ -65,9 +64,9 @@ This will create a new version with the docs on your current branch.
 Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaurus.config.js) as follows:
 
 
-1. Update `lastVersion` to the new official version
+1. Update `lastVersion` to the new _official_ version
 
-2. Update `current` to the version in development
+2. Update `current` to _unreleased_ version in development
 
 3. Update the values of the `path` of the  previous official version in the  `versions` subsection to match the version number. 
 
@@ -89,7 +88,7 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
         },
     ```
 
-4. Add a new entry in the `versions` subsection to match the new official version, with `/` as the path.
+4. Add a new entry in the `versions` subsection to match the new _official_ version, with `/` as the path.
     
     ```
         "1.5": {
@@ -99,14 +98,20 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
         },
     ```
 
-Modify the redirection rules on `netlify.toml` so that `/docs/$OFFICIAL_VERSION/` redirects to `/docs`
+Modify the redirection rules on `netlify.toml` so that `/docs/<OFFICIAL_VERSION>/` redirects to `/docs` and `/docs/unreleased/` redirects to `/docs/<CURRENT_VERSION>`
 
 ```
-# Redirect the current version to /docs/
+# Redirect official version to docs root
 [[redirects]]
   from = "/docs/1.5/*"
   to = "/docs/:splat"
   status = 301
+
+# Redirect unreleased to "current" version
+[[redirects]]
+  from = "/docs/unreleased/*"
+  to = "/docs/1.6/:splat"
+  status = 302
 ```
 
 Update `/src/pages/archives.md` with the new latest version

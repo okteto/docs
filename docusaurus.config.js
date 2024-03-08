@@ -184,10 +184,14 @@ module.exports = {
           lastVersion: "1.18",
           versions: {
             current: {
+              // aka unreleased version in development
+              // Remember to also update "unreleased" redirect if changing the value!
               label: "1.19",
               path: "1.19",
             },
             1.18: {
+              // aka latest/official version
+              // Remember to also update docs root redirect if changing the value!
               label: "1.18",
               path: "/",
               banner: "none",
