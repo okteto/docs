@@ -13,7 +13,9 @@ import TabItem from '@theme/TabItem';
 Okteto can automatically create an SSL endpoint for your deployments. In order to take advantage of this feature, add the annotation below to your service's manifest:
 
 ```yaml
-  dev.okteto.com/auto-ingress: "true"
+metadata:
+  annotations:
+    dev.okteto.com/auto-ingress: "true"
 ```
 
 For example:
@@ -71,17 +73,20 @@ Full example:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: hello-world
   annotations:
     dev.okteto.com/generate-host: "true"
-  name: hello-world
 spec:
   rules:
-  - http:
-      paths:
-      - backend:
-          serviceName: hello-world
-          servicePort: 8080
-        path: /
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-world
+                port:
+                  number: 8080
 ```
 
 We recommend you follow this option. This way your ingress configuration can be deployed on any namespace managed by Okteto.
