@@ -21,7 +21,7 @@ If you haven’t already, get your [free 30-day license key to get started here]
 
 ![Platform team using Okteto diagram](../../static/img/manifest.jpg)
 
-## Key Features
+## Key features
 
 ### Development Environments
 Okteto's [Development Environments](development/index.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](development/using-okteto-cli.mdx) or click of a button. Write code locally on your machine and view your changes live, deployed in the cloud **as soon as you hit save**! You don't have to spend time configuring anything to do this.
@@ -32,7 +32,10 @@ Collaborate and share your progress with ease. Okteto's [Preview Environments](p
 ### Unified management interface
 Manage your team's development environments, applications, workflows, and roles all from Okteto's [Admin Dashboard](admin/dashboard.mdx). This central hub provides visibility and control over your team's cloud-native development processes, making management straightforward and efficient.
 
-## Get Started Today
+### Save on infrastructure costs with Okteto Garbage Collection
+Maximize efficiency and minimize costs with [Okteto's Garbage Collector](https://www.okteto.com/docs/self-hosted/helm-configuration.mdx#gc), an automated tool designed to keep your cloud-native development environments lean. This service automatically scales idle applications to zero and deletes unused resources. Tailor cleanup policies to your organization for optimal resource management.
+
+## Get started today
 Jump into our [installation guide](get-started/install/index.mdx) to get started with Okteto. Or [Talk to us](https://okteto.com/schedule/) to let us show you how.
 
 Need a license key? [Sign-up for a free 30-day trial](https://www.okteto.com/free-trial/).
