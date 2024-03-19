@@ -33,7 +33,7 @@ Collaborate and share your progress with ease. Okteto's [Preview Environments](p
 Manage your team's development environments, applications, workflows, and roles all from Okteto's [Admin Dashboard](admin/dashboard.mdx). This central hub provides visibility and control over your team's cloud-native development processes, making management straightforward and efficient.
 
 ### Save on infrastructure costs with Okteto Garbage Collection
-Maximize efficiency and minimize costs with [Okteto's Garbage Collector](https://www.okteto.com/docs/self-hosted/helm-configuration.mdx#gc), an automated tool designed to keep your cloud-native development environments lean. This service automatically scales idle applications to zero and deletes unused resources. Tailor cleanup policies to your organization for optimal resource management.
+Maximize efficiency and minimize costs with [Okteto's Garbage Collector](admin/cleanup.mdx), an automated tool designed to keep your cloud-native development environments lean. This service automatically scales idle applications to zero and deletes unused resources. Tailor cleanup policies to your organization for optimal resource management.
 
 ## Get started today
 Jump into our [installation guide](get-started/install/index.mdx) to get started with Okteto. Or [Talk to us](https://okteto.com/schedule/) to let us show you how.
