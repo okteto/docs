@@ -143,7 +143,7 @@ A list of commands to deploy your development environment.
 
 It's usually a combination of `helm`, `kubectl`, and `okteto` commands.
 
-#### Deploy with Custom Commands
+#### Deploy with Commands
 
 For example, deploy a Helm chart using a custom command invoking the `helm` CLI:
 
@@ -170,9 +170,52 @@ deploy:
     command: echo "$OKTETO_FOLDER" # Prints /app
 ```
 
-Follow this document for a list of [environment variables](reference/okteto-cli.mdx#deploy) available in your deploy commands.
+Follow this document for a list of [environment variables](core/okteto-variables.mdx#default-environment-variables) available in your deploy commands.
 
-#### Deploy with Docker Compose
+#### Deploy remotely (recommended)
+
+If you define an image in your `deploy` section, `okteto deploy` will run in remote mode:
+
+```yaml
+deploy:
+  image: okteto/pipeline-runner:1.0.0
+  commands:
+    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+```
+
+If you don't define an image, you can run in remote mode adding the `remote` field to your manifest:
+
+```yaml
+deploy:
+  remote: true
+  commands:
+    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+```
+
+If the `image` is not specified, Okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
+The default deploy image is a Debian Linux container with the following tools preinstalled:
+
+- `bash`
+- `cue`
+- `curl`
+- `envsubst`
+- `git`
+- `helm`
+- `kubectl`
+- `kustomize`
+- `make`
+- `okteto`
+- `openssh`
+- `wait-for-it`
+
+Deploying on remote, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, define a container image with all your tools to ensure that you and your team have a consistent experience without any configuration needed.
+
+When running on remote, Okteto will automatically synchronize your local folder to a container running inside Buildkit in the `okteto` namespace.
+Okteto looks for a file named `.oktetoignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it.
+This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `deploy` section.
+`.oktetoignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+
+#### Deploy with Compose
 
 Deploy a Docker Compose file using the following notation:
 
@@ -245,47 +288,6 @@ deploy:
 - `virtualServices`: a list of virtual services to divert. Each virtual service is defined with it's name, namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
 - `hosts`: the list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
 
-#### Deploy remotely
-
-Using the `--remote` flag lets you run the `okteto deploy` commands directly in your Okteto cluster.
-
-If you define an image in the okteto manifest, `okteto deploy` will always run in remote mode. If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
-
-```yaml
-deploy:
-  image: okteto/pipeline-runner:1.0.0
-  commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
-```
-
-With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required.
-
-When running on remote, Okteto will automatically synchronize your local folder. Okteto looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `deploy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
-
-You can explicitly set the `remote` field in the `deploy` section without using the `--remote` flag:
-
-```yaml
-deploy:
-  remote: true
-  commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
-```
-
-The default deploy image is Debian Linux container with the following tools preinstalled:
-
-- `bash`
-- `cue`
-- `curl`
-- `envsubst`
-- `git`
-- `helm`
-- `kubectl`
-- `kustomize`
-- `make`
-- `okteto`
-- `openssh`
-- `wait-for-it`
-
 ### destroy ([string], optional)
 
 A list of commands to destroy external resources created by your development environment.
@@ -296,36 +298,38 @@ Use the `destroy` section if you create resources out of the scope of Kubernetes
 
 ```yaml
 destroy:
-  - terraform destroy --auto-approve
+  - helm uninstall movies
 ```
 
-Follow this document for a [list of variables](reference/okteto-cli.mdx#destroy) available in your destroy commands.
+Follow this document for a [list of variables](core/okteto-variables.mdx#default-environment-variables) available in your destroy commands.
 
-#### Destroy remotely
+#### Destroy remotely (recommended)
 
-Using the `--remote` flag lets you run the okteto destroy commands directly in your Okteto cluster. When executing okteto destroy with this flag, Okteto will automatically synchronize your local folder, and then it will run the destroy section of the manifest directly in your Okteto cluster, using the image defined in the manifest.
+If you define an image in the `destroy` section, `okteto destroy` will run in remote mode:
 
-If you define an image in the okteto manifest, `okteto destroy` will always run in remote mode. If you don't define an image, and you run in remote mode, okteto will use a [default container image](https://github.com/okteto/pipeline-runner).
 
 ```yaml
 destroy:
-  image: okteto/pipeline-runner:1.0.0
+  image: okteto/tfenv-ci:1.4
   commands:
     - terraform destroy --auto-approve
 ```
 
-With this, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, you define a container image with all your tools and you, and everyone else on your team, get the same experience with zero configuration required.
-
-When running on remote, Okteto will automatically synchronize your local folder. Okteto looks for a file named `.oktetodeployignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it. This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `destroy` section. `.oktetodeployignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
-
-You can explicitly set the `remote` field in the `destroy` section without using the `--remote` flag:
+If you don't define an image, you can run in remote mode adding the `remote` field to your manifest:
 
 ```yaml
 destroy:
   remote: true
   commands:
-    - terraform destroy --auto-approve
+    - helm uninstall movies
 ```
+
+Destroying on remote, you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine. Instead, define a container image with all your tools to ensure that you and your team have a consistent experience without any configuration needed.
+
+When running on remote, Okteto will automatically synchronize your local folder to a container running inside Buildkit in the `okteto` namespace.
+Okteto looks for a file named `.oktetoignore` in your local folder. If this file exists, the CLI will exclude any files and directories that match patterns in it.
+This helps to avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in the `destroy` section.
+`.oktetoignore` uses the same format that [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
 
 ### dev (object, optional)
 
