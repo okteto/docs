@@ -140,6 +140,17 @@ module.exports = {
           ],
         },
         'admin/custom-installer-image',
+        {
+          type: 'category',
+          label: 'Registry Credentials',
+          link: { type: 'doc', id: 'admin/registry-credentials/registry-credentials' },
+          items: [
+            'admin/registry-credentials/google-artifact-registry',
+            'admin/registry-credentials/amazon-ecr',
+            'admin/registry-credentials/azure-acr',
+            'admin/registry-credentials/dockerhub',
+          ],
+        },
       ],
     },
     {
