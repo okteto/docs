@@ -155,7 +155,7 @@ Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest
 
 ### Create Load Balancer Controller IAM Role
 
-Okteto recomments to install the Load Balancer Controller to manage the Okteto certificates with Amazon Certificate Manager.
+Okteto recommends installing the Load Balancer Controller to manage the Okteto certificates with Amazon Certificate Manager.
 Refer to the [Load Balancer Controller AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html) for more details.
 
 To install the Load Balancer Controller in your Kubernetes cluster, download its IAM Policy manifest first:
@@ -296,6 +296,72 @@ okteto-ingress-nginx-controller  LoadBalancer   10.0.7.73    a519c8b3b27f94...el
 ```
 
 You'll need to take the `EXTERNAL-IP` address (`a519c8b3b27f94...elb.amazonaws.com` in the example), and add it to your DNS for the domain you have chosen to use. In Route 53, this is done by creating an `A` record with the name  `*`, pointing to the alias of the Elastic Load Balancer.
+
+### Configure a private registry with Amazon ECR
+
+This tutorial will guide you on how to use a private registry in Amazon Web Services, its necessary credentials, and how to use it in Okteto.
+
+**Step 1: Create User with access to ECR**
+
+Create IAM user with `aws cli` ([CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/create-user.html))
+
+```
+aws iam create-user --user-name private-registry-user
+
+aws iam attach-user-policy \
+--policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly \
+--user-name private-registry-user
+```
+
+Or, configure manually. Find the `IAM Service` in the **AWS Console,** and follow this steps:
+
+- *Users → Create User*
+- Add User *Name*
+- Add *Policy Option*
+- Search for *ContainerRegistry* (for this example I’m adding **ReadOnly**)
+- Create User
+
+:::info
+It is more recommended to use groups, and add the user and policy to that group
+:::
+
+**Step 2: Get User credentials**
+
+Once we have the `User` created, we need to get *Security Credentials*.
+
+Create IAM user access key with `aws cli` ([CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/create-access-key.html))
+
+```
+$ aws iam create-access-key --user-name private-registry-user
+{
+    "AccessKey": {
+        "UserName": "private-registry-user",
+        "AccessKeyId": "{ACCESS_KEY}",
+        "Status": "Active",
+        "SecretAccessKey": "{PASSWORD}",
+        "CreateDate": "2023-10-10T09:08:27+00:00"
+    }
+}
+```
+
+Or from the Console, just open the User and go to the tab: 
+
+- In section *Access Keys → Create Access Key*
+- Choose between type options (I’m going to use *Others*)
+- Copy the **AccessKeyId** and **SecretAccessKey**
+
+**Step 3: Okteto config with credentials**
+
+The access to the Private Registry in AWS is defined by: 
+
+- **URL**: the default registry should be:
+    - `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
+- **user:`${AccessKeyId}`**
+- **password:`${SecretAccessKey}`**
+
+**Step 4: Add to the Okteto Admin Dashboard**
+
+Add your credentials to the admin dashboard [following these instructions](admin/dashboard.mdx#registry-credentials) after signing into your Okteto instance
 
 ### Sign in to your Okteto instance
 
