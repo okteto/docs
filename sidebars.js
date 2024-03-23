@@ -126,6 +126,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Administration',
+      link: { type: 'doc', id: 'admin/index' },
       items: [
         'admin/dashboard',
         'admin/catalog',
