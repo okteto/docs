@@ -1,0 +1,94 @@
+---
+title: Azure Container Registry
+description: Get Private Registry credentials from Azure Container Registry 
+sidebar_label: Azure Container Registry
+id: azure-acr
+---
+
+This tutorial will guide you on how to use a private registry in **Azure Container Registry**, its necessary credentials, and how to use it in **Okteto**.
+
+### Requirements
+
+Before you start, make sure you have the [Azure CLI installed](https://learn.microsoft.com/en-us/cli/azure/)
+
+### The steps to set this up are: 
+
+1. Create User with access to ACR
+1. Get User Credentials
+1. Okteto config with credentials
+
+## Step 1: Create User with access to ACR
+
+First you need to create a `Service Principal` with **role based access control.** 
+
+To do so, you will need: 
+
+- `scopes`: the ID of the **Azure Container Registry**
+- `role`:  the access to the registry that you want (**PUSH, PULL**…)
+
+To get the ID of the registry having the ACR Name ([CLI Reference](https://learn.microsoft.com/en-us/cli/azure/acr?view=azure-cli-latest#az-acr-show()))
+
+```bash
+ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query "id" --output tsv)
+```
+
+Once we have the ID for the `scope` we can create the ServicePrincipal with access ([CLI Reference](https://learn.microsoft.com/en-us/cli/azure/azure-cli-sp-tutorial-2#create-a-service-principal-containing-a-password))
+
+```bash
+az ad sp create-for-rbac --name $SERVICE_PRINCIPAL_NAME \
+--scopes $ACR_REGISTRY_ID --role acrpull
+```
+
+:::info
+👉 Note that in this case we are adding access to PULL images
+:::
+
+## Step 2: Get User Credentials
+
+To log in with this **Service Principal** we are going to need first the `APP ID`. 
+
+```bash
+APP_ID=$(az ad sp list --display-name $SERVICE_PRINCIPAL_NAME \
+--query "[].appId" --output tsv)
+```
+
+Now we have to create a `PASSWORD` for that ID: 
+
+```bash
+az ad sp credential reset --id $APP_ID
+
+#output: 
+{
+  "appId": "$APP_ID",
+  "password": $PASSWORD,
+  "tenant": "98e0e81b-dd65-4132-9d6c-ed2ac3e14e28"
+}
+```
+
+To ensure that we have access to the **Azure Container Registry** with the new **ServicePrincipal** we can login with `docker`:  
+
+```jsx
+#Get ACR server name
+ACR_SERVER=$(az acr show --name $ACR_NAME --query "loginServer" --output tsv)
+
+docker login $ACR_SERVER 
+--username $APP_ID 
+--password $PASSWORD 
+```
+
+:::note
+👉 If you get access denied for the IP, check your ACR Network access. It will be probably set to private
+:::
+
+## Step 3: Okteto Config with credentials
+
+The access to the Private Registry in Azure is defined by: 
+
+- **URL**: the default registry should be:
+    - `docregistryokteto.azurecr.io`
+- **user:** `$APP_ID`
+- **password:**`$PASSWORD`
+
+:::info
+👉 Follow our [Registry Credentials Documentation](admin/registry-credentials/index.mdx) for further information on adding your credentials to Okteto.
+:::
