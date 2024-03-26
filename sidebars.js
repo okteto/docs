@@ -145,10 +145,10 @@ module.exports = {
           label: 'Registry Credentials',
           link: { type: 'doc', id: 'admin/registry-credentials/index' },
           items: [
-            'admin/registry-credentials/google-artifact-registry',
             'admin/registry-credentials/amazon-ecr',
             'admin/registry-credentials/azure-acr',
             'admin/registry-credentials/dockerhub',
+            'admin/registry-credentials/google-artifact-registry',
           ],
         },
       ],
