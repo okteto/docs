@@ -1,0 +1,78 @@
+---
+title: Amazon ECR
+description: Get Private Registry credentials from Amazon ECR 
+sidebar_label: Amazon ECR
+id: amazon-ecr
+---
+
+This tutorial will guide you on how to use ECR private registry in Amazon Web Services with Okteto and how to configure its necessary credentials.
+It's recommended that you have the [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) for this configuration.
+
+The steps to do it are: 
+
+1. Create User with access to ECR
+1. Get User Credentials
+1. Okteto config with credentials
+1. Add credentials to the Okteto Dashboard
+
+## Step 1: Create User with access to ECR
+
+Create IAM user with `aws cli` ([CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/create-user.html))
+
+```
+aws iam create-user --user-name private-registry-user
+
+aws iam attach-user-policy \
+--policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly \
+--user-name private-registry-user
+```
+
+Or, configure manually. Find the `IAM Service` in the **AWS Console,** and follow these steps:
+
+- *Users → Create User*
+- Add User *Name*
+- Add *Policy Option*
+- Search for *ContainerRegistry* (for this example I’m adding **ReadOnly**)
+- Create User
+
+:::info
+It is recommended to use groups, and add the user and policy to that group
+:::
+
+## Step 2: Get User credentials
+
+Once we have the `User` created, we need to get *Security Credentials*.
+
+Create IAM user access key with `aws cli` ([CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/create-access-key.html))
+
+```
+$ aws iam create-access-key --user-name private-registry-user
+{
+    "AccessKey": {
+        "UserName": "private-registry-user",
+        "AccessKeyId": "{ACCESS_KEY}",
+        "Status": "Active",
+        "SecretAccessKey": "{PASSWORD}",
+        "CreateDate": "2023-10-10T09:08:27+00:00"
+    }
+}
+```
+
+Or from the Console, just open the User and go to the tab: 
+
+- In section *Access Keys → Create Access Key*
+- Choose between type options (I’m going to use *Others*)
+- Copy the **AccessKeyId** and **SecretAccessKey**
+
+## Step 3: Okteto config with credentials
+
+The access to the Private Registry in AWS is defined by: 
+
+- **URL**: the default registry should be:
+    - `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
+- **user:`${AccessKeyId}`**
+- **password:`${SecretAccessKey}`**
+
+## Step 4: Add your credentials to the Okteto Admin Dashboard
+
+Add your credentials to the admin dashboard [following these instructions](admin/registry-credentials/index.mdx) after signing into your Okteto instance
