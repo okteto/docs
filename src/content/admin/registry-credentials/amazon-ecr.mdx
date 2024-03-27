@@ -5,74 +5,57 @@ sidebar_label: Amazon ECR
 id: amazon-ecr
 ---
 
-This tutorial will guide you on how to use ECR private registry in Amazon Web Services with Okteto and how to configure its necessary credentials.
-It's recommended that you have the [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) for this configuration.
+This tutorial will guide you on how to use your private Elastic Container Registry (ECR) with Okteto.
+It's recommended that you have the [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) to follow this tutorial.
 
-The steps to do it are: 
+The steps to configure your private ECR with Okteto are: 
 
-1. Create User with access to ECR
-1. Get User Credentials
-1. Okteto config with credentials
-1. Add credentials to the Okteto Dashboard
+- Create a user with access to your private ECR
+- Retrieve the user credentials
+- Configure the credentials in Okteto
 
-## Step 1: Create User with access to ECR
+## Step 1: Create a user with access to your private ECR
 
-Create IAM user with `aws cli` ([CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/create-user.html))
+Create IAM user with the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/iam/create-user.html) by executing:
 
-```
+```bash
 aws iam create-user --user-name private-registry-user
+```
 
+```bash
 aws iam attach-user-policy \
---policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly \
---user-name private-registry-user
+  --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly \
+  --user-name private-registry-user
 ```
 
-Or, configure manually. Find the `IAM Service` in the **AWS Console,** and follow these steps:
+## Step 2: Retrieve the user credentials
 
-- *Users → Create User*
-- Add User *Name*
-- Add *Policy Option*
-- Search for *ContainerRegistry* (for this example I’m adding **ReadOnly**)
-- Create User
+Once we have the `User` created, we need to retrieve his credentials.
+Create IAM user access key with the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/iam/create-access-key.html) by executing:
 
-:::info
-It is recommended to use groups, and add the user and policy to that group
-:::
-
-## Step 2: Get User credentials
-
-Once we have the `User` created, we need to get *Security Credentials*.
-
-Create IAM user access key with `aws cli` ([CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/create-access-key.html))
-
+```bash
+aws iam create-access-key --user-name private-registry-user
 ```
-$ aws iam create-access-key --user-name private-registry-user
+
+```bash
 {
     "AccessKey": {
         "UserName": "private-registry-user",
-        "AccessKeyId": "{ACCESS_KEY}",
+        "AccessKeyId": "<<your-access-key>>",
         "Status": "Active",
-        "SecretAccessKey": "{PASSWORD}",
+        "SecretAccessKey": "<<your-password>>",
         "CreateDate": "2023-10-10T09:08:27+00:00"
     }
 }
 ```
 
-Or from the Console, just open the User and go to the tab: 
+Remember the value of `AccessKeyId` and `SecretAccessKey`. You will need them in the next step.
 
-- In section *Access Keys → Create Access Key*
-- Choose between type options (I’m going to use *Others*)
-- Copy the **AccessKeyId** and **SecretAccessKey**
+## Step 3: Configure the credentials in Okteto
 
-## Step 3: Okteto config with credentials
+Add the following registry credentials to the [Admin Registry Credentials view](index.mdx#add-registry-credentials):
 
-The access to the Private Registry in AWS is defined by: 
-
-- **URL**: the default registry should be:
-    - `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
-- **user:`${AccessKeyId}`**
-- **password:`${SecretAccessKey}`**
-
-## Step 4: Add your credentials to the Okteto Admin Dashboard
-
-Add your credentials to the admin dashboard [following these instructions](admin/registry-credentials/index.mdx) after signing into your Okteto instance
+- **Type**: `AWS`
+- **Hostname**: the default registry endpoint is `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
+- **Username**: `AccessKeyId` from the previous step
+- **Password**: `SecretAccessKey` from the previous step
