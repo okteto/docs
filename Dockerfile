@@ -11,5 +11,5 @@ COPY --exclude=nginx . .
 RUN --mount=type=cache,target=./node_modules/.cache/webpack yarn build
 
 FROM bitnami/nginx as prod
+COPY nginx/index.html  /app
 COPY --from=dev /app/build/docs /app/docs
-COPY nginx/redirect.conf /opt/bitnami/nginx/conf/server_blocks/redirect.conf
