@@ -70,5 +70,36 @@ spec:
 ```
 
 :::note
-Any changes you make to credentials can take a few minutes to propagate to all components in the cluster. To make sure Okteto is able to access the registries, you can check in the [Admin dashboard](admin/dashboard.mdx#registry-credentials). If you add credentials using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+Any changes you make to credentials can take a few seconds to propagate to all components in the cluster. To make sure Okteto is able to access the registries, you can check in the [Admin dashboard](admin/dashboard.mdx#registry-credentials). If you add credentials using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
 :::
+
+
+# How it works
+
+Okteto runs a dedicated Kubernetes Controller to manage Registy Credentials. As part of this process, the Controller creates and manages a [Docker Config JSON](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets) secret in the Okteto namespace. This secret is called `${RELEASE_NAME}-dockerconfig-static` and is always up to date with the latest registry credentials defined in `Registry` resources (either through the UI or manually applied).
+
+This docker config secret is used as a pull secret in installer jobs. This secret is then picked up by the Okteto Daemonset and written to every node which allows Kubelet to pull private images.
+
+## Dev namespaces Pull Secret
+
+An `okteto-regcred` secret exists in all okteto development namespaces and preview environments. This secrets, by default, only contains credentials to the okteto internal registry and is injected as a pull secret to all pods by the okteto webhook.
+
+Starting in Okteto 1.19, all private registries defined in the cluster can be copied into this `okteto-regcred` secret thus not requiring the Daemonset to copy docker config.json file in the node.
+
+To enable this behavior set the following configuration in your helm values:
+
+
+```
+regcredsManager:
+  pullSecrets:
+    enabled: true
+```
+
+When `regcredsManager.pullSecrets.enabled=true` the docker credentials defined in `${RELEASE_NAME}-dockerconfig-static` will no longer be copied into the nodes.
+
+
+:::note
+Since the `okteto-regcred` lives in all dev namespaces and preview environments, Okteto users will have access and be able to read the contents of these secrets
+:::
+
+
