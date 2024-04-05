@@ -16,10 +16,9 @@ This tutorial will show you how to deploy a development environment in Okteto th
 
 ## Step 1: Create an IAM user
 
-The IAM user that you use with AWS SAM must have sufficient permissions to make necessary AWS service calls and manage AWS resources.
+The IAM user that you use with AWS SAM must have sufficient permissions to make necessary AWS service calls and manage AWS resources. 
 
 The following permissions will enable you to complete this tutorial:
-
 - AWSCloudFormationFullAccess
 - IAMFullAccess
 - AWSLambda_FullAccess
@@ -28,23 +27,25 @@ The following permissions will enable you to complete this tutorial:
 
 Once the user has been created, [generate a set of access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html), and save them file locally.
 
-In order for the installer to be able to use this keys, we need to add them as [Okteto Variables](core/okteto-variables.mdx). Use `AWS_ACCESS_KEY_ID` as the name for the variable that contains the access ID, and `AWS_SECRET_ACCESS_KEY` as the name for the variable that contains the access key.
+In order for the installer to be able to use this keys, we need to add them as [Okteto Variables](manifest/okteto-variables.mdx). Use `AWS_ACCESS_KEY_ID` as the name for the variable that contains the access ID, and `AWS_SECRET_ACCESS_KEY` as the name for the variable that contains the access key.
 
-You can add them as [User Variables](core/okteto-variables.mdx), or [Admin Variables](admin/dashboard.mdx#variables) if you want everyone in your Okteto instance to be able to use them.
+You can add them as [User Variables](manifest/okteto-variables.mdx), or [Admin Variables](admin/dashboard.mdx#variables) if you want everyone in your Okteto instance to be able to use them.
 
-## Step 2: Define a Dockerfile for your Deploy image
+## Step 2: Define a Docker image that includes your tools and dependencies
 
-We are going to use the SAM CLI to build and deploy our AWS Lambda function. [SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) is a open-source framework that you can use to build serverless applications in AWS.
+We are going to use the SAM CLI to build and deploy our AWS Lambda function. [SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) is an open-source framework that you can use to build serverless applications in AWS.
 
-You can directly install the SAM CLI in your Okteto manifest. However, this will make every deployment slower than it needs to be. Instead, we recommend that you create your own installer image with `sam`(and any other tool you might need) preinstalled.
+You could install the SAM CLI directly in your workstation and then deploy the function. But then, anyone who wants to deploy this application would need to have it installed as well. Instead, we recommend creating a Docker image with the `awscli`, `sam`, and any other tool you might need to be preinstalled on it. This way, Okteto takes care of all the dependencies for your entire team, and you can focus on shipping great features. You can [learn more about this here](reference/okteto-manifest.mdx#deploy-remotely).
 
-To do this, create the following Dockerfile file:
+To do this, first create a Dockerfile:
 
-```yaml title="Dockerfile"
+```
+# Dockerfile
+
 FROM python:3.9-buster
 
-RUN apt-get update && \
-  apt-get install unzip curl && \
+RUN apt-get update && \ 
+  apt-get install -y unzip curl && \
   curl -o /tmp/awscli-exe-linux-x86_64.zip -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip /tmp/awscli-exe-linux-x86_64.zip -d /tmp/aws-cli && \
   sh /tmp/aws-cli/aws/install && \
@@ -53,18 +54,32 @@ RUN apt-get update && \
   unzip /tmp/aws-sam-cli-linux-x86_64.zip -d /tmp/sam-installation && \
   sh /tmp/sam-installation/install && \
   sam --version
+
 ```
 
-## Step 3: Create your Okteto manifest
+Then [add a `build` section](reference/okteto-manifest.mdx#build-object-optional) to your Okteto manifest to tell Okteto to build the image on demand when deploying your development environment:
 
-In order to deploy a function in Okteto, you need to create an Okteto manifest similar to the one below:
-
-```yaml title="okteto.yaml"
+```
+#okteto.yaml
+# okteto.yaml
 build:
   sam:
     context: .
     dockerfile: Dockerfile
+```
 
+## Step 3: Create your Okteto manifest
+
+This tutorial will only deploy the AWS Lambda function to keep it simple. In the real world, you'd typically include containers and AWS Lambda functions as part of your Development Environment. 
+
+To deploy a function in Okteto, you need to create an Okteto manifest similar to the one below:
+
+```yaml
+# okteto.yaml
+build:
+  sam:
+    context: .
+    dockerfile: Dockerfile
 deploy:
   image: ${OKTETO_BUILD_SAM_IMAGE}
   commands:
@@ -74,45 +89,40 @@ deploy:
       command: |
         sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-prefix "${OKTETO_NAMESPACE}" --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --resolve-s3
         FUNCTION_URL=$(aws cloudformation describe-stacks --region us-east-1 --stack-name ${OKTETO_NAMESPACE}-okteto-lambda --query "Stacks[0].Outputs[0].OutputValue" --output text)
+        
         # use external resources to display the URL the Okteto UI
         echo "OKTETO_EXTERNAL_LAMBDA_ENDPOINTS_FUNCTION_URL=$FUNCTION_URL" >> $OKTETO_ENV
-
 destroy:
   image: ${OKTETO_BUILD_SAM_IMAGE}
   commands:
-    - name: destroy function
-      command: sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --region us-east-1
-
+  - name: destroy function
+    command: sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --region us-east-1
 external:
   lambda:
     icon: function
     endpoints:
-      - name: function
+    - name: function
 ```
 
 :::info
-This manifest takes advantage of our [External Resources](tutorials/external-resources.mdx) feature manage the lifecycle of external resources as part of your Okteto development environment. [Learn more about External Resources here](tutorials/external-resources.mdx).
+This manifest takes advantage of our [External Resources](manifest/external-resources.mdx) feature to manage the lifecycle of external resources as part of your Okteto development environment. [Learn more about External Resources here](manifest/external-resources.mdx).
 :::
 
 Details:
 - The `deploy.image` field tells Okteto to use the image we defined on the `build` section.
-- The `deploy.commands` section includes all the commands needed to build and deploy the function.
-- The `destroy` section includes the commands needed to destroy the Lambda function. This will be invoked when the environment or the namespace are destroyed.
+- The `deploy.commands` section includes all the commands needed to build and deploy the function. 
+- The `destroy` section includes the commands to destroy the Lambda function. This will be invoked when the environment or the namespace is destroyed. 
 
 ## Step 4: Deploy your Development Environment
 
-Deploy your Development Environment by running the following command:
-
-```bash
-okteto deploy
-```
+Commit the Okteto manifest created in the previous step to your repository, and push the changes to a remote branch. Then, deploy your Development Environment [directly from the Okteto UI](deploy/deploy-from-git.mdx).
 
 After a few seconds, your Development Environment will be fully deployed and your AWS Lambda function will be up and running. Every time you redeploy the Development Environment, the AWS Lambda function will be recreated with your latest code.
 
-The source code used on this tutorial [is available here](https://github.com/okteto/aws-lambda).
+The source code used in this tutorial [is available here](https://github.com/okteto/aws-lambda).
 
 ## Next steps
 
 Congratulations, you just deployed **your first AWS Lambda function in Okteto** 🚀.
 
-Head over to our getting started guides for [Go](development/containers/file-sync/golang.mdx), [ASP.NET](development/containers/file-sync/aspnetcore.mdx), [Java](development/containers/file-sync/java.mdx), [Node.js](development/containers/file-sync/node.mdx), [PHP](development/containers/file-sync/php.mdx), [Python](development/containers/file-sync/python.mdx), or [Ruby](development/containers/file-sync/ruby.mdx) to see how to integrate it with the rest of your applications.
+Head over to our getting started guides for [Go](guides/samples/golang.mdx), [ASP.NET](guides/samples/aspnetcore.mdx), [Java](guides/samples/java.mdx), [Node.js](guides/samples/node.mdx), [PHP](guides/samples/php.mdx), [Python](guides/samples/python.mdx), or [Ruby](guides/samples/ruby.mdx) to see how to integrate it with the rest of your applications.
