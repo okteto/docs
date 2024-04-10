@@ -45,8 +45,9 @@ module.exports = {
       items: [
         'core/namespaces',
         'core/okteto-manifest',
-        'core/build-service',
         'core/container-registry',
+        'core/build-service',
+        'core/remote-execution',
         'core/okteto-variables',
         {
           type: 'category',
