@@ -224,6 +224,21 @@ module.exports = {
               path: "1.14",
               banner: "unmaintained",
             },
+            1.13: {
+              label: "1.13",
+              path: "1.13",
+              banner: "unmaintained",
+            },
+            1.12: {
+              label: "1.12",
+              path: "1.12",
+              banner: "unmaintained",
+            },
+            1.11: {
+              label: "1.11",
+              path: "1.11",
+              banner: "unmaintained",
+            },
           },
           include: ["**/*.md", "**/*.mdx"],
         },
