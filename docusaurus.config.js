@@ -196,7 +196,7 @@ module.exports = {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
               label: "1.19",
-              path: "/",
+              path: "",
               banner: "none",
             },
             1.18: {
