@@ -1,0 +1,61 @@
+---
+title: Amazon ECR
+description: Get Private Registry credentials from Amazon ECR 
+sidebar_label: Amazon ECR
+id: amazon-ecr
+---
+
+This tutorial will guide you on how to use your private Elastic Container Registry (ECR) with Okteto.
+It's recommended that you have the [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) to follow this tutorial.
+
+The steps to configure your private ECR with Okteto are: 
+
+- Create a user with access to your private ECR
+- Retrieve the user credentials
+- Configure the credentials in Okteto
+
+## Step 1: Create a user with access to your private ECR
+
+Create IAM user with the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/iam/create-user.html) by executing:
+
+```bash
+aws iam create-user --user-name private-registry-user
+```
+
+```bash
+aws iam attach-user-policy \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly \
+  --user-name private-registry-user
+```
+
+## Step 2: Retrieve the user credentials
+
+Once we have the `User` created, we need to retrieve their credentials.
+Create IAM user access key with the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/iam/create-access-key.html) by executing:
+
+```bash
+aws iam create-access-key --user-name private-registry-user
+```
+
+```bash
+{
+    "AccessKey": {
+        "UserName": "private-registry-user",
+        "AccessKeyId": "<<your-access-key>>",
+        "Status": "Active",
+        "SecretAccessKey": "<<your-password>>",
+        "CreateDate": "2023-10-10T09:08:27+00:00"
+    }
+}
+```
+
+Remember the value of `AccessKeyId` and `SecretAccessKey`. You will need them in the next step.
+
+## Step 3: Configure the credentials in Okteto
+
+Add the following registry credentials to the [Admin Registry Credentials view](index.mdx#add-registry-credentials):
+
+- **Type**: `AWS`
+- **Hostname**: the default registry endpoint is `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
+- **Username**: `AccessKeyId` from the previous step
+- **Password**: `SecretAccessKey` from the previous step

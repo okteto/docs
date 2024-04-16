@@ -1,0 +1,154 @@
+---
+title: Okteto Build service
+description: The Okteto Build service allows you to build your container images remotely
+sidebar_label: Okteto Build service
+id: build-service
+---
+
+import Image from "@theme/Image";
+
+
+Everytime you build your images with Okteto, your build is executed in a remote [BuildKit](https://github.com/moby/buildkit) server running in your cluster, deployed automatically by Okteto.
+The image is also pushed to the [Okteto Registry](core/container-registry.mdx).
+The following image illustrates this process:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/buildkit.png").default}
+    alt="Buildkit architecture"
+    width="850"
+  />
+</p>
+
+The Okteto Build service addresses common issues that often slow down image builds such as limited local resources, inefficient emulation, and the lack of reusing images and cache layers already computed by other team members.
+
+## How to build your images
+
+The Okteto CLI is automatically configured to interact with the Okteto Build service (follow our docs to [install and configure the Okteto CLI](get-started/install-okteto-cli.mdx)).
+For example, if your have the following Okteto Manifest:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+    dockerfile: Dockerfile
+    args:
+      GO_VERSION: 1.20
+```
+
+The command `okteto build` will build and push the **api** image to the Okteto Registry using the Okteto Build service:
+
+```bash
+okteto build
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.example.com:443...
+ ...
+ ✓  Image 'registry.okteto.example.com/cindy/api:okteto' successfully pushed
+```
+
+Read our documention about the [`build` section](reference/okteto-manifest.mdx#build-object-optional) and the [`okteto build` command](reference/okteto-cli.mdx#build) for more information.
+
+## Smart Builds
+
+Buildkit comes with a local cache to reuse cache layers between image builds.
+You can configure the [Buildkit cache size and storage class](self-hosted/helm-configuration.mdx#buildkit) when installing Okteto to optimize the BuildKit cache behavior.
+
+But the Buildkit cache has its own limitations. Even if every Dockerfile instruction is cached, you might wait 1 or 2 minutes until your build context is sent to Buildkit, Buildkit pulls your base image, detects that each Dockerfile instruction can be cached, and push the final image again to the Okteto Registry.
+
+Smart Builds is an Okteto's feature designed to solve this problem.
+For each image you build, Okteto computes a `hash` based on the build context and the rest of build parameters.
+Okteto uses this hash to detect if the image has been already built by any other developer. If the image was already built, the build is skipped and the previous image is reused almost immediately.
+
+Smart Builds are implemented by pushing a tag with the value of the `hash` to the namespace `okteto` in the Okteto Registry.
+For example, if you build the following image:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+    dockerfile: Dockerfile
+    args:
+      GO_VERSION: 1.20
+```
+
+```bash
+okteto build
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.example.com:443...
+ ...
+ => pushing manifest for registry.okteto.example.com/okteto/api:09f8e
+ ✓  Image 'registry.okteto.example.com/cindy/api:okteto' successfully pushed
+```
+
+As you can see in the following image, the image is pushed to `okteto/api:09f8e`:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/smart-builds-hash.png").default}
+    alt="Smart builds"
+    width="850"
+  />
+</p>
+
+
+Also, `cindy/api:okteto` is retagged to `okteto/api:09f8e` to remember the last build performed in a given namespace.
+The following image illustrates this process:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/smart-builds-cindy.png").default}
+    alt="Smart builds"
+    width="850"
+  />
+</p>
+
+If another user, **David**, builds the same image with the same build context and parameters, the same hash `09f8e` is computed.
+
+```bash
+okteto build
+```
+
+```bash
+ i  Using david @ okteto.example.com as context
+ i  Okteto Smart Builds is skipping build of "api" because it's already built
+```
+
+Smart builds detects that the tag `okteto/api:09f8e` already exists and skips the build.
+Instead, the image `david/api:okteto` is retagged to `okteto/api:09f8e` to remember the last build performed in the David's namespace:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/smart-builds-david.png").default}
+    alt="Smart builds"
+    width="850"
+  />
+</p>
+
+
+## Skipping Smart Builds behavior
+
+You can force the build of your images and skip the Smart Build optimization by running the following command:
+
+```bash
+okteto build --no-cache
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.example.com:443...
+ ...
+ => pushing manifest for registry.okteto.example.com/okteto/api:09f8e
+ ✓  Image 'registry.okteto.example.com/cindy/api:okteto' successfully pushed
+```
+
+The `--no-cache` flag will also disable the Buildkit local cache.
+
+You can also disable Smart Builds by setting the environment variable `OKTETO_SMART_BUILDS_ENABLED=false`.
+If you define `OKTETO_SMART_BUILDS_ENABLED=false` as an [Admin Variable](admin/dashboard.mdx#variables), Smart Builds is disabled for all the image builds for all developers in your organization.
+Admin variables are equivalent to defining that variable on every developer's machine.
