@@ -266,57 +266,6 @@ module.exports = {
       },
     ],
     [
-      "@docusaurus/plugin-client-redirects",
-      {
-        fromExtensions: ["html"],
-        redirects: [
-          {
-            to: "/get-started/overview/",
-            from: ["/enterprise/dns/", "/self-hosted/install/overview/"],
-          },
-          {
-            to: "/guides/tutorials/compose-getting-started/",
-            from: [
-              "/tutorials/stacks-getting-started/",
-              "/tutorials/compose-getting-started/",
-            ],
-          },
-          {
-            to: "/reference/docker-compose/",
-            from: ["/reference/stacks/", "/reference/compose/"],
-          },
-          {
-            to: "/admin/dashboard/",
-            from: [
-              "/enterprise/administration/dashboard/",
-              "/administration/dashboard/",
-            ],
-          },
-          {
-            to: "/admin/cleanup/",
-            from: [
-              "/enterprise/administration/cleanup/",
-              "/administration/cleanup/",
-            ],
-          },
-          {
-            to: "/self-hosted/install/github-integration/",
-            from: [
-              "/enterprise/administration/private-repositories/github-app/",
-              "/administration/private-repositories/github-app/",
-            ],
-          },
-          {
-            to: "/self-hosted/install/private-repositories/ssh-key",
-            from: [
-              "/enterprise/administration/private-repositories/ssh-key/",
-              "/administration/private-repositories/ssh-key/",
-            ],
-          },
-        ],
-      },
-    ],
-    [
       "docusaurus-gtm-plugin",
       {
         id: "GTM-W6RQFNT",
