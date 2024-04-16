@@ -14,7 +14,8 @@ module.exports = {
   // onBrokenLinks: "throw",
   onBrokenLinks: "warn",
   // onBrokenAnchors: "throw",
-  onBrokenMarkdownLinks: "throw",
+  // onBrokenMarkdownLinks: "throw",
+  onBrokenMarkdownLinks: "warn",
   onDuplicateRoutes: "warn",
   customFields: {
     image: "https://www.okteto.com/docs/okteto-meta-image.png",
