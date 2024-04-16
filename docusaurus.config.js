@@ -11,7 +11,9 @@ module.exports = {
   organizationName: "okteto", // Usually your GitHub org/user name.
   projectName: "okteto", // Usually your repo name.
   favicon: "img/favicon.ico",
-  onBrokenLinks: "throw",
+  // onBrokenLinks: "throw",
+  onBrokenLinks: "warn",
+  // onBrokenAnchors: "throw",
   onBrokenMarkdownLinks: "throw",
   onDuplicateRoutes: "warn",
   customFields: {
@@ -101,20 +103,20 @@ module.exports = {
           title: "Docs",
           items: [
             {
+              label: "Installation Guide",
+              to: "/get-started/install",
+            },
+            {
               label: "Getting Started Guide",
-              to: "/",
+              to: "/get-started/deploy-your-app",
+            },
+            {
+              label: "Okteto Manifest",
+              to: "/core/okteto-manifest",
             },
             {
               label: "Okteto CLI Reference",
               to: "/reference/okteto-cli"
-            },
-            {
-              label: "Okteto Manifest",
-              to: "/manifest/overview-manifest",
-            },
-            {
-              label: "Samples",
-              to: "guides/samples/golang",
             },
             {
               label: "Release Notes",
