@@ -101,6 +101,31 @@ module.exports = {
       style: "dark",
       links: [
         {
+          title: "Docs",
+          items: [
+            {
+              label: "Installation Guide",
+              to: "/get-started/install",
+            },
+            {
+              label: "Getting Started Guide",
+              to: "/get-started/deploy-your-app",
+            },
+            {
+              label: "Okteto Manifest",
+              to: "/core/okteto-manifest",
+            },
+            {
+              label: "Okteto CLI Reference",
+              to: "/reference/okteto-cli"
+            },
+            {
+              label: "Release Notes",
+              to: "/release-notes"
+            }
+          ],
+        },
+        {
           title: "Resources",
           items: [
             {
