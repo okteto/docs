@@ -15,7 +15,6 @@ module.exports = {
   onBrokenLinks: "warn",
   // onBrokenAnchors: "throw",
   onBrokenMarkdownLinks: "throw",
-  // onBrokenMarkdownLinks: "warn",
   onDuplicateRoutes: "warn",
   customFields: {
     image: "https://www.okteto.com/docs/okteto-meta-image.png",
@@ -227,16 +226,6 @@ module.exports = {
             1.13: {
               label: "1.13",
               path: "1.13",
-              banner: "unmaintained",
-            },
-            1.12: {
-              label: "1.12",
-              path: "1.12",
-              banner: "unmaintained",
-            },
-            1.11: {
-              label: "1.11",
-              path: "1.11",
               banner: "unmaintained",
             },
           },
