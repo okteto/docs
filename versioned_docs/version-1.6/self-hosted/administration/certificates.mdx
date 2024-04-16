@@ -1,0 +1,80 @@
+---
+title: Bringing Your Own Certificates
+description: Use your own certificates with Okteto
+sidebar_label: Bring your own Certificates
+id: certificates
+---
+
+## Bring your own Wildcard Certificate
+
+By default, Okteto will create a self-signed wildcard certificate for your cluster. This certificate is used to secure communication to the Okteto dashboard, the build service, the registry service, and to all the applications that use [Automatic SSL Endpoints](https://okteto.com/docs/cloud/ssl/).
+
+In a production environment, you should use your own certificates rather than let Okteto create a self-signed wildcard certificate for you. You can configure this via the `wildcardCertificate` configuration key in your Helm configuration file.
+
+To start, you need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate in PKCS1 format, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
+
+If [`publicOverride`](self-hosted/administration/configuration.mdx#publicoverride) is set, its value must also be included in the certificate's `Subject Alternative Name` list. For example, if you use `dev.example.com` as the `publicOverride`, and `okteto.net` as the `subdomain`, you need to generate a certificate that includes `*.okteto.net` and `dev.example.com` in the `Subject Alternative Name` list. 
+
+Import the secret into your kubernetes cluster by running the command below:
+
+```
+kubectl create secret tls ${CERT_NAME} --key ${KEY_FILE} --cert ${CERT_FILE} --namespace okteto
+```
+
+After you create the secret, add the following to your Helm configuration file to tell Okteto and NGINX to use your certificate.
+
+```
+wildcardCertificate:
+  create: false
+  name: your-ssl-certificate-secret
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/your-ssl-certificate-secret
+```
+
+You can use any certificate provider you are familiar with if it's compatible with the x.509 and PKCS1 standards. Our community maintains guides for the following certificate providers:
+
+- [AWS Certificate Manager](https://community.okteto.com/t/how-do-i-configure-okteto-with-aws-certificate-manager/272)
+- [GoDaddy](https://community.okteto.com/t/how-do-i-bring-my-godaddy-certificate-to-okteto/578/1)
+
+If you are using [cert-manager](https://cert-manager.io/), you need to use a [DNS01](https://cert-manager.io/docs/configuration/acme/dns01/#delegated-domains-for-dns01) auth method in your [Issuer](https://cert-manager.io/docs/concepts/issuer/).
+Check the list of supported providers [here](https://cert-manager.io/docs/configuration/acme/dns01/) for more information.
+Our community maintains guides on how to use cert-manager together with different Cloud Providers to generate certificates for Okteto:
+
+- [Amazon Route53](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-aws-route53/273/2)
+- [Google Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-google-cloud-dns/274/2)
+- [Azure Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-azure-cloud-dns/275/2)
+
+Finally, [install or upgrade](self-hosted/install/deployment.mdx) your Okteto installation for the new configuration to be applied.
+
+## Bring your own Certificate Authority
+
+By default, Okteto will trust a certificate issued by any well-know certificate authority. If your certificate is self-signed, issued by a new certificate authority, or issued by a private certificate authority, you'll need to import your certificate authority's public key.
+
+First import your certificate authority by running the command below:
+
+```
+kubectl create secret generic ${CA_NAME} --from-file=ca.crt=${CA_FILE} --namespace okteto
+```
+
+After you create the secret, add the following to your Helm configuration file to tell Okteto to use your certificate authority.
+
+```
+wildcardCertificate:
+  create: false
+  name: your-ssl-certificate-secret
+  privateCA:
+    enabled: true
+    secret:
+      name: your-ca-secret
+      key: ca.crt
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/your-ssl-certificate-secret
+```
+
+Finally, [install or upgrade](self-hosted/install/deployment.mdx) your Okteto installation for the new configuration to be applied.

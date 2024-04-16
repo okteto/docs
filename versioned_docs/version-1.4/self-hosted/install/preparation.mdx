@@ -1,0 +1,285 @@
+---
+title: Installation Preparation
+description: How to install Okteto in your own Kubernetes cluster
+id: preparation
+sidebar_label: Preparation
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+## Requirements
+
+In order to fully install Okteto, you'll need the following:
+
+- A domain to which you can add a wildcard DNS record
+- A Kubernetes cluster
+- A working installation of kubectl
+- A working installation of Helm v3 (v3.8 or higher)
+- A Bitbucket, GitHub, or Google OAuth application, or an OpenID Connect application
+- Credentials of your Cloud Provider
+- A bucket (or equivalent block storage)
+- An Okteto License (optional)
+
+### Domain
+
+You'll need to have access to a domain to which you can add a wildcard DNS record.
+
+This can be a root domain (e.g. example.com) or a subdomain (e.g. dev.example.com).
+By default, Okteto creates a self-signed certificate to secure communication to the Okteto dashboard, the build service, the registry service, and to all the applications that use  [Automatic SSL Endpoints](https://okteto.com/docs/cloud/ssl/).
+Follow [this guide](self-hosted/administration/certificates.mdx) if you want to bring your own certificates.
+
+### Deploy a Kubernetes cluster
+
+We recommend that you follow your cloud provider's Kubernetes cluster creation guide.
+Okteto supports Kubernetes versions 1.21 through 1.23.
+
+We recommend the following specs:
+- v1.23
+- A pool with at least 3 nodes with a minimum of 4CPUs and 16 GB of Memory
+- 100 GB per disk
+
+You'll be using the cluster's API server endpoint when configuring Okteto.
+
+> Our installation guides assume Okteto will be running in a dedicated cluster. We recommend [contacting our team](https://www.okteto.com/contact/) if you plan on installing Okteto in a cluster with other workloads.
+ 
+### Installing kubectl
+
+Follow the official Kubernetes documentation for [installing kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+
+Be sure to configure your kubectl to talk to your newly minted cluster.
+
+### Installing Helm v3 (v3.8 or higher)
+
+Follow the official documentation for [installing the latest release of Helm v3 (v3.8 or higher)](https://helm.sh/docs/intro/install/).
+
+### Authentication
+
+Okteto uses OAuth for user authentication. It currently supports GitHub, Google, and OpenID Connect.
+
+<Tabs
+  defaultValue="github"
+  values={[
+    { label: 'Bitbucket', value: 'bitbucket', },
+    { label: 'GitHub', value: 'github', },
+    { label: 'Google', value: 'google', },
+    { label: 'OpenID Connect', value: 'openid', },
+  ]}
+>
+<TabItem value="bitbucket">
+
+Follow Bitbucket's official documentation on [how to create an OAuth Consumer](https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/).
+
+When creating the OAuth Consumer, you will need to provide the following values:
+
+**Callback URL**:
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+**URL**:
+```
+https://okteto.DOMAIN
+```
+
+**Permissions**:
+Account: Email
+Account: Read
+
+
+You'll use the `Key` and `Secret` when installing Okteto.
+
+</TabItem>
+<TabItem value="github">
+
+> If you are planning on using the GitHub Integration, you should follow this guide. You'll then use the same Github Application for the Integration as the one from Oauth.
+
+Follow GitHub's official documentation on [how to create an OAuth App](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/).
+
+When creating the OAuth App, you will need to provide the following values:
+
+**Homepage URL**:
+```
+https://okteto.DOMAIN
+```
+
+**Authorization callback URL**:
+```
+https://okteto.DOMAIN/auth/callback
+```
+
+You'll use the `client ID` and `client Secret` when installing Okteto.
+
+</TabItem>
+<TabItem value="google">
+
+Follow Google's official documentation on [how to create an OAuth 2.0 Client](https://support.google.com/cloud/answer/6158849?hl=en).
+
+When creating the OAUTH 2.0 Client, you will need to provide the following values:
+
+**Authorized javascript origin**:
+```
+https://okteto.DOMAIN
+```
+
+**Authorized redirect URIs**:
+```
+https://okteto.DOMAIN
+https://okteto.DOMAIN/auth/callback
+```
+
+You'll use the `client ID`, `client Secret` when installing Okteto.
+
+</TabItem>
+<TabItem value="openid">
+
+Follow your OpenID Connect service provider's documentation on how to create the required application.
+
+When creating the application, you'll need to provide the following values:
+
+- Start SSO URL:  `https://okteto.DOMAIN`
+- Redirect URIs: `https://okteto.DOMAIN`, `https://okteto.DOMAIN/auth/callback`
+- Scopes: `openid`, `email`, `profile`
+- Response Type: `code`
+- Grant Type: `authorization code`
+
+You'll use the `issuer URL`, `authorization URL`, `client ID`, and `client Secret` when installing Okteto.
+
+> Okteto doesn't currently support provider-initiated login or logout.
+
+</TabItem>
+</Tabs>
+
+### Cloud Provider Account
+
+Okteto needs to perform the following actions on your cloud provider:
+
+1. Read and Write from block storage  (this is used when pulling and pushing images to the registry)
+
+Please refer to the following documents on how to create the credentials in the different cloud providers:
+
+<Tabs
+  defaultValue="aws"
+  values={[
+    { label: 'Azure', value: 'azure', },
+    { label: 'AWS', value: 'aws', },
+    { label: 'Digital Ocean', value: 'digitalocean', },
+    { label: 'Google Cloud', value: 'gcp', },
+  ]}
+>
+
+<TabItem value="azure">
+
+#### Creating an Azure Storage Account
+
+Follow [these instructions](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) to create a storage account in your Azure Subscription. You'll use the access key when installing Okteto.
+
+#### Creating a Storage Container
+
+Okteto uses a Storage Container to store your private images. Follow Azures's [guide on how to create a storage container](https://docs.aws.amazon.com/quickstarts/latest/s3backup/step-1-create-bucket.html) and set its privacy level to private.
+
+#### Registering your Domain
+
+Follow [these instructions](https://docs.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns) to register your domain in Azure DNS.
+
+</TabItem>
+<TabItem value="aws">
+
+#### Registering your Domain
+
+Follow [these instructions](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-configuring.html) to register your domain in Route53.
+
+Register your domain using the same account used to create your EKS cluster.
+
+#### Creating an S3 Bucket
+
+Okteto uses S3 to store your private images. Follow Amazon's [guide on how to create s3 buckets](https://docs.aws.amazon.com/quickstarts/latest/s3backup/step-1-create-bucket.html). Create the bucket in the region as your EKS cluster, and keep it private.
+
+#### Creating an IAM
+
+The Okteto Registry needs access to S3 for uploading and downloading your container images.
+
+We recommend you follow AWS' official documentation on [how to create and manage IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) for more information on this.
+
+Create an `IAM User` with the following actions (replace `YOUR_BUCKET` with your `s3` bucket name):
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": [
+              "s3:ListBucket",
+              "s3:GetBucketLocation",
+              "s3:ListBucketMultipartUploads"
+          ],
+          "Resource": "arn:aws:s3:::YOUR_BUCKET"
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "s3:PutObject",
+              "s3:GetObject",
+              "s3:DeleteObject",
+              "s3:ListMultipartUploadParts",
+              "s3:AbortMultipartUpload"
+          ],
+          "Resource": "arn:aws:s3:::YOUR_BUCKET/*"
+      }
+  ]
+}
+```
+
+Once the `IAM User` is created, generate a set of Access keys and save them locally. You'll use the keys when installing Okteto.
+
+</TabItem>
+
+<TabItem value="digitalocean">
+
+#### Registering your Domain
+
+Follow [these instructions](https://www.digitalocean.com/docs/networking/dns/how-to/add-domains/#:~:text=To%20add%20a%20domain%20from,field%2C%20then%20click%20Add%20Domain) to register your domain with DigitalOcean.
+
+Register your domain using the same account used to create your DOK cluster.
+
+#### Creating a DigitalOcean Space and Access Key
+
+Okteto uses a Storage Space to store your private images. Follow DigitalOcean's [guide on how to create a storage space and api key](https://www.digitalocean.com/community/tutorials/how-to-create-a-digitalocean-space-and-api-key). Create the space in the same region as your Kubernetes cluster and restrict file listing.
+
+
+</TabItem>
+
+<TabItem value="gcp">
+
+#### Registering your Domain
+
+Follow [these instructions](https://cloud.google.com/dns/zones/) to create a managed zone in your Google Cloud account.
+
+Create it in the same project and region as your GKE cluster.
+
+#### Creating a Google Cloud Storage Bucket
+
+Okteto uses Google Cloud Storage to store your private images. Follow Google's [guide on how to create storage buckets](https://cloud.google.com/storage/docs/quickstart-console). Create the bucket in the same project and region as your GKE cluster, and keep it private.
+
+#### Creating a Google Cloud Service Account
+
+The Okteto Registry needs access to Cloud Storage for uploading and downloading your container images.
+
+We recommend you follow Google's official documentation on [how to create and manage Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts) for more information on this.
+
+You'll need to perform the following tasks:
+
+1. Create a `Service Account` in the same Google Cloud project as your GKE cluster.
+1. Give it the `Storage Object Admin` roles.
+1. Create a `JSON` key and save it locally. We'll be using this when installing Okteto.
+
+</TabItem>
+
+</Tabs>
+
+You'll use the credentials when installing Okteto.
+
+## Deploying Okteto
+
+With the environment set up and configuration generated, you can now proceed to the [deployment of Okteto](self-hosted/install/deployment.mdx).

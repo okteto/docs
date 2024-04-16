@@ -1,0 +1,148 @@
+---
+title: Private Endpoints
+description: Restrict access to your application's endpoints
+sidebar_label: Private Endpoints
+id: private-endpoints
+---
+
+import Image from "@theme/Image";
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+Okteto Cloud allows you to restrict access to your application by marking its endpoints as private. Private endpoints can only be accessed by Okteto users who have access to your Okteto namespace, and they'll need to provide their credentials before being granted access.
+
+Private endpoints can be identified by the lock icon in the Okteto Cloud UI:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/private-endpoints.png").default}
+    alt="private endpoints UI"
+    width="850"
+  />
+</p>
+
+## Enable Private Endpoints for your Application
+
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Docker Compose', value: 'compose', },
+  ]}
+>
+
+<TabItem value="kubernetes">
+
+Add the annotation below to your service's manifest to make your application's endpoints private:
+
+```
+  dev.okteto.com/auto-ingress: "private"
+```
+
+Using this annotation will tell Okteto to create a private http ingress rule for your application.
+
+Full example:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world
+  labels:
+    app: hello-world
+  annotations:
+    dev.okteto.com/auto-ingress: "private"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: hello-world
+```
+
+> Private Endpoints generated this way follow the same rules and restrictions than [Automatic SSL Endpoints](cloud/ssl.mdx).
+
+### Advanced Scenarios
+
+You can also use this feature with your own ingresses. This is useful when you have more complex configurations, or when you only want to protect a subset of your application's endpoints.
+
+Add the annotation below to your ingress' manifest to make your application's endpoints private:
+
+```
+  dev.okteto.com/private: "true"
+```
+
+Full example:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    dev.okteto.com/private: "true"
+  name: hello-world
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              serviceName: hello-world
+              servicePort: 8080
+            path: /
+```
+
+If you only want to protect certain endpoints of you application (e.g the admin portal, or your metrics endopint), we recommend that you create two ingresses:
+
+- A first ingress with the routes for all the public endpoints
+- A second ingress, with the `dev.okteto.com/private` annotation, for all your private routes.
+
+</TabItem>
+
+<TabItem value="compose">
+
+Private Endpoints is one of the extensions that Okteto added to [Docker Compose](reference/docker-compose.mdx) to make it easier to develop cloud-native applications.
+
+You can enable private endpoints by adding the `dev.okteto.com/private: "true"` label to your service:
+
+```yaml
+name: hello-world
+services:
+  hello-world:
+    labels:
+      dev.okteto.com/private: "true"
+    image: nginx
+    ports:
+      - 8080:8080
+```
+
+### Advanced Scenarios
+
+You can also define this at the `endpoint` level if needed.
+
+```yaml
+name: hello-world
+endpoints:
+  annotations:
+    dev.okteto.com/private: "true"
+  rules:
+    - path: /
+      service: hello-world
+      port: 8080
+services:
+  hello-world:
+    image: nginx
+    expose:
+      - 8080
+```
+
+</TabItem>
+
+</Tabs>
+
+## Restrictions
+
+Private Endpoints use your Okteto Cloud account for authentication, so they're best suited to protect endpoints that you and your team will access via the browser. They're not recommended for automation, or to protect endpoints that will be accessed by your end users.
+
+Private Endpoints only restrict external access to your applications. Applications running in your namespace will be able to access your private endpoints without authentication by using the `service` name.

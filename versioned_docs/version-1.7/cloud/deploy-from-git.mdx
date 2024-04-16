@@ -1,0 +1,148 @@
+---
+title: Deploy your Development Environments from your Git Repositories
+description: Deploy your development environments directly from your Git repositories
+sidebar_label: From Git Repositories
+id: deploy-from-git
+---
+
+import Image from "@theme/Image";
+
+<!-- This document covers how to deploy a development environment for a given Git repository.
+Note that your Git repository needs to be configured with an [Okteto Pipeline](cloud/okteto-pipeline.mdx).
+Read the Okteto Pipeline [getting started guide](cloud/okteto-cli.mdx#okteto-manifest) to learn how to create an Okteto Pipeline for your Git repository. -->
+
+## Prerequisites
+
+Please make sure to configure your Git repositories with the [appropriate manifests](cloud/okteto-cli.mdx#deployment-manifests) before using them to launch Dev Environments.
+
+## Deploy
+
+Log in to [Okteto Cloud](https://cloud.okteto.com), and click on the **Launch Dev Environment** button on the top left.
+A dialog will open asking for a Git repository to deploy. Make sure that "**Git URL**" is selected as the source.
+Type the URL for the Movies App repo (https://github.com/okteto/movies), pick a branch, and click **Launch**:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/deploy-git.png").default}
+    alt="deploy from git"
+    width="650"
+  />
+</p>
+
+When you launch a dev environment using a Git repository, Okteto Cloud will analyze your repo and automatically deploy it running `okteto deploy --build`.
+In the example above, Okteto will install the chart of the Movies App with Helm.
+
+> Check the [Okteto Manifest](reference/manifest.mdx) to learn more about how to configure your development environment deployment with an `okteto.yml` file.
+
+As soon as your development environment is deployed, you'll see its state in the UI. The UI will be automatically updated as the different components are created.
+Your development environment will be ready to go once it reaches the `Success` state.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/ui-movies-git.png").default}
+    alt="UI of the movies app"
+    width="850"
+  />
+</p>
+
+## Redeploy
+
+Click the **Redeploy** button on the right of your development environment.
+
+A dialog will open where you can modify the branch to redeploy:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/redeploy-git.png").default}
+    alt="Redeploy in git"
+    width="600"
+  />
+</p>
+
+Click **Deploy** and your development environment will be updated with the source code of the given branch.
+
+## Destroy
+
+You can also destroy your development environment with a single click.
+
+Go back to the extended menu of your development environment and click the **Destroy** button.
+A confirmation dialog will pop up. Click on **Destroy** and your development environment and all of the resources created for it will be gone:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/destroy-git.png").default}
+    alt="Destroy application"
+    width="450"
+  />
+</p>
+
+You won't be able to recover resources after the development environment has been destroyed, so back up any sensitive data before running this action.
+
+## Variables
+
+When you deploy from Git, you can add Variables that will be available as environment variables during the deployment of your development environment.
+
+## Adding a Develop on Okteto Button
+
+The **Develop on Okteto** button is a shortcut to deploy your development environments with a single click.
+
+The button is designed to be used in GitHub README files, documentation sites, or pretty much anywhere that renders an HTML file.
+Use this instead of writing a never-ending list of manual steps on how to deploy your development environments.
+
+Here's an example button that deploys [the Movies App](https://github.com/okteto/movies) on Okteto Cloud.
+
+[![Develop on Okteto](https://okteto.com/develop-okteto.svg)](https://cloud.okteto.com/#/deploy?repository=https://github.com/okteto/movies)
+
+### Adding the Develop on Okteto button
+
+There are two ways of referencing the source code repository:
+
+- Resolve it implicitly. This is useful in GitHub `README.` files. If you don't specify the repository, Okteto will infer it using the `referer` header. This only works on public repositories hosted in https://github.com.
+- Using the `repository` and `branch` parameters. This is useful for buttons hosted outside of https://github.com, in blog posts, or documentation.
+
+#### Using an implicit repository
+
+If you're embedding the button in a public GitHub repository's `README` file, Okteto will automatically infer the repository and the branch using the referer header when someone clicks on the button.
+
+Here's an example:
+
+```markdown
+[![Develop on Okteto](https://okteto.com/develop-okteto.svg)](https://cloud.okteto.com/deploy)
+```
+
+And here's the equivalent content as HTML if you prefer that:
+
+```html
+<a href="https://cloud.okteto.com/deploy">
+  <img src="https://okteto.com/develop-okteto.svg" alt="Develop on Okteto" />
+</a>
+```
+
+A `develop-okteto.png` is also available.
+
+#### Adding explicit parameters
+
+Use the following Markdown snippet as a template, changing the `repository` and `branch` query parameters to match your repository. The `branch` query parameter is optional.
+
+```markdown
+[![Develop on Okteto](https://okteto.com/develop-okteto.svg)](https://cloud.okteto.com/deploy?repository=https://github.com/okteto/movies&branch=main)
+```
+
+And here's the equivalent content as HTML if you prefer that:
+
+```html
+<a
+  href="https://cloud.okteto.com/deploy?repository=https://github.com/okteto/movies&branch=main"
+>
+  <img src="https://okteto.com/develop-okteto.svg" alt="Develop on Okteto" />
+</a>
+```
+
+### Parameters
+
+You can parametrize your development environment deployment using the following parameters:
+
+- `repository`: The repository to be deployed. If it's not present, Okteto will automatically infer it using the referer header, if available.
+- `branch`: The repository branch to be deployed. If not included, it will use the default branch of the repository.
+- `vars`: It allows you to specify a list of variables that will be available as environment variables during the deployment. It is optional. .e.g `vars=[{"name":"THEME","value":"dark"},{"name":"LANG","value":"en"}]`. This would generate 2 environment variables avaible on your deployment: `THEME=dark` and `LANG=en`. It has to be URL encoded.
+- `filename`: The location of the [Okteto Manifest](reference/manifest.mdx) relative to the root of the repository.
