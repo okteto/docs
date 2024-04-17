@@ -1,0 +1,24 @@
+on:
+    pull_request:
+      branches:
+        - main
+  
+jobs:
+    preview:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Context
+          uses: okteto/context@latest
+          with:
+            url: ${{secrets.OKTETO_DEMO_URL}}
+            token: ${{ secrets.OKTETO_DEMO_TOKEN }}
+  
+        - name: Deploy preview environment
+          uses: okteto/deploy-preview@latest
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            name: pr-${{ github.event.number }}
+            timeout: 15m
+  
+  
