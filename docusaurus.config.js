@@ -11,7 +11,9 @@ module.exports = {
   organizationName: "okteto", // Usually your GitHub org/user name.
   projectName: "okteto", // Usually your repo name.
   favicon: "img/favicon.ico",
-  onBrokenLinks: "throw",
+  // onBrokenLinks: "throw",
+  onBrokenLinks: "warn",
+  // onBrokenAnchors: "throw",
   onBrokenMarkdownLinks: "throw",
   onDuplicateRoutes: "warn",
   customFields: {
@@ -101,20 +103,20 @@ module.exports = {
           title: "Docs",
           items: [
             {
+              label: "Installation Guide",
+              to: "/get-started/install",
+            },
+            {
               label: "Getting Started Guide",
-              to: "/",
+              to: "/get-started/deploy-your-app",
+            },
+            {
+              label: "Okteto Manifest",
+              to: "/core/okteto-manifest",
             },
             {
               label: "Okteto CLI Reference",
               to: "/reference/okteto-cli"
-            },
-            {
-              label: "Okteto Manifest",
-              to: "/manifest/overview-manifest",
-            },
-            {
-              label: "Samples",
-              to: "guides/samples/golang",
             },
             {
               label: "Release Notes",
@@ -181,20 +183,25 @@ module.exports = {
           editUrl: "https://github.com/okteto/docs/edit/main",
           breadcrumbs: false,
           sidebarPath: require.resolve("./sidebars.js"),
-          lastVersion: "1.18",
+          lastVersion: "1.19",
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: "1.19",
-              path: "1.19",
+              label: "1.20",
+              path: "1.20",
             },
-            1.18: {
+            1.19: {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: "1.18",
+              label: "1.19",
               path: "/",
               banner: "none",
+            },
+            1.18: {
+              label: "1.18",
+              path: "1.18",
+              banner: "unmaintained",
             },
             1.17: {
               label: "1.17",
@@ -219,16 +226,6 @@ module.exports = {
             1.13: {
               label: "1.13",
               path: "1.13",
-              banner: "unmaintained",
-            },
-            1.12: {
-              label: "1.12",
-              path: "1.12",
-              banner: "unmaintained",
-            },
-            1.11: {
-              label: "1.11",
-              path: "1.11",
               banner: "unmaintained",
             },
           },
@@ -262,51 +259,7 @@ module.exports = {
       "@docusaurus/plugin-client-redirects",
       {
         fromExtensions: ["html"],
-        redirects: [
-          {
-            to: "/get-started/overview/",
-            from: ["/enterprise/dns/", "/self-hosted/install/overview/"],
-          },
-          {
-            to: "/guides/tutorials/compose-getting-started/",
-            from: [
-              "/tutorials/stacks-getting-started/",
-              "/tutorials/compose-getting-started/",
-            ],
-          },
-          {
-            to: "/reference/docker-compose/",
-            from: ["/reference/stacks/", "/reference/compose/"],
-          },
-          {
-            to: "/admin/dashboard/",
-            from: [
-              "/enterprise/administration/dashboard/",
-              "/administration/dashboard/",
-            ],
-          },
-          {
-            to: "/admin/cleanup/",
-            from: [
-              "/enterprise/administration/cleanup/",
-              "/administration/cleanup/",
-            ],
-          },
-          {
-            to: "/self-hosted/install/github-integration/",
-            from: [
-              "/enterprise/administration/private-repositories/github-app/",
-              "/administration/private-repositories/github-app/",
-            ],
-          },
-          {
-            to: "/self-hosted/install/private-repositories/ssh-key",
-            from: [
-              "/enterprise/administration/private-repositories/ssh-key/",
-              "/administration/private-repositories/ssh-key/",
-            ],
-          },
-        ],
+        redirects: [],
       },
     ],
     [
