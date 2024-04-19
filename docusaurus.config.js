@@ -12,7 +12,6 @@ module.exports = {
   projectName: "okteto", // Usually your repo name.
   favicon: "img/favicon.ico",
   onBrokenLinks: "throw",
-  // onBrokenLinks: "warn",
   // onBrokenAnchors: "throw",
   onBrokenMarkdownLinks: "throw",
   onDuplicateRoutes: "warn",
