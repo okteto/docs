@@ -11,8 +11,7 @@ module.exports = {
   organizationName: "okteto", // Usually your GitHub org/user name.
   projectName: "okteto", // Usually your repo name.
   favicon: "img/favicon.ico",
-  // onBrokenLinks: "throw",
-  onBrokenLinks: "warn",
+  onBrokenLinks: "throw",
   // onBrokenAnchors: "throw",
   onBrokenMarkdownLinks: "throw",
   onDuplicateRoutes: "warn",
@@ -191,41 +190,56 @@ module.exports = {
               label: "1.20",
               path: "1.20",
             },
-            1.19: {
+            "1.19": {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
               label: "1.19",
               path: "/",
               banner: "none",
             },
-            1.18: {
+            "1.18": {
               label: "1.18",
               path: "1.18",
               banner: "unmaintained",
             },
-            1.17: {
+            "1.17": {
               label: "1.17",
               path: "1.17",
               banner: "unmaintained",
             },
-            1.16: {
+            "1.16": {
               label: "1.16",
               path: "1.16",
               banner: "unmaintained",
             },
-            1.15: {
+            "1.15": {
               label: "1.15",
               path: "1.15",
               banner: "unmaintained",
             },
-            1.14: {
+            "1.14": {
               label: "1.14",
               path: "1.14",
               banner: "unmaintained",
             },
-            1.13: {
+            "1.13": {
               label: "1.13",
               path: "1.13",
+              banner: "unmaintained",
+            },
+            "1.12": {
+              label: "1.12",
+              path: "1.12",
+              banner: "unmaintained",
+            },
+            "1.11": {
+              label: "1.11",
+              path: "1.11",
+              banner: "unmaintained",
+            },
+            "1.10": {
+              label: "1.10",
+              path: "1.10",
               banner: "unmaintained",
             },
           },

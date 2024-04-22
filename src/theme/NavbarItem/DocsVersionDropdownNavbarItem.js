@@ -83,7 +83,6 @@ export default function DocsVersionDropdownNavbarItem({
         versionDetails = '(Latest release)';
       }
 
-      console.log(version);
       return {
         isNavLink: true,
         label: `${version.label} ${versionDetails}`,
