@@ -1,5 +1,5 @@
 ---
-title: Getting started after deploying Okteto
+title: Getting started after deploying Okteto on DigitalOcean
 ---
 
 import Image from '@theme/Image';
@@ -89,9 +89,9 @@ https://okteto.$SUBDOMAIN
 _Authorization callback URL:_
 https://okteto.$SUBDOMAIN/auth/callback
 
-### Personal Access Token
+### DigitalOcean Personal Access Token
 
-Okteto requires a DigitalOcean personal access token with read/write permissions to create DNS entries when responding to [ACME DNS-01 challenges](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge). The entries will be created in the subdomain you provided in the configuration. Create your [personal access token here](https://cloud.digitalocean.com/account/api/tokens).
+Okteto requires a DigitalOcean personal access token with read/write permissions to create DNS entries when responding to [ACME DNS-01 challenges](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge). The entries will be created in the subdomain you provided in the configuration. Create your [DigitalOcean personal access token here](https://cloud.digitalocean.com/account/api/tokens).
 
 ## Support
 
