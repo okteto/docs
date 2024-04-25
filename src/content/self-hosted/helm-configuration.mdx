@@ -200,20 +200,14 @@ The daemonset automatically configures every node of your cluster to work better
 - `extraEnv`: Environment variables to be set on the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
 - `image`: Container image used by the daemonset pods.
-- `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `true`.
+- `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `true` but it's disabled if `regcredsManager.pullSecrets.enabled=true`.
 - `priorityClassName`: The priority class to be used by the daemonset pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-
-```yaml
-daemonset:
-  configurePrivateRegistriesInNodes:
-    enabled: true
-```
 
 The daemonset performs the following tasks on each node:
 
 - [Overrides](self-hosted/helm-configuration.mdx#overrideregistryresolution) the Okteto Registry hostname resolution to use internal IPs.
 - [Overrides](self-hosted/helm-configuration.mdx#overridefilewatchers) the default kernel values for file watchers on every node.
-- Configures the kubelet with registry credentials for [private registries](self-hosted/helm-configuration.mdx#daemonset) (if `configurePrivateRegistriesInNodes.enabled` key is `true`).
+- Configures the kubelet with registry credentials for [private registries](self-hosted/helm-configuration.mdx#daemonset) (if `configurePrivateRegistriesInNodes.enabled=true` and `regcredsManager.pullSecrets.enabled=false`).
 - Installs your CA if `wildcardCertificate.privateCA` is enabled.
 - Installs a CA if using self-signed certificates (`wildcardCertificate.create: true`).
 
@@ -1003,11 +997,11 @@ wildcardCertificate:
 
 The configuration for the controller manager of the Registry Credentials Operator.
 
-This controller manager is deployed as a deployment and is responsible to managing private registry credentials in the cluster. If `pullSecrets.enabled=true` all private registry credentials are copied to the `okteto-regcred` secret in user dev namespaces and previews. If `pullSecrets.enabled=false` these credentials are copied to all nodes through the okteto daemonset.
-
+This controller manager is deployed as a deployment and is responsible to managing private registry credentials in the cluster. If `pullSecrets.enabled=true` all private registry credentials are copied to the `okteto-regcred` secret in user dev namespaces and previews.
+If `pullSecrets.enabled=false` these credentials are copied to all nodes through the Okteto Daemon if `daemonset.configurePrivateRegistriesInNodes.enabled=true`.
 
 - `priorityClassName`: The priority class to be used by the controller manager pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `pullSecrets.enabled`: If enabled, private registry credentials defined in the cluster will be written to user namespaces as pull secrets and no longer be written to the nodes. In beta, defaults to false.
+- `pullSecrets.enabled`: If enabled, private registry credentials defined in the cluster will be written to user namespaces as pull secrets and no longer be written to the nodes. Defaults to true.
 - `internalCertificate.annotations`: Annotations to add to the tls secret used in the controller manager webhook server.
 - `podAnnotations`: Annotations to add to the controller manager pods.
 - `podLabels`: Labels to add to the controller manager pods.
