@@ -8,7 +8,7 @@ id: okteto-manifest
 import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 
-The Okteto Manifest is how you configure the behavior for building, deploying, and developing your application in Okteto.
+The Okteto Manifest is how you configure the behavior for building, deploying, testing, and developing your application in Okteto.
 These are the main sections of the Okteto Manifest:
 
 | Section                       | Description                                                                                                                                                                                 |
@@ -19,6 +19,7 @@ These are the main sections of the Okteto Manifest:
 | [destroy](#destroy)           | Configure a list of commands to destroy your application                                                                                                                        |
 | [dev](#dev)                   | Configure a list of Development Containers to define how `okteto up` works when you are iterating on your application                               |
 | [external](#external)         | Configure a list of External Resources that exist outside of the Kubernetes cluster (e.g. cloud resources, dashboards).               |
+| [test](#test)                   | Configure a list of Test Containers to define how `okteto test` when running test for your application                               |
 
 There are other sections to help you build your ideal development experience in Okteto, but this document focuses solely on introducing you to the core concepts of the Okteto Manifest.
 You can learn more about the other Okteto Manifest options in the [manifest reference](reference/okteto-manifest.mdx).
@@ -167,4 +168,39 @@ You can learn more about the `destroy` section [here](reference/okteto-manifest.
 
 :::info
 Okteto recommends that you enable [Remote Execution](core/remote-execution.mdx) for your destroy commands
+:::
+
+## Test
+
+This section tells Okteto how to test your application.
+The Okteto CLI command `okteto test` will run tests using okteto infrastructure via [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
+Tests can de defined independenty using this section and will be executing sequentially. Test can also depend on each other and be linked via a `depends_on` field which defines the order of test executions.
+
+Your `test` section might look like this:
+
+```yaml
+test:
+  setup:
+    image: okteto/golang:1
+    commands:
+      - "echo prepare tests"
+  unit:
+    depends_on:
+      - setup
+    image: okteto/golang:1
+    commands:
+      - "go test . -v"
+  integration:
+    depends_on:
+      - setup
+    context: integration
+    commands:
+      - "./run-tests.sh"
+```
+
+By default okteto runs all tests when you run `okteto test`. You also run a single section by passing it as an argument `okteto test unit`.
+
+
+:::note
+When running a dedicated test section all `depends_on` field will also be executed
 :::

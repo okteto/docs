@@ -9,7 +9,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 `okteto.yaml` is a manifest format for describing development environments.
 
-The Okteto Manifest has three main sections: `build`, `deploy` and `dev`, to define how to build, deploy and develop your development environment.
+The Okteto Manifest has four main sections: `build`, `deploy`, `test` and `dev`, to define how to build, deploy, test, and develop your development environment.
 
 ## Example
 
@@ -33,6 +33,11 @@ dev:
     command: yarn start
     sync:
       - frontend:/usr/src/app
+test:
+  unit:
+    image: okteto/golang:1
+    commands:
+      - "go test ."
 ```
 
 ## Schema reference
@@ -273,6 +278,40 @@ deploy:
 - `driver`: the backend for divert. Currently, the only supported driver is `istio`.
 - `virtualServices`: a list of virtual services to divert. Each virtual service is defined with it's name, namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
 - `hosts`: the list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
+
+### test (object, optional)
+
+A dictionary of tests to execute tests using okteto infrastructure via [Remote Execution](core/remote-execution.mdx#how-remote-execution-works)
+
+```yaml
+test:
+  setup:
+    image: okteto/golang:1
+    commands:
+      - "echo prepare tests"
+  unit:
+    depends_on:
+      - setup
+    image: okteto/golang:1
+    commands:
+      - "go test . -v"
+```
+
+- `[name]`: the name of the test section (user defined)
+
+#### image (string, optional)
+
+The base image used to run your test.
+
+If it is not defined, okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin specifically changed it [here](self-hosted/helm-configuration.mdx/#installer) with a [custom installer image](admin/custom-installer-image.mdx)
+
+#### commands ([string], required)
+
+A list of commands to execute the tests. For tests to pass, all these commands should exit with a zero code, otherwise this section will be marked as failed.
+
+#### depends_on (array, required)
+
+A list of test sections this test depends on. When a test is executed all dependencies are executed as a prerequisite of the section. The test defined in `depends_on` must be of existing test sections of the manifest or execution will fail.
 
 ### destroy ([string], optional)
 
