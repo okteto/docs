@@ -44,7 +44,7 @@ jobs:
       - name: Context
         uses: okteto/context@latest
         with:
-          url: ${{secrets.OKTETO_URL}}
+          url: ${{secrets.OKTETO_CONTEXT}}
           token: ${{ secrets.OKTETO_TOKEN }}
 
       - name: Deploy preview environment
@@ -54,19 +54,25 @@ jobs:
         with:
           name: pr-${{ github.event.number }}
           timeout: 15m
+          scope: global
 ```
 
-There are two different scopes for preview environments: `personal`, where the only one who has access to the environment is the own user; and `global`, where all cluster members have access. Creating a preview environment with global scope requires administrator permissions and can be done using [admin access tokens](admin/dashboard.mdx#admin-access-tokens)
+:::info
+There are two different scopes for preview environments:
+- `personal`, where the only one who has access to the environment is the own user; and
+- `global`, where all cluster members have access.
 
+This example creates a preview environment with global scope and requires administrator permissions using [admin access tokens](admin/dashboard.mdx#admin-access-tokens). To follow this example as a non-admin, use a [Personal Access Token](core/credentials/personal-access-tokens.mdx)
+:::
 
 ## Step 2: Configure your secrets
 
-If you noticed, the workflow uses the `secrets.OKTETO_TOKEN` and `secrets.OKTETO_URL`. We do this, so we don't have to commit these values into our repo.
+If you noticed, the workflow uses the `secrets.OKTETO_TOKEN` and `secrets.OKTETO_CONTEXT`. We do this, so we don't have to commit these values into our repo.
 
 Before you run this workflow you need to create the following secrets in your repository:
 
-- `OKTETO_TOKEN` with an Okteto [access token](admin/dashboard.mdx#admin-access-tokens)
-- `OKTETO_URL` with the URL of your Okteto instance.
+- `OKTETO_TOKEN` with an Okteto [Admin Access Token](admin/dashboard.mdx#admin-access-tokens)
+- `OKTETO_CONTEXT` with the URL of your Okteto instance.
 
 See [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for adding these to your Github repository.
 
@@ -116,7 +122,7 @@ jobs:
       - name: Context
         uses: okteto/context@latest
         with:
-          url: ${{secrets.OKTETO_URL}}
+          url: ${{secrets.OKTETO_CONTEXT}}
           token: ${{ secrets.OKTETO_TOKEN }}
 
       - name: Destroy preview environment

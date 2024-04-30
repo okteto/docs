@@ -88,25 +88,32 @@ If you add credentials using CRDs they will be displayed in the UI, but they can
 Okteto runs a dedicated Kubernetes Controller to manage Registy Credentials. As part of this process, the Controller creates and manages a [Docker Config JSON](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets) secret in the Okteto namespace.
 This secret is called `okteto-dockerconfig-static` and is always up to date with your Registy Credentials, either through the UI or using CRDs.
 
-This docker config secret is used as a pull secret in installer jobs.
-If the `daemonset.configurePrivateRegistriesInNodes.enabled` setting is active, Okteto writes this secret on every node which allows Kubelet to pull private images at deployment time.
+This docker config secret is used as a pull secret in installer jobs, in case your installer job image is private.
+
+The docker config secret is added in all namespaces and preview environments created by Okteto, with the name `okteto-regcred`.
+`okteto-regcred` is injected as a pull secret to all pods by the [Okteto Webhook](self-hosted/helm-configuration.mdx#webhook) to allow the deployment of private images.
 
 :::note
-Any changes you make to Registry Credentials can take a few minutes to propagate to all nodes in the cluster. 
+By default, the `okteto-regcred` only contains credentials for the Okteto Registry
 :::
 
-## Pull Secrets vs Kubelet reconfiguration
-
-An `okteto-regcred` secret exists in all namespaces and preview environments created by Okteto. This secret, by default, only contains credentials to the Okteto Registry and is injected as a pull secret to all pods by the [Okteto Webhook](self-hosted/helm-configuration.mdx#webhook).
-
-Okteto supports adding all your Registry Credentials to this `okteto-regcred` secret, not requiring the Okteto Daemonset to copy the docker config secret in every node.
-
-To enable this behavior set the following configuration in your helm values:
+To disable this behavior set the following configuration in your helm values:
 
 ```yaml
 regcredsManager:
   pullSecrets:
-    enabled: true
+    enabled: false
 ```
 
-When `regcredsManager.pullSecrets.enabled=true` the docker credentials defined in `okteto-dockerconfig-static` will no longer be copied into the nodes.
+If this behavior is disabled, Okteto writes this secret on every node which allows Kubelet to pull private images at deployment time.
+To also disable this behavior set the following configuration in your helm values:
+
+```yaml
+daemonset:
+  configurePrivateRegistriesInNodes:
+    enabled: false
+```
+
+:::note
+`daemonset.configurePrivateRegistriesInNodes.enabled` is deprecated and it will be removed in Chart 1.21
+:::
