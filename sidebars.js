@@ -61,6 +61,7 @@ module.exports = {
           items: [
             'core/credentials/kubernetes-credentials',
             'core/credentials/personal-access-tokens',
+            'core/credentials/environment-variables',
           ],
         },
       ],
@@ -242,6 +243,7 @@ module.exports = {
         'reference/docker-compose',
         'reference/supported-github-actions',
         'reference/file-synchronization',
+        'reference/feature-flags',
         'reference/ssh-server',
       ],
     },
