@@ -835,12 +835,13 @@ secret:
 
 ### tolerations
 
-Indicates [tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the okteto components.
-Define the label and taint `okteto-node-pool` on your worker nodes to match these values.
+Indicates [tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) and [nodeSelector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the okteto components.
+The tolerations created by this setting, will have a `key` value of `"okteto-node-pool"`, an `operator` value of `"Equal"`, and an `effect` value of `"NoSchedule"`.
+You will need to define the label and taint `okteto-node-pool` on your worker nodes to match these values to properly use this feature.
 
-- `oktetoPool`: Tolerations for the api, webhook, gc, ingress controller, and frontend services.
-- `buildPool`: Tolerations for the buildkit and registry services.
-- `devPool`: Tolerations for the pods deployed in namespaces created by okteto.
+- `oktetoPool`: Tolerations and NodeSelector for the api, webhook, gc, ingress controller, and frontend services.
+- `buildPool`: Tolerations and NodeSelector for the buildkit and registry services.
+- `devPool`: Tolerations and NodeSelector for the pods deployed in namespaces created by okteto.
 
 ```yaml
 tolerations:
@@ -849,8 +850,7 @@ tolerations:
   devPool: dev
 ```
 
-For example, if you add the label `okteto-node-pool:build` and the taint `okteto-node-pool=build:NoSchedule` to a node, and you
-are using `buildPool: build`, the buildkit and registry pods are deployed to this node.
+For example, when you define the value `tolerations.buildPool: build`, all the Pods related to Okteto build services (i.e. registry and buildkit Pods) will be deployed to nodes with the label `okteto-node-pool:build` and the taint `okteto-node-pool=build:NoSchedule`.
 
 ### user
 
