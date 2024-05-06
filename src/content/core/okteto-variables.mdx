@@ -199,7 +199,6 @@ deploy:
     - name: deploy
       command: NODE_ENV=${ENV} make deploy
 ```
-- Variables cab be used in `deploy`, `destroy` and `test` commands in the Okteto manifest
 
 ### Catalog
 
@@ -219,25 +218,38 @@ $ PORT=4000 okteto deploy
 ### The .env file
 
 You can set default values for any environment variables referenced in the okteto manifest in an environment file named `.env`.
-The `.env` file is placed at the same folder than the okteto manifest.
+
+The `.env` should be placed in the same folder of the Okteto Manifest. The Okteto Manifest can also be stored in a special folder called `.okteto`. In that case, the `.env` should not be placed inside it, but in the parent directory.
 
 For example:
 
-```console
-$ cat .env
-TAG=v1.5
+```yaml
+# .env
+PORT=4000
 ```
 
-```console
-$ cat okteto.yaml
-...
-    image: "node:${TAG}"
-...
+```yaml
+# okteto.yml
+deploy:
+  commands:
+    - name: deploy
+      command: echo $PORT # -> 4000
 ```
 
-When you run any Okteto CLI command, `image` will be `node:v1.5`.
+:::tip
 
-> Values in the shell take precedence over those specified in the `.env` file.
+The `.env` integration also supports parameter expansion to set default values and allowing other developers to override them.
+
+Example:
+
+```yaml
+# .env
+PORT=${PORT:-4000}
+```
+
+When running `PORT=5000 okteto deploy` the value of `PORT` will be `5000`.
+
+:::
 
 
 ### User and Admin variables
@@ -276,7 +288,7 @@ To delete an existing variable, click on the **Delete** button on the right. You
 
 ### Default Environment Variables
 
-These are automatically expanded and can be referenced in your Okteto manifest’s `deploy`/`destroy` sections either directly (within the manifest) or in external files (e.g. a `Makefile`):
+The following environment variables are automatically injected by Okteto. You can use them in the manifest and `deploy`, `destroy` and `test` sections, including your scripts and tools (e.g. `Makefile`).
 
 - **`OKTETO_DOMAIN`**: The domain where Okteto exposes your application endpoints.
 - **`OKTETO_NAMESPACE`**: The namespace where your application is installed.
@@ -313,51 +325,6 @@ Okteto will generate environment variables such as:
 :::note
 
 If an `image` name includes '-', it will be replaced by '_' in the corresponding environment variables.
-
-:::
-
-### Built-in Environment Variables for Dependencies
-
-Reference variables defined by your dependencies using the following pattern:
-
-- **`OKTETO_DEPENDENCY_<dependency>_VARIABLE_<variable>`**: The value of a variable of a dependency.
-
-For example, if you have a dependency in your Okteto Manifest:
-
-```yaml
-dependencies:
-  database:
-    repository: https://github.com/okteto/my-database
-    variables:
-      USERNAME: okteto
-    wait: true
-```
-
-And the repository has this Okteto Manifest:
-
-```yaml
-deploy:
-  - echo "PASSWORD=1234" >> $OKTETO_ENV
-```
-
-Reference the variables in your Okteto Manifest deploy section like this:
-
-```yaml
-dependencies:
-  database:
-    repository: https://github.com/okteto/my-database
-    variables:
-      USERNAME: okteto
-    wait: true
-
-deploy:
-  - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_USERNAME}
-  - echo ${OKTETO_DEPENDENCY_DATABASE_VARIABLE_PASSWORD}
-```
-
-:::note
-
-USERNAME has a static value, and PASSWORD is dynamically generated.
 
 :::
 
