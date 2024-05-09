@@ -26,16 +26,16 @@ Use the admin token you retrieved on the first step to log in to the admin scree
 
 Once you log in to the admin page, you'll need to provide the following values to complete Okteto's initial configuration.
 
-1. A [dedicated subdomain](#Subdomain) for your Okteto instance
-1. Your Kubernetes cluster's [public endpoint](#Cluster-Public-Endpoint)
-1. Your [Okteto license](#License) (optional)
-1. The Client ID and Client Secret of a [GitHub OAuth app](#Authentication)
+1. A [dedicated subdomain](#subdomain) for your Okteto instance
+1. Your Kubernetes cluster's [public endpoint](#cluster-public-endpoint)
+1. Your [Okteto license](#license) (optional)
+1. The Client ID and Client Secret of a [GitHub OAuth app](#authentication)
 1. A list of the GitHub Usernames allowed to log into your Okteto instance (optional, leave it empty to allow everyone)
-1. A DigitalOcean [personal access token](#Personal-Access-Token)
+1. A DigitalOcean [personal access token](#personal-access-token)
 
 Press `Save` once you're ready to apply the new configuration. It'll take about 30 seconds for the configuration to be applied.
 
-Your Okteto instance is now fully configured. It will be available via https://okteto.$SUBDOMAIN (e.g. https://okteto.dev.example.com). The [next section ](#DNS-configuration) explains how to configure the DNS for this.
+Your Okteto instance is now fully configured. It will be available via https://okteto.$SUBDOMAIN (e.g. https://okteto.dev.example.com). The [next section ](#dns-configuration) explains how to configure the DNS for this.
 
 ## DNS configuration
 
