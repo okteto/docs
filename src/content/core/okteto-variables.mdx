@@ -128,54 +128,61 @@ test:
     - terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
     - terraform apply tfplan
     - terraform output -json > tfout.json
+
     # I make the following var available to other steps
     - SERVICE_ENDPOINT=$(cat tfout.json | jq -r '.service_endpoint') >> $OKTETO_ENV
+
     # the following step will have access to SERVICE_ENDPOINT
     - echo "Running tests against ${SERVICE_ENDPOINT}..."
 ```
 
-
-### Configuring dynamic endpoints
-
-Sharing variables between steps of the same command can be useful when the deployment
-
-You can create dynamic endpoints for external resources within your Okteto environment using `$OKTETO_ENV`. You can define `$variables`, assign them to `OKTETO_ENV`, and make those variables available in other sections (e.g. `deploy`, `destroy`) of the Okteto manifest or to generate dynamic endpoints for external resources.
-
-The example below demonstrates adding variables to `$OKTETO_ENV` in the `deploy` section and then accessing those variables in a sample `destroy` section:
+Another example for the same functionality, can be for example, creating the infrastructure, generating a `.env` file, and then deploy the application.
 
 ```yaml
 deploy:
-  hashicorp/terraform:1.4
   commands:
   - name: Create AWS infrastructure
     command: |
       set -e
-      resourceName="${OKTETO_NAMESPACE}-oktacoshop"
-      region=$AWS_REGION
+      bucketName="${OKTETO_NAMESPACE}-okteto-tacos-shop"
+      terraform apply -input=false -var "bucket_name=$bucketName" -auto-approve
+      echo "S3_BUCKET_NAME=$resourceName" >> "$OKTETO_ENV"
 
-      terraform apply -input=false -var "bucket_name=$resourceName" -var "queue_name=$resourceName" -var "region=$region" -auto-approve
-      s3Dashboard="https://s3.console.aws.amazon.com/s3/buckets/${resourceName}"
-
-      # ... shortened for brevity
-    {
-      echo "$resourceName"
-      echo "$region"
-      echo "OKTETO_EXTERNAL_S3_ENDPOINTS_BUCKET_URL=$s3Dashboard"
-      echo "S3_BUCKET_NAME=$resourceName"
-    } >> "$OKTETO_ENV"
-
-destroy:
-  image: hashicorp/terraform:1.4
-  commands:
-  - name: Delete the AWS infrastructure
+  - name: Create .env
     command: |
       set -e
+      echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" > .env
 
-      # omitted for brevity
-
-      terraform apply -input=false -var "bucket_name=${S3_BUCKET_NAME}" -var "queue_name=$resourceName" -var "region=$region" -auto-approve --destroy
+  - name: Deploy the app
+    command: |
+      set -e
+      make deploy
 ```
 
+:::note
+
+Here are some highlights, and clarifications on the example above:
+
+1. The first step makes the variable `S3_BUCKET_NAME` available to the rest of the deployment steps. Both the step "Create .env" and "Deploy the app" will have access to `S3_BUCKET_NAME`.
+
+2. Also, it's important to remember that the variables in `$OKTETO_ENV` are not shared across `deploy`, `test`, and `destroy` sections. They are only shared within the same section.
+
+3. If you are wondering where the variable `OKTETO_NAMESPACE` comes from, check the section Okteto Variables [Managed by Okteto](#managed-by-okteto).
+
+:::
+
+
+### Configuring dynamic endpoints
+
+In this example, we show how `$OKTETO_ENV` can be used to create dynamic endpoints for external resources within your dev environment.
+
+If you are not familiar yet with the concept of Okteto external resource, image a component that is not part of the deployment of your dev environment, but that you need to interact with. For example, a database, a message queue, or an S3 bucket. If you need more details on this feature, check out [External Resources](/docs/development/external-resources).
+
+External resources are defined in the Okteto manifest and have a name and a URL. We understand that often, when using cloud providers, the resource URLs are generated dynamically when the infrastructure is provisioned. In this example, we make the S3 bucket name available to the rest of the deployment steps.
+
+```yaml
+## TODO: write example
+```
 
 
 ## Setting Okteto Variables
