@@ -131,6 +131,58 @@ api:
       memory: 128Mi
 ```
 
+### autoscaler (deprecated)
+
+The cluster autoscaler service. Disabled by default.
+It instructs the Kubernetes cluster autoscaler to scale nodes if the real cpu/memory usage of a node is beyond the limits.
+Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluster nodes.
+
+> **Requirements**: cluster autoscaler and metrics server must be installed in your cluster.
+
+- `annotations`: Annotations to add to the autoscaler pods.
+- `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
+- `cpu.down`: Decrease the cluster size when the CPU consumption is lesser than this value. It defaults to 40 percent.
+- `image`: image used by the autoscaler to deploy the autoscaler agent. It defaults to `busybox`.
+- `labels`: Labels to add to the autoscaler pods.
+- `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
+- `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
+- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
+- `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
+- `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
+- `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
+- `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
+- `priorityClassName`: The priority class to be used by the autoscaler pods.
+- `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
+- `slackWebhook`: A slack webhook url to notify autoscaler events.
+- `volumes.up`: Increase the cluster size when the Volumes in a node vs the max volumes per node is greater than or equal to this value. It defaults to 90 percent.
+- `volumes.down`: Decrease the cluster size when the Volumes in a node vs the max volumes per node is lesser than this value. It defaults to 80 percent.
+
+```yaml
+autoscaler:
+  enabled: false
+  image: busybox
+  schedule: 300
+  cpu:
+    up: 60
+    down: 40
+  memory:
+    up: 70
+    down: 50
+  pods:
+    up: 90
+    down: 80
+  volumes:
+    up: 90
+    down: 80
+  nodes:
+    increment: 1
+    min: 1
+    max: 10
+    podLabel: cloud.google.com/gke-nodepool
+  slackWebhook:
+```
+
 ### buildkit
 
 The build service. It's used in combination with `okteto build` to build containers directly in the cluster.
