@@ -68,7 +68,7 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
 
 2. Update `current` to _unreleased_ version in development
 
-3. Update the values of the `path` of the  previous official version in the  `versions` subsection to match the version number. 
+3. Update the values of the `path` of the previous official version in the `versions` subsection to match the version number. 
 
     Before
     ```
@@ -98,7 +98,7 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
         },
     ```
 
-Modify the redirection rules on `netlify.toml` so that `/docs/<OFFICIAL_VERSION>/` redirects to `/docs` and `/docs/unreleased/` redirects to `/docs/<CURRENT_VERSION>`
+Modify the redirection rules on `netlify.toml` so that `/docs/<OFFICIAL_VERSION>/` redirects to `/docs` and `/docs/unreleased/` redirects to `/docs/<CURRENT_VERSION>`.
 
 ```
 # Redirect official version to docs root
@@ -114,7 +114,22 @@ Modify the redirection rules on `netlify.toml` so that `/docs/<OFFICIAL_VERSION>
   status = 302
 ```
 
-Update `/src/pages/archives.md` with the new latest version
+Update `/src/pages/archives.md` with the new latest version.
+
+Remove the oldest version by following these steps:
+
+- Remove the files for the oldest version from the folders `versioned_docs` and p versioned_sidebars`.
+- Remove the oldest version from the file `versions.json`.
+- Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaurus.config.js) to remove the entry in the `versions` subsection for the oldest version to only keep 6 versions.
+- Add a redirect in the file `netlify.toml` fro the oldest version to the default version:
+
+```
+# Redirect official version to docs root
+[[redirects]]
+  from = "/docs/1.5/*"
+  to = "/docs/:splat"
+  status = 301
+```
 
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
 
