@@ -131,6 +131,58 @@ api:
       memory: 128Mi
 ```
 
+### autoscaler (deprecated)
+
+The cluster autoscaler service. Disabled by default.
+It instructs the Kubernetes cluster autoscaler to scale nodes if the real cpu/memory usage of a node is beyond the limits.
+Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluster nodes.
+
+> **Requirements**: cluster autoscaler and metrics server must be installed in your cluster.
+
+- `annotations`: Annotations to add to the autoscaler pods.
+- `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
+- `cpu.down`: Decrease the cluster size when the CPU consumption is lesser than this value. It defaults to 40 percent.
+- `image`: image used by the autoscaler to deploy the autoscaler agent. It defaults to `busybox`.
+- `labels`: Labels to add to the autoscaler pods.
+- `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
+- `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
+- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
+- `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
+- `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
+- `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
+- `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
+- `priorityClassName`: The priority class to be used by the autoscaler pods.
+- `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
+- `slackWebhook`: A slack webhook url to notify autoscaler events.
+- `volumes.up`: Increase the cluster size when the Volumes in a node vs the max volumes per node is greater than or equal to this value. It defaults to 90 percent.
+- `volumes.down`: Decrease the cluster size when the Volumes in a node vs the max volumes per node is lesser than this value. It defaults to 80 percent.
+
+```yaml
+autoscaler:
+  enabled: false
+  image: busybox
+  schedule: 300
+  cpu:
+    up: 60
+    down: 40
+  memory:
+    up: 70
+    down: 50
+  pods:
+    up: 90
+    down: 80
+  volumes:
+    up: 90
+    down: 80
+  nodes:
+    increment: 1
+    min: 1
+    max: 10
+    podLabel: cloud.google.com/gke-nodepool
+  slackWebhook:
+```
+
 ### buildkit
 
 The build service. It's used in combination with `okteto build` to build containers directly in the cluster.
@@ -155,6 +207,7 @@ The build service. It's used in combination with `okteto build` to build contain
 - `persistence.storageClass`: The storage class of the persistence volume attached to every buildkit pod.
 - `persistence.size`: The size of the persistence volume attached to every buildkit pod. Defaults to `750Gi`.
 - `persistence.cache`: The size (in Mi) of the buildkit cache to store image caches. It should be around 30Gi smaller than `storage.size`. Defaults to 500Gi.
+- `tolerations`: List of tolerations to be added to the buildkit service Pods. This list of tolerations will be applied in conjunction with any tolerations set in [`tolerations.buildPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.buildPool`. If not set, the buildkit Pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#globals).
 
 ```yaml
 buildkit:
@@ -168,6 +221,11 @@ buildkit:
     storageClass: ssd
     size: 180Gi
     cache: 150000
+  tolerations: 
+  - key: "okteto-buildkit"
+    operator: "Equal"
+    value: "buildkit"
+    effect: "NoExecute"
 ```
 
 In order to handle timeouts during communication between the client and the buildkit daemon, the following environment variables can be modified on the server side:
@@ -230,12 +288,10 @@ The defaultBackend receives errored requests from the ingress-controller and tra
   - `repository`: Registry and repository for the defaultBackend pods.
   - `tag`: Tag used for the defaultBackend pods.
 - `labels`: Labels to add to the defaultBackend pods.
-- `nodeSelector`: Labels to select on which nodes defaultBackend pods will be scheduled.
 - `port`: Internal port used for the defaultBackend. Defaults to `8080`.
 - `priorityClassName`: The priority class to be used by the defaultBackend pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `replicaCount`: The number of defaultBackend pods. It defaults to 2.
 - `resources`: The resources for the defaultBackend pods.
-- `tolerations`: The toletations for the defaultBackend pods.
 
 ```yaml
 defaultBackend:
@@ -416,6 +472,25 @@ Various global settings that are applicable for all Okteto components.
 ```yaml
 globals:
   priorityClassName: okteto-priority
+```
+
+- `tolerations`: Tolerations to be added to Pods that are either under the `okteto` or `dev` categories, as shown below.
+  - `okteto`: A list of tolerations to be added to Pods related to Okteto components (i.e. Okteto api), which run in the `okteto` namespace. This list of tolerations will be applied in conjunction with any tolerations set in [`tolerations.oktetoPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.oktetoPool`.
+  - `dev`: A list of tolerations to be added to Pods created by user applications, which run in namespaces managed by Okteto. This list of tolerations will be applied in conjunction with any tolerations set in [`tolerations.devPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.devPool`.
+
+```yaml
+globals:
+  tolerations:
+    okteto:
+    - key: "kubernetes.io/arch"
+      operator: "Equal"
+      value: "arm64"
+      effect: "NoSchedule"
+    dev:
+    - key: "kubernetes.io/arch"
+      operator: "Equal"
+      value: "arm64dev"
+      effect: "NoSchedule"
 ```
 
 ### affinity
@@ -812,12 +887,13 @@ secret:
 
 ### tolerations
 
-Indicates [tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the okteto components.
-Define the label and taint `okteto-node-pool` on your worker nodes to match these values.
+Indicates [tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) and [nodeSelector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for different kinds of Pods in the cluster where Okteto is installed.
+The tolerations created by this setting, will have a `key` value of `"okteto-node-pool"`, an `operator` value of `"Equal"`, and an `effect` value of `"NoSchedule"`.
+You will need to define the label and taint `okteto-node-pool` on your worker nodes to match these values to properly use this feature.
 
-- `oktetoPool`: Tolerations for the api, webhook, gc, ingress controller, and frontend services.
-- `buildPool`: Tolerations for the buildkit and registry services.
-- `devPool`: Tolerations for the pods deployed in namespaces created by okteto.
+- `oktetoPool`: Tolerations and NodeSelector for the api, webhook, gc, ingress controller, and frontend services.
+- `buildPool`: Tolerations and NodeSelector for the buildkit and registry services. If not set, the buildkit and registry services will inherit the value set in `oktetoPool`.
+- `devPool`: Tolerations and NodeSelector for the pods deployed in namespaces created by okteto.
 
 ```yaml
 tolerations:
@@ -826,8 +902,7 @@ tolerations:
   devPool: dev
 ```
 
-For example, if you add the label `okteto-node-pool:build` and the taint `okteto-node-pool=build:NoSchedule` to a node, and you
-are using `buildPool: build`, the buildkit and registry pods are deployed to this node.
+For example, when you define the value `tolerations.buildPool: build`, all the Pods related to Okteto build services (i.e. registry and buildkit Pods) will be deployed to nodes with the label `okteto-node-pool:build` and the taint `okteto-node-pool=build:NoSchedule`.
 
 ### user
 
