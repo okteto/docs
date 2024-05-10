@@ -110,56 +110,6 @@ registry:
 >
 > If you had a custom value for `cloud.secret`, you need to specify the right values under `registry.secret` key.
 
-### Upgrade Okteto
-
-Run the following commands to upgrade your Okteto instance:
-
-```
-helm repo update
-```
-
-```
-helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto
-```
-
-#### After upgrade
-
-Use `kubectl` to get the new address of the build service:
-
-```console
-kubectl get service -l=app.kubernetes.io/instance=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
-```
-
-The output will look something like this:
-
-```
-NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
-okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    1234:32449/TCP   5m
-```
-
-Update your DNS configuration with the `EXTERNAL-IP` address.
-
-If you are [bringing your own certificates](self-hosted/install/certificates/bring-your-own-certificate.mdx), your Okteto instance is now fully upgraded. The rest of the guide doesn't apply to your configuration.
-
-### Install cert-manager
-
-Okteto will remove the instance of `cert-manager` that was installed by older versions of the helm chart. If you plan on using `cert-manager` as your certificate provider, you'll need to install it manually in your cluster using the instructions below:
-
-```
-helm repo add jetstack https://charts.jetstack.io
-```
-
-```
-helm repo update
-```
-
-```
-helm install cert-manager jetstack/cert-manager --namespace=okteto --version=v1.10.2
-```
-
-Once installed, cert-manager will continue to renew your existing certificates.
-Please refer to [their docs](https://cert-manager.io/docs/) if you run into any installation or certificate renewal issues.
-
 ## Upgrade to Kubernetes 1.25
 
 Kubernetes version 1.25 no longer supports pod security policies.

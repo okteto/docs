@@ -12,7 +12,7 @@ module.exports = {
   projectName: "okteto", // Usually your repo name.
   favicon: "img/favicon.ico",
   onBrokenLinks: "throw",
-  // onBrokenAnchors: "throw",
+  onBrokenAnchors: "throw",
   onBrokenMarkdownLinks: "throw",
   onDuplicateRoutes: "warn",
   customFields: {
@@ -215,31 +215,6 @@ module.exports = {
             "1.15": {
               label: "1.15",
               path: "1.15",
-              banner: "unmaintained",
-            },
-            "1.14": {
-              label: "1.14",
-              path: "1.14",
-              banner: "unmaintained",
-            },
-            "1.13": {
-              label: "1.13",
-              path: "1.13",
-              banner: "unmaintained",
-            },
-            "1.12": {
-              label: "1.12",
-              path: "1.12",
-              banner: "unmaintained",
-            },
-            "1.11": {
-              label: "1.11",
-              path: "1.11",
-              banner: "unmaintained",
-            },
-            "1.10": {
-              label: "1.10",
-              path: "1.10",
               banner: "unmaintained",
             },
           },
