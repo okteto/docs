@@ -20,7 +20,7 @@ Okteto Variables are a way to parametrize your [Okteto manifest](/docs/reference
 
 Each type is designed to solve a specific use-case.
 
-- **Built-in by Okteto**: variables injected in your dev environment automatically by Okteto
+- **Built-in by Okteto**: variables injected automatically by Okteto in your deployment
 - **Deployment Variables**: Used to define variables at deployment time, either from the Okteto CLI or the Okteto UI deploy dialog
 - **Catalog Variables**: Used to define application-specific variables
 - **Local Environment Variables**: Used to define variables ad-hoc when using the Okteto CLI
@@ -202,6 +202,50 @@ external:
 
 ```
 
+## Built-in by Okteto
+
+### Default Environment Variables
+
+The following environment variables are automatically injected by Okteto. You can use them in the manifest and `deploy`, `destroy` and `test` sections, including your scripts and tools (e.g. `Makefile`).
+
+- **`OKTETO_DOMAIN`**: The domain where Okteto exposes your application endpoints.
+- **`OKTETO_NAMESPACE`**: The namespace where your application is installed.
+- **`OKTETO_USERNAME`**: Your username in Okteto.
+- **`OKTETO_REGISTRY_URL`**: The URL of the Okteto Registry.
+- **`OKTETO_GIT_BRANCH`**: The name of the Git branch being deployed.
+- **`OKTETO_GIT_COMMIT`**: The SHA1 hash of the last commit of the branch
+- **`OKTETO_IS_PREVIEW_ENVIRONMENT`**: Set to `true` when the environment is [a preview environment](previews/index.mdx).
+
+### Built-in Environment Variables for Images in Okteto Registry
+
+Reference images defined in the `build` section of the Okteto manifest using the following environment variables:
+
+- **`OKTETO_BUILD_(IMAGE)_IMAGE`**: Full image reference.
+- **`OKTETO_BUILD_(IMAGE)_REGISTRY`**: Registry URL where the image was pushed.
+- **`OKTETO_BUILD_(IMAGE)_REPOSITORY`**: Name of the image that was pushed.
+- **`OKTETO_BUILD_(IMAGE)_SHA`**: Latest tag and SHA of the image.
+
+For instance, with a build section like:
+
+```yaml
+build:
+  hello-world:
+    context: .
+```
+
+Okteto will generate environment variables such as:
+
+- **`OKTETO_BUILD_HELLO_WORLD_IMAGE`**: registry.okteto.example.com/cindy/hello-world@sha256:xxx
+- **`OKTETO_BUILD_HELLO_WORLD_REGISTRY`**: registry.okteto.example.com
+- **`OKTETO_BUILD_HELLO_WORLD_REPOSITORY`**: cindy/hello-world
+- **`OKTETO_BUILD_HELLO_WORLD_SHA`**: f56119a37b@sha256:xxx
+
+:::note
+
+If an `image` name includes '-', it will be replaced by '_' in the corresponding environment variables.
+
+:::
+
 ## Setting Okteto Variables
 
 This section will show a brief example of how to set each type of Okteto Variable.
@@ -344,49 +388,6 @@ To delete an existing variable, click on the **Delete** button on the right. You
   />
 </p>
 
-## Built-in by Okteto
-
-### Default Environment Variables
-
-The following environment variables are automatically injected by Okteto. You can use them in the manifest and `deploy`, `destroy` and `test` sections, including your scripts and tools (e.g. `Makefile`).
-
-- **`OKTETO_DOMAIN`**: The domain where Okteto exposes your application endpoints.
-- **`OKTETO_NAMESPACE`**: The namespace where your application is installed.
-- **`OKTETO_USERNAME`**: Your username in Okteto.
-- **`OKTETO_REGISTRY_URL`**: The URL of the Okteto Registry.
-- **`OKTETO_GIT_BRANCH`**: The name of the Git branch being deployed.
-- **`OKTETO_GIT_COMMIT`**: The SHA1 hash of the last commit of the branch
-- **`OKTETO_IS_PREVIEW_ENVIRONMENT`**: Set to `true` when the environment is [a preview environment](previews/index.mdx).
-
-### Built-in Environment Variables for Images in Okteto Registry
-
-Reference images defined in the `build` section of the Okteto manifest using the following environment variables:
-
-- **`OKTETO_BUILD_(IMAGE)_IMAGE`**: Full image reference.
-- **`OKTETO_BUILD_(IMAGE)_REGISTRY`**: Registry URL where the image was pushed.
-- **`OKTETO_BUILD_(IMAGE)_REPOSITORY`**: Name of the image that was pushed.
-- **`OKTETO_BUILD_(IMAGE)_SHA`**: Latest tag and SHA of the image.
-
-For instance, with a build section like:
-
-```yaml
-build:
-  hello-world:
-    context: .
-```
-
-Okteto will generate environment variables such as:
-
-- **`OKTETO_BUILD_HELLO_WORLD_IMAGE`**: registry.okteto.example.com/cindy/hello-world@sha256:xxx
-- **`OKTETO_BUILD_HELLO_WORLD_REGISTRY`**: registry.okteto.example.com
-- **`OKTETO_BUILD_HELLO_WORLD_REPOSITORY`**: cindy/hello-world
-- **`OKTETO_BUILD_HELLO_WORLD_SHA`**: f56119a37b@sha256:xxx
-
-:::note
-
-If an `image` name includes '-', it will be replaced by '_' in the corresponding environment variables.
-
-:::
 
 ## Feature flag variables
 
