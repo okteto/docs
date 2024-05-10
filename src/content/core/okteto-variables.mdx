@@ -50,18 +50,7 @@ Okteto Variables **are not** propagated to the development containers. If you ne
 
 :::note
 
-Variables defined in a specific command item are only scoped to that item by default. To share values between command items, use the special variable [$OKTETO_ENV](#sharing-variables-between-commands-with-okteto_env).
-
-Example:
-
-```yaml
-deploy:
-  commands:
-    - export MY_VAR=hello
-    - echo $MY_VAR # -> ''
-    - echo "MY_VAR=hello" >> $OKTETO_ENV
-    - echo $MY_VAR # -> 'hello'
-```
+Variables defined in a specific command item are only scoped to that item by default. For sharing values between steps, see the section [Sharing variables between commands](#sharing-variables-between-commands).
 
 :::
 
@@ -111,11 +100,23 @@ deploy:
     - make deploy
 ```
 
+### Sharing variables between commands
 
+As mentioned in the section [Scope](#scope), variables defined in a specific command item are only available to that item by default. In the following sections, there are two ways to share values between steps.
 
-### Sharing variables between commands with $OKTETO_ENV
+#### Multi-line Command
 
-As mentioned in the section [Scope](#scope), variables defined in a specific command item are only available to that item by default.
+The simplest way to share Okteto Variables between commands is to use a multi-line command, example:
+
+```yaml
+deploy:
+  commands:
+    - |
+      export MY_VAR=hello
+      echo $MY_VAR # -> 'hello'
+```
+
+#### $OKTETO_ENV
 
 We understand that projects of a certain size and maturity often need to automate such steps, and often that require sharing values between steps. For such scenario we recommend using the special variable called `$OKTETO_ENV`.
 
