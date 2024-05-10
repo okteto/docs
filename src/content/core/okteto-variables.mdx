@@ -122,18 +122,19 @@ We understand that projects of a certain size and maturity often need to automat
 
 ```yaml
 test:
-  commands:
-    # Example: some infrastructure has been provisioned
-    - terraform init -backend-config=./config/${ENV}/backend.hcl
-    - terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
-    - terraform apply tfplan
-    - terraform output -json > tfout.json
+  integration:
+      commands:
+        # Example: some infrastructure has been provisioned
+        - terraform init -backend-config=./config/${ENV}/backend.hcl
+        - terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
+        - terraform apply tfplan
+        - terraform output -json > tfout.json
 
-    # I make the following var available to other steps
-    - SERVICE_ENDPOINT=$(cat tfout.json | jq -r '.service_endpoint') >> $OKTETO_ENV
+        # I make the following var available to other steps
+        - SERVICE_ENDPOINT=$(cat tfout.json | jq -r '.service_endpoint') >> $OKTETO_ENV
 
-    # the following step will have access to SERVICE_ENDPOINT
-    - echo "Running tests against ${SERVICE_ENDPOINT}..."
+        # the following step will have access to SERVICE_ENDPOINT
+        - echo "Running tests against ${SERVICE_ENDPOINT}..."
 ```
 
 Another example for the same functionality, can be for example, creating the infrastructure, generating a `.env` file, and then deploy the application.
@@ -174,16 +175,32 @@ Here are some highlights, and clarifications on the example above:
 
 ### Configuring dynamic endpoints
 
-In this example, we show how `$OKTETO_ENV` can be used to create dynamic endpoints for external resources within your dev environment.
+In this example, we show how `$OKTETO_ENV` can be used to configure dynamic endpoints for external resources within your dev environment.
 
-If you are not familiar yet with the concept of Okteto external resource, image a component that is not part of the deployment of your dev environment, but that you need to interact with. For example, a database, a message queue, or an S3 bucket. If you need more details on this feature, check out [External Resources](/docs/development/external-resources).
+If you are not familiar yet with the concept of Okteto external resource, image a shared component that is not part of the deployment of your dev environment, but that you need to interact with. For example, a database, a message queue, or an S3 bucket. If you need more details on this feature, check out [External Resources](/docs/development/external-resources).
 
-External resources are defined in the Okteto manifest and have a name and a URL. We understand that often, when using cloud providers, the resource URLs are generated dynamically when the infrastructure is provisioned. In this example, we make the S3 bucket name available to the rest of the deployment steps.
+External resources are defined in the Okteto manifest and have a name and a URL. Often, the resource URL is generated dynamically when the infrastructure is provisioned, in this example we show how to dynamically set the URL of an SQS queue.
 
 ```yaml
-## TODO: write example
-```
+deploy:
+  - name: Create AWS infrastructure
+    command: |
+    # Example: some infrastructure has been provisioned
+    - terraform init -backend-config=./config/${ENV}/backend.hcl
+    - terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
+    - terraform apply tfplan
+    - terraform output -json > tfout.json
 
+    # I configure the external resource URL
+    - OKTETO_EXTERNAL_SQS_ENDPOINTS_QUEUE_URL=$(cat tfout.json | jq -r '.queue_url') >> $OKTETO_ENV
+
+external:
+  sqs:
+    icon: aws
+    endpoints:
+    - name: queue
+
+```
 
 ## Setting Okteto Variables
 
