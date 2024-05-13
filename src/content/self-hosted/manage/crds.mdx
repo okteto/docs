@@ -74,20 +74,28 @@ spec:
 Catalog items are mainly managed via the [Admin dashboard](admin/dashboard.mdx#catalog-items), but can also be managed via one of the CRDs installed by Okteto: `catalogitems.git.okteto.com`. This last case is useful, for example, if you want to add catalog items manually with a simple `kubectl` command or manage your catalog using GitOps.
 For example, if you want to add a configuration for a catalog item, you will need to create a resource like this:
 
+- `metadata.name`: name of the CatalogItem resource to be created.
+- `spec.branch`: default branch for the CatalogItem. (optional).
+- `spec.manifestPath`: path to the manifest file in the repository. (optional).
+- `spec.name`: name of the item that is displayed to the user in the UI Catalog list.
+- `spec.repositoryUrl`: URL of the repository.  
+- `spec.variables`: list of variables suggested to the user at deployment time. Each variable can be defined by name only, or by name and value. (optional).
+
 ```yaml title="my-catalog-item.yaml"
 apiVersion: git.okteto.com/v1
 kind: CatalogItem
 metadata:
-  name: my-catalog-item # name of the CatalogItem to be configured
+  name: my-catalog-item
   namespace: okteto
 spec:
-  branch: "" # default branch fro the CatalogItem. Not required
-  manifestPath: "" # path to the manifest file in the repository. Not required
-  name: my-catalog-item # name of the CatalogItem displayed in the UI list of CatalogItems. This example uses the same name as the name of the resource as defined in the metadata section
-  repositoryUrl: https://github.com/okteto/movies-with-helm # URL of the repository.
-  variables: # deafult list of variables to be used in the deployment of the CatalogItem. Each variable can be defined by a name only, or a name and a value. Not required
-    - name: MY_VARIABLE
+  branch: ""
+  manifestPath: ""
+  name: my-catalog-item
+  repositoryUrl: https://github.com/okteto/movies-with-helm
+  variables:
+    - name: VARIABLE_WITH_VALUE
       value: my-value
+    - name: VARIABLE_WITHOUT_VALUE
 ```
 
-And then, you can add the catalog item from your terminal with the command `kubectl apply -f new-catalog-item.yaml`.
+To apply the changes in a manual sceario, you can simply run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
