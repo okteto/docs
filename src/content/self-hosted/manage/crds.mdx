@@ -68,3 +68,34 @@ spec:
       key: <field in referenced secret> # key of the secret which contains the access secret key
       name: <secret-name> # name of the secret where the access secret is stored
 ```
+
+## Catalog Items
+
+Catalog items are mainly managed via the [Admin dashboard](admin/dashboard.mdx#catalog-items), but can also be managed via one of the CRDs installed by Okteto: `catalogitems.git.okteto.com`. This last case is useful, for example, if you want to add catalog items manually with a simple `kubectl` command or manage your catalog using GitOps.
+For example, if you want to add a configuration for a catalog item, you will need to create a resource like this:
+
+- `metadata.name`: name of the CatalogItem resource to be created.
+- `spec.branch`: default branch for the CatalogItem. (optional).
+- `spec.manifestPath`: path to the manifest file in the repository. (optional).
+- `spec.name`: name of the item that is displayed to the user in the UI Catalog list.
+- `spec.repositoryUrl`: URL of the repository.  
+- `spec.variables`: list of variables suggested to the user at deployment time. Each variable can be defined by name only, or by name and value. (optional).
+
+```yaml title="my-catalog-item.yaml"
+apiVersion: git.okteto.com/v1
+kind: CatalogItem
+metadata:
+  name: my-catalog-item
+  namespace: okteto
+spec:
+  branch: ""
+  manifestPath: ""
+  name: my-catalog-item
+  repositoryUrl: https://github.com/okteto/movies-with-helm
+  variables:
+    - name: VARIABLE_WITH_VALUE
+      value: my-value
+    - name: VARIABLE_WITHOUT_VALUE
+```
+
+To apply the changes in a manual sceario, you can simply run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
