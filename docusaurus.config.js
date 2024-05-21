@@ -199,7 +199,7 @@ module.exports = {
             },
             "1.19": {
               label: "1.19",
-              path: "1.98",
+              path: "1.19",
               banner: "unmaintained",
             },
             "1.18": {
