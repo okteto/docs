@@ -176,6 +176,8 @@ This section tells Okteto how to test your application.
 The Okteto CLI command `okteto test` will run tests using okteto infrastructure via [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
 Tests can de defined independenty using this section and will be executing sequentially. Test can also depend on each other and be linked via a `depends_on` field which defines the order of test executions.
 
+You can also define artifacts to be exported from the test container for coverage reports or test results.
+
 Your `test` section might look like this:
 
 ```yaml
@@ -185,9 +187,15 @@ test:
     commands:
       - "echo prepare tests"
   unit:
+    image: okteto/golang:1
     depends_on:
       - setup
-    image: okteto/golang:1
+    artifacts:
+      - test-results.xml
+      - coverage.out
+    caches:
+      - /go
+      - /root/.cache
     commands:
       - "go test . -v"
   integration:

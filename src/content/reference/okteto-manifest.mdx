@@ -290,9 +290,16 @@ test:
     commands:
       - "echo prepare tests"
   unit:
+    image: okteto/golang:1
+    context: tests
     depends_on:
       - setup
-    image: okteto/golang:1
+    artifacts:
+      - test-results.xml
+      - coverage.out
+    caches:
+      - /go
+      - /root/.cache
     commands:
       - "go test . -v"
 ```
@@ -305,13 +312,25 @@ The base image used to run your test.
 
 If it is not defined, okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin specifically changed it [here](self-hosted/helm-configuration.mdx/#installer) with a [custom installer image](admin/custom-installer-image.mdx)
 
+#### context (string, optional)
+
+The folder to use as the root for running the tests. If this is empty, the location of the okteto.yml file will be used (usually the root of the project)
+
 #### commands ([string], required)
 
 A list of commands to execute the tests. For tests to pass, all these commands should exit with a zero code, otherwise this section will be marked as failed.
 
-#### depends_on (array, required)
+#### depends_on ([string], optional)
 
 A list of test sections this test depends on. When a test is executed all dependencies are executed as a prerequisite of the section. The test defined in `depends_on` must be of existing test sections of the manifest or execution will fail.
+
+#### artifacts ([string], optional)
+
+A list of files and/or folder to be exported after the execution of the tests. They will be added relative to root context of the tests. If you want to export coverage reports and test results this is where they should go.
+
+#### caches ([string], optional)
+
+A list of cache mounts to be used as part of running the tests. This is used to speed recurrent execution where, for example, dependencies will not be reinstalled and will instead will be mounted from the cache.
 
 ### destroy ([string], optional)
 
