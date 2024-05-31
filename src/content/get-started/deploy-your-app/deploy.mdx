@@ -18,7 +18,6 @@ The Movies app comes with a Helm chart to deploy the application on Kubernetes.
 To instruct Okteto to deploy the Movies app, create an `okteto.yaml` file at the root of the repo with the following content:
 
 ```yaml title="okteto.yaml"
-name: movies
 deploy:
   - name: Helm Install
     command: helm upgrade --install movies chart
@@ -26,7 +25,6 @@ deploy:
 
 The meaning of these fields is:
 
-- `name`: it's the name of your development environment
 - `deploy`: it's a list of commands to deploy your application. Every command has the following fields:
   - `name`: a name to label your command
   - `command`: the command to be executed
@@ -80,26 +78,51 @@ kubectl get all
 ```
 
 ```
-pod/api-646fdf88d6-267sn       1/1     Running   0          10m
-pod/frontend-54d9d5d87-2tq6x   1/1     Running   0          10m
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/api-689448db78-flf7j      1/1     Running   0          2m12s
+pod/frontend-d564c895-tvg65   1/1     Running   0          2m12s
+pod/seed-djt25                1/1     Running   0          2m11s
 
-NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-service/api        ClusterIP   10.155.253.185   <none>        8080/TCP   10m
-service/frontend   ClusterIP   10.155.41.122    <none>        80/TCP     10m
+NAME               TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
+service/api        ClusterIP   10.7.255.99   <none>        8080/TCP   2m13s
+service/frontend   ClusterIP   10.7.246.60   <none>        80/TCP     2m13s
 
 NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/api        1/1     1            1           10m
-deployment.apps/frontend   1/1     1            1           10m
+deployment.apps/api        1/1     1            1           2m13s
+deployment.apps/frontend   1/1     1            1           2m13s
 
-NAME                                 DESIRED   CURRENT   READY   AGE
-replicaset.apps/api-646fdf88d6       1         1         1       10m
-replicaset.apps/frontend-54d9d5d87   1         1         1       10m
-```
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/api-689448db78      1         1         1       2m13s
+replicaset.apps/frontend-d564c895   1         1         1       2m13s
+
+NAME             COMPLETIONS   DURATION   AGE
+job.batch/seed   0/1           2m13s      2m13s```
 
 ## Next Steps
 
 Awesome, you have deployed the Movies app to Okteto 🚀
 
-But the Okteto CLI is informing us that `There are no available endpoints for 'movies'`...
+Looks like there is still an issue with the Movies app.
+The `seed` job keeps processing, and if you check the logs of the **api** Kubernetes Deployment:
 
-Let's [create endpoints for your app](endpoints.mdx) in the next step of this guide 😎
+```bash
+okteto logs api
+```
+
+```
+ i  Using cindy @ okteto.example.com as context
+api-646fdf88d6-267sn › api
+api-646fdf88d6-267sn api yarn run v1.22.19
+api-646fdf88d6-267sn api $ nodemon server.js
+api-646fdf88d6-267sn api [nodemon] 2.0.4
+api-646fdf88d6-267sn api [nodemon] to restart at any time, enter `rs`
+api-646fdf88d6-267sn api [nodemon] watching path(s): *.*
+api-646fdf88d6-267sn api [nodemon] watching extensions: js,mjs,json
+api-646fdf88d6-267sn api [nodemon] starting `node server.js`
+api-646fdf88d6-267sn api Error connecting, retrying in 1 sec: MongoServerSelectionError: getaddrinfo ENOTFOUND mongodb
+api-646fdf88d6-267sn api Error connecting, retrying in 1 sec: MongoServerSelectionError: getaddrinfo ENOTFOUND mongodb
+...
+```
+
+Or from the Okteto UI, you can see that the **api** is failing to connect to MongoDB...
+This is expected because you didn't deploy a MongoDB instance yet, let's [configure the MongoDB dependency](dependencies.mdx) in the next step of this guide 😎

@@ -19,9 +19,18 @@ dependencies:
   mongodb:
     repository: https://github.com/okteto/mongodb
     wait: true
+    variables:
+      MONGODB_PASSWORD: password    
 ```
 
 The `wait` flag instructs Okteto to wait until MongoDB is ready before running the deploy commands.
+
+The `variables` field can be used to customize the deployment of the dependency, in this case to set the MongoDB password.
+
+:::note
+Learn more about the diffent ways to define [Okteto Variables here](core/okteto-variables.mdx) 😎
+:::
+
 Deploy the Movies app to apply the changes:
 
 ```bash
@@ -57,74 +66,14 @@ You can see that MongoDB is now running from the Okteto UI:
   width="850"
 />
 
-### Using variables to set runtime configurations
-
-But it looks like the **api** Deployment is still unable to connect to MongoDB...
-
-Note that the file `chart/values.yaml` has a password hardcoded.
-This won't probably be compliant with your security practices and is for example only.
-
-Also, the default MongoDB password is `password` instead of `change-me!`. Luckily, you can pass runtime configuration to your Development Environment using [Okteto Variables](core/okteto-variables.mdx).
-For example, you can define a local environment variable to configure the MongoDB password:
-
-```bash
-export MONGODB_PASSWORD=password
-```
-
-Or even better, create an [Okteto Admin Variable](admin/dashboard.mdx#admin-variables) to make this variable available across all your Development Environments in Okteto.
-
-Once you have done this, update your `okteto.yaml` file to configure the MongoDB password using this environment variable.
-You should also enable the `seed` job to load the MongoDB instance with initial data:
-
-```yaml title="okteto.yaml"
-deploy:
-  - name: Helm Install
-    command: |
-      helm upgrade --install movies chart \
-        --set mongodb.password=${MONGODB_PASSWORD} \
-        --set seed.enabled=true
-```
+And the `seed` job has now successfully initialized the MongoDB data.
 
 :::note
 Running seed data scripts can be slow with real world databases. For those scenarios, you can use our [Volume Snapshots](core/use-volume-snapshots.mdx) feature to clone this data from an existing database in seconds 🚀
 :::
 
-Deploy the Movies app to apply the changes:
-
-```bash
-okteto deploy
-```
-
-```bash
- i  Using cindy @ okteto.example.com as context
- i  Running 'Helm Install'
-Release "movies" does not exist. Installing it now.
-NAME: movies
-LAST DEPLOYED: Fri Jan 19 23:54:00 2024
-NAMESPACE: cindy
-STATUS: deployed
-REVISION: 2
-TEST SUITE: None
-NOTES:
-Success! Your application will be available shortly.
- i  Endpoints available:
-  - https://movies-cindy.okteto.example.com
-  - https://movies-cindy.okteto.example.com/api
- ✓  Development environment 'movies' successfully deployed
-```
-
-Finally, you can access the endpoint of the Movies app to see something like this:
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/next-ui-movies.png").default}
-    alt="UI showing the movies app"
-    width="850"
-  />
-</p>
-
 ## Next Steps
 
-The Movies app is using pre-built images to deploy your Development Environment...
+But the Okteto CLI is informing us that `There are no available endpoints for 'movies'`...
 
-This is not ideal since you won't be able to deploy your local changes, let's [build the images of the Movies app](build.mdx) in next step of this guide 😎
+Let's [create endpoints for your app](endpoints.mdx) in the next step of this guide 😎
