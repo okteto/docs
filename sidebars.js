@@ -31,8 +31,8 @@ module.exports = {
           link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
           items: [
             "get-started/deploy-your-app/deploy",
-            "get-started/deploy-your-app/endpoints",
             "get-started/deploy-your-app/dependencies",
+            "get-started/deploy-your-app/endpoints",
             "get-started/deploy-your-app/build",
           ]
         },
