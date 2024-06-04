@@ -118,6 +118,14 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'Test Containers',
+      link: { type: 'doc', id: 'testing/index' },
+      items: [
+        'testing/getting-started',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
       items: [
