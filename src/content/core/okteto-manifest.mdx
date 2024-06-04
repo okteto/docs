@@ -14,8 +14,8 @@ These are the main sections of the Okteto Manifest:
 | Section                       | Description                                                                                                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [build](#build)               | Configure a list of images to build for your application                                                                                                                        |
-| [deploy](#deploy)             | Configure a list of commands to deploy your application. You can also refer to [Docker Compose](reference/docker-compose.mdx) files                                                                                                                         |
 | [dependencies](#dependencies) | Configure a list of git repositories to deploy as part of your application                                                                                              |
+| [deploy](#deploy)             | Configure a list of commands to deploy your application. You can also refer to [Docker Compose](reference/docker-compose.mdx) files                                                                                                                         |
 | [destroy](#destroy)           | Configure a list of commands to destroy your application                                                                                                                        |
 | [dev](#dev)                   | Configure a list of Development Containers to define how `okteto up` works when you are iterating on your application                               |
 | [external](#external)         | Configure a list of External Resources that exist outside of the Kubernetes cluster (e.g. cloud resources, dashboards).               |
@@ -46,6 +46,23 @@ In this case, Okteto is using the `api` subfolder for the `api` image, and the `
 
 Refer to our documention to learn more about [the `build` section](reference/okteto-manifest.mdx#build-object-optional) and how [Okteto Build works](core/build-service.mdx).
 
+## Dependencies
+
+This section tells Okteto to deploy a list of git repositories as part of the deployment of your application.
+
+Your `dependencies` section might look like this:
+
+```yaml
+dependencies:
+  mongodb:
+    repository: https://github.com/okteto/mongodb
+    wait: true
+```
+
+In this sample the `dependencies` section instructs Okteto to deploy the repo https://github.com/okteto/mongodb and wait until its resources are available before running the commands in the `deploy` section of the Okteto Manifest.
+
+You can learn more about the `dependencies` section [here](reference/okteto-manifest.mdx#dependencies-string-optional).
+
 ## Deploy
 
 This section tells Okteto how to deploy your application. It typically uses a combination of `helm`, `kubectl`, and `okteto` commands.
@@ -75,22 +92,31 @@ Refer to our documention to learn more about [the `deploy` section](reference/ok
 Okteto recommends that you enable [Remote Execution](core/remote-execution.mdx) for your deploy commands
 :::
 
-## Dependencies
+## Destroy
 
-This section tells Okteto to deploy a list of git repositories as part of the deployment of your application.
+This section tells Okteto how to destroy your application.
+The Okteto CLI command `okteto destroy` will automatically destroy any Kubernetes resources created by the `okteto deploy` command.
+The commands you define in the `destroy` section will ensure any resources external to the Kubernetes cluster are destroyed when destroying the Development Environment.
 
-Your `dependencies` section might look like this:
+Your `destroy` section might look like this:
 
 ```yaml
-dependencies:
-  mongodb:
-    repository: https://github.com/okteto/mongodb
-    wait: true
+destroy:
+  image: okteto/pipeline-runner:1.0.0-sam
+  commands:
+    - name: destroy worker service
+      command: |
+        sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-voting-texkhnclxd" --region us-east-1
 ```
 
-In this sample the `dependencies` section instructs Okteto to deploy the repo https://github.com/okteto/mongodb and wait until its resources are available before running the commands in the `deploy` section of the Okteto Manifest.
+In this sample the `destroy` section instructs Okteto to delete the worker service running in AWS.
+When the application is deleted, Okteto will execute this command ensuring orphaned resources don't remain active.
 
-You can learn more about the `dependencies` section [here](reference/okteto-manifest.mdx#dependencies-string-optional).
+You can learn more about the `destroy` section [here](reference/okteto-manifest.mdx#deploy-string-optional).
+
+:::info
+Okteto recommends that you enable [Remote Execution](core/remote-execution.mdx) for your destroy commands
+:::
 
 ## Dev
 
@@ -144,71 +170,33 @@ Creating or destroying the resources themselves is done in the [deploy](#deploy)
 
 You can learn more about the `external` section [here](reference/okteto-manifest.mdx#external-object-optional).
 
-## Destroy
-
-This section tells Okteto how to destroy your application.
-The Okteto CLI command `okteto destroy` will automatically destroy any Kubernetes resources created by the `okteto deploy` command.
-The commands you define in the `destroy` section will ensure any resources external to the Kubernetes cluster are destroyed when destroying the Development Environment.
-
-Your `destroy` section might look like this:
-
-```yaml
-destroy:
-  image: okteto/pipeline-runner:1.0.0-sam
-  commands:
-    - name: destroy worker service
-      command: |
-        sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-voting-texkhnclxd" --region us-east-1
-```
-
-In this sample the `destroy` section instructs Okteto to delete the worker service running in AWS.
-When the application is deleted, Okteto will execute this command ensuring orphaned resources don't remain active.
-
-You can learn more about the `destroy` section [here](reference/okteto-manifest.mdx#deploy-string-optional).
-
-:::info
-Okteto recommends that you enable [Remote Execution](core/remote-execution.mdx) for your destroy commands
-:::
-
 ## Test
 
-This section tells Okteto how to test your application.
-The Okteto CLI command `okteto test` will run tests using okteto infrastructure via [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
-Tests can be defined independenty using this section and will be executing sequentially. Test can also depend on each other and be linked via a `depends_on` field which defines the order of test executions.
-
-You can also define artifacts to be exported from the test container for coverage reports or test results.
+This section tells Okteto how to test your application by defining one or more Test Containers.
+The Okteto CLI command `okteto test` will run your Test Containers using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
+Remote execution ensures your Test Containers have a consistent behavior in your inner development loop and your CI scripts.
 
 Your `test` section might look like this:
 
 ```yaml
 test:
-  setup:
-    image: okteto/golang:1
-    commands:
-      - "echo prepare tests"
   unit:
     image: okteto/golang:1
-    depends_on:
-      - setup
     artifacts:
-      - test-results.xml
       - coverage.out
     caches:
       - /go
       - /root/.cache
     commands:
       - "go test . -v"
+
   integration:
     depends_on:
-      - setup
+      - unit
+    image: okteto/golang:1
     context: integration
     commands:
-      - "./run-tests.sh"
+      - make tests
 ```
 
-By default okteto runs all tests when you run `okteto test`. You also run a single section by passing it as an argument `okteto test unit`.
-
-
-:::note
-When running a dedicated test section all `depends_on` field will also be executed
-:::
+By default `okteto test` runs all tests when you run `okteto test`. You also run a single Test Container by passing its name as an argument, for example `okteto test unit`.
