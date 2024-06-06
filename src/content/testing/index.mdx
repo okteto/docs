@@ -1,11 +1,68 @@
 ---
-title: Test Containers
+title: Okteto Test
 description: In this section, we'll see how you can use Test Containers on Okteto
 ---
 
-Test Containers enable developers to test their applications on Kubernetes.
-This ensures you have a consistent testing experience from development all the way to CI, integration and QA environments.
+# Welcome to Okteto Test
 
-In this section you will learn about:
+Okteto Test is a new feature designed to seamlessly integrate testing into your development workflow on the Okteto platform. Whether you're running unit tests or end-to-end (E2E) tests, Okteto Test ensures an efficient testing experience before even making a pull request.
 
-- Getting started with [Test Containers](testing/getting-started.mdx)
+## Benefits of Okteto Test
+
+### 1. Seamless Integration
+Developers can execute tests in the same production-like Kubernetes environment where their code runs.
+This ensures consistency and reduces configuration overhead.
+
+### 2. Simplified Configuration
+The new `test` section in the [Okteto manifest](reference/okteto-manifest.mdx#test-object-optional) supports multiple Test Containers, allowing you to define your test environment with minimal YAML configuration.
+This eliminates the need for complex setups and advanced Kubernetes knowledge.
+
+### 3. Faster Feedback Loop
+Okteto Test leverages Buildkit's built-in capabilities to run only the tests affected by code changes.
+You can quickly identify and fix issues, especially in monorepos, significantly reducing the feedback loop for a development cycle.
+
+
+## Getting Started with Okteto Test
+
+View our [Getting Started with Okteto Test Guide](testing/getting-started-test.mdx) to learn how to configure Test Containers.
+
+### Okteto Test Basics
+
+#### 1. Adding Tests to Your Okteto Manifest
+To get started, add a new test section to your Okteto manifest. Here’s a sample configuration:
+
+``` yaml
+test:
+  unit:
+    image: ${OKTETO_BUILD_API_IMAGE}
+    command: make test
+  e2e:
+    image: ${OKTETO_BUILD_TEST_IMAGE}
+    command: make e2e
+    depends_on:
+      - unit
+```
+
+#### 2. Running Tests
+Use the okteto test command to run your tests. The command will execute all test containers defined in the manifest:
+
+``` bash
+okteto test
+```
+To run a specific test container, specify its name:
+
+``` bash
+okteto test e2e
+```
+You can also override the default command and environment variables at runtime using the --command and --var flags.
+
+#### 3. Optimizing Test Execution
+Okteto Test is smart about test execution and will reuse the build cache to avoid redundant computations. If you need to force a fresh execution, use the --no-cache flag:
+
+``` bash
+okteto test --no-cache
+```
+
+
+## Get Involved
+We value your feedback and encourage you to share your experiences and suggestions. Join our [community](https://community.okteto.com/), participate in discussions, and help us improve Okteto Test.

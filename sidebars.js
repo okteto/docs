@@ -121,7 +121,7 @@ module.exports = {
       label: 'Test Containers',
       link: { type: 'doc', id: 'testing/index' },
       items: [
-        'testing/getting-started',
+        'testing/getting-started-test',
       ],
     },
     {
