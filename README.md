@@ -134,7 +134,7 @@ Remove the oldest version by following these steps:
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
 
 
-### Request a new search index
+### After the new version has been merged, request a new search index
 Once the new version is live in production, you need to request a new search index to Algolia.
 
 1. Log in [Algolia](https://crawler.algolia.com/admin/crawlers)
