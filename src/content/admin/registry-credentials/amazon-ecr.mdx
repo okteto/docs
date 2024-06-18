@@ -77,12 +77,29 @@ aws iam create-open-id-connect-provider --url "${OIDC_ENDPOINT}" --client-id-lis
 }
 ```
 
+Traditionally, `AUDIENCE` is the client id of the requester. You'll only exchange token for these audiences. It is the `aud` field of the JWT payload.
+
+We recommend creating a different/dedicated audience for each okteto cluster and region used even if you use the same identity provider:
+
+```
+your-okteto-instance.com/112233445566.dkr.ecr.your-region.amazonaws.com
+```
+
+or the more compact format:
+
+```
+your-okteto-instance.com/your-region
+```
+
+
 ## Step 2: Create the Role
 
 
-First the create the role and allow it to access EC2:
+First create the role and allow it to access EC2:
 
 ```bash
+AUDIENCE=registry.okteto.dev
+OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
 cat <<EOT > trust-policy.json
 {
   "Version": "2012-10-17",
@@ -90,9 +107,15 @@ cat <<EOT > trust-policy.json
     {
       "Effect": "Allow",
       "Principal": {
-        "Service": "ec2.amazonaws.com"
+        "Federated": "arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development"
       },
-      "Action": "sts:AssumeRole"
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development:aud": "${AUDIENCE}",
+          "container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development:sub": "${OKTETO_SERVICE_ACCOUNT}"
+        }
+      }
     }
   ]
 }
