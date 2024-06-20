@@ -153,6 +153,25 @@ eksctl create addon \
 
 Refer to the [AWS official documentation](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html#adding-ebs-csi-eks-add-on) for more details.
 
+### Create a Storage Class for the EBS CSI Addon
+
+Create a Storage Class for the EBS CSI Addon:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+EOF
+```
+
+For more information about the EBS CSI Storage Class parameters, refer to the [AWS official documentation](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/master/docs/parameters.md).
+
 ### Create Load Balancer Controller IAM Role
 
 Okteto recommends installing the Load Balancer Controller to manage the Okteto certificates with Amazon Certificate Manager.
