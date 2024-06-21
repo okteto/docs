@@ -118,7 +118,7 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Test Containers',
+      label: 'Okteto Test',
       link: { type: 'doc', id: 'testing/index' },
       items: [
         'testing/getting-started-test',

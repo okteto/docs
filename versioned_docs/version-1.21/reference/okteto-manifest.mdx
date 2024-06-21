@@ -279,63 +279,6 @@ deploy:
 - `virtualServices`: a list of virtual services to divert. Each virtual service is defined with it's name, namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
 - `hosts`: the list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
 
-### test (object, optional)
-
-A dictionary of Test Containers to run tests using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
-
-```yaml
-test:
-  unit:
-    image: okteto/golang:1
-    artifacts:
-      - coverage.out
-    caches:
-      - /go
-      - /root/.cache
-    commands:
-      - "go test . -v"
-
-  integration:
-    depends_on:
-      - unit
-    image: okteto/golang:1
-    context: integration
-    commands:
-      - make tests
-```
-
-Each key is the name of your Test Container, and it has the following fields:
-
-#### image (string, optional)
-
-The base image used to run your test.
-
-If it is not defined, Okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin specifically changed it [here](self-hosted/helm-configuration.mdx#installer) with a [custom installer image](admin/custom-installer-image.mdx)
-
-#### context (string, optional)
-
-The folder to use as the root for running the tests. If this is empty, the location of the Okteto Manifest will be used (usually the root of the project).
-
-:::info
-If `context` is used, the `.oktetoignore` file must be place in the `context` folder
-:::
-
-#### commands ([string], required)
-
-A list of commands to execute the tests. For tests to pass, all these commands should exit with a zero code, otherwise the Test Container is marked as failed.
-
-#### depends_on ([string], optional)
-
-A list of Test Containers this test depends on. When a Test Container is executed, all its dependencies are executed first. The Test Containers defined in `depends_on` must exist in the current Okteto Manifest.
-
-#### artifacts ([string], optional)
-
-A list of files and/or folder to be exported after the execution of the tests. They will be added relative to root context of the tests. If you want to export coverage reports and test results this is where they should go.
-
-#### caches ([string], optional)
-
-A list of cache mounts to be used as part of running the tests. This is used to speed recurrent execution where, for example, dependencies will not be reinstalled and will instead will be mounted from the cache.
-
 ### destroy ([string], optional)
 
 A list of commands to destroy external resources created by your development environment.
@@ -1087,6 +1030,65 @@ You can use an environment variable to replace the namespace field, or any part 
 ```yaml
 namespace: $DEV_NAMESPACE
 ```
+
+### test (object, optional)
+
+A dictionary of Test Containers to run tests using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
+
+```yaml
+test:
+  unit:
+    image: okteto/golang:1
+    artifacts:
+      - coverage.out
+    caches:
+      - /go
+      - /root/.cache
+    commands:
+      - "go test . -v"
+
+  integration:
+    depends_on:
+      - unit
+    image: okteto/golang:1
+    context: integration
+    commands:
+      - make tests
+```
+
+Each key is the name of your Test Container, and it has the following fields:
+
+#### image (string, optional)
+
+The base image used to run your test.
+
+If it is not defined, Okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin specifically changed it [here](self-hosted/helm-configuration.mdx#installer) with a [custom installer image](admin/custom-installer-image.mdx)
+
+#### context (string, optional)
+
+The folder to use as the root for running the tests. If this is empty, the location of the Okteto Manifest will be used (usually the root of the project).
+
+:::info
+If `context` is used, the `.oktetoignore` file must be place in the `context` folder
+:::
+
+#### commands ([string], required)
+
+A list of commands to execute the tests. For tests to pass, all these commands should exit with a zero code, otherwise the Test Container is marked as failed.
+
+#### depends_on ([string], optional)
+
+A list of Test Containers this test depends on. When a Test Container is executed, all its dependencies are executed first. The Test Containers defined in `depends_on` must exist in the current Okteto Manifest.
+
+#### artifacts ([string], optional)
+
+A list of files and/or folder to be exported after the execution of the tests. They will be added relative to root context of the tests. If you want to export coverage reports and test results this is where they should go.
+
+#### caches ([string], optional)
+
+A list of cache mounts to be used as part of running the tests. This is used to speed recurrent execution where, for example, dependencies will not be reinstalled and will instead will be mounted from the cache.
+
+
 
 ## Environment variables
 
