@@ -107,6 +107,8 @@ your-okteto-instance.com/your-region
 First create the role and allow it to access EC2:
 
 ```bash
+# ROLE_ARN is the OpenIDConnectProviderArn role name created in step 1
+ROLE_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development
 AUDIENCE=registry.okteto.dev
 OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
 cat <<EOT > trust-policy.json
@@ -116,7 +118,7 @@ cat <<EOT > trust-policy.json
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development"
+        "Federated": "${ROLE_ARN}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
