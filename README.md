@@ -157,6 +157,24 @@ Tiers is a `string` of tier separated by a space
 # Page heading<TiersList tiers="Scale Self-Hosted" />
 ```
 
+### Image
+
+Since many of our images are used across multiple versions, if a screenshot is updated but should only apply to certain versions, please create a new image with the version number included in the filename. For example, `my-image-v1.22+.png`.
+
+##### Usage
+
+```mdx
+import Image from "@theme/Image";
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/my-image-v1.22+.png").default}
+    alt="Movies app architecture"
+    width="850"
+  />
+</p>
+```
+
 ## Contributors
 
 <a href="https://github.com/okteto/docs/graphs/contributors">
