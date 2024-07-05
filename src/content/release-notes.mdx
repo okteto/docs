@@ -13,37 +13,38 @@ This versions is compatible with Kubernetes versions 1.26 to 1.29
 
 ### Breaking Changes
 
-- Disable private registries in nodes  <!-- 8215 -->
-- Removed the automatic binding to every service account created within a namespaces managed by Okteto  <!-- 8245 -->
+- Disable private registries in nodes by default. [Pull secrets](admin/registry-credentials/index.mdx/#how-it-works) is enabled by default since `1.20` and it is the mechanism used by Okteto to use private registry credentials to deploy pods using private images  <!-- 8215 -->
+- Removed the automatic binding between `cluster-admin` cluster role and every service account created within a namespaces managed by Okteto  <!-- 8245 -->
 
 ### New Features
 
-- Add OIDC info to cluster overview  <!-- 8151 -->
-- Private Registries AWS IAM Roles  <!-- 8104 -->
-- Add AWS IAM Role credentials to regcreds table  <!-- 8221 -->
-- New option in Admin > General to show up OIDC info  <!-- 8198 -->
-- Add AWS IAM Role read/create/update dialogs  <!-- 8224 -->
-- Make Preview Environments global by default and allow non-admin users to create/delete them  <!-- 8217 -->
+
+- Support of AWS IAM Roles to configure Private Registries. Please see [the specific documentation page](admin/registry-credentials/amazon-ecr/index.mdx) to know how to configure them   <!-- 8104 -->
+- Add OIDC endpoint of the cluster to cluster overview panel within the Admin Dashboard  <!-- 8151 -->
+- Okteto CLI: Make Preview Environments global by default and allow non-admin users to create them  <!-- 8217 -->
 
 ### Improvements
 
+- Admin users are now able to do any operation on any user's namespace via UI, CLI or kubernetes level
+- Added a way to configure the permissions to give to developers at Kubernetes level for global preview environments through a role binding to the cluster role specified with the helm setting [`serviceAccounts.roleBindings.previews`](self-hosted/helm-configuration.mdx#serviceaccounts)
+- Developers have now read access to global preview environments at kubernetes level (after getting kubernetes context with `okteto kubeconfig`)
 - Changed Admin Users' role select label from "User" to "Developer" for consistency  <!-- 8202 -->
-- Fixed tolerations & Nodeselector warnings  <!-- 8219 -->
 - Improved Okteto Insights data collection time  <!-- 8222 -->
-- Reorganized 'user' helm setting to 'serviceAccounts' and include one setting to create a role binding for global previews  <!-- 8233 -->
-- Specified the credentials to be removed in the confirmation dialog  <!-- 8250 -->
-- Added OIDC documentation links to the UI  <!-- 8254 -->
-- Reduced the time to consider a namespace-destroy-all to be destroyable  <!-- 8262 -->
+- Reorganized 'user' helm setting to 'serviceAccounts' and include one setting to create a role binding for global previews. Please see our [upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-122x) for details on how to adapt to the changes  <!-- 8233 -->
+- Specified the credentials to be removed in the delete credential confirmation dialog  <!-- 8250 -->
+- Upgraded the Okteto CLI version to [2.29.0](https://github.com/okteto/okteto/releases/tag/2.29.0)
+- Okteto CLI: Admins can now use any user's namespace in the CLI context to perform operations on them
+- Okteto CLI: Artifacts defined under the `test` section are exported also even if tests execution fails
+- Okteto CLI: Images defined in your Okteto manifest targeting dev registry (okteto.dev) and using a custom tag will be benefit from [Okteto Smart Builds](core/build-service.mdx#smart-builds)
 
 ### Bug Fixes
 
 - Fixed a rare issue where the Okteto Dashboard would render nothing during loading  <!-- 8199 -->
-- Fixed unmarshalling of the `exportTo` object in the Manifest  <!-- 8204 -->
+- Fixed an issue in the webhook that was preventing a Virtual Service to keep the specified `exportTo` field  <!-- 8204 -->
 - Fixed empty space in the Okteto Dashboard while data is being re-fetched  <!-- 8237 -->
 - Use globals.nodeSelectors.dev to filter Insights node data  <!-- 8226 -->
 - Extend support for globals.nodeSelector in the Autoscaler, node readiness and the nodes admin view  <!-- 8238 -->
-- Added error boundary in the Dashboard to catch unexpected errors  <!-- https://github.com/okteto/app/pull/8239 -->
-- Fixed panic in private-endpoints handler when it is deployed in a standalone component  <!-- 8260 -->
+- Fixed panic in private-endpoints handler when it is deployed in a standalone component and a user is accessing to Okteto for first time  <!-- 8260 -->
 
 
 ## 1.21.1
