@@ -49,6 +49,7 @@ module.exports = {
         'core/build-service',
         'core/remote-execution',
         'core/okteto-variables',
+        'core/user-roles-and-permissions',
         {
           type: 'category',
           label: 'Endpoints',
