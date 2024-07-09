@@ -1,0 +1,32 @@
+---
+title: Okteto Registry with DigitalOcean Spaces
+description: Configure the Okteto Registry with DigitalOcean Spaces
+sidebar_label: DigitalOcean Spaces
+id: digitalocean-spaces
+---
+
+This guide will walk you through the process of setting up the Okteto Registry with DigitalOcean Spaces to store your container images.
+
+In this guide, `<<access-key>>` refers to the access key of the storage space you want to use for the Okteto Registry.
+
+Create a secret with the value of `<<access-key>>` using the command below:
+
+```bash
+kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=<<access-key>>
+```
+
+Then, add the following configuration to your Okteto Helm configuration file:
+
+```yaml title="config.yaml"
+registry:
+  storage:
+    provider:
+      digitalocean:
+        enabled: true
+        space:
+          name: <<your-space-name>>
+          accessKeyID: <<your-access-key-id>>
+```
+
+Finally, [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
+We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.

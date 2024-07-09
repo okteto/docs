@@ -1,0 +1,288 @@
+---
+title: Getting started with Okteto Test
+description: In this section, we'll see how you configure Test Containers for your application
+sidebar_label: Getting Started with Okteto Test
+id: getting-started-test
+---
+
+This guide explains how to configure Test Containers for your first app in Okteto.
+
+## Requirements
+
+Before you start this tutorial, make sure you fulfill the following requirements:
+
+- You have access to an Okteto instance. Otherwise, follow our [installation guide](get-started/install/index.mdx)
+- You have [configured the Okteto CLI](get-started/install-okteto-cli.mdx) with your Okteto instance
+- You have completed [our guide to deploy your first app to Okteto](get-started/deploy-your-app/index.mdx)
+
+## What you will be building
+
+This tutorial will guide you on how to test our sample [Movies app](https://github.com/okteto/getting-started) using Okteto.
+
+## Step 1: Deploy the Movies App
+
+Get a local version of the Movies Sample App by executing the following commands:
+
+```bash
+git clone https://github.com/okteto/getting-started
+cd getting-started
+```
+
+Switch to the `onboarded` branch:
+
+```bash
+git checkout onboarded
+```
+
+At the root of the directory, you'll find the `okteto.yaml` file.
+This file describes how to build, deploy and test the Movies app.
+
+Deploy your development environment by executing:
+
+```bash
+okteto deploy
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Running 'Helm Install'
+Release "movies" has been upgraded. Happy Helming!
+NAME: movies
+LAST DEPLOYED: Tue Jun  4 15:37:11 2024
+NAMESPACE: pchico83
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindy.okteto.example.com
+ ✓  Development environment 'getting-started' successfully deployed
+ ```
+
+## Step 2: Execute the `frontend` unit tests in a Test Container
+
+The [test](reference/okteto-manifest.mdx#test-object-optional) section in the Okteto Manifest defines how to test the Movies app.
+
+For example, add the Test Container to run unit tests for the `frontend` service like this:
+
+```yaml title="okteto.yaml"
+test:
+  frontend:
+    image: node:20
+    context: frontend
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+```
+
+`frontend` is the name of the Test Container. The meaning of the rest of the fields are:
+
+- `image`: the image used as the runtime of your Test Container.
+- `context`: the folder that will be synchronized between your local machine and the Test Container.
+- `caches`: a list of folders to persist between executions of the Test Container. This is very important for the performance of your Test Containers.
+- `commands`: a list of commands to execute your tests.
+
+Also, note that there is an `.oktetoignore` file in the `frontend` folder to indicate which files shouldn't be synchronized to your Test Container.
+This is useful to avoid synchronizing binaries, build artifacts, cache metadata, or dependencies like the `node_modules` folder.
+
+Next, execute the following command to run the `frontend` unit tests in a Test Container:
+
+```bash
+okteto test frontend
+```
+
+The first execution takes longer because `caches` aren't initialized yet, but you will get this output:
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'frontend'
+ i  Running 'yarn install'
+yarn install v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+Done in 43.31s.
+ ✓  Command 'yarn install' successfully executed
+ i  Running 'yarn test'
+yarn run v1.22.22
+$ jest
+PASS src/components/Hero.test.jsx
+PASS src/components/TitleList.test.jsx
+PASS src/components/Item.test.jsx
+PASS src/components/App.test.jsx
+PASS src/components/UserProfile.test.jsx
+PASS src/components/ListToggle.test.jsx
+Test Suites: 6 passed, 6 total
+Tests:       20 passed, 20 total
+Snapshots:   0 total
+Time:        5.658 s
+Ran all test suites.
+Done in 6.59s.
+ ✓  Command 'yarn test' successfully executed
+ ✓  Test container 'frontend' passed
+```
+
+If you rerun your Test Container:
+
+```bash
+okteto test frontend
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'frontend'
+ i  Skipping test container 'frontend', CACHED
+ ✓  Test container 'frontend' passed
+```
+
+You can see that Okteto skips the execution of the tests. This is because the content of the folder `context: frontend` didn't change.
+This is very convenient in monorepos, since Okteto won't rerun unit tests if the folder has no changes.
+
+:::note
+You can skip this behavior with the `--no-cache` flag of the `okteto test` command
+:::
+
+## Step 3: Execute the `api` unit tests in a Test Container
+
+The Test Container to run unit tests for the `api` service looks like this:
+
+```yaml title="okteto.yaml"
+test:
+  api:
+    image: node:20
+    context: frontend
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+```
+
+Execute the following command to run the `api` unit tests in a Test Container:
+
+```bash
+okteto test api
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'api'
+ i  Running 'yarn install'
+yarn install v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+Done in 9.01s.
+ ✓  Command 'yarn install' successfully executed
+ i  Running 'yarn test'
+yarn run v1.22.22
+$ jest
+PASS ./load.test.js
+  ● Console
+    console.log
+      all loaded
+      at log (load.js:44:13)
+PASS ./server.test.js
+  ● Console
+    console.log
+      Server running on port 8080.
+      at log (server.js:52:13)
+    console.log
+      GET /api/movies
+      at log (server.js:29:15)
+    console.log
+      GET /api/watching
+      at log (server.js:41:15)
+Test Suites: 2 passed, 2 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        1.098 s
+Ran all test suites.
+Done in 1.79s.
+ ✓  Command 'yarn test' successfully executed
+ ✓  Test container 'api' passed
+```
+
+
+## Step 3: Execute the `e2e` integration tests in a Test Container
+
+The Test Container to run integration tests looks like this:
+
+```yaml title="okteto.yaml"
+test:
+  e2e:
+    image: okteto/playwright:chromium
+    context: e2e
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+```
+
+`e2e` is the name of the Test Container. The meaning of the rest of fields is:
+
+- `image`: the image used as the runtime of your Test Container.
+- `context`: the folder that will be synchronized between your local machine and the Test Container.
+- `caches`: a list of folders to persist between executions of the Test Container. This is very important for the performance of your Test Containers.
+- `commands`: a list of commands to execute your tests.
+- `artifacts`: a list of files/folders to export to your local filesystem after the remote execution of the tests.
+
+Execute the following command to run your integration tests in a Test Container:
+
+```bash
+okteto test e2e
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'e2e'
+ i  Running 'bash run_tests.sh'
+yarn install v1.22.19
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+Done in 4.53s.
+yarn run v1.22.19
+$ playwright test
+Running 6 tests using 2 workers
+  ✓  1 [chromium] › content.spec.js:26:5 › displays the movies section (3.2s)
+  ✓  2 [chromium] › content.spec.js:48:5 › displays the watching section (3.2s)
+  ✓  3 [chromium] › header.spec.js:3:5 › displays the header (762ms)
+  ✓  4 [chromium] › hero.spec.js:3:5 › displays the hero (936ms)
+  ✓  5 [chromium] › main.spec.js:3:5 › has title (1.6s)
+  ✓  6 [chromium] › main.spec.js:10:5 › matches screenshot (3.6s)
+  6 passed (9.9s)
+To open last HTML report run:
+  yarn playwright show-report
+Done in 10.88s.
+ ✓  Command 'bash run_tests.sh' successfully executed
+ ✓  Test container 'e2e' passed
+```
+
+The `e2e` test container uses `playwright` to fetch the list of movies and compare the results with the list of Movies in the MongoDB database.
+The `BASE_URL` of the integration tests is built using the environment variables `OKTETO_NAMESPACE` and `OKTETO_DOMAIN`.
+This code shows you how to [form the BASE_URL of your integration tests](https://github.com/okteto/getting-started/blob/main/e2e/playwright.config.js#L3).
+Note that your test scripts run in the `okteto` namespace, if you need to access private service like `mongodb`, you need to do it via the hostname `mongodb.${OKTETO_NAMESPACE}`.
+This code shows you how to [access private services from your integration tests](https://github.com/okteto/getting-started/blob/main/e2e/data/getStoredData.js#L5).
+
+
+## Next Steps
+
+Congratulations, you just tested **your first application in Okteto** 🚀.
+
+Okteto lets you test your applications directly on Kubernetes. This way you can:
+
+- Make sure your tests run the same way in your inner development loop and [Okteto Preview Environments](previews/index.mdx)
+- Run your tests directly in Kubernetes, to simplify access to your application and reduce latency
