@@ -46,6 +46,11 @@ annotations:
   fluxcd.io/ignore: "true"
 ```
 
+:::tip
+Please see our [ArgoCD Configuration Guide](self-hosted/manage/argocd.mdx) for our full recommendation on deploying Okteto with ArgoCD
+:::
+
+
 ## How to use private images?
 
 In order to use your private registry credentials you must configure a [pull secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) and use it in your Kubernetes manifests.
@@ -77,6 +82,57 @@ If your resources use a different `serviceAccountName`, replace `default` with t
 :::
 
 With this configuration, all the deployments, stateful sets, jobs, and development containers launched in your namespace will automatically use your registry credentials when pulling private images.
+
+
+## Why are my [Endpoints](core/endpoints/automatic-ssl.mdx) not present in the CLI or UI?
+
+Endpoint links are not present within Okteto if there are no services actively running. If your endpoints are missing, consider the following states and their implications:
+
+#### Progressing: 
+* Description: Your deployment is in the process of being rolled out
+* Possible Causes:
+  * Your service is still being started
+  * Okteto is waiting for all healthchecks to pass
+  * There are pending updates or new deployments
+* Actions:
+  * Wait for the deployment to complete
+  * Look at the events of the deployment for any issues
+
+#### Pulling:
+* Description: The image for your deployment is in the process of being pulled
+* Possible Causes:
+  * Your service is still being started
+* Actions:
+  * Wait for the deployment to complete
+  * Look at the events of the deployment for any issues
+
+#### Booting:
+* Description: Starting the containers for your deployment
+* Possible Causes:
+  * All containers for your service are not yet ready
+* Actions:
+  * Wait for all containers to finish starting and enter their ready state
+  * Look at the events of the deployment for any issues
+
+#### Running:
+* Description: Your deployment is active, and the service should be running correctly
+* Possible Causes:
+  * Network policies or firewall rules could be blocking the endpoint
+* Actions:
+  * Verify the service annotations in your manifest to ensure `dev.okteto.com/auto-ingress: "true"` is present
+  * Verify your [Docker Compose endpoints](reference/docker-compose.mdx#endpoints-object-optional) are configured correctly
+
+#### Error: 
+* Description: There is an issue with your deployment preventing the service from running correctly
+* Possible Causes:
+  * Errors in the application code or container image
+  * Misconfiguration in your service or deployment manifest
+  * Insufficient resources or quota limits in the cluster
+* Actions:
+  * Check the logs of the affected service through the UI or with [`okteto logs`](reference/okteto-cli.mdx#logs)
+  * Validate the container image and configuration settings
+  * Ensure that resource requests and limits are properly set and the cluster has enough capacity
+
 
 ## Every time I make a change, tsc detects two changes:
 
