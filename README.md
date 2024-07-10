@@ -121,7 +121,7 @@ Remove the oldest version by following these steps:
 - Remove the files for the oldest version from the folders `versioned_docs` and p versioned_sidebars`.
 - Remove the oldest version from the file `versions.json`.
 - Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaurus.config.js) to remove the entry in the `versions` subsection for the oldest version to only keep 6 versions.
-- Add a redirect in the file `netlify.toml` fro the oldest version to the default version:
+- Add a redirect in the file `netlify.toml` from the oldest version to the default version:
 
 ```
 # Redirect official version to docs root
