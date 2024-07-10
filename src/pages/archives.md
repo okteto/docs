@@ -31,3 +31,5 @@ Here you can find the documentation for previously released versions of Okteto.
 | 1.13    | [Documentation](/1.13)      |  [Release Notes](/1.13/self-hosted/install/releases/)
 | 1.12    | [Documentation](/1.12)      |  [Release Notes](/1.12/self-hosted/install/releases/)
 | 1.11    | [Documentation](/1.11)      |  [Release Notes](/1.11/self-hosted/install/releases/)
+
+Release notes for previous versions can be found here: [Archived Release Notes](/archived-release-notes/)
