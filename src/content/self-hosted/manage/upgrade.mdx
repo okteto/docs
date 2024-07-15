@@ -94,6 +94,30 @@ Old settings are still considered and have preference, but their support will be
 
 We have also made another relevant change to consider when migrating to `1.22`. We have stopped creating an automatic role binding to any custom service account created on namespaces managed by Okteto to the cluster role specified on `serviceAccounts.roleBindings.namespaces` (`clusterRole` in previous versions). If you create any custom service account as part of your application, make sure you also create any role or role binding needed.
 
+If you experience issues with permissions in this regard, we recommend creating an explicit role and role-binding, but as an alternative solution you can also manually create the role-binding to the `cluster-admin` role, using the following approach:
+
+1. Create the `rb.yml.tpl` file with the following content:
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: <service-account-name>
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: <service-account-name>
+  namespace: ${OKTETO_NAMESPACE}
+```
+2. Replace `<service-account-name>` with the name of the service account you want to bind to the `cluster-admin` role.
+3. In the Okteto Manifest deploy commands, use  `envsubst` to replace the `${OKTETO_NAMESPACE}` variable:
+```yaml
+deploy:
+  - envsubst < k8s/rb.yml.tpl > k8s/rb.yml
+  - kubectl apply -f k8s
+```
 
 ## Upgrading to Okteto 1.20.x
 
