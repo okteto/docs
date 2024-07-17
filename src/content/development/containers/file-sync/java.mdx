@@ -15,7 +15,7 @@ This tutorial will show you how to develop and debug a Java application using Ok
 
 Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
 
-## Step 1: Deploy the Java Sample App
+## Step 1: Deploy the Java Sample Maven or Gradle App
 
 Get a local version of the Java Sample App by executing the following commands:
 
@@ -55,6 +55,8 @@ Deploy your development environment by executing:
 $ okteto deploy
 ```
 
+The output should look like this:
+
 #### Maven
 
 ```bash
@@ -79,7 +81,7 @@ ingress.networking.k8s.io/hello-world created
  i  Run 'okteto up' to activate your development container
 ```
 
-Log into your Okteto instance and click on the URL of the application:
+Log into your Okteto instance and click on the endpoint URL for the application:
 
 <Image
   src={require("@site/static/img/okteto-ui.png").default}
@@ -87,11 +89,11 @@ Log into your Okteto instance and click on the URL of the application:
   width="850"
 />
 
-Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto will [automatically create them](core/endpoints/automatic-ssl.mdx) for you when you deploy your application. Cool no 😎?
+Notice that you're accessing your application through an HTTPS endpoint? This is because Okteto will [automatically create them](core/endpoints/automatic-ssl.mdx) for you when you deploy your application. Cool, no 😎?
 
 ## Step 2: Activate your development container
 
-The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the Java Sample App
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the Java Sample App.
 
 #### Maven
 
@@ -123,15 +125,15 @@ dev:
       - /home/gradle/.gradle
 ```
 
-The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+The `hello-world` key matches the name of the hello world Deployment. The other fields represent:
 
 - `image`: the image used by the development container.
 - `command`: the start command of the development container.
-- `sync`: the folders that will be synchronized between your local machine and the development container.
+- `sync`: the folders synchronized between your local machine and the development container.
 - `forward`: a list of ports to forward from your development container. This is needed to configure the Java remote debugger.
 - `volumes`: a list of paths in your development container to be mounted as persistent volumes. This is useful to persist the maven/gradle caches.
 
-Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
+In the project root, there is an .stignore file to indicate which files shouldn't be synchronized to your development container.
 This is useful to avoid synchronizing binaries, build artifacts, or git metadata.
 
 ## Step 3: Activate your development container
@@ -160,13 +162,13 @@ Start the application by running the following command:
 #### Maven
 
 ```bash
-default:hello-world app> mvn spring-boot:run
+app> mvn spring-boot:run
 ```
 
 #### Gradle
 
 ```bash
-default:hello-world app> gradle bootRun
+app> gradle bootRun
 ```
 
 The first time you run the application, Maven/Gradle will compile your application. Wait for this process to finish.
@@ -196,9 +198,7 @@ public class RestHelloWorld {
 Your IDE will auto compile only the necessary `*.class` files which will be synchronized by Okteto to your remote environment. Take a look at the development container shell and notice how the changes are detected by Spring Boot and automatically hot reloaded.
 
 :::tip
-
-Import the `spring-boot-devtools` dependency to automatically restart your Java application whenever a file is changed.
-
+The `spring-boot-devtools` dependency is already included to automatically restart your Java application whenever a file is changed.
 :::
 
 Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎!
@@ -241,7 +241,7 @@ Add a breakpoint on `src/main/java/es/okteto/helloworld/RestHelloWorld.java`, li
   width="850"
 />
 
-Your code is executing in your remote development environment, but you can debug it from your local machine without any extra services or tools. Pretty cool no? 😉
+Your code is executing in your remote development environment, but you can debug it from your local machine without any extra services or tools!
 
 ## Next steps
 
@@ -251,6 +251,6 @@ Okteto lets you develop your applications directly on Kubernetes. This way you c
 
 - Eliminate integration issues by developing in a realistic environment
 - Test your application end to end as fast as you type code
-- No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
+- Avoid wasting CPU cycles on your machine and develop at the speed of the cloud!
 
 Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.
