@@ -3,6 +3,8 @@ title: Okteto Docs archives
 description: Okteto Docs Archives
 ---
 
+# Okteto Documentation Archives
+
 This page has links to online versions of the Okteto documentation.
 
 ## Current version (Stable)
