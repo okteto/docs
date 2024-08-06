@@ -119,6 +119,15 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'Okteto for Developers',
+      link: { type: 'doc', id: 'developers/index' },
+      items: [
+        'developers/using-okteto-cli-and-dashboard',
+        'developers/okteto-development-concepts',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Okteto Test',
       link: { type: 'doc', id: 'testing/index' },
       items: [
