@@ -14,64 +14,52 @@ module.exports = {
       items: [
         {
           type: "category",
-          label: "Install Okteto",
-          link: { type: 'doc', id: 'get-started/install/index' },
+          label: "For Platform Engineers",
           items: [
-            "get-started/install/amazon-eks",
-            "get-started/install/civo",
-            "get-started/install/digitalocean-doks",
-            "get-started/install/google-gke",
-            "get-started/install/microsoft-aks"
+            {
+              type: "category",
+              label: "Install Okteto",
+              link: { type: 'doc', id: 'get-started/install/index' },
+              items: [
+                "get-started/install/amazon-eks",
+                "get-started/install/civo",
+                "get-started/install/digitalocean-doks",
+                "get-started/install/google-gke",
+                "get-started/install/microsoft-aks"
+              ]
+            },
+            {
+              type: "category",
+              label: "Deploy your app",
+              link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
+              items: [
+                "get-started/deploy-your-app/deploy",
+                "get-started/deploy-your-app/dependencies",
+                "get-started/deploy-your-app/endpoints",
+                "get-started/deploy-your-app/build",
+              ]
+            },
+            "get-started/next-steps",
           ]
         },
-        "get-started/install-okteto-cli",
         {
           type: "category",
-          label: "Deploy your app",
-          link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
+          label: "For Developers",
           items: [
-            "get-started/deploy-your-app/deploy",
-            "get-started/deploy-your-app/dependencies",
-            "get-started/deploy-your-app/endpoints",
-            "get-started/deploy-your-app/build",
+            "get-started/install-okteto-cli",
+            "get-started/dev-quickstart",
+            "get-started/next-steps-dev"
           ]
-        },
-        "get-started/next-steps",
-      ],
+        }
+        ],
     },
     {
       type: 'category',
-      label: 'Core concepts',
+      label: 'Developer Manual',
+      link: { type: 'doc', id: 'developers/index' },
       items: [
-        'core/namespaces',
-        'core/okteto-manifest',
-        'core/container-registry',
-        'core/build-service',
-        'core/remote-execution',
-        'core/okteto-variables',
-        'core/user-roles-and-permissions',
-        {
-          type: 'category',
-          label: 'Endpoints',
-          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
-        },
-        'core/use-volume-snapshots',
-        {
-          type: 'category',
-          label: 'Credentials',
-          items: [
-            'core/credentials/kubernetes-credentials',
-            'core/credentials/personal-access-tokens',
-            'core/credentials/environment-variables',
-          ],
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Development Environments',
-      link: { type: 'doc', id: 'development/index' },
-      items: [
+        'developers/using-okteto-cli-and-dashboard',
+        'developers/okteto-development-concepts',
         'development/using-okteto-cli',
         {
           type: 'category',
@@ -115,56 +103,98 @@ module.exports = {
             'development/deploy/develop-on-okteto-button',
           ],
         },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Okteto Test',
-      link: { type: 'doc', id: 'testing/index' },
-      items: [
-        'testing/getting-started-test',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Preview Environments',
-      link: { type: 'doc', id: 'previews/index' },
-      items: [
-        'previews/using-github-actions',
-        'previews/using-gitlab-cicd',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Administration',
-      link: { type: 'doc', id: 'admin/index' },
-      items: [
-        'admin/dashboard',
-        'admin/catalog',
-        'admin/cleanup',
-        'admin/okteto-insights',
         {
           type: 'category',
-          label: 'Private Repositories',
+          label: 'Okteto Test',
+          link: { type: 'doc', id: 'testing/index' },
           items: [
-            'admin/private-repositories/github-app',
-            'admin/private-repositories/ssh-key',
+            'testing/getting-started-test',
           ],
         },
-        'admin/custom-installer-image',
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Platform Engineer Manual',
+      items: [
         {
           type: 'category',
-          label: 'Registry Credentials',
-          link: { type: 'doc', id: 'admin/registry-credentials/index' },
+          label: 'Core concepts',
           items: [
-            'admin/registry-credentials/amazon-ecr',
-            'admin/registry-credentials/azure-acr',
-            'admin/registry-credentials/dockerhub',
-            'admin/registry-credentials/google-artifact-registry',
+            'core/namespaces',
+            'core/okteto-manifest',
+            'core/container-registry',
+            'core/build-service',
+            'core/remote-execution',
+            'core/okteto-variables',
+            'core/user-roles-and-permissions',
+            {
+              type: 'category',
+              label: 'Endpoints',
+              items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
+            },
+            'core/use-volume-snapshots',
+            {
+              type: 'category',
+              label: 'Credentials',
+              items: [
+                'core/credentials/kubernetes-credentials',
+                'core/credentials/personal-access-tokens',
+                'core/credentials/environment-variables',
+              ],
+            },
           ],
         },
-      ],
+        {
+          type: 'category',
+          label: 'Preview Environments',
+          link: { type: 'doc', id: 'previews/index' },
+          items: [
+            'previews/using-github-actions',
+            'previews/using-gitlab-cicd',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Administration',
+          link: { type: 'doc', id: 'admin/index' },
+          items: [
+            'admin/dashboard',
+            'admin/catalog',
+            'admin/cleanup',
+            'admin/okteto-insights',
+            {
+              type: 'category',
+              label: 'Private Repositories',
+              items: [
+                'admin/private-repositories/github-app',
+                'admin/private-repositories/ssh-key',
+              ],
+            },
+            'admin/custom-installer-image',
+            {
+              type: 'category',
+              label: 'Registry Credentials',
+              link: { type: 'doc', id: 'admin/registry-credentials/index' },
+              items: [
+                'admin/registry-credentials/amazon-ecr',
+                'admin/registry-credentials/azure-acr',
+                'admin/registry-credentials/dockerhub',
+                'admin/registry-credentials/google-artifact-registry',
+              ],
+            },
+          ],
+        },
+      ]
     },
+    // {
+    //   type: 'category',
+    //   label: 'Development Environments',
+    //   link: { type: 'doc', id: 'development/index' },
+    //   items: [
+        
+    //   ],
+    // },
     {
       type: 'category',
       label: 'Okteto Self-Hosted',
