@@ -119,7 +119,7 @@ module.exports = {
       items: [
         {
           type: 'category',
-          label: 'Development Environments',
+          label: 'Core concepts',
           items: [
             'core/namespaces',
             'core/okteto-manifest',
