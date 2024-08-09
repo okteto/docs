@@ -1,0 +1,55 @@
+---
+title: File Synchronization
+description: Okteto keeps your local files synchronized with your development environment
+sidebar_label: File Synchronization
+id: file-synchronization
+---
+
+When you run `okteto up`, an instance of [Syncthing](https://syncthing.net/), a file synchronization service, will be automatically started to keep your local files synchronized with your development container.
+
+Syncthing provides a web UI to show the state of the file synchronization. You can get the syncthing endpoints and credentials of your development container by running `okteto status --info`:
+
+```console
+$ okteto status --info
+```
+
+```console
+ i  Local syncthing url: http://localhost:60539
+ i  Remote syncthing url: http://localhost:60538
+ i  Syncthing username: okteto
+ i  Syncthing password: ac0ee34a-b1aa-4a41-bc67-cec3128b6cfd
+ ✓  Synchronization status: 100.00%
+```
+
+###  Ignoring files
+
+If some files should not be synchronized between your local machine and your development environment, a file called `.stignore` can be created containing file patterns to ignore.
+The `.stignore` file must be placed in the root of the folder.
+
+:::info
+
+The `okteto init` command will create a default `.stignore` tailored to the typical use cases of your programming language.
+
+:::
+
+The `.stignore` file contains a list of files or path patterns.
+The _first pattern_ that matches will decide the fate of a given file.
+The patterns follow the same syntax that `.gitignore` and `.dockerignore`.
+More information on this [is available here](https://docs.syncthing.net/users/ignoring.html).
+
+```
+# default .stignore for a go-based project
+okteto.yaml
+.git
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with go test -c
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+```

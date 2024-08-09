@@ -1,0 +1,65 @@
+---
+title: Google Artifact Registry
+description: Get Private Registry credentials from Google Artifact Registry 
+sidebar_label: Google Artifact Registry
+id: google-artifact-registry
+---
+
+import Image from "@theme/Image";
+
+This tutorial will guide you on how to use your private Google Artifact Registry with Okteto.
+It's recommended that you have the [gcloud CLI installed](https://cloud.google.com/sdk/docs/install) to follow this tutorial.
+
+The steps to configure your private Google Artifact Registry with Okteto are: 
+
+- Create a service account with access to your private Google Artifact Registry
+- Retrieve the service account credentials
+- Configure the credentials in Okteto
+
+## Step 1: Create a service account with access to your private Google Artifact Registry
+
+Export the name your want to use for your service account:
+
+```bash
+export SA_NAME=<<your-service-account-name>>
+```
+
+Create a service account with the [gcloud CLI](https://cloud.google.com/sdk/gcloud/reference/iam/service-accounts/create) by executing the following command:
+
+```bash
+gcloud iam service-accounts create ${SA_NAME} --display-name="My Service Account for Okteto"
+```
+
+Add a policy to grant read access to your private Google Artifact Registry:
+
+```bash
+gcloud projects add-iam-policy-binding {PROJECT_ID} \
+    --member=serviceAccount:{SA_NAME}@{PROJECT_ID}.iam.gserviceaccount.com \
+    --role=roles/artifactregistry.reader
+```
+
+## Step 2: Retrieve the service account credentials
+
+Create an Access Key to use these credentials by executing the following command: 
+
+```bash
+gcloud iam service-accounts keys create SA_KEY_FILE.json \
+    --iam-account=SA_NAME@PROJECT_ID.iam.gserviceaccount.com
+```
+
+The command will create a file `SA_KEY_FILE.json` with rhe required credentials. You will use this file in the next step.
+
+## Step 3: Configure the credentials in Okteto
+
+Add the following registry credentials to the [Admin Registry Credentials view](index.mdx#add-registry-credentials):
+
+- **Type**: `Static`
+- **Hostname**: your private Google Artifact Registry endpoint, for example `europe-west1-docker.pkg.dev`
+- **Username**: `_json_key`
+- **Password**: the content of the file `SA_KEY_FILE.json``
+
+You can also use `_json_key_base64` as `username` and encode your `SA_KEY_FILE.json` as the value of the `password`:
+
+```bash
+cat SA_KEY_FILE.json | base64
+```
