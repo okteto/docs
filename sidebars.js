@@ -119,7 +119,7 @@ module.exports = {
       items: [
         {
           type: 'category',
-          label: 'Core concepts',
+          label: 'Development Environments',
           items: [
             'core/namespaces',
             'core/okteto-manifest',
@@ -197,7 +197,7 @@ module.exports = {
     // },
     {
       type: 'category',
-      label: 'Okteto Self-Hosted',
+      label: 'Self-Hosted Installation',
       link: { type: 'doc', id: 'self-hosted/index' },
       items: [
         {
