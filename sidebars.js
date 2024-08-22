@@ -59,7 +59,7 @@ module.exports = {
       link: { type: 'doc', id: 'developers/index' },
       items: [
         'developers/using-okteto-cli-and-dashboard',
-        'developers/okteto-development-concepts',
+        'developers/advanced-commands-concepts',
         'development/using-okteto-cli',
         {
           type: 'category',
