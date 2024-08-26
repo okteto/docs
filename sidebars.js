@@ -12,7 +12,6 @@ module.exports = {
       label: 'Get Started',
       link: { type: 'doc', id: 'index' },
       items: [
-        "get-started/install-okteto-cli",
         {
           type: "category",
           label: "For Platform Engineers",
@@ -29,6 +28,7 @@ module.exports = {
                 "get-started/install/microsoft-aks"
               ]
             },
+            "get-started/install-okteto-cli",
             {
               type: "category",
               label: "Deploy your app",
