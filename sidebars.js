@@ -14,30 +14,45 @@ module.exports = {
       items: [
         {
           type: "category",
-          label: "Install Okteto",
-          link: { type: 'doc', id: 'get-started/install/index' },
+          label: "For Platform Engineers",
           items: [
-            "get-started/install/amazon-eks",
-            "get-started/install/civo",
-            "get-started/install/digitalocean-doks",
-            "get-started/install/google-gke",
-            "get-started/install/microsoft-aks"
+            {
+              type: "category",
+              label: "Install Okteto",
+              link: { type: 'doc', id: 'get-started/install/index' },
+              items: [
+                "get-started/install/amazon-eks",
+                "get-started/install/civo",
+                "get-started/install/digitalocean-doks",
+                "get-started/install/google-gke",
+                "get-started/install/microsoft-aks"
+              ]
+            },
+            "get-started/install-okteto-cli",
+            {
+              type: "category",
+              label: "Deploy your app",
+              link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
+              items: [
+                "get-started/deploy-your-app/deploy",
+                "get-started/deploy-your-app/dependencies",
+                "get-started/deploy-your-app/endpoints",
+                "get-started/deploy-your-app/build",
+              ]
+            },
+            "get-started/next-steps",
           ]
         },
-        "get-started/install-okteto-cli",
         {
           type: "category",
-          label: "Deploy your app",
-          link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
+          label: "For Developers",
           items: [
-            "get-started/deploy-your-app/deploy",
-            "get-started/deploy-your-app/dependencies",
-            "get-started/deploy-your-app/endpoints",
-            "get-started/deploy-your-app/build",
+            "get-started/dev-quickstart",
+            "get-started/using-okteto-cli-and-dashboard",
+            "get-started/advanced-commands-and-concepts",
           ]
-        },
-        "get-started/next-steps",
-      ],
+        }
+        ],
     },
     {
       type: 'category',
