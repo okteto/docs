@@ -363,6 +363,46 @@ gc:
   slackWebhook:
 ```
 
+### insights
+
+Configures the [Okteto Insights](admin/okteto-insights.mdx) component in your Okteto instance.
+
+- `enabled`: Whether to enable Okteto Insights. Defaults to `false`.
+- `bearerSecret.name`: Name of the secret where the token to access Okteto Insights metrics is stored. Defaults to `okteto-insights`.
+- `bearerSecret.key`: Name of the key within the secret where the token to access Okteto Insights metrics is stored. Defaults to `bearer`.
+
+```yaml
+insights:
+  enabled: false
+  bearerSecret:
+    name: okteto-insights
+    key: bearer
+```
+
+If Okteto Insights is enabled, the Event Exporter component is installed.
+The Event Exporter receives Okteto CLI events via Kubernetes Events and injects them as Okteto Insights metrics.
+
+- `enabled`: Control if the Event Exporter is deployed (only if Okteto Insights is enabled). Defaults to `true`.
+- `priorityClassName`: The priority class for pods created by the Event Exporter. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `podAnnotations`: Annotations to add to Event Exporter pods.
+- `podLabels`: Labels to add to the Event Exporter pods.
+- `resources`: The resources for the Event Exporter pods.
+
+```yaml
+insights:
+  eventsExporter:
+    enabled: true
+    priorityClassName:
+    podLabels: {}
+    podAnnotations: {}
+    resources:
+      requests:
+        cpu: 50m
+        memory: 20Mi
+      limits:
+        memory: 100Mi
+```
+
 ### installer
 
 The jobs that deploy your [development environments from Git](development/deploy/deploy-from-git.mdx).
@@ -672,14 +712,6 @@ If this is disabled, you'll need to provide your own image in `installer.image`.
 injectDevelopmentBinaries:
   enabled: true
 ```
-
-### insights
-
-Configures the [Okteto Insights](admin/okteto-insights.mdx) feature in your Okteto instance.
-
-- `enabled`: Whether to enable Okteto Insights. Defaults to `false`.
-- `bearerSecret.name`: Name of the secret where the token to access Okteto Insights metrics is stored. Defaults to `okteto-insights`.
-- `bearerSecret.key`: Name of the key within the secret where the token to access Okteto Insights metrics is stored. Defaults to `bearer`.
 
 ### kubetoken
 
