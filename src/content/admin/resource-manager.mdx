@@ -1,0 +1,127 @@
+---
+title: Resource Manager
+description: Automated resource management that adapts to changes in real utilization over time
+sidebar_label: Resource Manager
+id: resource-manager
+---
+
+import Image from "@theme/Image";
+
+Okteto's Resource Manager is an automated tool designed to optimize CPU and memory resource allocation for your Kubernetes workloads on Okteto.
+By analyzing the actual utilization of resources, the Resource Manager adjusts the resource requests for your pods, ensuring they are appropriately configured without the need for manual intervention.
+
+## Why Use the Resource Manager?
+Manually configuring CPU and memory requests in Kubernetes can be tedious and error-prone.
+Incorrect configurations can lead to poor performance, overloaded nodes, and a slow developer experience on Okteto.
+The Resource Manager automates this process, dynamically adjusting resource requests based on real-time usage data of the Okteto Cluster.
+This ensures your pods are running efficiently and your nodes are balanced well, improving overall performance and developer experience.
+
+### Key Benefits
+- **Improved Workflow Productivity**: Automates resource configuration, allowing developers to focus on coding rather than managing Kubernetes settings
+- **Optimized Resource Usage**: Ensures resources are neither underutilized nor over-utilized, leading to cost savings
+- **Enhanced Developer Adoption**: Improves the performance of development environments, leading to higher satisfaction and adoption rates amongst developers
+- **Cost Efficiency**: Reduces the overhead associated with manually configuring resources, lowering operational costs
+
+## How it Works
+
+The Resource Manager monitors the actual CPU and memory usage of your pods over time.
+It calculates the average usage and automatically adjusts the resource requests for new pods based on these averages. The system uses the following process:
+
+1. Data Collection: The Resource Manager queries the Kubernetes Metric Server to collect CPU and memory usage data for all pods managed by Okteto
+1. Average Calculation: It calculates the average CPU and memory usage for each container family (grouped by development environment, component, and container name)
+1. Recommendation Generation: The Resource Manager generates new resource requests based on the average usage, applying a correction factor to ensure efficiency
+1. Automatic Application: When a new pod is created, the recommended resource requests are automatically applied unless overridden by specific annotations
+
+## Enabling and Configuring the Resource Manager
+### Enabling the Resource Manager
+The Resource Manager is controlled through the Helm chart configuration. By default, it is enabled with the following settings:
+
+``` yaml
+resourceManager:
+  enabled: true
+  schedule: 300
+  deletePeriod: 15
+  priorityClassName:
+    labels:
+	annotations:
+	resources:
+	recommendations:
+		weight:
+		correction:
+		min:
+			cpu:
+			memory:
+```
+To enable the Resource Manager:
+
+1. Update your Helm values file to include the `resourceManager` block from above
+1. Deploy your Helm chart with the updated configuration
+1. The Resource Manager will start running as a cron job every 300 seconds (5 minutes)
+
+### Enabling via the Okteto Admin UI
+If the Resource Manager is not already enabled via Helm, or if you prefer to manage it from the UI, follow these steps:
+
+1. Log in to the Okteto Admin UI
+1. Navigate to Admin -> General where you can manage system-level settings
+1. Locate the Resource Manager section. If the Resource Manager is installed but not yet enabled, you will see an "Enable/Disable" toggle switch
+1. Toggle the switch to "Enable". This will activate the Resource Manager without needing to manually update the Helm chart
+
+[Add Screenshot here]
+
+Once enabled, the Resource Manager will immediately begin monitoring and adjusting resource requests based on your specified schedule.
+
+### Disabling the Resource Manager
+If you need to disable the Resource Manager temporarily, you can do so either by:
+
+- Using the toggle switch in the Admin UI to dynamically disable the feature without redeploying the chart
+- Removing or setting `enabled: false` in the Helm values file and redeploying your Helm chart
+
+### Customizing Resource Manager Settings
+You can customize the Resource Manager by adjusting the following settings in your Helm values file:
+
+- `schedule`: Frequency (in seconds) at which the Resource Manager runs
+- `deletePeriod`: Number of days to retain resource data before deletion
+- `priorityClassName`: Assigns a priority class to the Resource Manager’s pods
+- `resources`: Defines resource requests and limits for the Resource Manager itself
+
+## Viewing Resource Metrics and Recommendations
+
+### Resource Metrics View
+
+The Resource Manager introduces a new "Metrics" tab in the Okteto Dashboard, designed to give you clear insights into the resource usage and performance of your Kubernetes workloads.
+This tab is available for key resources, including Deployments, StatefulSets, Jobs, CronJobs, and Pods.
+
+#### Accessing the Metrics Tab
+
+#### What You'll See in the Metrics Tab
+
+- **Average CPU and Memory Usage**: Displays metrics for your average CPU and memory consumption. This helps you understand how resources are being utilized over time
+
+[Screenshot]
+
+- **Resource Manager Recommendations**: If the Resource Manager identifies opportunities for optimizing resource requests, it will display a recommendation.
+These recommendations might include increasing or decreasing CPU and memory requests based on the actual usage patterns
+
+[Screenshot]
+
+### Recommendations Banner
+If the Resource Manager detects potential improvements, a banner will appear in the Okteto Dashboard. This banner will:
+
+- Highlight performance issues or inefficiencies
+- Provide links to the Metrics tab where you can view detailed recommendations
+- Encourage enabling the Resource Manager if it is currently disabled
+
+The banner encourages you to review these recommendations and, if the Resource Manager is not enabled, to activate it for automated management.
+You can interact with the banner to view a detailed list of resources with recommendations.
+
+[Screenshot]
+
+## Rolling Back Changes
+If you find that the Resource Manager's recommendations are not suitable for your workload, you can override its behavior:
+
+Add the annotation `dev.okteto.com/resource-manager: false` to your pod's metadata to prevent automatic adjustments.
+Roll back to previous resource settings manually if needed.
+
+## Troubleshooting and Support
+### Metric Server Availability
+The Resource Manager relies on the Kubernetes Metric Server. If the Metric Server is unavailable, the Okteto UI will display an error message. You can troubleshoot the Metric Server or refer to the documentation for further guidance.
