@@ -489,10 +489,13 @@ regcredsManager:
 
 Use this section to configure the [Resource Manager](admin/resource-manager.mdx)
 
-- `enabled`: it installs the Resource Manager. When enabled, it creates a CronJob that is responsible for calculating and storing the recommended CPU and memory resource for each component running in your cluster.
-- `deletePeriod`: defines the recommendations retention period. If a service isn't deployed anymore in your cluster, its recommendation will be deleted after the defined `deletePeriod`. 
-- `recommendations.weight`: 
-
+- `enabled`: When set to `true`, the Resource Manager is installed. When Resource Manager is installed, Okteto creates a CronJob responsible for computing the cpu and memory recommendations for your cluster.
+- `schedule`: Defines the frequency at which resource recommendations are calculated, using the cron syntax.
+- `deletePeriod`: Specifies the retention period for the recommendations. If a service is no longer deployed in your cluster, its recommendation will be deleted after the specified deletePeriod.
+- `recommendations.weight`: A floating-point number between 0 and 1 used to stabilize CPU and memory recommendation calculations. A higher value (closer to 1) gives more weight to historical resource usage trends, making the Resource Manager less responsive to recent changes or spikes. A lower value (closer to 0) makes it more reactive to recent usage patterns, including spikes. The default value is `0.9`, which makes the Resource Manager conservative, favoring existing trends and attempting to ignore minor fluctuations.
+- `recommendations.correction`: A floating-point multiplier used to adjust for over or under-provisioning of resources. The default is `1.25`, indicating a 25% over-provisioning. This value must be greater than 0. For example, setting it to 0.9 will result in a 10% under-provisioning compared to the calculated recommendation.
+- `recommendations.min.cpu`: Specifies the minimum CPU request that will be configured when the Resource Manager is applied. If the existing recommendation hasn't been calculated yet or is below this value, the minimum value will be used.
+- `recommendations.min.memory`: Specifies the minimum memory request that will be configured when the Resource Manager is applied. Similar to CPU, if the existing recommendation hasn't been calculated yet or is below this value, the minimum value will be applied.
 
 ```
 resourceManager:
