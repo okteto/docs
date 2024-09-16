@@ -1,0 +1,69 @@
+---
+title: GCP
+description: Configure GCP credentials
+sidebar_label: gcp
+id: gcp-cloud-credentials
+---
+import Image from "@theme/Image";
+
+
+This tutorial will guide you on how to configure GCP credentials for your Okteto instance. In this specific guide we'll request read only access to cloud storage but you can provide access to any other AWS resource by using a role with more/different permissions.
+
+It's recommended that you have the [Google Cloud CLI installed](https://cloud.google.com/sdk/docs/install) to follow this tutorial.
+
+AWS credentials are configured using [Worlkload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation).
+
+
+## Step 1: Create the Workload Identity Pool
+
+```bash
+PROJECT_ID=my-project-12345
+POOL_ID=okteto-pool
+AUDIENCE=deploy.okteto.dev
+
+gcloud iam workload-identity-pools create ${POOL_ID} --location=global --display-name="Okteto pool"
+```
+
+## Step 2: Create the OIDC Identity Provider in the pool
+
+We'll use the cluster as the identity provider for the pool:
+
+```bash
+	gcloud iam workload-identity-pools providers create-oidc my-cluster \
+  	--location=global \
+		--workload-identity-pool=${POOL_ID} \
+		--display-name=$(WORKLOAD_PROVIDER_NAME) \
+		--attribute-mapping="google.subject=assertion.sub" \
+		--issuer-uri=https://container.googleapis.com/v1/projects/$(PROJECT)/locations/europe-west1/clusters/product \
+		--allowed-audiences=${AUDIENCE}
+```
+
+
+### Step 3: Create the IAM policy binding
+
+Given the okteto kubernetes service account the permissions to access the GCP resources needed:
+
+```bash
+
+PROJECT=my-project-12345
+PRINCIPAL=iam.googleapis.com/projects/${PROJECT_ID}/locations/global/workloadIdentityPools/${POOL_ID}/subject/system:serviceaccount:okteto:okteto
+gcloud projects add-iam-policy-binding ${PROJECT} --role=roles/storage.admin --member=principal://${PRINCIPAL} --condition=None
+```
+
+
+## Step 4: Configure the credentials in Okteto
+
+Enable GCP in the [Cloud Credentials view](index.mdx) with the following configuration:
+
+- **Project**: The GCP project id where the resources are located
+- **Workload Pool ID**: The Pool ID used in previous steps
+- **Provider ID**: The OIDC Provider ID used in previous steps
+- **Audience**: The Audience used for the Identity Provider
+
+
+This will allow Okteto to access the desired GCP resources in `okteto deploy` and `okteto test` commands.
+
+
+
+
+
