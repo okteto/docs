@@ -7,14 +7,17 @@ id: aws-cloud-credentials
 import Image from "@theme/Image";
 
 
-This tutorial will guide you on how to configure AWS credentials for your Okteto instance. In this specific guide we'll request access to s3 resource but you can provide access to any other AWS resource by using a role with more/different permissions.
+This tutorial will guide you on how to configure AWS credentials for your Okteto instance. Configuring AWS credentials will allow deploy, test, and destroy commands in your okteto manifest to have access to your AWS account.
+
+In this specific guide we'll request access to s3 resource but you can provide access to any other AWS resource by using a role with more/different permissions.
 
 It's recommended that you have the [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) to follow this tutorial.
 
-AWS credentials are configured using OIDC federation to assume an IAM Role via Web Identity.
+AWS credentials are configured using [OIDC federation](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html) to [assume an IAM Role via Web Identity](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_manage-assume.html).
 
 ## Step 1: Create the Identity Provider
 
+As a first step let's register the Kubernetes cluster as an OIDC identity provider in AWS.
 ```bash
 OIDC_ENDPOINT=https://container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development
 AUDIENCE=registry.okteto.dev
@@ -35,7 +38,7 @@ Okteto displays the OIDC endpoint of your cluster in the admin general view:
 
 Traditionally, `AUDIENCE` is the client id of the requester. You'll only exchange token for these audiences. It is the `aud` field of the JWT payload.
 
-We recommend creating a different/dedicated audience for each okteto cluster and region used even if you use the same identity provider:
+We recommend creating a different/dedicated audience for each okteto instance and region used even if you use the same identity provider:
 
 ```
 your-okteto-instance.com/112233445566.your-region.amazonaws.com
@@ -120,4 +123,24 @@ Enable AWS in the [Cloud Credentials view](index.mdx) with the following configu
 - **Audience**: The Audience used for the Identity Provider
 
 
-This will allow Okteto to access the desired AWS resources in `okteto deploy` and `okteto test` commands.
+This will allow Okteto to access the desired AWS resources in okteto deploy, test, and destroy commands.
+
+With the above configuration the following okteto manifest will be able to access the s3 bucket out of the box for all three commands[1]:
+
+```yaml
+deploy:
+  image: amazon/aws-cli
+  commands:
+    - aws s3api create-bucket --bucket test-bucket
+destroy:
+  image: amazon/aws-cli
+  commands:
+    - aws s3api delete-bucket --bucket test-bucket
+test:
+  aws:
+    image: amazon/aws-cli
+    commands:
+      - aws s3 ls | grep test-bucket
+```
+
+[1] Subject to the permissions granted by the role
