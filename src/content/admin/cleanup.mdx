@@ -34,20 +34,22 @@ Okteto considers an application or resources inactive if a user hasn't performed
 
 Service accounts, config maps, secrets, or volumes you create will be unaffected by this operation.
 
-### Events That Count as Activity to Reset the Sleep Counter
+## Events That Prevent or Wake Resources from Sleep
 
-The following events will reset the inactivity counter, preventing the resources from entering a sleep state:
+The following events will either reset the inactivity counter or wake a sleeping namespace:
 
 - Deploying a Kubernetes Deployment or StatefulSet with `kubectl` or similar tools
 - Running `okteto deploy`
 - Running `okteto up`
 - Maintaining an active `okteto up` session. If the `upSessionByLastSyncedFile` setting is enabled, this only counts if files are actively being synced (based on the last synced file)
 
-## Wake Sleeping Resources
+Additionally, if you are using the Okteto Nginx Ingress Controller, incoming requests will automatically wake a sleeping namespace.
+However, note that these incoming requests do not count as activity to reset the inactivity counter and keep the namespace awake.
+The auto-wake behavior for incoming requests can also be disabled by [configuring the `autowake` field](self-hosted/helm-configuration.mdx#autowake).
 
-Okteto's UI will notify you when there are sleeping resources in your namespace
-Press the **Wake all** button to activate all sleeping resources at once
-Additionally, sleeping resources will be automatically woken up by certain actions described below
+### Manually Wake Sleeping Resources
+
+Okteto's UI will notify you when there are sleeping resources in your namespace. Press the **Wake all** button to activate all sleeping resources at once.
 
 <p align="left">
   <Image
@@ -57,17 +59,6 @@ Additionally, sleeping resources will be automatically woken up by certain actio
   />
 </p>
 
-### Events That Wake a Namespace
-
-The following events will automatically wake a sleeping namespace:
-
-- Deploying a Kubernetes Deployment or StatefulSet with `kubectl` or similar tools`
-- Running `okteto deploy`
-- Running `okteto up`
-- Incoming requests, if using the Okteto Nginx Ingress Controller
-
-Note: While incoming requests will wake a namespace, they do not count as activity to reset the inactivity counter and keep the namespace awake.
-Additionally, the auto-wake behavior can be disabled by [configuring the `autowake` field](self-hosted/helm-configuration.mdx#autowake).
 
 ## Delete Unused Namespaces
 
