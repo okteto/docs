@@ -9,8 +9,14 @@ pagination_next: get-started/install-okteto-cli
 
 import variables from '../../variables.json';
 import CodeBlock from '@theme/CodeBlock';
+import TiersList from "@theme/TiersList";
+
+# Red Hat OpenShift<TiersList tiers="Enterprise Self-Hosted" />
 
 This guide will walk you through the process of installing Okteto in Red Hat OpenShift.
+
+Openshift enhances the functionality and security of applications on Kubernetes, but it can create additional friction when installing applications like Okteto.
+This guide has been crafted to help you overcome these hurdles, but we encourage you to [talk to us](https://www.okteto.com/get-demo/) to guide you during the installation.
 
 ## Installation Requirements
 
@@ -27,25 +33,16 @@ You'll also need the following:
 
 For this guide, you will need to obtain the following values:
 
-- `<your-openshift-subdomain>`: for example, `okteto.r9yz.p2.openshiftapps.com`
-- `<cluster-name>`: for example, `okteto`
+- `<openshift-base-domain>`: for example, `okteto.r9yz.p2.openshiftapps.com`
+- `<openshift-cluster-name>`: for example, `okteto`
 
 ## Getting your Okteto License
 
 A license is mandatory to use Okteto. You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
 
-If you are interested in evaluating Okteto, [sign up for our free 30 days trial](https://www.okteto.com/free-trial/). No credit card required.
+## Preparing your cluster to install Okteto
 
-## Steps before Installing Okteto
-
-Before installing Okteto, you will need to follow these steps:
-
-- Create the `okteto` namespace
-- Allow containers as `root` in the `okteto` namespace
-- Allow Okteto Build service privileged access
-- Allow Okteto Daemon service to access the host
-- Copy Openshift wildcard certificate to the `okteto` namespace
-- Get the OpenShift Ingress Controller IP
+Before installing Okteto, you will need to follow these steps.
 
 ### Create the `okteto` namespace
 
@@ -66,9 +63,11 @@ oc adm policy add-scc-to-user anyuid -z okteto-buildkit -n okteto
 oc adm policy add-scc-to-user anyuid -z okteto-registry -n okteto 
 ```
 
-### Allow Okteto Build service privileged access
+### Grant access to the "privileged" SCC for the Okteto Build service account
 
-By default, running privileged containers in OpenShift is not allowed. This restriction impacts the installation of the Okteto Build. To give privileged access to the Okteto Build service, run the following command:
+By default, running privileged containers in OpenShift is not allowed.
+This restriction impacts the installation of the [Okteto Build](core/build-service.mdx) service.
+To give privileged access to the Okteto Build service, run the following command:
 
 ```bash
  oc adm policy add-scc-to-user privileged -z okteto-buildkit -n okteto
@@ -76,7 +75,9 @@ By default, running privileged containers in OpenShift is not allowed. This rest
 
 ### Allow the Okteto Daemon service to access the host
 
-By default, access to the host in OpenShift is not allowed. This restriction impacts the installation of the Okteto Daemon service. To give access to the host to the Okteto Daemon run the following command:
+By default, access to the host in OpenShift is not allowed.
+This restriction impacts the installation of the [Okteto Daemon](self-hosted/helm-configuration.mdx#daemonset) service.
+To give access to the host to the Okteto Daemon run the following command:
 
 ```bash
 oc adm policy add-scc-to-user hostaccess -z okteto -n okteto
@@ -84,12 +85,13 @@ oc adm policy add-scc-to-user hostaccess -z okteto -n okteto
 
 ### Copy OpenShift wildcard certificate to the `okteto` namespace
 
-OpenShift provides the wildcard certificate for the wildcard domain `apps.<your-openshift-subdomain>` . We recommend reusing it when installing Okteto.
+OpenShift provides the wildcard certificate for the wildcard domain `apps.<openshift-base-domain>`.
+We recommend reusing it when installing Okteto to [expose secure and unique endpoints](self-hosted/helm-configuration.mdx#subdomain) for your development environments.
 
-To do that, copy the certificate to the `okteto` namespace (replace `<cluster-name>` with your cluster name):
+To do that, copy the certificate to the `okteto` namespace:
 
 ```yaml
-kubectl get secret <clustername>-primary-cert-bundle-secret -n openshift-ingress -o yaml | sed 's/namespace: openshift-ingress/namespace: okteto/' | kubectl apply -f -
+kubectl get secret <openshift-cluster-name>-primary-cert-bundle-secret -n openshift-ingress -o yaml | sed 's/namespace: openshift-ingress/namespace: okteto/' | kubectl apply -f -
 ```
 
 ### Get the OpenShift Ingress Controller IP
@@ -101,12 +103,6 @@ kubectl get svc router-default -n openshift-ingress -o jsonpath='{.status.loadBa
 ```
 
 We will refer to this value using `<ingress-controller-ip>`.
-
-:::warning
-Installing Okteto behing the OpenShift Ingress controller means the following features aren't available:
-- [Auto wake on incoming requests](admin/cleanup.mdx#inactive-applications-and-resources)
-- [Private Endpoints](core/endpoints/private-endpoints.mdx)
-:::
 
 ## Installing Okteto
 
@@ -126,19 +122,19 @@ helm repo update
 In order to install Okteto you need to first create a `config.yaml` for the installation process.
 
 Create the following Helm configuration file for Okteto in, for example, a file called `config.yaml`.
-Remember to replace `<<your-okteto-license>>`, `<your-openshift-subdomain>`, `<cluster-name>` and `<ingress-controller-ip>` with your own values:
+Remember to replace `<<okteto-license>>`, `<openshift-base-domain>`, `<openshift-cluster-name>` and `<ingress-controller-ip>` with your own values:
 
 ```yaml
-license: "REPLACE ME WITH YOUR OKTETO LICENSE"
+license: <<okteto-license>>
 
-openshift: # supports Openshift Routes as Okteto Endpoints
+openshift:
   enabled: true
 
-subdomain: apps.<your-openshift-subdomain>
+subdomain: apps.<openshift-base-domain>
 
-wildcardCertificate: # reuse your OpenShift wildcard certificate
+wildcardCertificate:
   create: false
-  name: <cluster-name>-primary-cert-bundle-secret
+  name: <openshift-cluster-name>-primary-cert-bundle-secret
 
 ingress-nginx:
   enabled: false
@@ -153,7 +149,7 @@ ingress:
   ip: <ingress-controller-ip>
 
 cluster:
-  endpoint: https://api.<your-openshift-subdomain>:6443
+  endpoint: https://api.<openshift-base-domain>:6443
     
 user:
   extraRoleBindings:
@@ -162,6 +158,8 @@ user:
       okteto:
         - system:openshift:scc:anyuid
 ```
+
+The section `extraRoleBindings` allows your developers to use `root` images in their development environments.
 
 :::tip
 _Note: This is the minimum configuration. Check our [Helm configuration](self-hosted/helm-configuration.mdx) docs to learn more_
@@ -172,7 +170,7 @@ _Note: This is the minimum configuration. Check our [Helm configuration](self-ho
 Install the latest version of Okteto by running:
 
 <CodeBlock language="bash">
-  {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
+  {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --version=${variables.chartVersion}`}
 </CodeBlock>
 
 After a few seconds, all the resources will be created. The output will look something like this:
@@ -187,6 +185,6 @@ STATUS: deployed
 
 ### Sign in to your Okteto instance
 
-After a successful installation, you can access your Okteto instance at `https://okteto.apps.<your-openshift-subdomain>`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+After a successful installation, you can access your Okteto instance at `https://okteto.apps.<openshift-base-domain>`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
 
 Once your Okteto instance is up and running, you're going to [install and configure the Okteto CLI](get-started/install-okteto-cli.mdx) with your Okteto instance.
