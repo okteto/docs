@@ -13,20 +13,20 @@ import TiersList from "@theme/TiersList";
 
 # Red Hat OpenShift<TiersList tiers="Enterprise Self-Hosted" />
 
-This guide will walk you through the process of installing Okteto in Red Hat OpenShift.
+This guide will walk you through the process of installing Okteto on a Red Hat OpenShift cluster.
 
-Openshift enhances the functionality and security of applications on Kubernetes, but it can create additional friction when installing applications like Okteto.
+Red Hat OpenShift enhances the functionality and security of applications running on Kubernetes but may introduce additional steps when installing applications like Okteto.
 This guide has been crafted to help you overcome these hurdles, but we encourage you to [talk to us](https://www.okteto.com/get-demo/) to guide you during the installation.
 
 ## Installation Requirements
 
-Before you start, make sure you have the following CLIs installed in your machine:
+Before you begin, make sure you have the following command-line interfaces (CLIs) installed on your machine:
 
 - `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
 - `helm` >= 3.14 ([helm installation guides](https://helm.sh/docs/intro/install/))
 - `oc` >= 4.0.0 
 
-You'll also need the following:
+You'll also need:
 
 - An Okteto License
 - A Kubernetes cluster with OpenShift (≥ 4.0.0) installed
@@ -40,9 +40,9 @@ For this guide, you will need to obtain the following values:
 
 A license is mandatory to use Okteto. You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
 
-## Preparing your cluster to install Okteto
+## Preparing your cluster for Okteto installation
 
-Before installing Okteto, you will need to follow these steps.
+Before installing Okteto, prepare your Red Hat OpenShift cluster by following these steps.
 
 ### Create the `okteto` namespace
 
@@ -54,7 +54,9 @@ kubectl create namespace okteto
 
 ### Allow containers as `root` in the `okteto` namespace
 
-By default, running `root` containers in OpenShift is not allowed. Today, most of the Okteto Control Plane runs as `root` (this is something we will fix soon). To allow `root` containers for the Okteto Control Plane components, run the following commands:
+By default, running containers as `root` is not allowed in Red Hat OpenShift.
+Currently, some components of the Okteto Control Plane require `root` privileges (this is something we will fix soon!).
+To allow `root` containers for the Okteto Control Plane components, run the following commands:
 
 ```bash
 oc adm policy add-scc-to-user anyuid -z default -n okteto 
@@ -63,54 +65,65 @@ oc adm policy add-scc-to-user anyuid -z okteto-buildkit -n okteto
 oc adm policy add-scc-to-user anyuid -z okteto-registry -n okteto 
 ```
 
+These commands grant the `anyuid` Security Context Constraint (SCC) to the specified service accounts in the `okteto` namespace, allowing them to run containers as `root`.
+
 ### Grant access to the "privileged" SCC for the Okteto Build service account
 
-By default, running privileged containers in OpenShift is not allowed.
-This restriction impacts the installation of the [Okteto Build](core/build-service.mdx) service.
-To give privileged access to the Okteto Build service, run the following command:
+By default, running privileged containers is not allowed in Red Hat OpenShift.
+This restriction affects the [Okteto Build](core/build-service.mdx) service.
+To grant privileged access to the Okteto Build service account, run:
 
 ```bash
  oc adm policy add-scc-to-user privileged -z okteto-buildkit -n okteto
 ```
 
-### Allow the Okteto Daemon service to access the host
+This command grants the `privileged` SCC to the `okteto-buildkit` service account in the `okteto` namespace.
 
-By default, access to the host in OpenShift is not allowed.
-This restriction impacts the installation of the [Okteto Daemon](self-hosted/helm-configuration.mdx#daemonset) service.
-To give access to the host to the Okteto Daemon run the following command:
+### Grant access to the host to the Okteto Daemon service account
+
+By default, access to the host is restricted by default in Red Hat OpenShift.
+This restriction impacts the he [Okteto Daemon](self-hosted/helm-configuration.mdx#daemonset) service.
+To grant the necessary permissionsto the Okteto Daemon, run:
 
 ```bash
 oc adm policy add-scc-to-user hostaccess -z okteto -n okteto
 ```
 
-### Copy OpenShift wildcard certificate to the `okteto` namespace
+This command grants the `hostaccess` SCC to the `okteto` service account in the `okteto` namespace.
 
-OpenShift provides the wildcard certificate for the wildcard domain `apps.<openshift-base-domain>`.
+### Copy Red Hat OpenShift wildcard certificate to the `okteto` namespace
+
+OpenShift provides the wildcard certificate for the wildcard domain `*.apps.<openshift-base-domain>`.
 We recommend reusing it when installing Okteto to [expose secure and unique endpoints](self-hosted/helm-configuration.mdx#subdomain) for your development environments.
 
-To do that, copy the certificate to the `okteto` namespace:
+Copy the certificate to the `okteto` namespace by running:
 
 ```yaml
 kubectl get secret <openshift-cluster-name>-primary-cert-bundle-secret -n openshift-ingress -o yaml | sed 's/namespace: openshift-ingress/namespace: okteto/' | kubectl apply -f -
 ```
+:::info
+Note: The secret name `<openshift-cluster-name>-primary-cert-bundle-secret` is commonly used in OpenShift 4.x. Replace it with the actual secret name if it's different in your cluster.
+:::
 
-### Get the OpenShift Ingress Controller IP
+### Retrieve the Red Hat OpenShift Ingress Controller IP
 
-We recommend installing Okteto behind the Openshift Ingress controller. To do this, remember the IP of your Openshift Ingress Controller:
+We recommend installing Okteto behind the Red Hat Openshift Ingress Controller.
+Obtain the IP address of your Red Hat OpenShift Ingress Controller by running:
 
 ```bash
 kubectl get svc router-default -n openshift-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
-We will refer to this value using `<ingress-controller-ip>`.
+Store this value as `<ingress-controller-ip>`; you'll use it in the Okteto Helm configuration.
+
 
 ## Installing Okteto
 
-Okteto is installed using a Helm chart. Let's start the process:
+Okteto is installed using a Helm chart. Follow these steps to install it.
 
 ### Add the Okteto Helm repository
 
-You'll need to add the Okteto Helm repository to be able to install Okteto:
+Add the Okteto Helm repository and update it:
 
 ```bash
 helm repo add okteto https://charts.okteto.com
@@ -119,10 +132,8 @@ helm repo update
 
 ### Create the Helm configuration file
 
-In order to install Okteto you need to first create a `config.yaml` for the installation process.
-
-Create the following Helm configuration file for Okteto in, for example, a file called `config.yaml`.
-Remember to replace `<<okteto-license>>`, `<openshift-base-domain>`, `<openshift-cluster-name>` and `<ingress-controller-ip>` with your own values:
+Create a configuration file named `config.yaml` with the following content.
+Replace `<<okteto-license>>`, `<openshift-base-domain>`, `<openshift-cluster-name>`, and `<ingress-controller-ip>` with your actual values:
 
 ```yaml
 license: <<okteto-license>>
@@ -159,10 +170,9 @@ user:
         - system:openshift:scc:anyuid
 ```
 
-The section `extraRoleBindings` allows your developers to use `root` images in their development environments.
-
+The `extraRoleBindings` section allows your developers to use use images that require `root` privileges in their development environments.
 :::tip
-_Note: This is the minimum configuration. Check our [Helm configuration](self-hosted/helm-configuration.mdx) docs to learn more_
+This is the minimum configuration. Check our [Helm configuration documentation](self-hosted/helm-configuration.mdx) to learn more
 :::
 
 ### Installing the Okteto Helm chart
@@ -173,7 +183,9 @@ Install the latest version of Okteto by running:
   {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --version=${variables.chartVersion}`}
 </CodeBlock>
 
-After a few seconds, all the resources will be created. The output will look something like this:
+This command installs Okteto in the `okteto` namespace using the configuration specified in `config.yaml`.
+
+After a few seconds, all the resources will be created. You should see output similar to:
 
 ```bash
 Release "okteto" has been installed. Happy Helming!
@@ -185,6 +197,8 @@ STATUS: deployed
 
 ### Sign in to your Okteto instance
 
-After a successful installation, you can access your Okteto instance at `https://okteto.apps.<openshift-base-domain>`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+After a successful installation, you can access your Okteto instance at `https://okteto.apps.<openshift-base-domain>`.
+
+Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
 
 Once your Okteto instance is up and running, you're going to [install and configure the Okteto CLI](get-started/install-okteto-cli.mdx) with your Okteto instance.
