@@ -178,6 +178,15 @@ module.exports = {
             'admin/registry-credentials/google-artifact-registry',
           ],
         },
+        {
+          type: 'category',
+          label: 'Cloud Credentials',
+          link: { type: 'doc', id: 'admin/cloud-credentials/index' },
+          items: [
+            'admin/cloud-credentials/aws-cloud-credentials',
+            'admin/cloud-credentials/gcp-cloud-credentials',
+          ],
+        },
       ],
     },
     {
