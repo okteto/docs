@@ -20,10 +20,20 @@ GCP credentials are configured using [Workload Identity Federation](https://clou
 
 As a first step let's create a Workload Identity Pool. A Workload Identity Pool is a group of identities that can be used to access GCP resources.
 
+Okteto displays the OIDC endpoint of your cluster in the Admin -> General view of the Dashboard:
+
+  <p align="center">
+     <Image
+       src={require("@site/static/img/amazon-ecr-oidc-config.png").default}
+       alt="OIDC configuration in admin general view"
+     />
+   </p>
+
 ```bash
 PROJECT_ID=my-project-12345
 POOL_ID=okteto-pool
 AUDIENCE=deploy.okteto.dev
+OIDC_ENDPOINT=https://container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development
 
 gcloud iam workload-identity-pools create ${POOL_ID} --location=global --display-name="Okteto pool"
 ```
@@ -38,28 +48,13 @@ Within the pool, let's register the kubernetes cluster as an identity provider.
     --workload-identity-pool=${POOL_ID} \
     --display-name=$(WORKLOAD_PROVIDER_NAME) \
     --attribute-mapping="google.subject=assertion.sub" \
-    --issuer-uri=https://container.googleapis.com/v1/projects/$(PROJECT)/locations/us-east2/clusters/development \
+    --issuer-uri="${OIDC_ENDPOINT}" \
     --allowed-audiences=${AUDIENCE}
 ```
-
-Okteto displays the OIDC endpoint of your cluster in the Admin -> General view of the Dashboard:
-
-  <p align="center">
-     <Image
-       src={require("@site/static/img/amazon-ecr-oidc-config.png").default}
-       alt="OIDC configuration in admin general view"
-     />
-   </p>
 
 Traditionally, `AUDIENCE` is the client id of the requester. You'll only exchange token for these audiences. It is the `aud` field of the JWT payload.
 
 We recommend creating a different/dedicated audience for each Okteto instance and region used, even if you use the same identity provider:
-
-```
-your-okteto-instance.com/112233445566.your-region.amazonaws.com
-```
-
-or the more compact format:
 
 ```
 your-okteto-instance.com/your-region
