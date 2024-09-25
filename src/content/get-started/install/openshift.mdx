@@ -22,7 +22,6 @@ This guide has been crafted to help you overcome these hurdles, but we encourage
 
 Before you begin, make sure you have the following command-line interfaces (CLIs) installed on your machine:
 
-- `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
 - `helm` >= 3.14 ([helm installation guides](https://helm.sh/docs/intro/install/))
 - `oc` >= 4.0.0 
 
@@ -49,7 +48,7 @@ Before installing Okteto, prepare your Red Hat OpenShift cluster by following th
 Run the following command to create the `okteto` namespace:
 
 ```bash
-kubectl create namespace okteto
+oc create namespace okteto
 ```
 
 ### Allow containers as `root` in the `okteto` namespace
@@ -101,8 +100,9 @@ Copy the certificate to the `okteto` namespace by running:
 ```yaml
 kubectl get secret <openshift-cluster-name>-primary-cert-bundle-secret -n openshift-ingress -o yaml | sed 's/namespace: openshift-ingress/namespace: okteto/' | kubectl apply -f -
 ```
+
 :::info
-Note: The secret name `<openshift-cluster-name>-primary-cert-bundle-secret` is commonly used in OpenShift 4.x. Replace it with the actual secret name if it's different in your cluster.
+The secret name `<openshift-cluster-name>-primary-cert-bundle-secret` is the default used in OpenShift 4.x. If you installed OpenShift with your own certificate, refer its secret here.
 :::
 
 ### Retrieve the Red Hat OpenShift Ingress Controller IP
@@ -133,10 +133,14 @@ helm repo update
 ### Create the Helm configuration file
 
 Create a configuration file named `config.yaml` with the following content.
-Replace `<<okteto-license>>`, `<openshift-base-domain>`, `<openshift-cluster-name>`, and `<ingress-controller-ip>` with your actual values:
+Replace `<okteto-license>`, `<openshift-base-domain>`, `<openshift-cluster-name>`, and `<ingress-controller-ip>` with your actual values:
+
+:::tip
+This is the minimum configuration. Check our [Helm configuration documentation](self-hosted/helm-configuration.mdx) to learn more
+:::
 
 ```yaml
-license: <<okteto-license>>
+license: <okteto-license>
 
 openshift:
   enabled: true
@@ -171,8 +175,9 @@ user:
 ```
 
 The `extraRoleBindings` section allows your developers to use use images that require `root` privileges in their development environments.
-:::tip
-This is the minimum configuration. Check our [Helm configuration documentation](self-hosted/helm-configuration.mdx) to learn more
+
+:::info
+If you installed OpenShift with your own certificate and CA, follow this guide to [configure the same certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) in the `wildcardCertificate` section
 :::
 
 ### Installing the Okteto Helm chart
