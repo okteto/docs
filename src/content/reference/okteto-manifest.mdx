@@ -488,19 +488,37 @@ The image pull policy of your development environment (default: `Always`)
 
 #### lifecycle (boolean, optional)
 
-If set to true, postStart and postStop lifecycle events are enabled when running `okteto up` (default: `false`).
-More information about lifecycle events is [available here](https://kubernetes.io/docs/tasks/configure-pod-container/attach-handler-lifecycle-event/).
+Configures lifecycle hooks for your development container. Lifecycle hooks allow you to execute commands when your container starts or stops, enabling you to automate setup or cleanup tasks.
 
-Use the extended notation below to have more control over which events to enable/disable:
+If set to true, both postStart and preStop lifecycle events are enabled when running `okteto up` inheriting the lifecycle from the original container (default: false).
+
+For more information about Kubernetes lifecycle hooks, see the official [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/attach-handler-lifecycle-event/).
+
+```yaml
+lifecycle: true
+```
+
+This enables both postStart and preStop events to use the default commands defined in your Kubernetes deployment.
+
+For more granular control, you can enable or disable specific lifecycle events and define custom commands to run during those events.
+
 
 ```yaml
 lifecycle:
-  postStart: false
-  postStop: true
+  postStart:
+    enabled: true
+    command: "echo 'Container has started'"
+  preStop:
+    enabled: true
+    command: "echo 'Container is stopping'"
 ```
 
-- `postStart`: specifies if the postStart event is enabled when running `okteto up` (default: `false`).
-- `postStop`: specifies if postStop event is enabled when running `okteto up` (default: `false`).
+- postStart:
+  - enabled (boolean): Set to true to enable the postStart event (default: false).
+  - command (string): The command to execute when the container starts.
+- preStop:
+  - enabled (boolean): Set to true to enable the preStop event (default: false).
+  - command (string): The command to execute just before the container stops.
 
 #### metadata (object, optional)
 
