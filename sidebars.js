@@ -25,7 +25,8 @@ module.exports = {
                 "get-started/install/civo",
                 "get-started/install/digitalocean-doks",
                 "get-started/install/google-gke",
-                "get-started/install/microsoft-aks"
+                "get-started/install/microsoft-aks",
+                "get-started/install/openshift"
               ]
             },
             "get-started/install-okteto-cli",
