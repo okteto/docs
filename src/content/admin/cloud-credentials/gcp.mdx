@@ -7,88 +7,115 @@ id: gcp-cloud-credentials
 import Image from "@theme/Image";
 
 
-This tutorial will guide you on how to configure GCP credentials for your Okteto instance. Configuring GCP credentials enables the deploy, test, and destroy commands in your Okteto Manifest to access your GCP account.
+This guide walks you through configuring Google Cloud Platform (GCP) credentials for your Okteto instance to enable the commands in your Okteto Manifests to interact with your GCP account.
 
-In this specific guide we'll request read only access to cloud storage but you can provide access to any other GCP resource by using a role with more/different permissions.
-
-It's recommended that you have the [Google Cloud CLI installed](https://cloud.google.com/sdk/docs/install) to follow this tutorial.
+We will focus on requesting access to Cloud Storage. However, you can extend this approach to grant access to other GCP resources by specifying a role with the necessary permissions.
 
 GCP credentials are configured using [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation).
-
+This provides secure and temporary access to your GCP resources.
 
 ## Step 1: Create the Workload Identity Pool
 
-As a first step let's create a Workload Identity Pool. A Workload Identity Pool is a group of identities that can be used to access GCP resources.
+:::info
+We recommend installing the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) before following this tutorial
+:::
+
+A Workload Identity Pool is a group of identities that can be used to access GCP resources.
+
+First, choose a name for your Workload Identity Pool and export it as an environment variable:
 
 ```bash
-PROJECT_ID=my-project-12345
-POOL_ID=okteto-pool
-AUDIENCE=deploy.okteto.dev
+export POOL_ID=okteto-pool
+```
 
+Next, create the Workload Identity Pool by running the following command:
+
+```bash
 gcloud iam workload-identity-pools create ${POOL_ID} --location=global --display-name="Okteto pool"
 ```
 
-## Step 2: Create the OIDC Identity Provider in the pool
+## Step 2: Register the OIDC Identity Provider
 
-Within the pool, let's register the kubernetes cluster as an identity provider.
+Within the newly created Workload Identity Pool, register your Kubernetes cluster as an OIDC Identity Provider in GCP.
+To do this, Okteto provides the OIDC endpoint of your cluster, which can be found in the General section of your Okteto Admin Dashboard.
 
-```bash
-  gcloud iam workload-identity-pools providers create-oidc my-cluster \
-    --location=global \
-    --workload-identity-pool=${POOL_ID} \
-    --display-name=$(WORKLOAD_PROVIDER_NAME) \
-    --attribute-mapping="google.subject=assertion.sub" \
-    --issuer-uri=https://container.googleapis.com/v1/projects/$(PROJECT)/locations/us-east2/clusters/development \
-    --allowed-audiences=${AUDIENCE}
-```
+<p align="center">
+  <Image
+    src={require("@site/static/img/amazon-ecr-oidc-config.png").default}
+    alt="OIDC configuration in admin general view"
+  />
+</p>
 
-Okteto displays the OIDC endpoint of your cluster in the Admin -> General view of the Dashboard:
-
-  <p align="center">
-     <Image
-       src={require("@site/static/img/amazon-ecr-oidc-config.png").default}
-       alt="OIDC configuration in admin general view"
-     />
-   </p>
-
-Traditionally, `AUDIENCE` is the client id of the requester. You'll only exchange token for these audiences. It is the `aud` field of the JWT payload.
-
-We recommend creating a different/dedicated audience for each Okteto instance and region used, even if you use the same identity provider:
-
-```
-your-okteto-instance.com/112233445566.your-region.amazonaws.com
-```
-
-or the more compact format:
-
-```
-your-okteto-instance.com/your-region
-```
-
-### Step 3: Create the IAM policy binding
-
-Give the Okteto Kubernetes service account the permissions to access the GCP resources needed:
+Store these values as environment variables, you will use them in the next steps:
 
 ```bash
-PROJECT=my-project-12345
-PRINCIPAL=iam.googleapis.com/projects/${PROJECT_ID}/locations/global/workloadIdentityPools/${POOL_ID}/subject/system:serviceaccount:okteto:okteto
+export OIDC_ENDPOINT=https://container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
+export OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
+```
+
+The `AUDIENCE` is traditionally the client ID of the requester, and tokens will only be exchanged for these audiences.
+It corresponds to the `aud` field in the JWT payload. We recommend creating a unique audience for each Okteto instance and GCP region:
+For example:
+
+```bash
+export AUDIENCE=okteto.example.com/us-central1
+```
+
+Run the following command to create the identity provider:
+
+```bash
+gcloud iam workload-identity-pools providers create-oidc myCluster \
+  --location=global \
+  --workload-identity-pool=${POOL_ID} \
+  --display-name="Okteto Identity Provider" \
+  --attribute-mapping="google.subject=assertion.sub" \
+  --issuer-uri="${OIDC_ENDPOINT}" \
+  --allowed-audiences=${AUDIENCE}
+```
+
+### Step 3: Create the IAM Policy Binding
+
+Now, grant the Okteto Kubernetes service account the permissions required to access the specified GCP resources.
+
+First, set the following variables:
+
+```bash
+export PROJECT=myProject
+export PRINCIPAL=iam.googleapis.com/projects/${PROJECT_ID}/locations/global/workloadIdentityPools/${POOL_ID}/subject/${OKTETO_SERVICE_ACCOUNT}
+```
+
+Next, run the following command to bind the appropriate IAM role to the service account:
+
+```bash
 gcloud projects add-iam-policy-binding ${PROJECT} --role=roles/storage.admin --member=principal://${PRINCIPAL} --condition=None
 ```
 
+This grants the Okteto service account permission to access Cloud Storage resources.
 
-## Step 4: Configure the credentials in Okteto
+## Step 4: Configure GCP Cloud Credentials in Okteto
 
-Enable GCP in the [Cloud Credentials view](index.mdx) with the following configuration:
+Now that you've created the IAM Policy Binding, the final step is to configure the GCP credentials in Okteto.
 
-- **Project**: The GCP project id where the resources are located
-- **Workload Pool ID**: The Pool ID used in previous steps
-- **Provider ID**: The OIDC Provider ID used in previous steps
-- **Audience**: The Audience used for the Identity Provider
+Go to the [Cloud Credentials view](index.mdx) view in the Okteto Admin dashboard and enable the GCP Workload ID option:
 
+<p align="center">
+  <Image
+    src={require("@site/static/img/gcp-cloud-credentials.png").default}
+    alt="GCP Workload ID"
+  />
+</p>
 
-This will allow Okteto to access the desired GCP resources in okteto deploy, test, and destroy commands.
+Provide the following information:
 
-With the above configuration the following Okteto Manifest will be able to access storage buckets out of the box for all three commands:
+- **Project**: The GCP project id `PROJECT` where the resources are located
+- **Workload Pool ID**: The Pool ID `POOL_ID` you created in Step 1
+- **Provider ID**: The OIDC Provider ID created in Step 2
+- **Audience**: The Audience `AUDIENCE` you specified during the Identity Provider setup
+
+## Example Okteto Manifest
+
+With the configuration complete, the following Okteto Manifest can interact with the specified storage buckets:
+
 
 ```yaml
 deploy:
@@ -96,14 +123,14 @@ deploy:
   commands:
     - gcloud storage buckets create gs://test-bucket
 
-destroy:
-  image: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
-  commands:
-    - gcloud storage buckets delete gs://test-bucket
-
 test:
   aws:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
     commands:
       - gcloud storage ls | grep test-bucket
+
+destroy:
+  image: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+  commands:
+    - gcloud storage buckets delete gs://test-bucket
 ```

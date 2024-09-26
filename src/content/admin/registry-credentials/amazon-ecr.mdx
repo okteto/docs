@@ -13,13 +13,18 @@ ECR credentials can be configured with either static credentials belonging to an
 
 ## Using IAM User credentials
 
-The steps to configure your private ECR with Okteto are: 
+The steps to configure access to your private ECR using IAM User credentials are: 
 
 - Create a user with access to your private ECR
 - Retrieve the user credentials
 - Configure the credentials in Okteto
 
 ### Step 1: Create a user with access to your private ECR
+
+:::info
+We recommend installing the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) before following this tutorial
+:::
+
 
 Create IAM user with the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/iam/create-user.html) by executing:
 
@@ -42,7 +47,7 @@ Create IAM user access key with the [AWS CLI](https://docs.aws.amazon.com/cli/la
 aws iam create-access-key --user-name private-registry-user
 ```
 
-```bash
+```yaml
 {
     "AccessKey": {
         "UserName": "private-registry-user",
@@ -65,54 +70,74 @@ Add the following registry credentials to the [Admin Registry Credentials view](
 - **Username**: `AccessKeyId` from the previous step
 - **Password**: `SecretAccessKey` from the previous step
 
-## Using OpenID Connect (OIDC) Federation
+## Using IAM Roles via OpenID Connect (OIDC) Federation
 
-### Step 1: Create the Identity Provider
+The steps to configure access to your private ECR using IAM Roles via OpenID Connect (OIDC) Federation are : 
+
+- Register the Identity Provider
+- Create the IAM Role and Grant Access to ECR
+- Configure the credentials in Okteto
+
+### Step 1: Register the Identity Provider
+
+:::info
+We recommend installing the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) before following this tutorial
+:::
+
+The first step in configuring access to your private ECR is to register your Kubernetes cluster as an OIDC identity provider in AWS.
+To do this, Okteto provides the OIDC endpoint of your cluster, which can be found in the General section of your Okteto Admin Dashboard.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/amazon-ecr-oidc-config.png").default}
+    alt="OIDC configuration in admin general view"
+  />
+</p>
+
+Store these values as environment variables, you will use them in the next steps:
 
 ```bash
-OIDC_ENDPOINT=https://container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development
-AUDIENCE=registry.okteto.dev
+export OIDC_ENDPOINT=https://container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
+export OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
+```
+
+The `AUDIENCE` is traditionally the client ID of the requester, and tokens will only be exchanged for these audiences.
+It corresponds to the `aud` field in the JWT payload. We recommend creating a unique audience for each Okteto instance and AWS region.
+For example:
+
+```bash
+export AUDIENCE=okteto.example.com/us-east-2
+```
+
+Next, run the following command to create the OIDC identity provider in AWS:
+
+
+```bash
 aws iam create-open-id-connect-provider --url "${OIDC_ENDPOINT}" --client-id-list "${AUDIENCE}"
+```
+
+Once successful, you’ll see a response similar to:
+
+```yaml
 {
-    "OpenIDConnectProviderArn": "arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development"
+    "OpenIDConnectProviderArn": "arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster"
 }
 ```
 
-Okteto displays the OIDC endpoint of your cluster in the admin general view:
-
-   <p align="center">
-     <Image
-       src={require("@site/static/img/amazon-ecr-oidc-config.png").default}
-       alt="OIDC configuration in admin general view"
-     />
-   </p>
-
-Traditionally, `AUDIENCE` is the client id of the requester. You'll only exchange token for these audiences. It is the `aud` field of the JWT payload.
-
-We recommend creating a different/dedicated audience for each okteto cluster and region used even if you use the same identity provider:
-
-```
-your-okteto-instance.com/112233445566.dkr.ecr.your-region.amazonaws.com
-```
-
-or the more compact format:
-
-```
-your-okteto-instance.com/your-region
-```
-
-
-### Step 2: Create the Role
-
-
-First create the role and allow it to access EC2:
+Store this value in an environment variable, you'll use in the next step:
 
 ```bash
-# ROLE_ARN is the OpenIDConnectProviderArn role name created in step 1
-ROLE_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development
-AUDIENCE=registry.okteto.dev
-OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
-cat <<EOT > trust-policy.json
+export ROLE_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
+```
+
+### Step 2: Create the IAM Role and Grant Access to ECR
+
+In this step, you'll create an IAM Role that allows access to ECR and configure it to be assumed using the OIDC identity provider created in the previous.
+
+First, create the trust policy that allows the IAM Role to be assumed by the OIDC identity provider.
+Save the following content to a file named `trust-policy.json` (replace your environment variables):
+
+```yaml title="trust-policy.json"
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -124,16 +149,24 @@ cat <<EOT > trust-policy.json
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development:aud": "${AUDIENCE}",
-          "container.googleapis.com/v1/projects/my-project-12345/locations/us-central1/clusters/development:sub": "${OKTETO_SERVICE_ACCOUNT}"
+          "${OIDC_ENDPOINT}:aud": "${AUDIENCE}",
+          "${OIDC_ENDPOINT}:sub": "${OKTETO_SERVICE_ACCOUNT}"
         }
       }
     }
   ]
 }
-EOT
+```
 
+Run the following command to create the IAM Role in AWS with the trust policy you defined:
+
+```bash
 aws iam create-role --role-name my-private-registry --assume-role-policy-document file://trust-policy.json
+```
+
+You will receive a response similar to this:
+
+```yaml
 {
     "Role": {
         "Path": "/",
@@ -157,20 +190,19 @@ aws iam create-role --role-name my-private-registry --assume-role-policy-documen
 }
 ```
 
-Attach an EC2 Container Registry policy that allows you to pull and push from the registry:
+Now, attach an ECR policy to allow pulling from the registry:
 
 ```bash
-aws iam attach-role-policy --role-name my-private-registry --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
+aws iam attach-role-policy --role-name my-private-registry --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 ```
-
-If you only need read access you can use `AmazonEC2ContainerRegistryReadOnly` instead.
-
 
 ### Step 3: Configure the credentials in Okteto
 
-Add the following registry credentials to the [Admin Registry Credentials view](index.mdx#add-registry-credentials):
+Now that you've created the IAM Role, the final step is to configure the credentials in Okteto.
+
+Go to the [Registry Credentials view](index.mdx) view in the Okteto Admin dashboard and provide the following information:
 
 - **Type**: `AWS IAM Role`
 - **Hostname**: The ECR registry endpoint is `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
-- **Role ARN**: The Role ARN from the previous step
-- **Audience**: The Audience used for the Identity Provider
+- **Role ARN**: The Role ARN `ROLE_ARN` you created in Step 1
+- **Audience**: The Audience `AUDIENCE` you specified during the Identity Provider setup
