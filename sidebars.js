@@ -156,7 +156,6 @@ module.exports = {
       items: [
         'admin/dashboard',
         'admin/catalog',
-        'admin/resource-manager',
         'admin/cleanup',
         'admin/okteto-insights',
         {
