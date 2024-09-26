@@ -28,7 +28,7 @@ Before you begin, make sure you have the following command-line interfaces (CLIs
 You'll also need:
 
 - An Okteto License
-- A Kubernetes cluster with OpenShift (≥ 4.0.0) installed
+- A Kubernetes cluster with Red Hat OpenShift (≥ 4.0.0) installed
 
 For this guide, you will need to obtain the following values:
 
@@ -92,18 +92,18 @@ This command grants the `hostaccess` SCC to the `okteto` service account in the 
 
 ### Copy Red Hat OpenShift wildcard certificate to the `okteto` namespace
 
-OpenShift provides the wildcard certificate for the wildcard domain `*.apps.<openshift-base-domain>`.
+Red Hat OpenShift requires a wildcard certificate for the wildcard domain `*.apps.<openshift-base-domain>`.
 We recommend reusing it when installing Okteto to [expose secure and unique endpoints](self-hosted/helm-configuration.mdx#subdomain) for your development environments.
 
-Copy the certificate to the `okteto` namespace by running:
+By default, Red Hat OpenShift creates the wildcard certificate in the secret `<openshift-cluster-name>-primary-cert-bundle-secret` in the `openshift-ingress`.
+In this case, copy the certificate to the `okteto` namespace by running:
 
-```yaml
+```bash
 kubectl get secret <openshift-cluster-name>-primary-cert-bundle-secret -n openshift-ingress -o yaml | sed 's/namespace: openshift-ingress/namespace: okteto/' | kubectl apply -f -
 ```
 
-:::info
-The secret name `<openshift-cluster-name>-primary-cert-bundle-secret` is the default used in OpenShift 4.x. If you installed OpenShift with your own certificate, refer its secret here.
-:::
+If you installed OpenShift with a custom certificate, copy the certificate's secret (and CA if needed) to the `okteto` namespace.
+This guide explains [how to configure a custom certificate and CA](self-hosted/install/certificates/bring-your-own-certificate.mdx) in Okteto.
 
 ### Retrieve the Red Hat OpenShift Ingress Controller IP
 
@@ -134,10 +134,6 @@ helm repo update
 
 Create a configuration file named `config.yaml` with the following content.
 Replace `<okteto-license>`, `<openshift-base-domain>`, `<openshift-cluster-name>`, and `<ingress-controller-ip>` with your actual values:
-
-:::tip
-This is the minimum configuration. Check our [Helm configuration documentation](self-hosted/helm-configuration.mdx) to learn more
-:::
 
 ```yaml
 license: <okteto-license>
@@ -176,8 +172,8 @@ user:
 
 The `extraRoleBindings` section allows your developers to use use images that require `root` privileges in their development environments.
 
-:::info
-If you installed OpenShift with your own certificate and CA, follow this guide to [configure the same certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) in the `wildcardCertificate` section
+:::tip
+This is the minimum configuration. Check our [Helm configuration documentation](self-hosted/helm-configuration.mdx) to learn more
 :::
 
 ### Installing the Okteto Helm chart
