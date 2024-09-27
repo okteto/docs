@@ -76,8 +76,6 @@ It can also be an object with these fields:
 - `dockerfile`: the path to the Dockerfile. It is a relative path to the build context (default: `Dockerfile`)
 - `target`: build the specified stage as defined inside the Dockerfile. See the multi-stage build [Docker official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on, which can be helpful for secret or machine-specific values.
-- `export_cache`: image tag for exported cache when build.
-- `cache_from`: list of images to import cache from.
 
 ```yaml
 build:
@@ -89,8 +87,7 @@ build:
     - ENV2=$VALUE
 ```
 
-`okteto deploy --build` builds a new docker image, pushes it to the registry and redeploys your containers.
-By default, it builds the images using the [Okteto Build Service](core/build-service.mdx). Set the variable `BUILDKIT_HOST` if you want to use your own BuildKit instance.
+`okteto deploy` builds a new docker image, pushes it to the registry and redeploys your containers.
 
 #### cap_add ([string], optional)
 
@@ -252,6 +249,37 @@ labels:
   app: sample
 ```
 
+You can set the update policy of a service by setting the label `dev.okteto.com/update`.
+
+Depending on the kind of resource the acceptance values are different:
+- rolling:  Will deploy a service with zero downtime. Only allowed for deployments and stateful sets.
+- recreate: Will wait until the current pod is deleted to start creating the new one. Only allowed on deployments.
+- on-delete: Will wait until the current pod is deleted to start creating the new one. Only allowed on stateful sets.
+
+```yaml
+services:
+  deployment:
+    image: python:alpine
+    labels:
+      "dev.okteto.com/update": rolling
+    entrypoint: python -m http.server 8080
+    ports:
+      - 8080:8080
+  sfs:
+    image: python:alpine
+    labels:
+      "dev.okteto.com/update": on-delete
+    entrypoint: python -m http.server 8080
+    ports:
+      - 8080:8080
+    volumes:
+    - /usr/src
+```
+
+:::info
+Remember that Docker Compose labels are translated into Kubernetes annotations.
+:::
+
 #### ports ([int], optional)
 
 Ports exposed by each service. By default, they're only accessible from the cluster private network.
@@ -298,14 +326,6 @@ The following ports are never made public:
 
 If you need make these ports public, you can use [endpoints](reference/docker-compose.mdx#endpoints-object-optional).
 
-#### scale (int, optional)
-
-Specify the number of containers running for each service (default: `1`).
-
-```yaml
-scale: 2
-```
-
 #### resources (object, optional)
 
 Configure resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits).
@@ -349,6 +369,14 @@ deploy:
 ```
 
 If the restart policy is other than always, the service will be translated to a Kubernetes Job.
+
+#### scale (int, optional)
+
+Specify the number of containers running for each service (default: `1`).
+
+```yaml
+scale: 2
+```
 
 #### stop_grace_period (duration|int, optional)
 
@@ -423,15 +451,6 @@ volumes:
 
 Each volume has the following properties:
 
-#### labels (string, optional)
-
-Specify labels for the volume. They translates to Kubernetes annotations.
-
-```yaml
-labels:
-  app: redis
-```
-
 #### driver_opts.class (string, optional)
 
 Specify the storage class of the volume.
@@ -448,6 +467,15 @@ Specify the size of the volume. Defaults to 1Gi.
 ```yaml
 driver_opts:
   size: 1Gi
+```
+
+#### labels (string, optional)
+
+Specify labels for the volume. They will translate to Kubernetes annotations.
+
+```yaml
+labels:
+  app: redis
 ```
 
 ## Environment variables
@@ -600,38 +628,3 @@ endpoints:
       service: backend
       port: 8080
 ```
-
-### update (annotation, optional)
-
-You can set the update policy of a service by setting the annotation `dev.okteto.com/update`.
-
-Depending on the kind of resource the acceptance values are different:
-- rolling:  Will deploy a service with zero downtime. Only allowed for deployments and stateful sets.
-- recreate: Will wait until the current pod is deleted to start creating the new one. Only allowed on deployments.
-- on-delete: Will wait until the current pod is deleted to start creating the new one. Only allowed on stateful sets.
-
-```yaml
-services:
-  deployment:
-    image: python:alpine
-    labels:
-      "dev.okteto.com/update": rolling
-    entrypoint: python -m http.server 8080
-    ports:
-      - 8080:8080
-  sfs:
-    image: python:alpine
-    labels:
-      "dev.okteto.com/update": on-delete
-    entrypoint: python -m http.server 8080
-    ports:
-      - 8080:8080
-    volumes:
-    - /usr/src
-```
-
-:::info
-
-Remember that if you are on a docker-compose file the labels are translated into kubernetes annotations.
-
-:::

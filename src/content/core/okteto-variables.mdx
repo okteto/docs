@@ -92,7 +92,35 @@ deploy:
 
 ### Sharing variables between commands
 
-As mentioned in the section [Scope](#scope), variables defined in a specific command item are only available to that item by default. In the following sections, there are two ways to share values between steps.
+As mentioned in the section [Scope](#scope), variables defined in each command of your deploy/destroy/test sections only available to that item by default.
+
+For example, here we have two command items, in which the variable `MY_VAR` is **not propagated**:
+
+```
+deploy:
+  - export MY_VAR=hello
+  - echo $MY_VAR # -> '' (empty)
+```
+
+In the following sections, you will see different ways to share values between steps or CLI commands.
+
+#### Sharing Variables Between Deploy and Destroy
+
+Okteto automatically shares variables passed with the `--var` flag during the `deploy` command with the `destroy` command. This ensures consistent configuration across both deployment and teardown processes without the need to redefine variables.
+
+For example:
+
+```
+$ okteto deploy --var MY_VAR=hello
+```
+
+In your destroy section, you can access the `MY_VAR` variable:
+
+```
+destroy:
+  commands:
+    - echo $MY_VAR # -> 'hello'
+```
 
 #### Multi-line Command
 

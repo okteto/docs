@@ -11,6 +11,8 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 The Okteto Manifest has four main sections: `build`, `deploy`, `test` and `dev`, to define how to build, deploy, test, and develop your development environment.
 
+The open-source version of Okteto supports features within the `dev` section of the Okteto Manifest. For a complete comparison of features, refer to the [open-source README](https://github.com/okteto/okteto/?tab=readme-ov-file#okteto-open-source-cli-features).
+
 ## Example
 
 ```yaml
@@ -65,37 +67,19 @@ build:
 
 Each image supports the following fields:
 
-- `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](core/container-registry.mdx) is used).
+- `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine Okteto is running on.
 - `context`: the build context. Relative paths are relative to the location of the Okteto Manifest (default: `.`)
-- `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`)
-- `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
-- `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on.
-- `secrets`: list of secrets exposed to the build. The value of each secret refers to a file. Okteto will resolve references containing a `$` sign in this file to environment variables on the machine okteto is running on.
-- `export_cache`: image tag for exported cache when build.
-- `cache_from`: list of images to import cache from.
 - `depends_on`: list of images that need to be built first.
+- `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`)
+- `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](core/container-registry.mdx) is used).
+- `secrets`: list of secrets exposed to the build. The value of each secret refers to a file. Okteto will resolve references containing a `$` sign in this file to environment variables on the machine Okteto is running on.
+- `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
 
 Follow this document for a list of [environment variables](reference/okteto-cli.mdx#deploy) available in your deploy commands to refer to the images built in the `build` section of your Okteto Manifest.
 
 > Okteto will automatically add all the build environment variables from all previous images in the dependency chain as build arguments. To refer to them, remember to add the `ARG` instruction on your Dockerfile.
-
-### context (string, optional)
-
-The okteto context when the development environment is deployed. By default, it uses the current okteto context.
-
-For example, to force that your development environment is always created on your _minikube_ context, you can define:
-
-```yaml
-context: minikube
-```
-
-You can use an environment variable to replace the context field, or any part of it:
-
-```yaml
-context: $DEV_CONTEXT
-```
 
 ### dependencies ([string], optional)
 
@@ -343,6 +327,8 @@ Each development container supports the following fields:
 #### affinity (Affinity, optional)
 
 Affinity allows you to constrain which nodes your development container is eligible to be scheduled on, based on labels on the node.
+More information about Kubernetes affinities is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity).
+
 
 ```yaml
 affinity:
@@ -356,8 +342,6 @@ affinity:
                 - web-server
         topologyKey: kubernetes.io/hostname
 ```
-
-More information about affinity is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity).
 
 #### autocreate (bool, optional)
 
@@ -385,12 +369,12 @@ The name of the container in your deployment you want to put on development mode
 
 Add environment variables to your development container. If a variable already exists on your deployment, it will be overridden with the value specified on the manifest.
 
-Environment variables with only a key, or with a value with a `$` sign resolve to their values on the machine okteto is running on, which can be helpful for secret or machine-specific values.
+Environment variables with only a key, or with a value with a `$` sign resolve to their values on the machine Okteto is running on, which can be helpful for secret or machine-specific values.
 
 ```yaml
 environment:
   environment: development
-  name: user-${USER:peter} ## will be replaced by the value of $USER or by "peter" if the the variable USER doe not exist
+  name: user-${USER:peter} ## will be replaced by the value of $USER or by "peter" if the variable USER does not exist
   DBPASSWORD: ## will be given the value of $DBPASSWORD if it exists
 ```
 
@@ -408,7 +392,7 @@ Environment variables declared in the environment section override these values.
 
 #### externalVolumes ([string], optional)
 
-A list of persistent volume claims (not managed by okteto) that you want to mount in your development container.
+A list of persistent volume claims (not managed by Okteto) that you want to mount in your development container.
 This is useful to share cache information between different development containers.
 For example, to share the go cache between different development containers, you could define:
 
@@ -417,7 +401,7 @@ externalVolumes:
   - go-cache:/root/.cache/go-build/
 ```
 
-on different okteto manifests. You can also mount a relative subpath of a given persistent volume claim:
+on different Okteto Manifests. You can also mount a relative subpath of a given persistent volume claim:
 
 ```yaml
 externalVolumes:
@@ -504,19 +488,37 @@ The image pull policy of your development environment (default: `Always`)
 
 #### lifecycle (boolean, optional)
 
-If set to true, postStart and postStop lifecycle events are enabled when running `okteto up` (default: `false`).
-More information about lifecycle events is [available here](https://kubernetes.io/docs/tasks/configure-pod-container/attach-handler-lifecycle-event/).
+Configures lifecycle hooks for your development container. Lifecycle hooks allow you to execute commands when your container starts or stops, enabling you to automate setup or cleanup tasks.
 
-Use the extended notation below to have more control over which events to enable/disable:
+If set to true, both postStart and preStop lifecycle events are enabled when running `okteto up` inheriting the lifecycle from the original container (default: false).
+
+For more information about Kubernetes lifecycle hooks, see the official [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/attach-handler-lifecycle-event/).
+
+```yaml
+lifecycle: true
+```
+
+This enables both postStart and preStop events to use the default commands defined in your Kubernetes deployment.
+
+For more granular control, you can enable or disable specific lifecycle events and define custom commands to run during those events.
+
 
 ```yaml
 lifecycle:
-  postStart: false
-  postStop: true
+  postStart:
+    enabled: true
+    command: "echo 'Container has started'"
+  preStop:
+    enabled: true
+    command: "echo 'Container is stopping'"
 ```
 
-- `postStart`: specifies if the postStart event is enabled when running `okteto up` (default: `false`).
-- `postStop`: specifies if postStop event is enabled when running `okteto up` (default: `false`).
+- postStart:
+  - enabled (boolean): Set to true to enable the postStart event (default: false).
+  - command (string): The command to execute when the container starts.
+- preStop:
+  - enabled (boolean): Set to true to enable the preStop event (default: false).
+  - command (string): The command to execute just before the container stops.
 
 #### metadata (object, optional)
 
@@ -542,21 +544,25 @@ More information about development modes is [available here](development/contain
 #### nodeSelector (map[string]string, optional)
 
 List of labels that the node must have to include the development container on it.
+More information about Kubernetes node selectors is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
 ```yaml
 nodeSelector:
   disktype: ssd
 ```
 
-More information about nodeSelector is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
 #### persistentVolume (object, optional)
 
 Allows you to configure the okteto persistent volume:
 
 - `enabled`: enable/disable the use of persistent volumes (default: `true`)
-- `storageClass`: the storage class of the volume (default: the `default` storage class)
-- `size`: the size of the okteto persistent volume (default: `5Gi`)
+- `accessMode`: the Okteto persistent volume [access mode](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) (default: `ReadWriteOnce`)
+- `annotations`: add annotations to the Okteto persistent volume
+- `labels`: add labels to the Okteto persistent volume
+- `size`: the size of the Okteto persistent volume (default: `5Gi`)
+- `storageClass`: the storage class of the Okteto persistent volume (default: the `default` storage class in your cluster)
+- `volumeMode`: the Okteto persistent volume [mode](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#volume-mode) (default: `Filesystem`)
 
 ```yaml
 persistentVolume:
@@ -569,13 +575,12 @@ Note the following limitations:
 
 - `persistentVolume.enabled` must be `true` if you use [services](reference/okteto-manifest.mdx#services-object-optional).
 - `persistentVolume.enabled` must be `true` if you use [volumes](reference/okteto-manifest.mdx#volumes-string-optional).
-- `persistentVolume.enabled` must be `true` if you want to share command history across development containers while developing an app.
+- `persistentVolume.enabled` must be `true` if you want to share command history across development containers between different `okteto up` sessions.
 
 #### probes (boolean, optional)
 
 If set to true, liveness, readiness, and start probes are enabled when running `okteto up` (default: `false`).
-
-More information about probes is [available here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
+More information about Kubernetes probes is [available here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
 
 Use the extended notation below to have more control over which probes to enable/disable:
 
@@ -719,7 +724,6 @@ The supported keys for containers defined in this section are:
 1. `image`
 1. `labels`
 1. `name`
-1. `namespace`
 1. `resources`
 1. `sync`
 1. `tolerations`
@@ -753,7 +757,7 @@ sync:
 > Use the `.stignore` file on each local folder to avoid synchronizing build artifacts, dependencies, or git metadata. [More information is available here](reference/file-synchronization.mdx)
 
 File sync can only update files that can be modified by your development container User ID.
-If you are using okteto with persistent volumes, remember to set the field [securityContext.runAsUser](#securitycontext-object-optional) if your development container User ID is not `root`.
+If you are using Okteto with persistent volumes, remember to set the field [securityContext.runAsUser](#securitycontext-object-optional) if your development container User ID is not `root`.
 
 > You can use [secrets](reference/okteto-manifest.mdx#secrets-string-optional) to synchronize a single file instead of a folder
 
@@ -792,6 +796,8 @@ timeout:
 #### tolerations ([object], optional)
 
 A list of tolerations that will be injected into your development container.
+More information about Kubernetes tolerations is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
+
 
 ```yaml
 tolerations:
@@ -824,7 +830,7 @@ Sets the working directory of your development container.
 
 ### external (object, optional)
 
-A list of external resources that are part of your development environment.  Use this section for resources that are deployed outside of the okteto cluster, like Cloud resources or dashboards.
+A list of external resources that are part of your development environment.  Use this section for resources that are deployed outside of the Okteto cluster, like Cloud resources or dashboards.
 
 ```yaml
 external:
@@ -1021,16 +1027,6 @@ The icon associated to your development environment in the Okteto UI (optional).
 
 The name of your development environment. It defaults to the name of your git repository.
 
-### namespace (string, optional)
-
-The namespace where the development environment is deployed. By default, it takes the current okteto context namespace.
-
-You can use an environment variable to replace the namespace field, or any part of it:
-
-```yaml
-namespace: $DEV_NAMESPACE
-```
-
 ### test (object, optional)
 
 A dictionary of Test Containers to run tests using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
@@ -1060,11 +1056,17 @@ test:
 
 Each key is the name of your Test Container, and it has the following fields:
 
-#### image (string, optional)
+#### artifacts ([string], optional)
 
-The base image used to run your test.
+A list of files and/or folder to be exported after the execution of the tests. They will be added relative to root context of the tests. If you want to export coverage reports and test results this is where they should go.
 
-If it is not defined, Okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin specifically changed it [here](self-hosted/helm-configuration.mdx#installer) with a [custom installer image](admin/custom-installer-image.mdx)
+#### caches ([string], optional)
+
+A list of cache mounts to be used as part of running the tests. This is used to speed up recurrent test executions where, for example, dependencies will not be reinstalled and will instead be mounted from the cache.
+
+#### commands ([string], required)
+
+Provide a list of commands to run the tests. For the tests to be considered successful, each command must exit with a zero exit code. If any command returns a non-zero exit code, the Test Container will be marked as failed.
 
 #### context (string, optional)
 
@@ -1074,21 +1076,9 @@ The folder to use as the root for running the tests. If this is empty, the locat
 If `context` is used, the `.oktetoignore` file must be place in the `context` folder
 :::
 
-#### commands ([string], required)
-
-A list of commands to execute the tests. For tests to pass, all these commands should exit with a zero code, otherwise the Test Container is marked as failed.
-
 #### depends_on ([string], optional)
 
 A list of Test Containers this test depends on. When a Test Container is executed, all its dependencies are executed first. The Test Containers defined in `depends_on` must exist in the current Okteto Manifest.
-
-#### artifacts ([string], optional)
-
-A list of files and/or folder to be exported after the execution of the tests. They will be added relative to root context of the tests. If you want to export coverage reports and test results this is where they should go.
-
-#### caches ([string], optional)
-
-A list of cache mounts to be used as part of running the tests. This is used to speed recurrent execution where, for example, dependencies will not be reinstalled and will instead will be mounted from the cache.
 
 #### hosts ([string], optional)
 
@@ -1101,6 +1091,12 @@ hosts:
     ip: 127.0.0.1
 ```
 
+#### image (string, optional)
+
+The base image used to run your test.
+
+If it is not defined, Okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin has specifically changed it [here](self-hosted/helm-configuration.mdx#installer) with a [custom installer image](admin/custom-installer-image.mdx)
+
 ## Environment variables
 
 There are multiple parts of the Okteto Manifest that deal with environment variables in one sense or another.
@@ -1108,7 +1104,7 @@ This section should help you find the information you need.
 
 ### Substitute environment variables
 
-It’s possible to use environment variables in your shell to populate values inside an okteto manifest:
+It’s possible to use environment variables in your shell to populate values inside an Okteto Manifest:
 
 ```yaml
 image: "node:${TAG}"

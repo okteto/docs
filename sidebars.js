@@ -25,7 +25,8 @@ module.exports = {
                 "get-started/install/civo",
                 "get-started/install/digitalocean-doks",
                 "get-started/install/google-gke",
-                "get-started/install/microsoft-aks"
+                "get-started/install/microsoft-aks",
+                "get-started/install/openshift"
               ]
             },
             "get-started/install-okteto-cli",
@@ -176,6 +177,15 @@ module.exports = {
             'admin/registry-credentials/azure-acr',
             'admin/registry-credentials/dockerhub',
             'admin/registry-credentials/google-artifact-registry',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Cloud Credentials',
+          link: { type: 'doc', id: 'admin/cloud-credentials/index' },
+          items: [
+            'admin/cloud-credentials/aws-cloud-credentials',
+            'admin/cloud-credentials/gcp-cloud-credentials',
           ],
         },
       ],

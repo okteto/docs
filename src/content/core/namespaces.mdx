@@ -35,14 +35,14 @@ As a common pattern, you might name your Namespace by feature number, ticket num
 Development Environments in Namespaces are pulled from git branches, which is why you may want to be running multiple Namespaces at the same time.
 :::
 
-The Okteto Dashboard allows you to easily create, [sleep](admin/cleanup.mdx#sleeping-resources), and [wake up](admin/cleanup.mdx#wake-sleeping-resources) your Namespaces with a simple click. Specifically, you can use the Sleep and Wake dialogs for controlling your Namespace's state.
+The Okteto Dashboard allows you to easily create, [sleep](admin/cleanup.mdx#sleeping-resources), and [wake up](admin/cleanup.mdx#manually-wake-sleeping-resources) your Namespaces with a simple click. Specifically, you can use the Sleep and Wake dialogs for controlling your Namespace's state.
 
 If you prefer to use the command line, here are the Namespace management options available:
 
 - Create a namespace with `okteto namespace create`
 - Set your kubectl configuration to use your namespace with `okteto kubeconfig`
 - Delete a non-personal namespace using `okteto namespace delete`
-- [Sleep](admin/cleanup.mdx#sleeping-resources) or [wake up](admin/cleanup.mdx#wake-sleeping-resources) your namespace with `okteto namespace sleep [name]` and `okteto namespace wake [name]` commands respectively
+- [Sleep](admin/cleanup.mdx#sleeping-resources) or [wake up](admin/cleanup.mdx#manually-wake-sleeping-resources) your namespace with `okteto namespace sleep [name]` and `okteto namespace wake [name]` commands respectively
 
 :::tip
 Administrators can specify a global, default threshold for automatically sleeping a namespace in the [garbage collection](self-hosted/helm-configuration.mdx#gc) configuration.
@@ -105,6 +105,7 @@ Through the Okteto Dashboard, Admins can perform all operations on any Namespace
 - Accessing all resources and sub-resources within any Development Environment
 - [Transferring Namespace ownership](core/namespaces.mdx#transfer-namespace-ownership) between developers
 - Admins can fine tune a Developer access to Namespaces by configuring [the `serviceAccounts` section within the Okteto Helm configuration](self-hosted/helm-configuration.mdx#serviceaccounts).
+- Configure cpu, memory, pods and storage quotas for each Namespace using [the `quotas` section within the Okteto Helm configuration](self-hosted/helm-configuration.mdx#quotas).
 
 ### Transfer Namespace ownership
 
@@ -148,3 +149,24 @@ To do so, navigate to the Okteto UI -> Admin -> Namespaces then locate the Names
 The [Okteto Garbage Collector](self-hosted/helm-configuration.mdx#gc) service can automatically scale down [idle applications](admin/cleanup.mdx#inactive-applications-and-resources) and delete unused namespaces for optimal cost savings and resource management.
 
 Please see our [resource cleanup guide](admin/cleanup.mdx) to see the management options available and how to configure them.
+
+### Configure Namespace quotas
+
+Administrators can manage resource allocation by setting [quotas](self-hosted/helm-configuration.mdx#quotas) for each Namespace.
+These quotas limit the maximum resources that can be used per Namespace.
+
+When enabled, the Okteto dashboard displays the following quotas on the Namespace view:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/quotas.png").default}
+    alt="namespace quotas"
+    width="500"
+  />
+</p>
+
+
+- **CPU**: Configured with `quotas.requests.cpu`. Limits the total cpu resource requests per namespace.
+- **Memory**: Configured with `quotas.requests.memory`. Limits the total memory resource requests per namespace.
+- **Storage**: Configured with `quotas.requests.storage`. Limits the total volume storage per namespace.
+- **Pods**: Configured with `quotas.resources.maxPods`. Limits the total number of pods per namespace.

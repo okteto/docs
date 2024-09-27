@@ -207,8 +207,8 @@ The build service. It's used in combination with `okteto build` to build contain
 - `persistence.class`: The storage class of the persistence volume attached to every buildkit pod.
 - `persistence.size`: The size of the persistence volume attached to every buildkit pod. Defaults to `750Gi`.
 - `persistence.cache`: The size (in Mi) of the buildkit cache to store image caches. It should be around 30Gi smaller than `storage.size`. Defaults to 500Gi.
-- `tolerations`: List of tolerations to be added to the buildkit service Pods. This list of tolerations will be applied in conjunction with any tolerations set in [`tolerations.buildPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.buildPool`. If not set, the buildkit Pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#globals).
-- `nodeSelectors`: Dictionary of node selectors to be added to the buildkit service Pods. This helps you match Pods to nodes whose labels match the node selector. This list of node selectors will be applied in conjunction with the node selectors set by [`tolerations.buildPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.buildPool`. If not set, the buildkit Pods will inherit the node selectors dictionary set in [`globals.nodeSelectors.okteto`](self-hosted/helm-configuration.mdx#globals).
+- `tolerations`: List of tolerations to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#tolerations).
+- `nodeSelectors`: Dictionary of node selectors to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the node selectors dictionary set in [`globals.nodeSelectors.okteto`](self-hosted/helm-configuration.mdx#nodeselectors).
 - `network.mode`: Controls the networking environment for containers during the build process. Defaults to `auto` but can be set to `host`, `none`, or `bridge`. Bridge mode can be useful for preventing port collisions in concurrent builds by isolating network environments.
 
 ```yaml
@@ -274,7 +274,7 @@ The daemonset performs the following tasks on each node:
 - Installs your CA if `wildcardCertificate.privateCA` is enabled.
 - Installs a CA if using self-signed certificates (`wildcardCertificate.create: true`).
 
-You can restrict the nodes where the daemonset is deployed using [tolerations](self-hosted/helm-configuration.mdx#tolerations):
+You can restrict the nodes where the daemonset is deployed using `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
 
 ```
 tolerations:
@@ -311,8 +311,6 @@ The defaultBackend provides the following features:
 
 - Autowake namespaces: when a user access an endpoint from an slept namespace, the defaultBackend will issue a wake command.
 - Custom error pages: when a user access an endpoint and an error is produced, the defaultBackend will return a custom error page with hints on how to solve it.
-
-You can also restrict the nodes where the defaultBackend is deployed using [tolerations](self-hosted/helm-configuration.mdx#tolerations):
 
 ```
 tolerations:
@@ -545,50 +543,6 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 ## Advanced Configuration
 
-### globals
-Various global settings that are applicable for all Okteto components.
-
-- `priorityClassName`: The priority class to be used by the pods of ALL Okteto components. The PriorityClass must already exist in your cluster before using this setting.
-
-```yaml
-globals:
-  priorityClassName: okteto-priority
-```
-
-- `tolerations`: Tolerations to be added to Pods that are either under the `okteto` or `dev` categories, as shown below.
-  - `okteto`: A list of tolerations to be added to Pods related to Okteto components (i.e. Okteto api), which run in the `okteto` namespace. This list of tolerations will be applied in conjunction with any tolerations set in [`tolerations.oktetoPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.oktetoPool`.
-  - `dev`: A list of tolerations to be added to Pods created by user applications, which run in namespaces managed by Okteto. This list of tolerations will be applied in conjunction with any tolerations set in [`tolerations.devPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.devPool`.
-
-```yaml
-globals:
-  tolerations:
-    okteto:
-    - key: "kubernetes.io/arch"
-      operator: "Equal"
-      value: "arm64"
-      effect: "NoSchedule"
-    dev:
-    - key: "kubernetes.io/arch"
-      operator: "Equal"
-      value: "arm64dev"
-      effect: "NoSchedule"
-```
-
-- `nodeSelectors`: Node selectors to be added to Pods that are either under the `okteto` or `dev` categories, as shown below. This helps you match Pods to nodes whose labels match the node selecotr.
-  - `okteto`: A dictionary of node selectors to be added to Pods related to Okteto components (i.e. Okteto api), which run in the `okteto` namespace. All the node selectors specified here will be applied in conjunction with the single node selector created by [`tolerations.oktetoPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.oktetoPool`.
-  - `dev`: A dictionary of node selectors to be added to Pods created by user applications, which run in namespaces managed by Okteto. All the node selectors specified here will be applied in conjunction with the single node selector created by [`tolerations.devPool`](self-hosted/helm-configuration.mdx#tolerations) until deprecation of `tolerations.devPool`.
-
-```yaml
-globals:
-  nodeSelectors:
-    okteto:
-      okteto-node-label: okteto
-    dev:
-      okteto-node-label: dev
-      region: east
-```
-
-
 ### affinity
 
 Apply default affinities to pods deployed in namespaces created by Okteto.
@@ -638,7 +592,7 @@ convertLoadBalancedServices:
 
 ### crds
 
-Configures CRDs managed by Okteto
+Configures CRDs managed by Okteto.
 
 - `annotations`: The annotations to apply to the CRDs created during the Okteto installation.
 - `keep`: Keep CRDs on chart uninstall (defaults to `true`).
@@ -664,6 +618,60 @@ devStorageClass:
 ```
 
 There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](self-hosted/install/volume-snapshots.mdx) configured, if a storage class is required for the snapshots that storage class will have preference.
+
+### globals
+
+Global settings applicable to all Okteto components.
+
+#### priorityClassName
+
+Defines the priority class to be used by all pods in the okteto namespace.
+The priority class must already exist in your cluster before using this setting.
+
+```yaml
+globals:
+  priorityClassName: okteto-priority
+```
+
+#### tolerations
+
+Specifies the tolerations to be applied to pods, categorized under `okteto` or `dev`:
+
+- `okteto`: Tolerations applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
+- `dev`: Tolerations applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
+
+```yaml
+globals:
+  tolerations:
+    okteto:
+    - key: "kubernetes.io/arch"
+      operator: "Equal"
+      value: "arm64"
+      effect: "NoSchedule"
+    dev:
+    - key: "kubernetes.io/arch"
+      operator: "Equal"
+      value: "arm64dev"
+      effect: "NoSchedule"
+```
+
+#### nodeSelectors
+
+Specifies the node selectors to be applied to pods, categorized under `okteto` or `dev`:
+
+- `okteto`: Node selectors applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
+- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
+
+
+```yaml
+globals:
+  nodeSelectors:
+    okteto:
+      okteto-node-label: okteto
+    dev:
+      okteto-node-label: dev
+      region: east
+```
 
 ### ingress
 
@@ -805,7 +813,7 @@ overrideRegistryResolution:
 
 ### oktetoBotUser
 
-Overrides the name of the user used for [admin access tokens](admin/dashboard.mdx#admin-access-tokens). Defaults to "okteto-bot"
+Overrides the name of the user used for [admin access tokens](admin/dashboard.mdx#admin-access-tokens). Defaults to "okteto-bot".
 
 ### pullAlways
 
@@ -891,25 +899,26 @@ Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-qu
     - `cpu`: Default CPU resource limits.
     - `memory`: Default memory resource limits.
 
-The default values are:
+The default configuration values are shown below.
+A value of "-1" indicates that no quota is enforced for that specific resource:
 
 ```yaml
 quotas:
   resources:
     enabled: false
     maxNamespaces: "3"
-    maxPods: "20"
-    maxServices: "20"
+    maxPods: "-1" 
+    maxServices: "-1"
     maxLoadBalancers: "0"
     maxNodePorts: "0"
-    maxReplicationControllers: "30"
-    maxSecrets: "50"
-    maxConfigMaps: "50"
-    maxPVCs: "10"
-    maxVolumeSnapshots: "10"
-    maxIngresses: "20"
-    maxJobs: "20"
-    maxCronjobs: "20"
+    maxReplicationControllers: "-1"
+    maxSecrets: "-1"
+    maxConfigMaps: "-1"
+    maxPVCs: "-1"
+    maxVolumeSnapshots: "-1"
+    maxIngresses: "-1"
+    maxJobs: "-1"
+    maxCronjobs: "-1"
   bandwidth:
     enabled: false
     ingress: "800M"
@@ -935,7 +944,6 @@ quotas:
       memory: "12Gi"
     requests:
       enabled: true
-      limitRequestRatio: 0
       cpu: "10m"
       memory: "50Mi"
     limits:
@@ -988,25 +996,6 @@ serviceAccounts:
 ```
 
 > In case you need to link more than one cluster role in any of the configuration settings, you should use [Cluster Role aggregation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles) to aggregate several Cluster Roles into one.
-
-### tolerations
-
-Indicates [tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) and [nodeSelector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for different kinds of Pods in the cluster where Okteto is installed.
-The tolerations created by this setting, will have a `key` value of `"okteto-node-pool"`, an `operator` value of `"Equal"`, and an `effect` value of `"NoSchedule"`.
-You will need to define the label and taint `okteto-node-pool` on your worker nodes to match these values to properly use this feature.
-
-- `oktetoPool`: Tolerations and NodeSelector for the api, webhook, gc, ingress controller, and frontend services.
-- `buildPool`: Tolerations and NodeSelector for the buildkit and registry services. If not set, the buildkit and registry services will inherit the value set in `oktetoPool`.
-- `devPool`: Tolerations and NodeSelector for the pods deployed in namespaces created by okteto.
-
-```yaml
-tolerations:
-  oktetoPool: okteto
-  buildPool: build
-  devPool: dev
-```
-
-For example, when you define the value `tolerations.buildPool: build`, all the Pods related to Okteto build services (i.e. registry and buildkit Pods) will be deployed to nodes with the label `okteto-node-pool:build` and the taint `okteto-node-pool=build:NoSchedule`.
 
 ### userDefinedNamespaces
 

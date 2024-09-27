@@ -13,24 +13,37 @@ import TiersList from "@theme/TiersList";
 ## Sleeping Resources
 
 To automatically save resources in your cluster, you can configure Okteto to automatically scale inactive applications and resources to zero if they haven't been used for longer than the `inactivity` period.
-
 Learn how to configure this in the [configuration steps](#configuration-steps-).
+
+Additionally, Namespaces can be manually scaled to zero by navigating to Admin -> Namespaces and clicking on the three dots on the right side of the Namespace that you wish to sleep.
+<p align="left">
+  <Image
+    src={require("@site/static/img/cleanup-namespace-sleep.jpg").default}
+    alt="wake a sleeping resource"
+    width="1000"
+  />
+</p>
 
 ## Inactive Applications and Resources
 
-Okteto considers an application or resources inactive if a user hasn't performed any of the following tasks during the `inactivity` period:
+Okteto considers an application or resources inactive if a user hasn't performed any of the following tasks during the `inactivity` period.
+The following events are considered activity that will prevent an application or resource from being marked as inactive or will wake a sleeping namespace:
 
-- Upgrade or redeploy via the UI or the command line.
-- Launched a development container with `okteto up`.
-- Deploy the latest version of your code with `okteto deploy`.
+- Deploying a Kubernetes Deployment or StatefulSet with `kubectl` or similar tools
+- Running `okteto deploy`
+- Running `okteto up`
+- Maintaining an active `okteto up` session. If the `upSessionByLastSyncedFile` setting is enabled, this only counts if files are actively being synced (based on the last synced file)
+- Upgrade or redeploy via the UI or the command line
 
-Service accounts, config maps, secrets, or volumes you create will be unaffected by this operation.
+Service accounts, config maps, secrets, or volumes you create will be unaffected by this operation. Additionally, if you are using the Okteto Nginx Ingress Controller, incoming requests will automatically wake a sleeping namespace.
+However, note that these incoming requests do not count as activity to reset the inactivity counter and keep the namespace awake.
+The auto-wake behavior for incoming requests can also be disabled by [configuring the `autowake` field](self-hosted/helm-configuration.mdx#autowake).
 
-## Wake Sleeping Resources
+### Manually Wake Sleeping Resources
 
 Okteto's UI will notify you when there are sleeping resources in your namespace. Press the **Wake all** button to activate all sleeping resources at once.
 
-<p align="center">
+<p align="left">
   <Image
     src={require("@site/static/img/wake.png").default}
     alt="wake a sleeping resource"
@@ -38,11 +51,12 @@ Okteto's UI will notify you when there are sleeping resources in your namespace.
   />
 </p>
 
-Sleeping resources are also started if anyone visits any of the public endpoints of your application.
 
 ## Delete Unused Namespaces
 
-Namespaces and all the resources and data contained within will be deleted if they are not used for longer than the `deletion` period.
+Namespaces and all the resources and data contained within will be deleted if they are not used for longer than the `deletion` period. 
+
+This only affects [Non-Personal Namespaces](core/namespaces.mdx), Personal Namespaces are not automatically deleted when idle.
 
 ## Persistent resources <TiersList tiers="Scale Enterprise Self-Hosted" />
 
