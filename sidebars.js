@@ -59,19 +59,6 @@ module.exports = {
       type: 'category',
       label: 'Core concepts',
       items: [
-        'core/namespaces',
-        'core/okteto-manifest',
-        'core/container-registry',
-        'core/build-service',
-        'core/remote-execution',
-        'core/okteto-variables',
-        'core/user-roles-and-permissions',
-        {
-          type: 'category',
-          label: 'Endpoints',
-          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
-        },
-        'core/use-volume-snapshots',
         {
           type: 'category',
           label: 'Credentials',
@@ -81,6 +68,20 @@ module.exports = {
             'core/credentials/environment-variables',
           ],
         },
+        {
+          type: 'category',
+          label: 'Endpoints',
+          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
+        },
+        'core/namespaces',
+        'core/okteto-insights',
+        'core/okteto-manifest',
+        'core/container-registry',
+        'core/build-service',
+        'core/remote-execution',
+        'core/user-roles-and-permissions',
+        'core/okteto-variables',
+        'core/use-volume-snapshots',
       ],
     },
     {
@@ -158,7 +159,6 @@ module.exports = {
         'admin/dashboard',
         'admin/catalog',
         'admin/cleanup',
-        'admin/okteto-insights',
         {
           type: 'category',
           label: 'Private Repositories',
