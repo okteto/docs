@@ -74,7 +74,7 @@ module.exports = {
           items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
         },
         'core/namespaces',
-        'core/okteto-insights',
+        'core/okteto-insights-dashboards',
         'core/okteto-manifest',
         'core/container-registry',
         'core/build-service',
@@ -159,6 +159,7 @@ module.exports = {
         'admin/dashboard',
         'admin/catalog',
         'admin/cleanup',
+        'admin/okteto-insights',
         {
           type: 'category',
           label: 'Private Repositories',
