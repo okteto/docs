@@ -377,10 +377,10 @@ insights:
     key: bearer
 ```
 
-If Okteto Insights is enabled, the Event Exporter component is also installed.
+If Okteto Insights is enabled, the Event Exporter component and the Insights Metrics cronjob are also installed.
+
 The Event Exporter receives Okteto CLI events via Kubernetes Events and injects them as Okteto Insights metrics.
 
-- `enabled`: Control if the Event Exporter is deployed (only if Okteto Insights is enabled). Defaults to `true`.
 - `priorityClassName`: The priority class for pods created by the Event Exporter. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `podAnnotations`: Annotations to add to Event Exporter pods.
 - `podLabels`: Labels to add to the Event Exporter pods.
@@ -389,7 +389,6 @@ The Event Exporter receives Okteto CLI events via Kubernetes Events and injects 
 ```yaml
 insights:
   eventsExporter:
-    enabled: true
     priorityClassName:
     podLabels: {}
     podAnnotations: {}
@@ -399,6 +398,29 @@ insights:
         memory: 20Mi
       limits:
         memory: 100Mi
+```
+
+The Insight Metrics is a cronjob that pre-computes several metrics for the Okteto Insights `/metrics` endpoint.
+
+- `annotations`: Annotations to add to Insight Metrics pods.
+- `labels`: Labels to add to the Insight Metrics pods.
+- `priorityClassName`: The priority class for pods created by the Insight Metrics. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `resources`: The resources for the Insight Metrics pods.
+- `schedule`: Defines the frequency at which cronjob is executed, using the cron syntax. It defaults to run every 5 minutes (`*/5 * * * *`).
+
+```yaml
+insights:
+  metrics:
+    annotations: {}
+    labels: {}
+    priorityClassName:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 20Mi
+      limits:
+        memory: 100Mi
+    schedule: "*/5 * * * *"
 ```
 
 ### installer
