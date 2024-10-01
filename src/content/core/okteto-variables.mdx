@@ -58,10 +58,9 @@ Variables defined in a specific command item are only scoped to that item by def
 
 ### Expand values in the Okteto manifest
 
-Variables can be used to **expand values** in the the **Okteto manifest** (see `${PORT}`)
+Variables can be used to **expand values** in the the **Okteto Manifest** (see `${PORT}`)
 
-```yaml
-# okteto.yml
+```yaml title="okteto.yaml"
 dev:
   api:
     command: npm start
@@ -73,8 +72,7 @@ dev:
 
 Okteto Variables can be used in **deploy**, **destroy** and **test** commands in the Okteto manifest. They are injected as environment variables of the steps. Commands, scripts and tools can use them, example:
 
-```yaml
-# Makefile
+```yaml title="Makefile"
 .PHONY: deploy
 deploy:
     terraform init -backend-config=./config/${ENV}/backend.hcl
@@ -82,8 +80,7 @@ deploy:
     terraform apply tfplan
 ```
 
-```yaml
-# okteto.yml
+```yaml title="okteto.yaml"
 deploy:
   commands:
     - echo "Deploying $ENV"
@@ -96,7 +93,7 @@ As mentioned in the section [Scope](#scope), variables defined in each command o
 
 For example, here we have two command items, in which the variable `MY_VAR` is **not propagated**:
 
-```
+```yaml title="okteto.yaml"
 deploy:
   - export MY_VAR=hello
   - echo $MY_VAR # -> '' (empty)
@@ -110,13 +107,13 @@ Okteto automatically shares variables passed with the `--var` flag during the `d
 
 For example:
 
-```
+```console
 $ okteto deploy --var MY_VAR=hello
 ```
 
 In your destroy section, you can access the `MY_VAR` variable:
 
-```
+```yaml title="okteto.yaml"
 destroy:
   commands:
     - echo $MY_VAR # -> 'hello'
@@ -126,7 +123,7 @@ destroy:
 
 The simplest way to share Okteto Variables between commands is to use a multi-line command, example:
 
-```yaml
+```yaml title="okteto.yaml"
 deploy:
   commands:
     - |
@@ -138,7 +135,7 @@ deploy:
 
 We understand that projects of a certain size and maturity often need to automate such steps, and often that require sharing values between steps. For such scenario we recommend using the special variable called `$OKTETO_ENV`.
 
-```yaml
+```yaml title="okteto.yaml"
 test:
   integration:
       commands:
@@ -157,7 +154,7 @@ test:
 
 Another example for the same functionality, can be for example, creating the infrastructure, generating a `.env` file, and then deploy the application.
 
-```yaml
+```yaml title="okteto.yaml"
 deploy:
   commands:
   - name: Create AWS infrastructure
@@ -197,7 +194,7 @@ In this example, we show how `$OKTETO_ENV` can be used to configure dynamic endp
 
 External Resources are defined in the Okteto manifest and have a name and a URL. Often, the resource URL is generated dynamically when the infrastructure is provisioned, in this example we show how to dynamically set the URL of an SQS queue.
 
-```yaml
+```yaml title="okteto.yaml"
 deploy:
   - name: Create AWS infrastructure
     command: |
@@ -243,7 +240,7 @@ Reference images defined in the `build` section of the Okteto manifest using the
 
 For instance, with a build section like:
 
-```yaml
+```yaml title="okteto.yaml"
 build:
   hello-world:
     context: .
@@ -295,7 +292,7 @@ Example:
 $ okteto deploy --var PORT=4000
 ```
 
-```yaml
+```yaml title="okteto.yaml"
 deploy:
   image: "node:${TAG}"
   commands:
@@ -326,13 +323,12 @@ The `.env` should be placed in the same folder of the Okteto Manifest. The Oktet
 
 For example:
 
-```yaml
+```console
 # .env
 PORT=4000
 ```
 
-```yaml
-# okteto.yml
+```yaml title="okteto.yaml"
 deploy:
   commands:
     - name: deploy
@@ -345,7 +341,7 @@ The `.env` integration also supports parameter expansion to set default values a
 
 Example:
 
-```yaml
+```console
 # .env
 PORT=${PORT:-4000}
 ```
