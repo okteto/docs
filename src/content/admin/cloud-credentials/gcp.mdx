@@ -77,17 +77,20 @@ gcloud iam workload-identity-pools providers create-oidc myCluster \
 
 Now, grant the Okteto Kubernetes service account the permissions required to access the specified GCP resources.
 
-First, set the following variables:
+First, retrieve the `PROJECT_ID` and `PROJECT_NUMBER` values from your Google Cloud project. You can get them by going to your [Project's settings in the Google Cloud Console](https://console.cloud.google.com/iam-admin/settings).
+
+Next, set the following variables:
 
 ```bash
-export PROJECT=myProject
-export PRINCIPAL=iam.googleapis.com/projects/${PROJECT_ID}/locations/global/workloadIdentityPools/${POOL_ID}/subject/${OKTETO_SERVICE_ACCOUNT}
+export PROJECT_ID=myProject-123
+export PROJECT_NUMBER=118593354781
+export PRINCIPAL=iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/subject/${OKTETO_SERVICE_ACCOUNT}
 ```
 
-Next, run the following command to bind the appropriate IAM role to the service account:
+Finally, run the following command to bind the appropriate IAM role to the service account:
 
 ```bash
-gcloud projects add-iam-policy-binding ${PROJECT} --role=roles/storage.admin --member=principal://${PRINCIPAL} --condition=None
+gcloud projects add-iam-policy-binding ${PROJECT_ID} --role=roles/storage.admin --member=principal://${PRINCIPAL} --condition=None
 ```
 
 This grants the Okteto service account permission to access Cloud Storage resources.
@@ -107,10 +110,10 @@ Go to the [Cloud Credentials view](index.mdx) view in the Okteto Admin dashboard
 
 Provide the following information:
 
-- **Project**: The GCP project id `PROJECT` where the resources are located
-- **Workload Pool ID**: The Pool ID `POOL_ID` you created in Step 1
+- **Project ID**: The GCP project id `PROJECT_ID` where the resources are located
+- **Workload Identity Pool ID**: The Pool ID `POOL_ID` you created in Step 1
 - **Provider ID**: The OIDC Provider ID created in Step 2
-- **Audience**: The Audience `AUDIENCE` you specified during the Identity Provider setup
+- **Audience JWT Claim**: The Audience `AUDIENCE` you specified during the Identity Provider setup
 
 ## Example Okteto Manifest
 
