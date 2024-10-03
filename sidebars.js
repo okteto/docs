@@ -12,53 +12,106 @@ module.exports = {
       label: 'Get Started',
       link: { type: 'doc', id: 'index' },
       items: [
-        "get-started/install-okteto-cli",
+        'get-started/install-okteto-cli',
         {
-          type: "category",
-          label: "For Platform Engineers",
+          type: 'category',
+          label: 'For Platform Engineers',
           items: [
             {
-              type: "category",
-              label: "Install Okteto",
+              type: 'category',
+              label: 'Install Okteto',
               link: { type: 'doc', id: 'get-started/install/index' },
               items: [
-                "get-started/install/amazon-eks",
-                "get-started/install/civo",
-                "get-started/install/digitalocean-doks",
-                "get-started/install/google-gke",
-                "get-started/install/microsoft-aks",
-                "get-started/install/openshift"
-              ]
+                'get-started/install/amazon-eks',
+                'get-started/install/civo',
+                'get-started/install/digitalocean-doks',
+                'get-started/install/google-gke',
+                'get-started/install/microsoft-aks',
+                'get-started/install/openshift',
+              ],
             },
             {
-              type: "category",
-              label: "Deploy your app",
+              type: 'category',
+              label: 'Deploy your app',
               link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
               items: [
-                "get-started/deploy-your-app/deploy",
-                "get-started/deploy-your-app/dependencies",
-                "get-started/deploy-your-app/endpoints",
-                "get-started/deploy-your-app/build",
-              ]
+                'get-started/deploy-your-app/deploy',
+                'get-started/deploy-your-app/dependencies',
+                'get-started/deploy-your-app/endpoints',
+                'get-started/deploy-your-app/build',
+              ],
             },
-            "get-started/next-steps",
-          ]
+            'get-started/next-steps',
+          ],
         },
         {
-          type: "category",
-          label: "For Developers",
+          type: 'category',
+          label: 'For Developers',
           items: [
-            "get-started/dev-quickstart",
-            "get-started/using-okteto-cli-and-dashboard",
-            "get-started/advanced-commands-and-concepts",
-          ]
-        }
-        ],
+            'get-started/dev-quickstart',
+            'get-started/using-okteto-cli-and-dashboard',
+            'get-started/advanced-commands-and-concepts',
+          ],
+        },
+      ],
     },
     {
       type: 'category',
-      label: 'Core concepts',
+      label: 'Developer Manual',
       items: [
+        'core/namespaces',
+        {
+          type: 'category',
+          label: 'Development Environments',
+          link: { type: 'doc', id: 'development/index' },
+          items: [
+            'development/using-okteto-cli',
+            {
+              type: 'category',
+              label: 'Development Containers',
+              link: { type: 'doc', id: 'development/containers/index' },
+              items: [
+                {
+                  type: 'category',
+                  label: 'File Sync Mode',
+                  link: { type: 'doc', id: 'development/containers/file-sync/index' },
+                  items: [
+                    'development/containers/file-sync/aspnetcore',
+                    'development/containers/file-sync/golang',
+                    'development/containers/file-sync/java',
+                    'development/containers/file-sync/node',
+                    'development/containers/file-sync/php',
+                    'development/containers/file-sync/python',
+                    'development/containers/file-sync/ruby',
+                  ],
+                },
+                {
+                  type: 'category',
+                  label: 'Hybrid Mode',
+                  link: { type: 'doc', id: 'development/containers/hybrid/index' },
+                  items: [
+                    'development/containers/hybrid/hybrid-frontend',
+                    'development/containers/hybrid/hybrid-java',
+                  ],
+                },
+              ],
+            },
+            'development/images',
+            {
+              type: 'category',
+              label: 'Deploy environments',
+              link: { type: 'doc', id: 'development/deploy/index' },
+              items: [
+                'development/deploy/deploy-from-catalog',
+                'development/deploy/deploy-from-git',
+                'development/deploy/from-private-repositories',
+                'development/deploy/develop-on-okteto-button',
+              ],
+            },
+          ],
+        },
+        'core/preview-environments-dev',
+        'core/okteto-insights-dashboards',
         {
           type: 'category',
           label: 'Credentials',
@@ -68,13 +121,19 @@ module.exports = {
             'core/credentials/environment-variables',
           ],
         },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Platform Engineer Manual',
+      items: [
+        'core/dev-envs-pf',
         {
           type: 'category',
-          label: 'Endpoints',
-          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
+          label: 'Preview Environments',
+          link: { type: 'doc', id: 'previews/index' },
+          items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
         },
-        'core/namespaces',
-        'core/okteto-insights-dashboards',
         'core/okteto-manifest',
         'core/container-registry',
         'core/build-service',
@@ -82,55 +141,10 @@ module.exports = {
         'core/user-roles-and-permissions',
         'core/okteto-variables',
         'core/use-volume-snapshots',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Development Environments',
-      link: { type: 'doc', id: 'development/index' },
-      items: [
-        'development/using-okteto-cli',
         {
           type: 'category',
-          label: 'Development Containers',
-          link: { type: 'doc', id: 'development/containers/index' },
-          items: [
-            {
-              type: 'category',
-              label: 'File Sync Mode',
-              link: { type: 'doc', id: 'development/containers/file-sync/index' },
-              items: [
-                'development/containers/file-sync/aspnetcore',
-                'development/containers/file-sync/golang',
-                'development/containers/file-sync/java',
-                'development/containers/file-sync/node',
-                'development/containers/file-sync/php',
-                'development/containers/file-sync/python',
-                'development/containers/file-sync/ruby',
-                ],
-            },
-            {
-              type: 'category',
-              label: 'Hybrid Mode',
-              link: { type: 'doc', id: 'development/containers/hybrid/index' },
-              items: [
-                'development/containers/hybrid/hybrid-frontend',
-                'development/containers/hybrid/hybrid-java',
-              ],
-            },
-          ],
-        },
-        "development/images",
-        {
-          type: 'category',
-          label: 'Deploy environments',
-          link: { type: 'doc', id: 'development/deploy/index' },
-          items: [
-            'development/deploy/deploy-from-catalog',
-            'development/deploy/deploy-from-git',
-            'development/deploy/from-private-repositories',
-            'development/deploy/develop-on-okteto-button',
-          ],
+          label: 'Endpoints',
+          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
         },
       ],
     },
@@ -138,18 +152,7 @@ module.exports = {
       type: 'category',
       label: 'Okteto Test',
       link: { type: 'doc', id: 'testing/index' },
-      items: [
-        'testing/getting-started-test',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Preview Environments',
-      link: { type: 'doc', id: 'previews/index' },
-      items: [
-        'previews/using-github-actions',
-        'previews/using-gitlab-cicd',
-      ],
+      items: ['testing/getting-started-test'],
     },
     {
       type: 'category',
@@ -163,10 +166,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Private Repositories',
-          items: [
-            'admin/private-repositories/github-app',
-            'admin/private-repositories/ssh-key',
-          ],
+          items: ['admin/private-repositories/github-app', 'admin/private-repositories/ssh-key'],
         },
         'admin/custom-installer-image',
         {
@@ -294,7 +294,7 @@ module.exports = {
         },
       ],
     },
-    "release-notes",
+    'release-notes',
     {
       type: 'link',
       label: 'Archives',
