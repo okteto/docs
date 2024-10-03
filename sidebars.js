@@ -12,6 +12,7 @@ module.exports = {
       label: 'Get Started',
       link: { type: 'doc', id: 'index' },
       items: [
+        "get-started/install-okteto-cli",
         {
           type: "category",
           label: "For Platform Engineers",
@@ -25,10 +26,10 @@ module.exports = {
                 "get-started/install/civo",
                 "get-started/install/digitalocean-doks",
                 "get-started/install/google-gke",
-                "get-started/install/microsoft-aks"
+                "get-started/install/microsoft-aks",
+                "get-started/install/openshift"
               ]
             },
-            "get-started/install-okteto-cli",
             {
               type: "category",
               label: "Deploy your app",
@@ -58,19 +59,6 @@ module.exports = {
       type: 'category',
       label: 'Core concepts',
       items: [
-        'core/namespaces',
-        'core/okteto-manifest',
-        'core/container-registry',
-        'core/build-service',
-        'core/remote-execution',
-        'core/okteto-variables',
-        'core/user-roles-and-permissions',
-        {
-          type: 'category',
-          label: 'Endpoints',
-          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
-        },
-        'core/use-volume-snapshots',
         {
           type: 'category',
           label: 'Credentials',
@@ -80,6 +68,20 @@ module.exports = {
             'core/credentials/environment-variables',
           ],
         },
+        {
+          type: 'category',
+          label: 'Endpoints',
+          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
+        },
+        'core/namespaces',
+        'core/okteto-insights-dashboards',
+        'core/okteto-manifest',
+        'core/container-registry',
+        'core/build-service',
+        'core/remote-execution',
+        'core/user-roles-and-permissions',
+        'core/okteto-variables',
+        'core/use-volume-snapshots',
       ],
     },
     {
