@@ -1,0 +1,210 @@
+---
+title: Admin dashboard
+description: Admin dashboard
+sidebar_label: Admin dashboard
+id: dashboard
+---
+
+import Image from "@theme/Image";
+import TiersList from "@theme/TiersList";
+
+# Admin Dashboard <TiersList tiers="Scale Enterprise Self-Hosted" />
+
+The Admin Dashboard provides a web UI to see various details of your Okteto instance in a centralized location and offers features for managing parts of the Okteto experience for your users.
+
+## Accessing the dashboard
+
+You can access the Admin Dashboard by clicking on the `Admin` icon on the left sidebar. Only accounts with the administrator role will be able to access the Admin Dashboard. The first user signing into your Okteto instance will automatically become the initial administrator.
+
+You can promote other accounts to the administrator role in the `Users` section of the Admin Dashboard or by adding the `dev.okteto.com/super: "true"` label to the corresponding `serviceAccount` in Kubernetes.
+
+<p align="left">
+  <Image
+    src={require("@site/static/img/admin_dashboard_sidebar+1.25.png").default}
+    alt="Admin dashboard tabs"
+    width="300"
+  />
+</p>
+
+This Admin view consists of the following views:
+
+- [General](#general)
+- [Users](#users)
+- [Nodes](#nodes)
+- [Namespaces](#namespaces)
+- [Previews](#previews)
+- [Admin Variables](#admin-variables)
+- [Admin Access Tokens](#admin-access-tokens)
+- [Catalog](#catalog)
+- [Installation](#installation)
+- [Registry Credentials](#registry-credentials)
+- [Cloud Credentials](#cloud-credentials)
+
+We will cover these in more detail below.
+
+## General
+
+The overview section of the Admin Dashboard is designed to give you a high level view of your entire Okteto instance. From here, you can drill down into more specific settings and details. This section currently shows you the following information:
+
+- Your current pricing plan
+- Okteto Helm chart version
+- Okteto CLI version
+- Expiration date of your license
+- Number of available seats
+- Number of nodes in your cluster
+- Number of namespaces in your Okteto instance
+- Number of preview environments currently active
+- Git SSH key
+- [Okteto Insights](admin/okteto-insights.mdx) token
+- Garbage Collector configuration
+
+With the exception of the `Settings` section, this data is informative only. The `Settings` section contains a few configurable settings to help you customize your Okteto instance as necessary.
+
+## Users
+
+From this section you can manage all users in your Okteto instance. This is a list of all users that have created an account in your Okteto instance, their respective roles, and with appropriate actions to manage their membership.
+
+:::info
+
+The `User` column is also the user's default `namespace` name/id. For example, a `User` value of "darryl" means that that user's namespace will also be called "darryl". Any additional namespaces created by "darryl" will show up only in the `Namespaces` tab.
+
+:::
+
+On this page an administrator will be able to:
+
+- View the total number of users on the Okteto instance (The `Total` value in the top right of the table)
+- View each user's name, email, and avatar
+- View when a user was `Last Seen` (any user who recently sent any API request to Okteto, e.g. from the browser, CLI, GitHub actions)
+- Change each user's role (Select `Dev` or `Admin` from the dropdown menu in the `Role` column)
+- Remove users (Click the `(X) Remote` button on the far right)
+
+:::caution
+
+Removing the user will automatically remove all the namespaces owned by the deleted user.
+
+:::
+
+## Nodes
+
+In this section of the Admin Dashboard, you can find the following system information about your Kubernetes cluster, separated by node:
+
+- Number of running pods
+- Number of volumes in use
+- Memory utilization
+- CPU utilization
+
+## Namespaces
+
+This view enables you to manage all of the namespaces within your Okteto instance, including the ability to view (masquerade as the user), wake, or persist any namespace. The top of the namespace table also shows you the default settings for the [garbage collection](self-hosted/helm-configuration.mdx#gc) configuration.
+
+For each namespace, an administrator can:
+
+- View the name, owner, status (`active` or `sleeping`), and when it was last active
+- Get `read-only` access to any Namespace managed by Okteto (using the `View` option)
+- Manually wake the Namespace (using the `Wake Namespace` option)
+- Mark the Namespace as `persistent` using the `Keep Awake` option to prevent it from being deleted and exempt it from the [garbage collection](self-hosted/helm-configuration.mdx#gc) process
+- [Transfer a Namespace](core/namespaces.mdx#transfer-namespace-ownership) to a new owner
+
+## Previews
+
+Similar to the [namespaces section](#namespaces), the `Previews` section shows you a list of all [Preview Environments](previews/index.mdx) that exist in your Okteto instance.
+
+From this page, an administrator can view the default settings for the [garbage collection](self-hosted/helm-configuration.mdx#gc) configuration and view any of the listed preview environments.
+
+This table provides a consolidated view about preview environments, including:
+
+- Preview environment name
+- Owner
+- Scope (`Personal` or `Global`)
+- Status (`Active` or `Sleeping`)
+- Last seen
+
+## Admin Variables
+
+The Admin Variables section of the Admin dashboard lets you define cluster-wide variables. You can refer to these variables directly in your Okteto manifest using the `$SOME_VAR` syntax. They are also injected into the [environment running](core/okteto-manifest.mdx#deploy) the commands in the `deploy` section of the manifest.
+
+:::info
+
+Variables [defined by the user](core/okteto-variables.mdx) take precedence over variables and build secrets defined through the manifest.
+
+:::
+
+We recommend using [build secrets](reference/okteto-manifest.mdx#secrets-string-optional) to inject sensitive data into your Dockerfile.
+
+The example below shows how to configure your Okteto manifest to mount a local `.env` file into your Dockerfile:
+
+```yaml
+build:
+  api:
+    context: .
+    secrets:
+      my_env: .env
+```
+
+You can refer to this secret from your Dockerfile using the syntax below:
+
+```
+RUN --mount=type=secret,id=my_env,target=/etc/secrets/.env cat /etc/secrets/.env
+```
+
+The content of the `.env` file would be:
+
+```
+${MY_PASSWORD}
+```
+
+where `MY_PASSWORD` can be a local environment variable or an Okteto Secret, and it gets substituted by Okteto before mounting the file as a build secret.
+
+## Admin Access Tokens
+
+You can use Admin Access Tokens instead of OAuth to authenticate with Okteto.
+
+Admin Access Tokens are created and work in the same manner as [_Personal_ Access Tokens](core/credentials/personal-access-tokens.mdx), with the difference that they have admin permissions. They are intended to be used over personal access tokens for shared automations, e.g. [Preview Environments](previews/index.mdx).
+Automations run with Admin Access tokens are performed by the [`okteto-bot` user](self-hosted/helm-configuration.mdx#oktetobotuser).
+
+:::info
+It is important that you set the [`scope` to `global`](admin/dashboard.mdx#previews) for Preview Environments created with the `okteto-bot` user so that users other than `okteto-bot` can view the environment.
+:::
+
+  <Image
+    src={require("@site/static/img/admin_access_tokens+1.25.png").default}
+    alt="Admin Access Tokens view"
+    width="900"
+  />
+
+## Catalog
+
+This section of the Admin dashboard allows you to build a library of ready-to-use development environments for your team. By setting up these environments in advance, developers can quickly deploy them from the Deploy Dev Environment UI, significantly speeding up their setup process and reducing the need for initial configuration.
+
+  <Image
+    src={require("@site/static/img/admin_catalog_view+1.25.png").default}
+    alt="Catalog table view"
+    width="900"
+  />
+
+Please see our [Catalog documentation](admin/catalog.mdx) to learn more about creating and deploying from an Okteto Catalog.
+
+
+## Installation
+
+Okteto is a flexible platform that streamlines your developer operations to make developers faster and more efficient. The initial installation has a few steps and we've built a guided experience to help get you setup even faster than before.
+
+  <Image
+    src={require("@site/static/img/installation_view_sidebar.png").default}
+    alt="Okteto installation view"
+    width="700"
+  />
+
+From this page you can follow a simple step-by-step guide to get the major components setup and have your Okteto installation ready to go in minutes. Each of these tasks comes with documentation to help guide you and are also skippable in case they don't apply to you or you simply wish to complete them later.
+
+## Registry Credentials
+
+If you choose to pull images from a private registry in addition to [Okteto's Container Registry](core/container-registry.mdx), you can configure credentials for that service here.
+
+[Review this page for a full description of how to configure and start using your own Registry Credentials →](admin/registry-credentials/index.mdx)
+
+## Cloud Credentials
+
+Dynamically configure Okteto's connection to AWS and GCP, eliminating the need for developers to manage static credentials.
+
+[Review this page for a full description of how to configure and start using Cloud Credentials →](admin/cloud-credentials/index.mdx)

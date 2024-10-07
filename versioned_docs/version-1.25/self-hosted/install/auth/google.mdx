@@ -1,0 +1,58 @@
+---
+title: Use Google as your Authentication Provider
+description: Use Google as the authentication provider of your Okteto Self-hosted instance
+sidebar_label: Google
+id: google
+---
+
+This guide will walk you through the steps necessary to configure Google as the authentication provider for Okteto.
+
+Please refer to [Google's official documentation](https://support.google.com/cloud/answer/6158849?hl=en) on how to create an OAuth 2.0 Client for more information.
+
+## Prerequisites
+
+- A working installation of [Okteto](get-started/install/index.mdx)
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine
+- Access to a [Google account](https://cloud.google.com/) with permissions to create an OAuth 2.0 Client
+
+## Create the OAuth 2.0 Client
+
+When creating the OAUTH 2.0 Client, you will need to provide the following values:
+
+**Authorized javascript origin**:
+
+```
+https://okteto.DOMAIN
+```
+
+**Authorized redirect URIs**:
+
+```
+https://okteto.DOMAIN
+https://okteto.DOMAIN/auth/callback
+```
+
+Copy the `Client Secret` value. You'll need it to configure Okteto.
+
+## Configure Okteto
+
+Once you have the Google OAuth 2.0 Client ready, update the `auth` section of your Helm configuration file with the following values:
+
+```yaml title="config.yaml"
+auth:
+  google:
+    enabled: true
+    clientId: clientid.apps.googleusercontent.com
+    // highlight-next-line
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_CLIENT_SECRET"
+    allowDomains:
+      - example.com
+```
+
+> You can also use a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the sensitive part of these credentials.
+
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
+We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+
+The `allowDomains` field is optional. Only users with Google Workspace accounts that match one of the domains on the list will be allowed to log into your Okteto instance.
+An empty `allowDomains` field permits any user with a valid Google Workspace account to log in.
