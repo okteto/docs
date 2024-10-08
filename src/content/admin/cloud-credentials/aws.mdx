@@ -59,10 +59,10 @@ Once successful, you’ll see a response similar to:
 }
 ```
 
-Store this value in an environment variable, you'll use in the next step:
+Store this value in an environment variable, you'll use it in the next step:
 
 ```bash
-export ROLE_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
+export PROVIDER_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
 ```
 
 ## Step 2: Create the IAM Role and Grant Access to S3
@@ -79,7 +79,7 @@ Save the following content to a file called `trust-policy.json` (replace your en
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "${ROLE_ARN}"
+        "Federated": "${PROVIDER_ARN}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -131,6 +131,12 @@ You will receive a response similar to:
 }
 ```
 
+Store the `Arn` of the role you just created in an environment variable, you'll use it in the next step:
+
+```bash
+export ROLE_ARN=arn:aws:iam::112233445566:role/okteto-credentials
+```
+
 Finally, attach the S3 policy to the IAM Role to grant it full read and write access to your S3 buckets:
 
 ```bash
@@ -155,7 +161,7 @@ Go to the [Cloud Credentials view](index.mdx) view in the Okteto Admin dashboard
 
 Provide the following information:
 
-- **Role ARN**: The Role ARN `ROLE_ARN` you created in Step 1
+- **Role ARN**: The Role ARN `ROLE_ARN` you created in Step 2
 - **Region**: The AWS Region for the AWS STS Regional Endpoint. You can find more information about regional endpoints [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html) and [here](https://docs.aws.amazon.com/sdkref/latest/guide/feature-sts-regionalized-endpoints.html)
 - **Audience**: The Audience `AUDIENCE` you specified during the Identity Provider setup
 
