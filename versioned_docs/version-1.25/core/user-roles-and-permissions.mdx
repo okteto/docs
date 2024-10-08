@@ -1,0 +1,138 @@
+---
+title: User Roles and Permissions in Okteto
+description: Understand User Roles and Permissions in the Okteto Platform
+sidebar_label: User Roles and Permissions
+id: user-roles-and-permissions
+---
+
+
+The Okteto platform offers a robust Role-Based Access Control (RBAC) system to manage and control access to different environments within the platform.
+This page outlines the roles, permissions, and key features available to Admins and Developers in Okteto.
+
+## User Roles
+
+In Okteto, there are two primary roles: **Admins** and **Developers**.
+
+### Admins
+
+Admins have extensive control and oversight capabilities across the Okteto platform. Key features include:
+
+#### Admin Access to Any Environment
+Admins can perform all operations on any Namespace or Preview Environment, including:
+- Deleting, sharing, waking, sleeping, and marking Namespaces or Preview Environments as persistent
+- Deploying or deleting applications using both Okteto and `kubectl`
+- Accessing all resources and sub-resources within any Development Environment
+- [Transferring Namespace ownership](core/namespaces.mdx#transfer-namespace-ownership) between developers
+- Fine tuning Developer access to Namespaces and Preview Environments by configuring [the `serviceAccounts` section within the Okteto Helm configuration](self-hosted/helm-configuration.mdx#serviceaccounts).
+
+
+**Benefits**: This level of access allows admins to manage and troubleshoot environments, even if the original owner is unavailable.
+
+#### Access to the Okteto Admin Dashboard
+Admins can manage their instance through the [Okteto Admin Dashboard](admin/dashboard.mdx), including:
+- [Managing all users](admin/dashboard.mdx#users) within their Okteto instance
+- Having an overview of [Kubernetes Node utilization](admin/dashboard.mdx#nodes)
+- Seeing and managing all [Namespaces and Preview Environments](admin/dashboard.mdx#namespaces) within their Okteto instance
+- Setting cluster-wide variables in the [Admin Variables section](admin/dashboard.mdx#admin-variables)
+- Configuring [Admin Access Tokens](admin/dashboard.mdx#admin-access-tokens) for shared automations
+- Creating a library of ready-to-use Environments in the [Catalog](admin/catalog.mdx)
+
+
+### Developers
+
+Developers have permissions primarily focused on creating and managing their own environments. Key features include:
+
+#### Creating and Managing Environments
+Developers can:
+- Create Namespaces and Personal/Global Preview Environments
+- Delete Namespaces and Preview Environments they own
+- Share Namespaces and Preview Environments they own
+- Deploy applications using both Okteto and `kubectl` within their own or shared Namespaces and Previews Environments
+- Wake and sleep Namespaces and Preview Environments they own or have access to
+
+#### Access to Global Preview Environments
+Developers have read access to Global Preview Environments, enabling them to troubleshoot issues effectively using `kubectl`.
+
+**Benefits**: This feature allows developers to monitor and debug shared environments without requiring elevated permissions.
+
+## Permission Model
+
+### Namespace Operations
+
+| Action | Admin | Developer-Owner | Developer-Member | Developer without direct access |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | ✅ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ |
+| Share | ✅ | ✅ | ❌ | ❌ |
+| Deploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Redeploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy all | ✅ | ✅ | ✅ | ❌ |
+| Wake | ✅ | ✅ | ✅ | ❌ |
+| Sleep | ✅ | ✅ | ✅ | ❌ |
+| Transfer Ownership | ✅ | ❌ | ❌ | ❌ |
+| Keep awake/make persistent | ✅ | ❌ | ❌ | ❌ |
+| Undo keep awake | ✅ | ❌ | ❌ | ❌ |
+| Start Development over sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Restart sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Destroy sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Stop development over sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Access private endpoints | ✅ | ✅ | ✅ | ❌ |
+- ✅ The role has permission to perform this action
+- ❌ The role does not have permission to perform this action
+- **-** This action is not applicable to the role or context
+
+### Operations within Previews
+
+#### Personal Previews
+
+| Action | Admin | Developer-Owner | Developer-Member | Developer without direct access |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | ✅ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ |
+| Share | ✅ | ✅ | ❌ | ❌ |
+| Deploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Redeploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy all | - | - | - | - |
+| Wake | ✅ | ✅ | ✅ | ❌ |
+| Sleep | ✅ | ✅ | ✅ | ❌ |
+| Transfer Ownership | - | - | - | - |
+| Keep awake/make persistent | ✅ | ❌ | ❌ | ❌ |
+| Undo keep awake | ✅ | ❌ | ❌ | ❌ |
+| Start Development over sub-resource | - | - | - | - |
+| Restart sub-resource | - | - | - | - |
+| Destroy sub-resource | - | - | - | - |
+| Stop development over sub-resource | - | - | - | - |
+| Access private endpoints | ✅ | ✅ | ✅ | ❌ |
+- ✅ The role has permission to perform this action
+- ❌ The role does not have permission to perform this action
+- **-** This action is not applicable to the role or context
+
+#### Global Previews
+
+| Action | Admin | Developer-Owner | Developer-Member | Developer without direct access |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | - | ✅ |
+| Delete | ✅ | ✅ | - | ❌ |
+| Share | - | - | - | - |
+| Deploy dev environment | ✅ | ✅ | - | ❌ |
+| Redeploy dev environment | ✅ | ✅ | - | ❌ |
+| Destroy dev environment | ✅ | ✅ | - | ❌ |
+| Destroy all | - | - | - | - |
+| Wake | ✅ | ✅ | - | ❌ |
+| Sleep | ✅ | ✅ | - | ❌ |
+| Transfer Ownership | - | - | - | - |
+| Keep awake/make persistent | ✅ | ❌ | - | ❌ |
+| Undo keep awake | ✅ | ❌ | - | ❌ |
+| Start Development over sub-resource | - | - | - | - |
+| Restart sub-resource | - | - | - | - |
+| Destroy sub-resource | - | - | - | - |
+| Stop development over sub-resource | - | - | - | - |
+| Access private endpoints | ✅ | ✅ | - | ✅ |
+- ✅ The role has permission to perform this action
+- ❌ The role does not have permission to perform this action
+- **-** This action is not applicable to the role or context
