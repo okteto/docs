@@ -247,7 +247,7 @@ module.exports = {
               label: '1.26',
               path: '1.26',
             },
-            1.22: {
+            1.25: {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
               label: '1.25',
