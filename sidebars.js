@@ -242,6 +242,7 @@ module.exports = {
             'self-hosted/manage/upgrade',
             'self-hosted/manage/argocd',
             'self-hosted/manage/okteto-license',
+            'self-hosted/manage/buildkit-high-performance',
             'self-hosted/manage/backup',
             'self-hosted/manage/custom-resource-definitions',
             'self-hosted/manage/troubleshooting',

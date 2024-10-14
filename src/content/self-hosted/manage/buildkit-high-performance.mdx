@@ -1,0 +1,122 @@
+---
+title: Optimizing Build Performance
+description: Best Practices for Optimal Build Performance
+id: buildkit-high-performance
+sidebar_label: BuildKit High Performance
+---
+
+# Best Practices for Optimal Build Performance
+
+Fast image builds are essential for a smooth development experience with Okteto.
+Optimizing builds accelerates your development cycle, enabling rapid iteration and deployment.
+This guide provides best practices to enhance build performance when using Okteto.
+
+## Dedicated Node Pool for Buildkit
+
+Buildkit is resource-intensive.
+We recommend deploying Buildkit in a dedicated node pool for optimal performance and to minimize the noise neighbor effect.
+
+To deploy buildkit on a dedicated build pool, you can add [taints ad tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to you Buildkit node pool, and add the following to your Okteto configuration:
+
+```yaml
+buildkit:
+  nodeSelectors:
+    okteto-node-pool: build
+  tolerations:
+    - effect: NoSchedule
+      key: okteto-node-pool
+      operator: Equal
+      value: build
+```      
+
+## Scale Vertically: more CPUs means Faster Builds
+
+The performance of your builds is significantly influenced by the CPU/Memory resources allocated to the Okteto Build Service.
+
+We recommend scaling buildkit vertically.
+For example, start with 2 nodes with 4 CPUs and 16GB of memory each.
+Then, update the `replicaCount` of the [buildkit](self-hosted/helm-configuration.mdx#buildkit) configuration:
+
+```yaml
+buildkit:
+  replicaCount: 2
+```
+
+Monitor build performance and node utilization to adjust the Okteto Build Service nodes vertically as needed.
+For instance, using nodes with 8 CPUs and 32 GB of memory each can provide approximately a 2x performance improvement 😎.
+
+## Configure SSD Storage
+
+Build processes are I/O intensive. Using SSD storage can significantly improve builds speeds.
+
+```yaml
+buildkit:
+  persistence:
+    enabled: true
+    class: ssd
+```
+
+You may also increase the size of the Buildkit cache (default: 100 GB):
+
+```yaml
+buildkit:
+  persistence:
+    enabled: true
+    size: 200Gi
+```
+
+## Horizontal Pod Autoscaling (HPA)
+
+[HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) enables the Build Service to scale based on CPU and memory utilization, automatically adjusting pod numbers to meet demand.
+
+Requirements:
+- The [Metrics API](https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#metrics-server) must be available in your cluster
+- Configure your BuildKit node pool with autoscalability
+
+:::warning
+The default Metrics API only works with `buildkit.rootless.enabled: true`. If you don't enable BuildKit rootless mode, you will need to [configure your own custom metrics](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics) or keep your HPA disabled
+:::
+
+You can configure Buildkit HPA with the [buildkit.hpa](self-hosted/helm-configuration.mdx#buildkit) settings:
+
+```yaml
+buildkit:
+  rootless:
+    enabled: true
+  hpa:
+    enabled: true
+    min: 2
+    max: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60    
+```    
+
+## Save Costs with Spot Instances
+
+Leveraging spot instances can significantly reduce costs while providing the necessary compute resources for your builds.
+
+:::tip
+Configure at least 2 nodes for the BuildKit node pool, each one on a different zone, for high availabilitiy.
+:::
+
+The Okteto CLI automatically retries builds if interrupted by instance termination or failure to minimize the effect of using spot instances.
+For [remote execution](core/remote-execution.mdx), **ensure your deploy/test/destroy commands are idempotent**, as commands may restart if a node terminates.
+
+## Follow Dockerfile Best Practices
+
+Even the best BuildKit setup cannot compensate for unoptimized Dockerfiles...
+Finally, but not least, we recommend following [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/), among others:
+
+- Create a [.dockerignore`](https://docs.docker.com/reference/dockerfile/#dockerignore-file) file to exclude files that are irrelevant to the build process. This minimizes the time required to transfer your files to the Okteto Build service
+- Create a [.oktetoignore](core/remote-execution.mdx#ignoring-files) file to exclude files that are irrelevant to your deploy/test/destroy commands, reducing file transfer time
+- Arrange Dockerfile instructions from those that change infrequently to those that change more frequently, thus, leveraging the Dockerfile build cache. For example:
+  - Install tools you need to build your application
+  - Install your application dependencies
+  - Build your application
+- Use [buildkit cache mounts](https://docs.docker.com/build/cache/optimize/) to persist cache folders between image builds
+- Use [Test Container caches](https://www.okteto.com/docs/reference/okteto-manifest/#caches-string-optional) to persist cache folders between test executions
