@@ -10,10 +10,10 @@ sidebar_label: BuildKit High Performance
 Configuring BuildKit for high-performance is essential for a smooth development experience with Okteto.
 Enhancing your BuildKit performance accelerates image builds, [test executions](testing/index.mdx) and deploy commands when using [Remote Execution](core/remote-execution.mdx).
 
-## Dedicated Node Pool for Buildkit
+## Dedicated Node Pool for BuildKit
 
-Buildkit is resource-intensive.
-We recommend deploying Buildkit in a dedicated node pool for optimal performance and to minimize the noise neighbor effect.
+BuildKit is resource-intensive.
+We recommend deploying BuildKit in a dedicated node pool for optimal performance and to minimize the noise neighbor effect.
 
 To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following to your Okteto configuration:
 
@@ -46,16 +46,16 @@ For instance, upgrading your BuildKit nodes with 8 CPUs and 32 GB of memory each
 ## Configure SSD Storage
 
 Buildkit is I/O intensive, for example, to pull, extract and push your container images.
-Using SSD storage can significantly improve your BuildKit performance.
+Using a SSD storage class can significantly improve your BuildKit performance.
 
 ```yaml
 buildkit:
   persistence:
     enabled: true
-    class: ssd
+    class: <<your-ssd-storage-class>>
 ```
 
-You may also increase the size of the Buildkit cache to increase the number of BuildKit cache hits (default: 100 GB):
+You may also increase the size of the BuildKit cache to increase the number of BuildKit cache hits (default: 100 GB):
 
 ```yaml
 buildkit:
@@ -106,12 +106,12 @@ Configure at least 2 nodes for BuildKit, each one on a different zone, for high 
 The Okteto CLI automatically retries any command if interrupted by BuildKit instance termination or failure to minimize the effect of using spot instances.
 If using [remote execution](core/remote-execution.mdx), **it is very important to ensure that your deploy/test/destroy commands are idempotent**, as commands may run again if a node terminates during the execution of the deploy or destroy operations.
 
-## Follow Dockerfile Best Practices
+## Follow Best Practices for Dockerfiles and Remote Execution
 
 Even the best BuildKit setup cannot compensate for un-optimized Dockerfiles or inefficient [Remote Execution](core/remote-execution.mdx) configurations...
-We have the following recommendations:
+To make the most of your BuildKit configuration, we have the following recommendations:
 
 - Adhere to [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/).
 - Reduce file transfer times to BuildKit by using [.dockerignore](https://docs.docker.com/reference/dockerfile/#dockerignore-file) and [.oktetoignore](core/remote-execution.mdx#ignoring-files) files.
-- Use [buildkit cache mounts](https://docs.docker.com/build/cache/optimize/) to persist cache folders between image builds. This can significantly speed up build times by caching dependencies and build artifacts.
+- Use [BuildKit cache mounts](https://docs.docker.com/build/cache/optimize/) to persist cache folders between image builds. This can significantly speed up build times by caching dependencies and build artifacts.
 - Use [Test Container caches](https://www.okteto.com/docs/reference/okteto-manifest/#caches-string-optional) to persist cache folders between test executions. This ensures that test dependencies are cached, reducing the time taken for subsequent test runs.
