@@ -28,15 +28,6 @@ module.exports = {
         },
         {
           type: "category",
-          label: "For Developers",
-          items: [
-            "get-started/dev-quickstart",
-            "get-started/using-okteto-cli-and-dashboard",
-            "get-started/advanced-commands-and-concepts",
-          ]
-        },
-        {
-          type: "category",
           label: "Deploy your app",
           link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
           items: [
@@ -44,6 +35,15 @@ module.exports = {
             "get-started/deploy-your-app/dependencies",
             "get-started/deploy-your-app/endpoints",
             "get-started/deploy-your-app/build",
+          ]
+        },
+        {
+          type: "category",
+          label: "For Developers",
+          items: [
+            "get-started/dev-quickstart",
+            "get-started/using-okteto-cli-and-dashboard",
+            "get-started/advanced-commands-and-concepts",
           ]
         },
         ],
@@ -242,6 +242,7 @@ module.exports = {
             'self-hosted/manage/upgrade',
             'self-hosted/manage/argocd',
             'self-hosted/manage/okteto-license',
+            'self-hosted/manage/buildkit-high-performance',
             'self-hosted/manage/backup',
             'self-hosted/manage/custom-resource-definitions',
             'self-hosted/manage/troubleshooting',
