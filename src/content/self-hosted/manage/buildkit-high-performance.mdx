@@ -31,21 +31,25 @@ buildkit:
 ## Scale Vertically: more CPUs means Faster Builds
 
 Your BuildKit performance is significantly influenced by the CPU/Memory resources allocated to it.
+We recommend to start with 2 nodes (for higher availability) and the following instance types (4 CPUs and 16GB RAM):
 
-We recommend scaling BuildKit vertically.
-For example, start with 2 nodes with 4 CPUs and 16GB of memory each, and update the `replicaCount` of the [buildkit configuration section](self-hosted/helm-configuration.mdx#buildkit) accordingly:
+- Amazon Web Services: `m6a.xlarge`
+- Google Cloud Platform: `t2d-standard-4`
+- Microsoft Azure Cloud Platform: `Standard_D4as_v5`
+
+Update your number of replicas to match the number of nodes in your BuildKit node pool:
 
 ```yaml
 buildkit:
   replicaCount: 2
 ```
 
-Finally, monitor your BuildKit performance and node utilization with your favourite tool to adjust the BuildKit nodes vertically as needed.
-For instance, upgrading your BuildKit nodes with 8 CPUs and 32 GB of memory each can provide approximately a 2x performance improvement 😎.
+Finally, monitor your BuildKit performance and node utilization with your favorite tool to adjust the BuildKit nodes vertically as needed.
+For instance, upgrading your BuildKit nodes to 8 CPUs and 32 GB of memory each can provide approximately a 2x performance improvement 😎.
 
 ## Configure SSD Storage
 
-Buildkit is I/O intensive, for example, to pull, extract and push your container images.
+BuildKit is I/O intensive, for example, to pull, extract and push your container images.
 Using a SSD storage class can significantly improve your BuildKit performance.
 
 ```yaml
@@ -64,9 +68,9 @@ buildkit:
     size: 200Gi
 ```
 
-## Horizontal Pod Autoscaling (HPA)
+## Horizontal Pod Autoscaling (optional)
 
-[HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) enables the BuildKit pods to scale based on CPU and memory utilization, automatically adjusting pod numbers to meet demand.
+Horizontal Pod Autoscaling ([HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)) enables the BuildKit pods to scale based on CPU and memory utilization, automatically adjusting pod numbers to meet demand.
 
 #### Requirements
 - The [Metrics API](https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#metrics-server) must be available in your cluster.
@@ -95,12 +99,12 @@ buildkit:
         averageUtilization: 60    
 ```    
 
-## Save Costs with Spot Instances
+## Save Costs with Spot Instances (optional)
 
 Leveraging spot instances can significantly reduce costs while providing the necessary compute resources for BuildKit.
 
 :::tip
-Configure at least 2 nodes for BuildKit, each one on a different zone, for high availability
+With spot instances, configure at least 2 nodes for BuildKit, each one on a different zone, for high availability
 :::
 
 The Okteto CLI automatically retries any command if interrupted by BuildKit instance termination or failure to minimize the effect of using spot instances.
