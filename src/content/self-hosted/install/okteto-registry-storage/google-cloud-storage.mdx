@@ -7,9 +7,23 @@ id: google-cloud-storage
 
 This guide will walk you through the process of setting up the Okteto Registry with Google Cloud Storage to store your container images.
 
-First, create a service account, for example "GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com", with access to you to your bucket.
+The first step is creating a Cloud Storage bucket in GCP. You can follow the steps mentioned [here](https://cloud.google.com/storage/docs/creating-buckets) to do that. It is okay to proceed with the default settings. Just make sure that your bucket does not have public access enabled.
 
-Then, configure the Okteto Registry with a workload id in your Okteto Helm configuration file:
+Next, create a service account, for example "GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com", with access to you to your bucket.
+
+Then run the following command to grant the `okteto-registry` Kubernetes service account the ability to impersonate the Google Cloud service account that we just created using Workload Identity. By binding the `roles/iam.workloadIdentityUser` role, the Kubernetes service account can authenticate as the Google Cloud service account, allowing it to securely access the Cloud Storage bucket without needing to manage long-lived service account keys:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com \
+  --role roles/iam.workloadIdentityUser \
+  --member "serviceAccount:$GCP_PROJECT.svc.id.goog[okteto/okteto-registry]" \
+  --project $GCP_PROJECT
+```
+
+Important: Make sure you have [Workload Identity enabled](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#option_2_node_pool_modification) in your cluster for this to work. Workload Identity in Google Kubernetes Engine (GKE), allows for seamless and secure communication between Kubernetes workloads and Google Cloud services.
+
+After this, configure the Okteto Registry with a workload ID in your Okteto Helm configuration file:
 
 ```yaml title="config.yaml"
 registry:
