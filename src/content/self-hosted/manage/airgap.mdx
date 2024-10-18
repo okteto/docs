@@ -15,32 +15,34 @@ Okteto works on AirGap Networks, but it requires custom configuration.
 This guide has been crafted to help you overcome these hurdles, but we encourage you to [talk to us](https://www.okteto.com/get-demo/) to guide you during the installation.
 
 
-## Disable Okteto Telemetry
+## Step 1: Disable Okteto Telemetry
 
-By default, Okteto sends [telemetry](self-hosted/helm-configuration.mdx#telemetry) to help us help us better understand how our customers use Okteto, as well as to help us prioritize fixes and features.
-But you can opt-out from this behavior by adding the following section to your Okteto Helm configuration:
+By default, Okteto sends [telemetry data](self-hosted/helm-configuration.mdx#telemetry) to help us understand usage patterns and prioritize improvements
+In air-gapped environments, you can disable telemetry by adding the following to your Okteto Helm configuration:
 
 ```yaml
 telemetry:
   enabled: false
 ```
 
-When you disable our telemetry, Okteto CLI analytics for all your developers are automatically disabled.
+Disabling telemetry will automatically stop Okteto CLI analytics for all developers.
 
-## Host Images in your Private Registry
+## Step 2: Host Images in your Private Registry
 
 By default, all the images needed to deploy the Okteto Platform, and the images used by the Okteto CLI, are hosted in DockerHub.
-If you need to host our images in your Private Registry, you need to follow these steps.
+In air-gapped environments, you’ll need to host these images in your private registry.
 
-### Push to your Private Registry
+### Push Images to your Private Registry
 
-To simplify this process, we recommend to use the same repository name and tags in your Private Registry.
+For simplicity, we recommend using the same repository names and tags in your private registry.
 
 :::info
-Okteto doesn't support `imagePullSecrets`, your cluster must be configured to have access to your Private Registry, 
+Okteto doesn't support `imagePullSecrets`, so your cluster must be configured to have access to your Private Registry, 
 :::
 
-For the Okteto Chart installation, these are the images you need to push to your Private Registry:
+**Required Images for Okteto Platform Installation**
+
+Push the following images to your private registry for the Okteto Chart installation:
 
 - **okteto/backend:{variables.chartVersion}**
 - **okteto/frontend:{variables.chartVersion}**
@@ -52,18 +54,18 @@ For the Okteto Chart installation, these are the images you need to push to your
 - **okteto/reloader:{variables.chartVersion}**
 - **okteto/redis:{variables.chartVersion}**
 
-For each Okteto CLI version, these are the images you need to push to your Private Registry:
+For each Okteto CLI version, push the following images to your private registry:
 
 - **okteto/okteto:{variables.cliVersion}**
 - **okteto/dockerfile:{variables.cliVersion}**
 
 :::info
-For Okteto Chart {variables.chartVersion}, we recommend to enforce the usage of Okteto CLI {variables.cliVersion} in your developer's machines to reduce maintenance overhead
+For Okteto Chart {variables.chartVersion}, we recommend enforcing the usage of Okteto CLI {variables.cliVersion} in your developer's machines to reduce maintenance overhead
 :::
 
-### Update Helm Configuration
+## Step 3: Update Helm Configuration
 
-Once your images are ready, add the following to your Okteto Helm configuration file:
+Once your images are pushed to your private registry, update your Okteto Helm configuration as follows:
 
 <CodeBlock language="yaml">
   {`globals:
@@ -94,15 +96,15 @@ reloader:
 </CodeBlock>
 
 
-### Upgrade Okteto 
+## Step 4: Install or Upgrade Okteto 
 
-Execute the following command to install/upgrade your Okteto instance:
+Execute the following command to install or upgrade your Okteto instance:
 
 <CodeBlock language="bash">
   {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
 </CodeBlock>
 
-## Use Your Own Ingress Controller (optional)
+## Optional: Use Your Own Ingress Controller
 
 By default, Okteto deploy an [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) to expose the Okteto Control Plane and the applications managed by Okteto.
 Our NGINX Ingress Controller is usually exposed in a dedicated Load Balancer.
@@ -112,4 +114,4 @@ Refer to [this community guide](https://community.okteto.com/t/how-do-i-configur
 ## Install Okteto without a Wildcard Certificate (optional)
 
 Our default installation uses a [WildCard Certificate](self-hosted/install/certificates/index.mdx) to expose the Okteto Control Plane and the applications managed by Okteto.
-If wildcard certificates are not allowed in your organization, follow this guide to [install Okteto without a wildcard certificate](https://community.okteto.com/t/how-do-i-install-okteto-without-a-wildcard-certificate/796).
+If your organization does not allow wildcard certificates, follow [this guide to install Okteto](https://community.okteto.com/t/how-do-i-install-okteto-without-a-wildcard-certificate/796) without one.
