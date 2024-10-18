@@ -16,11 +16,11 @@ This provides secure and temporary access to your AWS resources.
 ## Step 1: Register the Identity Provider
 
 :::info
-We recommend installing the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) before following this tutorial
+Before starting, we recommend installing the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions)
 :::
 
 The first step in configuring AWS credentials is to register your Kubernetes cluster as an OIDC identity provider in AWS.
-To do this, Okteto provides the OIDC endpoint of your cluster, which can be found in the General section of your Okteto Admin Dashboard.
+To do this, Okteto provides the OIDC issuer and subject of your cluster, which can be found in the General section of your Okteto Admin Dashboard.
 
 <p align="center">
   <Image
@@ -29,13 +29,14 @@ To do this, Okteto provides the OIDC endpoint of your cluster, which can be foun
   />
 </p>
 
-Store these values as environment variables, you will use them in the next steps:
+Store the values as environment variables, you will use them in the next steps:
 
 ```bash
-export OIDC_ENDPOINT=https://container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
-export OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
+export OIDC_ISSUER=https://container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
+export OIDC_SUBJECT=system:serviceaccount:okteto:okteto
 ```
 
+Next, define the `AUDIENCE`.
 The `AUDIENCE` is traditionally the client ID of the requester, and tokens will only be exchanged for these audiences.
 It corresponds to the `aud` field in the JWT payload. We recommend creating a unique audience for each Okteto instance and AWS region.
 For example:
@@ -48,10 +49,10 @@ Next, run the following command to create the OIDC identity provider in AWS:
 
 
 ```bash
-aws iam create-open-id-connect-provider --url "${OIDC_ENDPOINT}" --client-id-list "${AUDIENCE}"
+aws iam create-open-id-connect-provider --url "${OIDC_ISSUER}" --client-id-list "${AUDIENCE}"
 ```
 
-Once successful, you’ll see a response similar to:
+Once successful, you’ll receive a response with the provider ARN:
 
 ```yaml
 {
@@ -69,8 +70,10 @@ export PROVIDER_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis
 
 In this step, you'll create an IAM Role that allows access to S3 and configure it to assume the role using the OIDC identity provider you set up in the previous step.
 
-First, create the trust policy that allows the role to be assumed by the OIDC identity provider.
-Save the following content to a file called `trust-policy.json` (replace your environment variables):
+### Create the Trust Policy
+
+First, create the trust policy that allows the role to be assumed by the OIDC identity provider. To do this, create a local file named `trust-policy.json`,  copy the contents of the file below, and substitute the placeholder values with the resources that we created in the previous steps:
+
 
 ```yaml title="trust-policy.json"
 {
@@ -79,13 +82,42 @@ Save the following content to a file called `trust-policy.json` (replace your en
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "${PROVIDER_ARN}"
+        "Federated": "<PROVIDER_ARN>"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "${OIDC_ENDPOINT}:aud": "${AUDIENCE}",
-          "${OIDC_ENDPOINT}:sub": "${OKTETO_SERVICE_ACCOUNT}"
+          "<OIDC_ISSUER>:aud": "<AUDIENCE>",
+          "<OIDC_ISSUER>:sub": "<OIDC_SUBJECT>"
+        }
+      }
+    }
+  ]
+}
+```
+
+For reference:
+- **OIDC_ISSUER**: The OIDC Issuer of your Okteto instance `OIDC_SUBJECT` that we retrieved in Step 1, without the "https://" part of the url. 
+- **OIDC_SUBJECT**: The OIDC subject of your Okteto instance `OIDC_SUBJECT` that we retrieved in Step 1.
+- **AUDIENCE**: The audience `AUDIENCE` that we defined in Step 1.
+- **PROVIDER_ARN**: The ARN of the OpenID connect provider `PROVIDER_ARN` that we created in Step 1. 
+
+A completed file will look similar to this example:
+
+```yaml title="trust-policy.json"
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:aud": "okteto.example.com/us-east-2",
+          "container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:sub": "system:serviceaccount:okteto:okteto"
         }
       }
     }
@@ -120,8 +152,8 @@ You will receive a response similar to:
                     "Action": "sts:AssumeRoleWithWebIdentity",
                     "Condition": {
                         "StringEquals": {
-                            "https://container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:aud": "okteto.example.com/us-east-2",
-                            "https://container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:sub": "system:serviceaccount:okteto:okteto"
+                            "container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:aud": "okteto.example.com/us-east-2",
+                            "container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:sub": "system:serviceaccount:okteto:okteto"
                         }
                     }
                 }
@@ -131,7 +163,7 @@ You will receive a response similar to:
 }
 ```
 
-Store the `Arn` of the role you just created in an environment variable, you'll use it in the next step:
+Store the `ARN` of the role you just created in an environment variable, you'll use it in the next step:
 
 ```bash
 export ROLE_ARN=arn:aws:iam::112233445566:role/okteto-credentials
@@ -150,7 +182,8 @@ This grants the IAM Role the necessary permissions to interact with S3.
 
 Now that you've created the IAM role, the final step is to configure the AWS credentials in Okteto.
 
-Go to the [Cloud Credentials view](index.mdx) view in the Okteto Admin dashboard and enable the AWS IAM Role option.
+1. Go to the [Cloud Credentials view](index.mdx) view in the Okteto Admin dashboard
+1. Enable the AWS IAM Role option
 
 <p align="center">
   <Image
@@ -161,15 +194,15 @@ Go to the [Cloud Credentials view](index.mdx) view in the Okteto Admin dashboard
 
 Provide the following information:
 
-- **Role ARN**: The Role ARN `ROLE_ARN` you created in Step 2
+- **Role ARN**: The Role ARN `ROLE_ARN` you created in Step 2.
 - **Region**: The AWS Region for the AWS STS Regional Endpoint. You can find more information about regional endpoints [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html) and [here](https://docs.aws.amazon.com/sdkref/latest/guide/feature-sts-regionalized-endpoints.html)
-- **Audience**: The Audience `AUDIENCE` you specified during the Identity Provider setup
+- **Audience**: The Audience `AUDIENCE` that we defined in Step 1.
 
 Once this configuration is in place, your Okteto Manifests commands will have access to your AWS account.
 
 ## Example Okteto Manifest
 
-With the configuration complete, the following Okteto Manifest can interact with the specified S3 bucket:
+With the configuration complete, the following example Okteto Manifest can interact with the specified S3 bucket:
 
 ```yaml
 deploy:
