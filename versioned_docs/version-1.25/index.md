@@ -6,7 +6,7 @@ description: This section will give you a brief overview of Okteto and its featu
 ## Build modern development experiences with Okteto
 Okteto transforms the way developers code, test, and deploy applications by offering a seamless, cloud-native development experience. Say goodbye to the complexities of setting up local environments and the discrepancies between development and production. With Okteto, you get a powerful platform that emulates your production environment in the cloud, ensuring that you can focus on what you do best: building great applications.
 
-If you haven’t already, get your [free 30-day license key to get started here](https://www.okteto.com/free-trial/)
+If you haven’t already, get your [free 30-day license key to get started here](https://www.okteto.com/free-trial/).
 
 ## Why Platform Teams choose Okteto?
 - **Control, Governance, and Self-service access**: Enable your developers to easily access secure and reproducible ephemeral environments. Okteto abstracts the complexity of Kubernetes, providing developers with a straightforward path from code to deployment, all within the cloud. This means no more wrestling with local setup or inconsistencies between environments.
