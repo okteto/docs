@@ -1,0 +1,135 @@
+---
+title: Air-Gapped Networks
+description: Installing Okteto in Air-Gapped Networks Environments
+sidebar_label: Air-Gapped Networks
+id: air-gapped
+---
+
+import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
+import TiersList from "@theme/TiersList";
+
+# Air-Gapped Networks Environments<TiersList tiers="Enterprise Self-Hosted" />
+
+Okteto works in air-gapped network environments, but will require some custom configuration.
+This guide has been crafted to help you with your air-gapped installation, but we recommend that you [reach out to our team](https://support.okteto.com/hc/en-us) to discuss your requirements and scenarios.
+
+## Disable Okteto Telemetry
+
+By default, Okteto sends [telemetry](self-hosted/helm-configuration.mdx#telemetry) to help us help us better understand how our customers use Okteto, as well as to help us prioritize fixes and features.
+But you can opt-out from this behavior by adding the following section to your Okteto Helm configuration:
+
+```yaml
+telemetry:
+  enabled: false
+```
+
+When you disable our telemetry, Okteto CLI analytics for all your developers are automatically disabled.
+
+## Use Your Own Ingress Controller (optional)
+
+By default, Okteto deploys [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) to expose the Okteto Control Plane and the applications managed by Okteto.
+Our NGINX Ingress Controller is usually exposed in a dedicated Load Balancer.
+
+Refer to [this community guide](https://community.okteto.com/t/how-do-i-configure-my-own-ingress-controller/887) for detailed instructions on disabling the installation of our Nginx Ingress Controller and exposing Okteto behind your own Ingress Controller.
+
+## Install Okteto without a Wildcard Certificate (optional)
+
+Our default installation uses a [WildCard Certificate](self-hosted/install/certificates/index.mdx) to expose the Okteto Control Plane and the applications managed by Okteto.
+If wildcard certificates are not allowed in your organization, follow this guide to [install Okteto without a wildcard certificate](https://community.okteto.com/t/how-do-i-install-okteto-without-a-wildcard-certificate/796).
+
+## Host Images in your Private Registry
+
+By default, all the images needed to deploy the Okteto Platform, and the images used by the Okteto CLI, are hosted in DockerHub.
+If you need to host our images in your Private Registry, you need to follow these steps.
+
+### Push to your Private Registry
+
+To simplify this process, we recommend to use the same repository name and tags in your Private Registry.
+
+:::info
+This guide assumes that your cluster nodes have pull access to your private container registry. If that's not the case, please follow your infrastructure provider's instructions on how to do it
+:::
+
+For the Okteto Chart {variables.chartVersion} installation, these are the images you need to push to your Private Registry:
+
+- **okteto/backend:{variables.chartVersion}**
+- **okteto/frontend:{variables.chartVersion}**
+- **okteto/buildkit:{variables.chartVersion}**
+- **okteto/buildkit:{variables.chartVersion}-rootless**
+- **okteto/registry:{variables.chartVersion}**
+- **okteto/pipeline-installer:{variables.chartVersion}**
+- **okteto/pipeline-runner:{variables.chartVersion}**
+- **okteto/daemon:{variables.chartVersion}**
+
+For each Okteto CLI version, these are the images you need to push to your Private Registry:
+
+- **okteto/okteto:{variables.cliVersion}**
+- **okteto/dockerfile:{variables.cliVersion}**
+
+:::info
+For Okteto Chart {variables.chartVersion}, we recommend to enforce the usage of Okteto CLI {variables.cliVersion} in your developer's machines to reduce maintenance overhead
+:::
+
+### Update Helm Configuration
+
+Once your images are ready, add the following to your Okteto Helm configuration file:
+
+<CodeBlock language="yaml">
+  {`globals:
+  registry: <<your-registry-url>>
+`}
+</CodeBlock>
+
+### Prepare Okteto Chart Dependencies
+
+By default, Okteto install the following dependencies:
+
+- [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx)
+- [Bitnami Redis](https://github.com/bitnami/charts/tree/main/bitnami/redis)
+- [Stakater Reloader](https://github.com/stakater/Reloader/tree/master/deployments/kubernetes/chart/reloader)
+
+The three of them are optional:
+- [Disable NGINX](#optional-use-your-own-ingress-controller)
+- Disable redis by disabling the Resource Manager (`resourceManager.enabled: false`)
+- Disable reloader (`reloader.enabled: false`). This will force you to restart pods for changes in cert and ca values and cloud secret.
+
+For Okteto Chart {variables.chartVersion}, host the following images in your private container registry:
+
+- **registry.k8s.io/ingress-nginx/controller-chroot:v1.11.2@sha256:21b55a2f0213a18b91612a8c0850167e00a8e34391fd595139a708f9c047e7a8**
+- **ghcr.io/stakater/reloader:v1.0.119**
+- **docker.io/bitnami/redis:7.4.0-debian-12-r1**
+
+and add the following to your Okteto Helm configuration file:
+
+<CodeBlock language="yaml">
+  {`ingress-nginx:
+  global:
+    image:
+      registry: <<your-registry-url>>
+
+okteto-nginx:
+  global:
+    image:
+      registry: <<your-registry-url>>
+
+redis:
+  global:
+    imageRegistry: <<your-registry-url>>
+
+reloader:
+  reloader:
+    deployment:
+      image:
+        name: <<your-registry-url>>/okteto/reloader
+`}
+</CodeBlock>
+
+
+### Upgrade Okteto 
+
+Execute the following command to install/upgrade your Okteto instance:
+
+<CodeBlock language="bash">
+  {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
+</CodeBlock>
