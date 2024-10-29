@@ -15,7 +15,7 @@ Enhancing your BuildKit performance accelerates image builds, [test executions](
 BuildKit is resource-intensive.
 We recommend deploying BuildKit in a dedicated node pool for optimal performance and to minimize the noise neighbor effect.
 
-To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following to your Okteto configuration:
+To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following to your Okteto Helm configuration:
 
 ```yaml
 buildkit:
@@ -67,6 +67,47 @@ buildkit:
     enabled: true
     size: 200Gi
 ```
+
+## Dedicated Load Balancer for BuildKit
+
+By default, BuildKit is exposed via gRPC behind the [Okteto Nginx Ingress Controller](self-hosted/helm-configuration.mdx#ingress-nginx).
+This setup simplifies the initial installation, but we recommend exposing BuildKit on a dedicated load balancer for improved performance and control:
+
+**Pros**
+- More control over how build requests are distributed across BuildKit pods.
+- Offloading BuildKit traffic from the Nginx Ingress Controller reduces its network overhead, leading to improved performance for other services relying on the ingress controller
+
+**Cons**
+- There are extra costs associated with provisioning and maintaining an additional load balancer
+
+To expose BuildKit via a dedicated load balancer, add the following to your Okteto Helm configuration:
+
+```yaml
+buildkit:
+  service:
+    type: LoadBalancer
+    sessionAffinity: ClientIP
+```      
+
+:::info
+Setting `sessionAffinity` to `ClientIP` ensures that all requests from a client are directed to the same BuildKit pod. This will improve build performance due to caching.
+Additional BuildKit service annotations might be needed to support `ClientIP` affinity, refer to your Cloud Provider documentation for additional assistance.
+:::
+
+After upgrading Okteto, use `kubectl` to retrieve the external IP address assigned to the BuildKit service:
+
+```console
+kubectl get service -l=app.kubernetes.io/part-of=okteto,app.kubernetes.io/component=buildkit --namespace=okteto
+```
+
+The output will look something like this:
+
+```
+NAME                TYPE           CLUSTER-IP      EXTERNAL-IP                           PORT(S)          AGE
+okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaws.com    443:31597/TCP    5m
+```
+
+Take the `EXTERNAL-IP` address and create an `A` record for it with the name `buildkit.<<your-okteto-subdomain>>`.
 
 ## Horizontal Pod Autoscaling (optional)
 
