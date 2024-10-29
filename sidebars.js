@@ -152,6 +152,16 @@ module.exports = {
         'admin/dashboard',
         'admin/catalog',
         'admin/cleanup',
+        {
+          type: 'category',
+          label: 'Cloud Credentials',
+          link: { type: 'doc', id: 'admin/cloud-credentials/index' },
+          items: [
+            'admin/cloud-credentials/aws-cloud-credentials',
+            'admin/cloud-credentials/gcp-cloud-credentials',
+          ],
+        },
+        'admin/custom-installer-image',
         'admin/okteto-insights',
         {
           type: 'category',
@@ -161,7 +171,6 @@ module.exports = {
             'admin/private-repositories/ssh-key',
           ],
         },
-        'admin/custom-installer-image',
         {
           type: 'category',
           label: 'Registry Credentials',
@@ -173,15 +182,7 @@ module.exports = {
             'admin/registry-credentials/google-artifact-registry',
           ],
         },
-        {
-          type: 'category',
-          label: 'Cloud Credentials',
-          link: { type: 'doc', id: 'admin/cloud-credentials/index' },
-          items: [
-            'admin/cloud-credentials/aws-cloud-credentials',
-            'admin/cloud-credentials/gcp-cloud-credentials',
-          ],
-        },
+        'admin/resource-manager',
       ],
     },
     {
