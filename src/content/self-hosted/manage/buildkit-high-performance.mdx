@@ -94,6 +94,15 @@ buildkit:
 :::info
 Setting `sessionAffinity` to `ClientIP` directs all client requests to the same BuildKit pod, leveraging caching for improved performance.
 Additional BuildKit service annotations might be needed to support `ClientIP` affinity, refer to your Cloud Provider documentation for additional assistance.
+For example, for [AWS Load Balancer Controller](https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html) you would need the following annotations:
+```yaml
+buildkit:
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: "stickiness.enabled=true,stickiness.type=source_ip"
+```
 :::
 
 After upgrading Okteto, use `kubectl` to retrieve the external IP address assigned to the BuildKit service:
