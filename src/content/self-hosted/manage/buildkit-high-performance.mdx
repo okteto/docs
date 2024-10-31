@@ -7,15 +7,15 @@ sidebar_label: BuildKit High Performance
 
 # Configuring BuildKit for High Performance
 
-Configuring BuildKit for high-performance is essential for a smooth development experience with Okteto.
-Enhancing your BuildKit performance accelerates image builds, [test executions](testing/index.mdx) and deploy commands when using [Remote Execution](core/remote-execution.mdx).
+Optimizing BuildKit performance is essential for a smooth development experience with Okteto.
+A high-performance BuildKit setup accelerates image builds, [test executions](testing/index.mdx), and deploy commands when using [Remote Execution](core/remote-execution.mdx).
 
-## Dedicated Node Pool for BuildKit
+## 1. Dedicated Node Pool for BuildKit
 
 BuildKit is resource-intensive.
-We recommend deploying BuildKit in a dedicated node pool for optimal performance and to minimize the noise neighbor effect.
+We recommend deploying BuildKit in a dedicated node pool for optimal performance and to minimize interference from other workloads.
 
-To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following to your Okteto Helm configuration:
+To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following settings to your Okteto Helm configuration:
 
 ```yaml
 buildkit:
@@ -28,28 +28,28 @@ buildkit:
       value: build
 ```      
 
-## Scale Vertically: more CPUs means Faster Builds
+## 2. Scale Vertically: Increase CPUs for Faster Builds
 
-Your BuildKit performance is significantly influenced by the CPU/Memory resources allocated to it.
-We recommend to start with 2 nodes (for higher availability) and the following instance types (4 CPUs and 16GB RAM):
+BuildKit performance depends heavily on allocated CPU and memory resources.
+Start with 2 nodes for higher availability, with the following recommended instance types (4 CPUs and 16GB RAM):
 
 - Amazon Web Services: `m6a.xlarge`
 - Google Cloud Platform: `t2d-standard-4`
 - Microsoft Azure Cloud Platform: `Standard_D4as_v5`
 
-Update your number of replicas to match the number of nodes in your BuildKit node pool:
+Set the replicaCount to match the number of nodes in the BuildKit node pool:
 
 ```yaml
 buildkit:
   replicaCount: 2
 ```
 
-Finally, monitor your BuildKit performance and node utilization with your favorite tool to adjust the BuildKit nodes vertically as needed.
+Monitor performance and adjust node resources as needed.
 For instance, upgrading your BuildKit nodes to 8 CPUs and 32 GB of memory each can provide approximately a 2x performance improvement 😎.
 
-## Configure SSD Storage
+## 3. Configure SSD Storage
 
-BuildKit is I/O intensive, for example, to pull, extract and push your container images.
+BuildKit is I/O intensive, especially for pulling, extracting, and pushing container images.
 Using a SSD storage class can significantly improve your BuildKit performance.
 
 ```yaml
@@ -68,17 +68,17 @@ buildkit:
     size: 200Gi
 ```
 
-## Dedicated Load Balancer for BuildKit
+## 4. Dedicated Load Balancer for BuildKit
 
 By default, BuildKit is exposed via gRPC behind the [Okteto Nginx Ingress Controller](self-hosted/helm-configuration.mdx#ingress-nginx).
 This setup simplifies the initial installation, but we recommend exposing BuildKit on a dedicated load balancer for improved performance and control:
 
 **Pros**
 - More control over how build requests are distributed across BuildKit pods.
-- Offloading BuildKit traffic from the Nginx Ingress Controller reduces its network overhead, leading to improved performance for other services relying on the ingress controller
+- Reduces load on the Nginx Ingress Controller, improving performance for other services.
 
 **Cons**
-- There are extra costs associated with provisioning and maintaining an additional load balancer
+- Extra costs for provisioning and maintaining an additional load balancer.
 
 To expose BuildKit via a dedicated load balancer, add the following to your Okteto Helm configuration:
 
@@ -92,7 +92,7 @@ buildkit:
 ```      
 
 :::info
-Setting `sessionAffinity` to `ClientIP` ensures that all requests from a client are directed to the same BuildKit pod. This will improve build performance due to caching.
+Setting `sessionAffinity` to `ClientIP` directs all client requests to the same BuildKit pod, leveraging caching for improved performance.
 Additional BuildKit service annotations might be needed to support `ClientIP` affinity, refer to your Cloud Provider documentation for additional assistance.
 :::
 
@@ -111,7 +111,7 @@ okteto-buildkit     LoadBalancer   10.245.142.73   a519c8b3b27f95...elb.amazonaw
 
 Take the `EXTERNAL-IP` address and create an `A` record for it with the name `buildkit.<<your-okteto-subdomain>>`.
 
-## Horizontal Pod Autoscaling (optional)
+## 5. Horizontal Pod Autoscaling (optional)
 
 Horizontal Pod Autoscaling ([HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)) enables the BuildKit pods to scale based on CPU and memory utilization, automatically adjusting pod numbers to meet demand.
 
@@ -142,20 +142,20 @@ buildkit:
         averageUtilization: 60    
 ```    
 
-## Save Costs with Spot Instances (optional)
+## 6. Save Costs with Spot Instances (optional)
 
-Leveraging spot instances can significantly reduce costs while providing the necessary compute resources for BuildKit.
+Use spot instances to reduce costs while maintaining sufficient resources for BuildKit.
 
 :::tip
-With spot instances, configure at least 2 nodes for BuildKit, each one on a different zone, for high availability
+Ensure high availability by configuring at least 2 nodes across different zones.
 :::
 
 The Okteto CLI automatically retries any command if interrupted by BuildKit instance termination or failure to minimize the effect of using spot instances.
 If using [remote execution](core/remote-execution.mdx), **it is very important to ensure that your deploy/test/destroy commands are idempotent**, as commands may run again if a node terminates during the execution of the deploy or destroy operations.
 
-## Follow Best Practices for Dockerfiles and Remote Execution
+## 7. Follow Best Practices for Dockerfiles and Remote Execution
 
-Even the best BuildKit setup cannot compensate for un-optimized Dockerfiles or inefficient [Remote Execution](core/remote-execution.mdx) configurations...
+Even the best BuildKit setup cannot compensate for un-optimized Dockerfiles or inefficient [Remote Execution](core/remote-execution.mdx) configurations.
 To make the most of your BuildKit configuration, we have the following recommendations:
 
 - Adhere to [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/).
