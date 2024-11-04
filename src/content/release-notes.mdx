@@ -5,6 +5,38 @@ sidebar_label: Release notes
 id: release-notes
 ---
 
+## 1.26.0
+
+11 November 2024
+
+This versions is compatible with Kubernetes versions 1.27 to 1.30
+
+### Breaking Changes
+
+- Hostname Length Limit: Deploys will now fail if a service generates a hostname longer than 63 characters, providing an error message to guide users. Previously, the endpoint wouldn’t work, but the dev environment still deployed successfully. This change may affect environments that previously deployed without issue.
+- Helm Release Name Limit: We are limiting the length of Helm release names and allowing to override the default backend service name to make it shorter if needed. The defaultBackend.nameOverride allows to change the full name of the default backend service. In case you want to change it as part of an upgrade, it might have side effects in the installation, so please, follow this guide
+- Deploying Private Repositories now uses the Okteto backend as the SSH agent instead of mounting the local SSH agent into BuildKit. This change provides feature parity between remote and local deploys but may affect cases where repositories are cloned as part of a command defined in your Okteto Manifest.
+- Buildkit Persistence is now enabled by default. The default disk size is set to 100Gi and cache size is now specified as a ratio of the total disk size (default: 0.9). For example, with a 100Gi disk, 90% will be allocated to cache. If you had previously set `buildkit.persistence.cache setting` please adjust the new ratio accordingly, as that setting will not apply any longer
+
+### New Features
+
+- **Introducing the Okteto Resource Manager**: a new feature that automatically optimizes CPU and memory requests for your environments. By analyzing real-time resource utilization, the Resource Manager dynamically adjusts resource requests to ensure efficient usage, prevent node overload, and improve overall cluster performance. This feature simplifies resource management, reduces manual adjustments, and enhances application stability, especially in larger clusters
+- Added Okteto Garbage Collector settings to the Admin Dashboard: Admins of Okteto can now manage sleep and delete periods from the Dashboard
+- Added additional feature and documentation for [running Buildkit at scale](self-hosted/manage/buildkit-high-performance.mdx)  <!-- 8727 -->
+
+### Improvements
+
+- Create docker secret if one doesn't already exist in the controller manager  <!-- 8566 -->
+- Buildkit cache size is now automatically configured based on its PVC volume size  <!-- 8723 -->
+- Removed buildkit persistency as an installation step now that it defaults to true  <!-- 8771 -->
+- We now allow the Okteto frontend and Buildkit manifest with flags and properties to run rootless   <!-- 8774, 8800 -->
+
+### Bug Fixes
+
+- Fixed behavior when deleting a file that doesn't exist  <!-- 8760 -->
+- Patched annotations in Insights cronjob  <!-- 8782 -->
+
+
 ## 1.25.0
 
 7 October 2024
@@ -572,66 +604,3 @@ Kubernetes 1.24 is no longer supported
 ### Features
 
 - The Okteto CLI used for Pipeline installation has been upgraded to version [2.22.3](https://github.com/okteto/okteto/releases/tag/2.22.3)
-
-## 1.14.3
-
-1 December 2023
-
-This version is compatible with Kubernetes versions 1.25 to 1.27.
-
-### Bugfixes
-
-- Fix okteto daemon restart when AWS ECR private registry credentials are defined
-
-## 1.14.2
-
-8 November 2023
-
-This version is compatible with Kubernetes versions 1.24 to 1.27.
-
-### Bugfixes
-
-- Fix private registry credentials integration for registries with custom ports (other that the default 443)
-
-## 1.14.1
-
-27 October 2023
-
-This version is compatible with Kubernetes versions 1.24 to 1.27.
-
-### Improvements
-
-- Okteto internal registry is now resolved in private credentials exchange
-
-### Bugfixes
-
-- Namespace list in the UI is now scrollable and displays all namespaces.
-- Fix login with openid through the okteto CLI with custom "audience" and "resource"
-
-## 1.14.0
-
-25 October 2023
-
-This version is compatible with Kubernetes versions 1.24 to 1.27.
-
-### Deprecation Notice
-
-- Helm charts catalog is no longer available in the Okteto UI. For alternative approach to deploy Helm charts see https://www.okteto.com/blog/making-your-helm-packaged-applications-ready-for-cloud-native-development-with-okteto/
-- Defining Private Registry credentials in Helm has been deprecated. Private Registry Credentials are now natively supported by Okteto and configurable in the Okteto UI. Credentials defined in Helm will be automatically migrated. More info [here](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-114x)
-- Support for Kubernetes [1.24](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md) has been deprecated and will be removed in the next release.
-
-### Features
-
-- Added a new `/metrics` endpoint to expose prometheus node metrics data. More info [here](admin/okteto-insights.mdx).
-- Added native support for Private Registry Credentials, configurable directly in the Okteto UI. More info [here](admin/dashboard.mdx#registry-credentials).
-- The Okteto CLI used for Pipeline installation has been upgraded to version [2.21.0](https://github.com/okteto/okteto/releases/tag/2.21.0) <!-- 7310 -->
-- Add support for Kubernetes [1.27](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.27.md)
-
-### Improvements
-
-- Upgrade ingress-nginx to 1.8.2 (Helm chart version 4.7.2) <!-- 7295 -->
-
-### Bugfixes
-
-- Reduce file permission for okteto-ca-pemstore certificate file in jobs <!-- 7303 -->
-- Reduce expiration threshold for trial licenses from 60 to 7 days <!-- 7314 -->
