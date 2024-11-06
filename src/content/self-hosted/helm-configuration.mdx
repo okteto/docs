@@ -701,6 +701,16 @@ devStorageClass:
 
 There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](self-hosted/install/volume-snapshots.mdx) configured, if a storage class is required for the snapshots that storage class will have preference.
 
+### fullnameOverride
+
+The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart. Use this property to override the whole prefix. If you want to override only the chart name, you can use the [nameOverride](#nameoverride) setting.
+
+```yaml
+fullnameOverride: custom-prefix
+```
+
+The maximum length for `fullnameOverride` is 34 characters. Check how to [extend the limit to 40 characters](#handling-a-long-release-name) if you need a longer prefix.
+
 ### globals
 
 Global settings applicable to all Okteto components.
@@ -808,6 +818,16 @@ injectDevelopmentBinaries:
 - `lifetimeSeconds`: The lifetime in seconds of the tokens generated for the [Kubernetes credentials](core/credentials/kubernetes-credentials.mdx) provided by Okteto. This value has to be equal or greater than [`installer.activeDeadlineSeconds`](self-hosted/helm-configuration.mdx#installer) to make sure the tokens are valid during all installer execution. Defaults to 86400 seconds (1 day).
 
 > One important thing to bear in mind is that the maximum expiration time you can specify depends on the [Kubernetes apiserver's](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/) flag `--service-account-max-token-expiration`, so it might happen that the expiration time retrieved on your tokens is not the one specified here. If you specify a higher value, you will always get the maximum allowed by the apiserver. Be aware that not all Kubernetes service providers allow you to change this value and they enforce their own.
+
+### nameOverride
+
+The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart. Use this property to override the chart name part of the prefix. You can override the whole prefix by using the [fullnameOverride](#fullnameoverride) setting.
+
+```yaml
+nameOverride: custom-chart-name-override
+```
+
+Note that the maximum length for the entire prefix is 34 characters. Check how to [extend the limit to 40 characters](#handling-a-long-release-name) if you need a longer prefix.
 
 ### namespace
 
@@ -1262,3 +1282,17 @@ Create a secret named `okteto-cloud-secret` to store the following values instea
 - `OPENID_CLIENTSECRET`: use this instead of `.Values.auth.openid.clientSecret` in your helm configuration file.
 - `GITHUB_INTEGRATION_CLIENTSECRET`: use this instead of `.Values.github.clientSecret` in your helm configuration file.
 - `GITHUB_APP_PRIVATE_KEY`: use this instead of `.Values.github.appPrivateKey` in your helm configuration file.
+
+## Handling a Long Release Name
+
+The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart.
+
+In Kubernetes, there are strict limits on the maximum length of names for various resources. For example, CronJob names cannot exceed 52 characters, and Service names cannot be longer than 63 characters. Additionally, Helm enforces a maximum length of 53 characters for a release name.
+
+Since the Okteto chart creates multiple resources in Kubernetes, it employs specific strategies to avoid exceeding these length limits and to minimize the need for additional configuration.
+
+The maximum length for the Okteto prefix is 34 characters. This limit is derived from the maximum name length allowed by Kubernetes (63 characters), minus the length of the longest Okteto component suffix ("-ingress-nginx-defaultbackend"). The 34 characters are then divided into 27 characters for the release name and 7 characters for the chart name ("-okteto").
+
+This limit can be extended to 40 characters by overriding the name of the defaultBackend component. To do this, set the `defaultBackend.nameOverride` value. If you rename the defaultBackend on an existing installation, be sure to follow [these steps](#manual-migration-steps-when-renaming-the-defaultbackend-service) to safely rename it.
+
+If you need to use a release name longer than 40 characters, you can also use the [nameOverride](#nameoverride) or [fullnameOverride](#fullnameoverride) settings to make the prefix shorter.
