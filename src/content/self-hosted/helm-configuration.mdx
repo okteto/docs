@@ -299,7 +299,7 @@ The defaultBackend receives errored requests from the ingress-controller and tra
   - `repository`: Registry and repository for the defaultBackend pods.
   - `tag`: Tag used for the defaultBackend pods.
 - `labels`: Labels to add to the defaultBackend pods.
-- `nameOverride`: String to override the full name of the defaultBackend service.
+- `nameOverride`: String to override the full name of the defaultBackend service. If you rename an existing service, you need to [follow the manual migration steps documented below](#manual-migration-steps-when-renaming-the-defaultbackend-service).
 - `port`: Internal port used for the defaultBackend. Defaults to `8080`.
 - `priorityClassName`: The priority class to be used by the defaultBackend pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `replicaCount`: The number of defaultBackend pods. It defaults to 2.
@@ -323,6 +323,21 @@ The defaultBackend provides the following features:
 tolerations:
   devPool: dev
 ```
+
+#### Manual migration steps when renaming the defaultBackend service
+
+If you rename the defaultBackend service using the `nameOverride` property, follow these steps to successfully upgrade Okteto in your cluster:
+
+1. Identify the current service name for your defaultBackend
+```
+kubectl get svc -l app.kubernetes.io/component=default-backend -n okteto
+```
+2. Patch the `defaultBackend` service adding the annotation: `helm.sh/resource-policy: keep`
+```
+kubectl patch service "<Your existing defaultBackend service name>" -n okteto -p '{"metadata":{"annotations":{"helm.sh/resource-policy": "keep"}}}'
+```
+3. Upgrade the Okteto Helm chart. This will create a new `defaultBackend` service with the new name.
+4. You can now safely delete the old `defaultBackend` service.
 
 ### frontend
 
