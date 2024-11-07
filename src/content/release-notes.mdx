@@ -15,26 +15,31 @@ This versions is compatible with Kubernetes versions 1.27 to 1.30
 
 - **Hostname Length Limit**: Deploys now fail if a service hostname exceeds 63 characters, showing an error message. Previously, the dev environment deployed successfully even if the endpoint didn’t work. This may affect environments that deployed without issues before.
 - **Helm Release Name Limit**: Helm release names are now limited in length. Use defaultBackend.nameOverride to shorten the default backend service name if needed. If changing this during an upgrade, [follow the guide as it may impact the installation](self-hosted/helm-configuration.mdx#manual-migration-steps-when-renaming-the-defaultbackend-service).
-- **Private Repository Deploys**: Deploying private repositories now uses the Okteto backend as the SSH agent, rather than mounting the local SSH agent. This brings feature parity between remote and local deploys but may affect repositories cloned within Okteto Manifest commands.
+- **Private Repository Deploys**: Deploying private repositories now uses the Okteto backend as the SSH agent, rather than mounting the local SSH agent. This change ensures feature parity between remote and local deploys but may impact scenarios where private repositories are cloned as part of commands defined in the deploy section during remote execution.
 - **Buildkit Persistence Enabled**: Buildkit persistence is now enabled by default, with a 100Gi disk and cache set to 90% of the disk size. If you previously used buildkit.persistence.cache, adjust to the new ratio, as this setting is no longer applicable.
 
 ### New Features
 
-- **Introducing the [Okteto Resource Manager](admin/resource-manager.mdx)**: a new feature that automatically optimizes CPU and memory requests for your environments. By analyzing real-time resource utilization, the Resource Manager dynamically adjusts resource requests to ensure efficient usage, prevent node overload, and improve overall cluster performance. This feature simplifies resource management, reduces manual adjustments, and enhances application stability, especially in larger clusters
-- Added Okteto [Garbage Collector settings to the Admin Dashboard](admin/cleanup.mdx): Admins of Okteto can now manage sleep and delete periods from the Dashboard
+- **[Introducing the Okteto Resource Manager](admin/resource-manager.mdx)**: a new feature that automatically optimizes CPU and memory requests for your environments. By analyzing real-time resource utilization, the Resource Manager dynamically adjusts resource requests to ensure efficient usage, prevent node overload, and improve overall cluster performance. This feature simplifies resource management, reduces manual adjustments, and enhances application stability, especially in larger clusters. The default installation provides recommendations but doesn't apply them automatically. [See our docs for details on how to apply these automatically](admin/resource-manager.mdx).
+- Added Okteto [Garbage Collector settings to the Admin Dashboard](admin/cleanup.mdx): Admins can now manage sleep and delete periods from the Dashboard, with the ability to set different configurations for Namespaces and Preview Environments
+- [Remote Execution can now be made the default](core/remote-execution.mdx) by configuring it in the Okteto Admin Dashboard. This improves usability, particularly for private Git repositories and context synchronization with BuildKit, making remote deployments more consistent and reliable
 - Added additional feature and documentation for [running Buildkit at scale](self-hosted/manage/buildkit-high-performance.mdx)  <!-- 8727 -->
 
 ### Improvements
 
-- Okteto will now automatically create a Docker secret if one doesn't already exist in the Controller Manager  <!-- 8566 -->
-- Buildkit cache size is now automatically configured based on its PVC volume size  <!-- 8723 -->
+- Okteto will now automatically create a Docker secret if one doesn't already exist in the Controller Manager. This prevents a misleading warning that was being displayed in some scenarios when deploying from the UI  <!-- 8566 -->
+- [Buildkit cache size is now automatically configured](self-hosted/helm-configuration.mdx#buildkit) based on its PVC volume size  <!-- 8723 -->
 - Removed Buildkit persistency as an installation step now that it defaults to true  <!-- 8771 -->
 - The Okteto frontend now runs rootless by default, while Buildkit operates without privileges when rootless mode is enabled  <!-- 8774, 8800 -->
+- We've [released Okteto CLI 3.1.0 with many new improvements](https://github.com/okteto/okteto/releases/tag/3.1.0)
+- [Okteto CLI 3.1.0](https://github.com/okteto/okteto/releases/tag/3.1.0): [Added support for a `context`](reference/okteto-manifest.mdx#context-string-optional) field in the Okteto Manifest, allowing you to specify the working directory for commands in the `deploy` and `destroy` sections
+- [Okteto CLI 3.1.0](https://github.com/okteto/okteto/releases/tag/3.1.0): [Added automatic retry for build operations](reference/feature-flags.mdx) when BuildKit is unavailable due to transient errors. The behavior can be controlled using the environment variables `OKTETO_BUILDKIT_MAX_RETRIES_FOR_TRANSIENT_ERRORS`, `OKTETO_BUILDKIT_WAIT_TIMEOUT`, and `OKTETO_BUILDKIT_RETRY_INTERVAL`.
 
 ### Bug Fixes
 
-- Fixed behavior when deleting a file that doesn't exist  <!-- 8760 -->
-- Patched annotations in Insights cronjob  <!-- 8782 -->
+- Fixed an issue that was preventing Development Environments to be destroyed when the specified manifest doesn't exist  <!-- 8760 -->
+- Fixed a patch operation in the Okteto Insights cronjob that was causing the loss of node labels when there were concurrent operations from external processes  <!-- 8782 -->
+- Resolved an issue where build logs were not displayed in the UI when deploying dev or preview environments, causing the UI to appear frozen. Build logs now display correctly during deployments
 
 
 ## 1.25.0
