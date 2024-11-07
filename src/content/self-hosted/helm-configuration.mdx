@@ -209,10 +209,10 @@ The build service. It's used in combination with `okteto build` to build contain
 - `serviceAccount.name`: Buildkit service account name. Defaults to `okteto-buildkit`.
 - `serviceAccount.annotations`: Annotations for the buildkit service account.
 - `serviceAccount.labels`: Labels for the buildkit service account.
-- `persistence.enabled`: Configures a persistence volume for buildkit. False by default.
+- `persistence.enabled`: Configures a persistence volume for buildkit. Enabled by default.
 - `persistence.class`: The storage class of the persistence volume attached to every buildkit pod.
 - `persistence.size`: The size of the persistence volume attached to every buildkit pod. Defaults to `750Gi`.
-- `persistence.cache`: The size (in Mi) of the buildkit cache to store image caches. It should be around 30Gi smaller than `storage.size`. Defaults to 500Gi.
+- `persistence.cacheRadio`: What percentage the persitence size should be use for the cache. Value should be between 0 and 1. Defaults to `0.9`.
 - `tolerations`: List of tolerations to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#tolerations).
 - `nodeSelectors`: Dictionary of node selectors to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the node selectors dictionary set in [`globals.nodeSelectors.okteto`](self-hosted/helm-configuration.mdx#nodeselectors).
 - `network.mode`: Controls the networking environment for containers during the build process. Defaults to `auto` but can be set to `host`, `none`, or `bridge`. Bridge mode can be useful for preventing port collisions in concurrent builds by isolating network environments.
@@ -299,7 +299,7 @@ The defaultBackend receives errored requests from the ingress-controller and tra
   - `repository`: Registry and repository for the defaultBackend pods.
   - `tag`: Tag used for the defaultBackend pods.
 - `labels`: Labels to add to the defaultBackend pods.
-- `nameOverride`: String to override the full name of the defaultBackend service.
+- `nameOverride`: String to override the full name of the defaultBackend service. If you rename an existing service, you need to [follow the manual migration steps documented below](#manual-migration-steps-when-renaming-the-defaultbackend-service).
 - `port`: Internal port used for the defaultBackend. Defaults to `8080`.
 - `priorityClassName`: The priority class to be used by the defaultBackend pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `replicaCount`: The number of defaultBackend pods. It defaults to 2.
@@ -323,6 +323,21 @@ The defaultBackend provides the following features:
 tolerations:
   devPool: dev
 ```
+
+#### Manual migration steps when renaming the defaultBackend service
+
+If you rename the defaultBackend service using the `nameOverride` property, follow these steps to successfully upgrade Okteto in your cluster:
+
+1. Identify the current service name for your defaultBackend
+```
+kubectl get svc -l app.kubernetes.io/component=default-backend -n okteto
+```
+2. Patch the `defaultBackend` service adding the annotation: `helm.sh/resource-policy: keep`
+```
+kubectl patch service "<Your existing defaultBackend service name>" -n okteto -p '{"metadata":{"annotations":{"helm.sh/resource-policy": "keep"}}}'
+```
+3. Upgrade the Okteto Helm chart. This will create a new `defaultBackend` service with the new name.
+4. You can now safely delete the old `defaultBackend` service.
 
 ### frontend
 
@@ -350,6 +365,8 @@ frontend:
 ### gc
 
 The Okteto Garbage Collector service automatically scales idle applications to zero and deletes unused namespaces for optimal cost savings and resource management. It is enabled by default.
+
+The Garbage Collector service can also be [configured in the Admin Dashboard](admin/cleanup.mdx) by navigating to Admin -> Garbage Collector.
 
 - `annotations`: Annotations to add to the gc pods.
 - `labels`: Labels to add to the gc pods.
@@ -684,6 +701,16 @@ devStorageClass:
 
 There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](self-hosted/install/volume-snapshots.mdx) configured, if a storage class is required for the snapshots that storage class will have preference.
 
+### fullnameOverride
+
+The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart. Use this property to override the whole prefix. If you want to override only the chart name, you can use the [nameOverride](#nameoverride) setting.
+
+```yaml
+fullnameOverride: custom-prefix
+```
+
+The maximum length for `fullnameOverride` is 34 characters. Check how to [extend the limit to 40 characters](#handling-a-long-release-name) if you need a longer prefix.
+
 ### globals
 
 Global settings applicable to all Okteto components.
@@ -791,6 +818,16 @@ injectDevelopmentBinaries:
 - `lifetimeSeconds`: The lifetime in seconds of the tokens generated for the [Kubernetes credentials](core/credentials/kubernetes-credentials.mdx) provided by Okteto. This value has to be equal or greater than [`installer.activeDeadlineSeconds`](self-hosted/helm-configuration.mdx#installer) to make sure the tokens are valid during all installer execution. Defaults to 86400 seconds (1 day).
 
 > One important thing to bear in mind is that the maximum expiration time you can specify depends on the [Kubernetes apiserver's](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/) flag `--service-account-max-token-expiration`, so it might happen that the expiration time retrieved on your tokens is not the one specified here. If you specify a higher value, you will always get the maximum allowed by the apiserver. Be aware that not all Kubernetes service providers allow you to change this value and they enforce their own.
+
+### nameOverride
+
+The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart. Use this property to override the chart name part of the prefix. You can override the whole prefix by using the [fullnameOverride](#fullnameoverride) setting.
+
+```yaml
+nameOverride: custom-chart-name-override
+```
+
+Note that the maximum length for the entire prefix is 34 characters. Check how to [extend the limit to 40 characters](#handling-a-long-release-name) if you need a longer prefix.
 
 ### namespace
 
@@ -1234,6 +1271,14 @@ Okteto sets specific values on the embedded ingress-nginx chart to enable featur
 
 Refer to this [community guide](https://community.okteto.com/t/how-do-i-configure-my-own-ingress-controller/887) for detailed instructions on disabling the Okteto Nginx Ingress Controller and exposing Okteto behind your own Ingress Controller.
 
+### Redis
+
+Okteto's [Resource Manager](/admin/resource-manager) uses Redis to store the generated recommendations. Redis is only installed when the Resource Manager is enabled and it's deployed using the [Bitnami Redis chart](https://github.com/bitnami/charts/tree/master/bitnami/redis), you can customize the deployment using [these values](https://github.com/bitnami/charts/tree/main/bitnami/redis#parameters) under the `redis` key.
+
+### Reloader
+
+The Okteto chart uses [Reloader](https://github.com/stakater/Reloader) to perform rolling upgrades to Okteto components when changes happen on specific secrets. Reloader can be customized using the `reloader.reloader` value using [these parameters](https://github.com/stakater/Reloader#parameters).
+
 ## Store Sensitive Configuration Values using a Secret
 
 Create a secret named `okteto-cloud-secret` to store the following values instead of setting them in your helm configuration file:
@@ -1245,3 +1290,17 @@ Create a secret named `okteto-cloud-secret` to store the following values instea
 - `OPENID_CLIENTSECRET`: use this instead of `.Values.auth.openid.clientSecret` in your helm configuration file.
 - `GITHUB_INTEGRATION_CLIENTSECRET`: use this instead of `.Values.github.clientSecret` in your helm configuration file.
 - `GITHUB_APP_PRIVATE_KEY`: use this instead of `.Values.github.appPrivateKey` in your helm configuration file.
+
+## Handling a Long Release Name
+
+The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart.
+
+In Kubernetes, there are strict limits on the maximum length of names for various resources. For example, CronJob names cannot exceed 52 characters, and Service names cannot be longer than 63 characters. Additionally, Helm enforces a maximum length of 53 characters for a release name.
+
+Since the Okteto chart creates multiple resources in Kubernetes, it employs specific strategies to avoid exceeding these length limits and to minimize the need for additional configuration.
+
+The maximum length for the Okteto prefix is 34 characters. This limit is derived from the maximum name length allowed by Kubernetes (63 characters), minus the length of the longest Okteto component suffix ("-ingress-nginx-defaultbackend"). The 34 characters are then divided into 27 characters for the release name and 7 characters for the chart name ("-okteto").
+
+This limit can be extended to 40 characters by overriding the name of the defaultBackend component. To do this, set the `defaultBackend.nameOverride` value. If you rename the defaultBackend on an existing installation, be sure to follow [these steps](#manual-migration-steps-when-renaming-the-defaultbackend-service) to safely rename it.
+
+If you need to use a release name longer than 40 characters, you can also use the [nameOverride](#nameoverride) or [fullnameOverride](#fullnameoverride) settings to make the prefix shorter.
