@@ -74,21 +74,39 @@ This tab is available for key resources, including Deployments, StatefulSets, Jo
 
 * To learn more about what metrics are available, see our [Namespace Documentation →](core/namespaces.mdx#resource-metrics-view)
 
-### Recommendations Banner
-If the Resource Manager is not activated and it detects potential improvements, a banner will appear in the Okteto Dashboard. This banner will:
+## Exclude Resources
 
-- Highlight performance issues or inefficiencies
-- Provide links to the Metrics tab where you can view detailed recommendations
-- Encourage enabling the Resource Manager if it is currently disabled
+If you find that the Resource Manager's recommendations are not suitable for a specific component, you can opt-out single resources from being managed by Resource Manager.
 
-The banner encourages you to review these recommendations and, if the Resource Manager is not enabled, to activate it for automated management.
-You can interact with the banner to view a detailed list of resources with recommendations.
+Set the annotation `dev.okteto.com/resource-manager` to `false` to your pod's metadata to prevent automatic adjustments.
 
-## Rolling Back Changes
-If you find that the Resource Manager's recommendations are not suitable for your workload, you can override its behavior:
+Example of Kubernetes manifest:
 
-Update the annotation `dev.okteto.com/resource-manager` to `false` to your pod's metadata to prevent automatic adjustments.
-Roll back to previous resource settings manually if needed.
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world
+spec:
+  selector:
+    matchLabels:
+      app: hello-world
+  template:
+    metadata:
+      annotations:
+        dev.okteto.com/resource-manager: "false"
+```
+
+Example of Docker Compose file:
+
+```yaml
+services:
+  hello-world:
+    labels:
+      dev.okteto.com/resource-manager: "false"
+```
+
+Note: Docker Compose labels are translated to Kubernetes annotations.
 
 ## Disabling the Resource Manager
 If you need to disable the Resource Manager temporarily, you can do so by:
@@ -102,6 +120,21 @@ The Resource Manager relies on the Kubernetes Metric Server. If the Metric Serve
 
 ### Known Limitation: Support for ReplicaSet and CronJob
 
-The Resource Manager does not natively support optimizing ReplicaSets and CronJobs due to limitations in differentiating between them and their controllers (e.g., Deployments and Jobs). By default, the Resource Manager infers the original controller’s name from the pod’s name (e.g., extracting `${deploymentName}` from a pod named `${deploymentName}-644d69dbc4-fv5g5`).
+The Resource Manager does not automatically support optimizing ReplicaSets and CronJobs due to technical limitations. However, you can enable Resource Manager optimizations for ReplicaSets or CronJobs, by adding the label `dev.okteto.com/component-name` to your resources.
 
-**Recommendation**: If you need to enable Resource Manager optimizations for ReplicaSets or CronJobs, add the label `dev.okteto.com/component-name` to your resources. This allows the Resource Manager to use the specified value in the label instead of inferring the controller name.
+Example of CronJob manifest, with `dev.okteto.com/component-name` label:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello-world
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            dev.okteto.com/component-name: "hello-world"
+```

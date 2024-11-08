@@ -151,7 +151,6 @@ module.exports = {
       items: [
         'admin/dashboard',
         'admin/catalog',
-        'admin/cleanup',
         {
           type: 'category',
           label: 'Cloud Credentials',
@@ -162,6 +161,7 @@ module.exports = {
           ],
         },
         'admin/custom-installer-image',
+        'admin/cleanup',
         'admin/okteto-insights',
         {
           type: 'category',
