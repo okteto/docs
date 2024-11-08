@@ -120,6 +120,21 @@ The Resource Manager relies on the Kubernetes Metric Server. If the Metric Serve
 
 ### Known Limitation: Support for ReplicaSet and CronJob
 
-The Resource Manager does not natively support optimizing ReplicaSets and CronJobs due to limitations in differentiating between them and their controllers (e.g., Deployments and Jobs). By default, the Resource Manager infers the original controller’s name from the pod’s name (e.g., extracting `${deploymentName}` from a pod named `${deploymentName}-644d69dbc4-fv5g5`).
+The Resource Manager does not automatically support optimizing ReplicaSets and CronJobs due to technical limitations. However, you can enable Resource Manager optimizations for ReplicaSets or CronJobs, by adding the label `dev.okteto.com/component-name` to your resources.
 
-**Recommendation**: If you need to enable Resource Manager optimizations for ReplicaSets or CronJobs, add the label `dev.okteto.com/component-name` to your resources. This allows the Resource Manager to use the specified value in the label instead of inferring the controller name.
+Example of CronJob manifest, with `dev.okteto.com/component-name` label:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello-world
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            component-name: "hello-world"
+```
