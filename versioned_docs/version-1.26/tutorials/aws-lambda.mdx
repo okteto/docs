@@ -1,0 +1,88 @@
+---
+title: Deploy an AWS Lambda function in your Development Environment
+description: Deploy an AWS Lambda function in your Development Environment
+sidebar_label: AWS Lambda Functions with Okteto
+id: aws-lambda
+---
+
+import Image from '@theme/Image';
+
+This tutorial will show you how to deploy a Development Environment in Okteto that contains an AWS Lambda function with Okteto. We use [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam-overview.html) to create the Lambda function in this tutorial.
+You can find the code for the sample app we work with for this tutorial [here](https://github.com/okteto/aws-lambda).
+
+If you'd like to see an alternate approach using [Terraform](https://www.terraform.io/) instead of AWS SAM CLI, checkout this [sample app](https://github.com/okteto-community/aws-lambda-with-terraform).
+
+## Prerequisites
+
+- Access to an Okteto instance
+- Access to an AWS account with the permissions to create IAMs
+
+## Step 1: Configure Cloud Credentials
+
+Okteto needs sufficient permissions to make necessary AWS service calls and manage AWS resources to create the Lambda Function in your AWS account. This can be done  by [configuring Cloud Credentials](admin/cloud-credentials/aws.mdx).
+
+Make sure to give the following permissions to the IAM role you create when configuring Cloud Credentials:
+
+- AWSCloudFormationFullAccess
+- IAMFullAccess
+- AWSLambda_FullAccess
+- AmazonAPIGatewayAdministrator
+- AmazonS3FullAccess
+
+## Step 2: Create your Okteto manifest
+
+In order to deploy a Lambda function in Okteto, you need to create an Okteto manifest. If you clone our [sample app](https://github.com/okteto/aws-lambda), you'll find a starter Okteto Manifest there which looks like this:
+
+```yaml title="okteto.yaml"
+deploy:
+  image: okteto/aws-sam
+  commands:
+    - name: build function
+      command: sam build
+    - name: deploy function
+      command: |
+        sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-prefix "${OKTETO_NAMESPACE}" --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --resolve-s3
+        FUNCTION_URL=$(aws cloudformation describe-stacks --region us-east-1 --stack-name ${OKTETO_NAMESPACE}-okteto-lambda --query "Stacks[0].Outputs[0].OutputValue" --output text)
+        # use external resources to display the URL the Okteto UI
+        echo "OKTETO_EXTERNAL_LAMBDA_ENDPOINTS_FUNCTION_URL=$FUNCTION_URL" >> $OKTETO_ENV
+
+destroy:
+  image: okteto/aws-sam
+  commands:
+    - name: destroy function
+      command: sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-okteto-lambda" --region us-east-1
+
+external:
+  lambda:
+    icon: function
+    endpoints:
+      - name: function
+```
+
+:::info
+This manifest takes advantage of our [External Resources](tutorials/external-resources.mdx) feature manage the lifecycle of external resources as part of your Okteto development environment. [Learn more about External Resources here](tutorials/external-resources.mdx).
+:::
+
+Details:
+
+- The `deploy.image` field tells Okteto to use the image `okteto/aws-sam` which contains the AWS SAM CLI required to run the deploy commands. This image is present on [our Docker Hub image registry](https://hub.docker.com/r/okteto/aws-sam). Feel free to create your own image and use it here instead in case you need other tooling.
+- The `deploy.commands` section includes all the commands needed to build and deploy the function.
+- The `destroy` section includes the commands needed to destroy the Lambda function. This will be invoked when the environment or the namespace are destroyed.
+
+## Step 3: Deploy your Development Environment
+
+Deploy your Development Environment by running the following command:
+
+```bash
+okteto deploy
+```
+
+After a few seconds, your Development Environment will be fully deployed and your AWS Lambda function will be up and running. Every time you redeploy the Development Environment, the AWS Lambda function will be recreated with your latest code.
+
+The source code used on this tutorial [is available here](https://github.com/okteto/aws-lambda).
+
+## Next steps
+
+Congratulations, you just deployed **your first AWS Lambda function in Okteto** 🚀.
+
+Head over to our getting started guides for [Go](development/containers/file-sync/golang.mdx), [ASP.NET](development/containers/file-sync/aspnetcore.mdx), [Java](development/containers/file-sync/java.mdx), [Node.js](development/containers/file-sync/node.mdx), [PHP](development/containers/file-sync/php.mdx), [Python](development/containers/file-sync/python.mdx), or [Ruby](development/containers/file-sync/ruby.mdx) to see how to integrate it with the rest of your applications.

@@ -1,0 +1,132 @@
+---
+title: Upgrade your Okteto instance
+description: How to upgrade your Okteto instance
+sidebar_label: Upgrade
+id: upgrade
+---
+
+import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
+
+## Upgrade your Okteto Instance
+
+> To ensure a successful Okteto upgrade, we recommend testing it on a dedicated test cluster. Please contact your sales representative to request a test license for your test cluster.
+
+To upgrade a new release, modify the `config.yaml` with your desired changes and then use:
+
+```console
+helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version <version_number>
+```
+
+For example:
+
+<CodeBlock language="bash">
+  {
+`helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version ${variables.chartVersion}
+`}
+</CodeBlock>
+
+_You can use `helm ls` to find the name of your release._
+
+Please review [the release notes](release-notes.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
+
+## Upgrading to Okteto 1.25.x
+
+Starting with the [1.25 release](release notes.mdx#1250), Okteto will use CLI version 3.0.0 when deploying and destroying pipelines. Please familiarize yourself with the [changes in Okteto CLI 3.0.0](https://www.okteto.com/blog/cli-three-release/) before upgrading your cluster. 
+
+
+## Upgrading to Okteto 1.22.x
+
+As part of the [1.22 release](release-notes.mdx#1220), we have reorganized some helm settings that allow you to configure annotations, labels, and role bindings to apply to user's service accounts. Settings changed are the following:
+
+* `clusterRole` setting is now moved to [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `globalClusterRole` setting is now moved to [`serviceAccounts.clusterRoleBinding`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `user.serviceAccounts.annotations` is now moved to [`serviceAccounts.annotations`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `user.serviceAccounts.labels` is now moved to [`serviceAccounts.labels`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `user.extraRoleBindings.roleBindings` is now moved to [`serviceAccounts.extraRoleBindings`](self-hosted/helm-configuration.mdx#serviceaccounts)
+
+Summarizing, in case you have all or some of these settings configured as they were before:
+
+```yaml
+clusterRole: cluster-admin
+
+globalClusterRole: example-cluster-role
+
+user:
+  serviceAccount:
+    annotations:
+      custom.annotation/one: one
+      custom.annotation/two: two
+    labels:
+      custom.label/one: one
+      custom.label/two: two
+  extraRoleBindings:
+    enabled: true
+    roleBindings:
+      namespace-name1:
+        - cluster-role1
+        - cluster-role2
+      namespace-name2:
+        - cluster-role3
+```
+
+The configuration for 1.22 versions would be the following:
+
+```yaml
+serviceAccounts:
+  annotations:
+    custom.annotation/one: one
+    custom.annotation/two: two
+  labels:
+    custom.label/one: one
+    custom.label/two: two
+  roleBindings:
+    namespaces: cluster-admin
+  clusterRoleBinding: example-cluster-role
+  extraRoleBindings:
+    namespace-name1:
+      - cluster-role1
+      - cluster-role2
+    namespace-name2:
+      - cluster-role3
+```
+
+:::note
+Old settings are still considered and have preference, but their support will be removed in a future version. Please consider migrating them as soon as possible.
+:::
+
+We have also made another relevant change to consider when migrating to `1.22`. We have stopped creating an automatic role binding to any custom service account created on namespaces managed by Okteto to the cluster role specified on `serviceAccounts.roleBindings.namespaces` (`clusterRole` in previous versions). If you create any custom service account as part of your application, make sure you also create any role or role binding needed.
+
+If you experience issues with permissions in this regard, we recommend creating an explicit role and role-binding, but as an alternative solution you can also manually create the role-binding to the `cluster-admin` role, using the following approach:
+
+1. Create the `rb.yml.tpl` file with the following content:
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: <service-account-name>
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: <service-account-name>
+  namespace: ${OKTETO_NAMESPACE}
+```
+2. Replace `<service-account-name>` with the name of the service account you want to bind to the `cluster-admin` role.
+3. In the Okteto Manifest deploy commands, use  `envsubst` to replace the `${OKTETO_NAMESPACE}` variable:
+```yaml
+deploy:
+  - envsubst < k8s/rb.yml.tpl > k8s/rb.yml
+  - kubectl apply -f k8s
+```
+
+## Upgrading to Okteto 1.20.x
+
+In the Okteto [1.20 release](release-notes.mdx#1200), we have enabled [Pull Secrets by default](admin/registry-credentials/index.mdx). If you do no wish to manage Pull Secrets the following helm values should be disabled:
+
+- `regcredsManager.pullSecrets.enabled` should be set to `false`
+- `daemonset.configurePrivateRegistriesInNodes.enabled` should be set to `false` (if you are already preventing Okteto to manage credentials in the node, this may already be configured correctly)
