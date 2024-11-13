@@ -99,3 +99,49 @@ spec:
 ```
 
 To apply the changes in a manual sceario, you can simply run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
+
+## Cloud Credentials
+
+Cloud credentials are mainly managed via the [Admin dashboard](admin/dashboard.mdx#cloud-credentials), but can also be managed via one of the CRDs installed by Okteto: `dynamicconfigs.admin.okteto.com`. This last case is useful, for example, if you want to add cloud credentials manually with a simple `kubectl` command or manage your cloud credentials using GitOps.
+
+For example, if you want to add a configuration for GCP Cloud Credential, you will need to create a resource like this:
+
+- `metadata.name`: `gcp-credentials-config`
+- `spec.audience`: This is the intended audience for the credential. It is typically a URL or a string that identifies the target service or application that will use the credential.
+- `spec.projectNumber`: This is the unique identifier for your Google Cloud project. It is a numeric value that is assigned to your project when you create it in the Google Cloud Console.
+- `spec.providerId`: his is the identifier for the identity provider. It is used to specify which identity provider will be used to authenticate the credentials.
+- `spec.workloadIdentityPoolId`: This is the identifier for the Workload Identity Pool. It is used to specify the pool of identities that can be used to authenticate the credentials.
+
+```yaml title="gcp-cloud-credential.yaml"
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: gcp-credentials-config
+  namespace: okteto
+ spec:
+  audience: <audience>
+  projectNumber: <project-number>
+  providerId: <provider-id>
+  workloadIdentityPoolId: <workload-identity-pool-id>
+```
+
+Alternativly, if you want to add a configuration for AWS Cloud Credentials, you will need to create a resource like this:
+
+- `metadata.name`: `aws-credentials-config`
+- `spec.audience`: This is the intended audience for the credential. It is typically a URL or a string that identifies the target service or application that will use the credential.
+- `spec.region`: This specifies the AWS region where the credentials will be used. It is a string that identifies the geographic area where AWS resources are located.
+- `spec.roleARN`: This is the Amazon Resource Name (ARN) of the IAM role that will be assumed. It uniquely identifies the role within AWS and is used to specify which role will be used to authenticate the credentials.
+
+```yaml title="aws-cloud-credential.yaml"
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: aws-credentials-config
+  namespace: okteto
+spec:
+  audience: <audience>
+  region: <region>
+  roleARN: <roleARN>
+```
+
+To apply the changes in a manual sceario, you can simply run the command `kubectl apply -f aws-cloud-credential.yaml` from your terminal to add the cloud credential in the cluster.
