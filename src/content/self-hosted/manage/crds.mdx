@@ -8,25 +8,28 @@ id: custom-resource-definitions
 import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 
-As part of Okteto's installation, some Custom Resource Definitions (CRDs) are installed in your cluster. These CRDs are used by Okteto to mainly store different information. You can see the list of CRDs installed by Okteto exploring the folder `crds` in the templates of the [Okteto Helm Chart](https://artifacthub.io/packages/helm/okteto/okteto) or by running the following command in your cluster:
+As part of Okteto's installation, several Custom Resource Definitions (CRDs) are installed in your cluster. These CRDs primarily store different types of information necessary for Okteto's functionality. You can view the list of Okteto's CRDs by exploring the `crds` folder in the templates of the [Okteto Helm Chart](https://artifacthub.io/packages/helm/okteto/okteto) or by running the following command:
 
 ```console
 kubectl get crd | grep okteto.com
 ```
 
-You can let Okteto install these CRDs or you can install them manually on your own, but be aware they are needed for Okteto to work properly. You can use the [following configuration setting](self-hosted/helm-configuration.mdx#crds) to let Okteto know if it should install them or not. By default, Okteto will install them.
+You can let Okteto install these CRDs or you can choose to install them manually, but be aware they are needed for Okteto to work properly. You can use the [following configuration setting](self-hosted/helm-configuration.mdx#crds) to let Okteto know if it should install them or not. By default, Okteto will install them.
 
 ## Private Registries
 
-Private registry configuration is managed via the [Admin dashboard](admin/dashboard.mdx#registry-credentials) or via one of the CRDs installed by Okteto: `admin.okteto.com`. This last case is useful, for example, if you have your own mechanism to provision credentials/secrets in your cluster.
+Private registry configurations can be managed either through the [Admin dashboard](admin/dashboard.mdx#registry-credentials) or by using one of Okteto’s installed CRDs: `admin.okteto.com`. This last case is useful, for example, if you have your own mechanism to provision credentials/secrets in your cluster.
 
-To define your private registries using CRDs, you have to create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) first with the data needed to access your private registry.
-Depending on the type of registry, you will need different fields.
+There are 3 types of registries you can configure: Static credentials, AWS IAM User and AWS IAM Role.
 
-Once the secret is created, you will need to create a resource with the apiVersion `admin.okteto.com/v1`, which is one of the CRDs installed by Okteto, referring to the secret which contains the credentials.
+### Static Credentials
 
-If you want to define static credentials (username and password) for a private registry you need to create a secret in the Okteto namespace with the username and password to be used.
-Once created, you need to define a CRD using the name of the resource as the hostname of the registry (e.g. `index.docker.io` or `111122223333.dkr.ecr.eu-central-1.amazonaws.com`).
+To define your private registries with static credentials using CRDs, you must first create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) containing the necessary data to access your private registry.
+This secret should include both the username and password for accessing the registry.
+
+Once the secret is created, you will need to create a resource with the `apiVersion`: `admin.okteto.com/v1` and `Registry` kind, which is one of the CRDs installed by Okteto, referring to the secret which contains the credentials.
+
+The name of this new resource should be the hostname of the registry (e.g. `index.docker.io`).
 For example, if you want to add a configuration for Docker's registry, you will need to create a resource like this:
 
 :::note
@@ -50,8 +53,11 @@ spec:
       name: <secret-name> # name of the secret where the username is stored
 ```
 
-In the case of AWS, where you have to specify the Access Key and Access Secret, the process is similar to the static credentials one.
-You will need to create a secret with those values, and then, create a CRD like this (the name of the resource has to be the hostname of the registry to be configured and it has to end with `.amazonaws.com`):
+### AWS IAM User
+
+In the case of AWS IAM User, where you have to specify the Access Key and Access Secret, the process is similar to the static credentials one.
+For AWS IAM User credentials (Access Key and Secret Access Key), the process is similar to configuring static credentials.
+First, create a secret containing the Access Key and Secret Access Key values. Then, create a CRD like this (the name of the resource has to be the hostname of the registry to be configured and it has to end with `.amazonaws.com`, e.g. `111122223333.dkr.ecr.eu-central-1.amazonaws.com`):
 
 ```yaml
 apiVersion: admin.okteto.com/v1
@@ -69,17 +75,40 @@ spec:
       name: <secret-name> # name of the secret where the access secret is stored
 ```
 
+You can find more information [here](admin/registry-credentials/amazon-ecr.mdx#using-iam-user-credentials) about how to obtain the values to use.
+
+### AWS IAM Role
+
+In this case, the process is a bit simpler. It doesn't require a secret, as it doesn't store sensitive information. So, you will only need to
+create a CRD like the following one specifying the registry hostname as the resource name (it has to end with `.amazonaws.com`, e.g. `111122223333.dkr.ecr.eu-central-1.amazonaws.com`):
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: Registry
+metadata:
+  name: 111122223333.dkr.ecr.eu-central-1.amazonaws.com # hostname of the registry to be configured
+  namespace: okteto
+spec:
+  awsIamRole:
+    audience: okteto.example.com/us-east-2 # Audience used to exchange token to access the registry
+    roleARN: arn:aws:iam::112233445566:role/my-private-registry # ARN role with the permissions needed to access to the registry
+```
+
+You can find more information [here](admin/registry-credentials/amazon-ecr.mdx#using-iam-roles-via-openid-connect-oidc-federation) about how to obtain the values to use.
+
 ## Catalog Items
 
-Catalog items are mainly managed via the [Admin dashboard](admin/dashboard.mdx#catalog), but can also be managed via one of the CRDs installed by Okteto: `catalogitems.git.okteto.com`. This last case is useful, for example, if you want to add catalog items manually with a simple `kubectl` command or manage your catalog using GitOps.
-For example, if you want to add a configuration for a catalog item, you will need to create a resource like this:
+Catalog items are typically managed via the [Admin dashboard](admin/dashboard.mdx#catalog), but can also be managed via one of the CRDs installed by Okteto: `catalogitems.git.okteto.com`.
+This approach is useful if you want to add catalog items manually with kubectl commands or manage your catalog using GitOps.
 
-- `metadata.name`: name of the CatalogItem resource to be created.
-- `spec.branch`: default branch for the CatalogItem. (optional).
-- `spec.manifestPath`: path to the manifest file in the repository. (optional).
-- `spec.name`: name of the item that is displayed to the user in the UI Catalog list.
-- `spec.repositoryUrl`: URL of the repository.  
-- `spec.variables`: list of variables suggested to the user at deployment time. Each variable can be defined by name only, or by name and value. (optional).
+To configure a catalog item, create a resource like this:
+
+- `metadata.name`: name of the `CatalogItem` resource to be created
+- `spec.branch`: default branch for the CatalogItem. (optional)
+- `spec.manifestPath`: path to the manifest file in the repository (optional)
+- `spec.name`: Display name in the Catalog UI list
+- `spec.repositoryUrl`: URL of the repository
+- `spec.variables`: list of variables suggested to the user at deployment time. Each variable can be defined by name only, or by name and value (optional)
 
 ```yaml title="my-catalog-item.yaml"
 apiVersion: git.okteto.com/v1
@@ -98,7 +127,8 @@ spec:
     - name: VARIABLE_WITHOUT_VALUE
 ```
 
-To apply the changes in a manual sceario, you can simply run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
+To apply the changes manually, run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
+
 
 ## Cloud Credentials
 
@@ -144,4 +174,4 @@ spec:
   roleARN: <roleARN>
 ```
 
-To apply the changes in a manual sceario, you can simply run the command `kubectl apply -f aws-cloud-credential.yaml` from your terminal to add the cloud credential in the cluster.
+To apply the changes manually, run the command `kubectl apply -f aws-cloud-credential.yaml` from your terminal to add the catalog item to the your Cloud Credential to the cluster.
