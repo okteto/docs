@@ -128,8 +128,8 @@ The API service. Account and Kubernetes credentials management, namespace creati
 ```yaml
 api:
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   replicaCount: 2
   resources:
     requests:
@@ -186,7 +186,7 @@ autoscaler:
     min: 1
     max: 10
     podLabel: cloud.google.com/gke-nodepool
-  slackWebhook:
+  slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ### buildkit
@@ -221,8 +221,8 @@ The build service. It's used in combination with `okteto build` to build contain
 buildkit:
   port: 443
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   replicaCount: 1
   persistence:
     enabled: true
@@ -235,8 +235,8 @@ buildkit:
     value: "buildkit"
     effect: "NoExecute"
   nodeSelectors:
-      okteto-node-label: build
-      region: west
+    okteto-node-label: build
+    region: west
 ```
 
 In order to handle timeouts during communication between the client and the buildkit daemon, the following environment variables can be modified on the server side:
@@ -339,8 +339,8 @@ The frontend service serves the web application.
 ```yaml
 frontend:
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   replicaCount: 2
   resources:
     requests:
@@ -364,7 +364,7 @@ The Garbage Collector service can also be [configured in the Admin Dashboard](ad
 gc:
   enabled: true
   upSessionByLastSyncedFile: false
-  slackWebhook:
+  slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ### insights
@@ -436,7 +436,6 @@ The jobs that deploy your [development environments from Git](development/deploy
 - `annotations`: Annotations to add to the installer job pods.
 - `extraEnv`: Environment variables to be set on the installer job containers.
 - `labels`: Labels to add to the installer job pods.
-- `image`: to configure your custom installer binaries, including a custom Okteto CLI version.
 - `runner`: to configure your [custom installer image](admin/custom-installer-image.mdx).
 - `activeDeadlineSeconds`: Maximum duration of the pipeline in seconds.
 - `gitSSHUser`: User to be used when cloning git repos using ssh.
@@ -447,11 +446,10 @@ The jobs that deploy your [development environments from Git](development/deploy
 
 ```yaml
 installer:
-  image: okteto/installer:1.5.2
   runner: okteto/pipeline-runner:1.0.0
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   activeDeadlineSeconds: 1800
   gitSSHUser: git
   sshSecretName: "okteto-ssh"
@@ -644,20 +642,20 @@ Apply default affinities to pods deployed in namespaces created by Okteto.
 affinity:
   devPool:
     preferredDuringSchedulingIgnoredDuringExecution:
-      - preference:
-          matchExpressions:
-            - key: cloud.google.com/spot
-              operator: In
-              values:
-                - "true"
-        weight: 10
+    - preference:
+        matchExpressions:
+        - key: cloud.google.com/spot
+          operator: In
+          values:
+          - "true"
+      weight: 10
   oktetoPool:
     preferredDuringSchedulingIgnoredDuringExecution:
-      - preference:
-          matchExpressions:
-            - key: dev.okteto.com/overloaded
-              operator: DoesNotExist
-        weight: 50
+    - preference:
+        matchExpressions:
+        - key: dev.okteto.com/overloaded
+          operator: DoesNotExist
+      weight: 50
 ```
 
 In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptive nodes.
@@ -886,27 +884,27 @@ Disabled by default.
 networkPolicies:
   enabled: true
   ingress:
-    - from:
-        - ipBlock:
-            cidr: 172.17.0.0/16
-            except:
-              - 172.17.1.0/24
-        - namespaceSelector:
-            matchLabels:
-              project: myproject
-        - podSelector:
-            matchLabels:
-              role: frontend
-      ports:
-        - protocol: TCP
-          port: 6379
+  - from:
+    - ipBlock:
+        cidr: 172.17.0.0/16
+        except:
+        - 172.17.1.0/24
+    - namespaceSelector:
+        matchLabels:
+          project: myproject
+    - podSelector:
+        matchLabels:
+          role: frontend
+    ports:
+    - protocol: TCP
+      port: 6379
   egress:
-    - to:
-        - ipBlock:
-            cidr: 10.0.0.0/24
-      ports:
-        - protocol: TCP
-          port: 5978
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+    ports:
+    - protocol: TCP
+      port: 5978
 ```
 
 ### overrideFileWatchers
