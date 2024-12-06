@@ -245,32 +245,6 @@ module.exports = {
         },
       ],
     },
-    /* {
-      type: 'category',
-      label: 'References',
-      items: [
-        'reference/okteto-cli',
-        'reference/okteto-manifest',
-        'reference/docker-compose',
-        'reference/supported-github-actions',
-        'reference/file-synchronization',
-        'reference/feature-flags',
-        'reference/ssh-server',
-      ],
-    }, */
-    /* {
-      type: 'category',
-      label: 'Community and support',
-      items: [
-        'reference/faqs',
-        {
-          type: 'link',
-          label: 'Community forum',
-          href: 'https://community.okteto.com/',
-        },
-      ],
-    }, */
-
     {
       type: 'html',
       value: '<p class="sidebarHeading">Resources</p>',
@@ -294,9 +268,23 @@ module.exports = {
       ],
     },
     {
-      type: 'link',
+      type: 'category',
       label: 'References',
-      href: '/references',
+      className: 'sidebarCategoryHideLinks',
+      collapsed: false,
+      link: {
+        type: 'doc',
+        id: 'reference/index',
+      },
+      items: [
+        'reference/okteto-cli',
+        'reference/okteto-manifest',
+        'reference/docker-compose',
+        'reference/supported-github-actions',
+        'reference/file-synchronization',
+        'reference/feature-flags',
+        'reference/ssh-server',
+      ],
     },
     'reference/faqs',
     'release-notes',

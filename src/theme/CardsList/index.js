@@ -6,13 +6,13 @@ import Card from '../Card';
 
 import './styles.scss';
 
-function TutorialsList() {
+function CardsList() {
   const category = useCurrentSidebarCategory();
 
   return (
     <>
       {category.items?.length > 0 && (
-        <div className="TutorialsListGrid">
+        <div className="CardsListGrid">
           {category.items.map((tutorial) => {
             const frontmatter = useDocById(tutorial.docId);
 
@@ -46,4 +46,4 @@ function findKeywordsInString(string) {
   return foundKeywords.map((keyword) => useBaseUrl(`/img/logos/${keyword}.svg`));
 }
 
-export default TutorialsList;
+export default CardsList;
