@@ -247,17 +247,6 @@ module.exports = {
     },
     /* {
       type: 'category',
-      label: 'Tutorials',
-      items: [
-        'tutorials/aws-lambda',
-        'tutorials/compose-getting-started',
-        'tutorials/getting-started-with-okteto',
-        'tutorials/external-resources',
-        'tutorials/webpack',
-      ],
-    }, */
-    /* {
-      type: 'category',
       label: 'References',
       items: [
         'reference/okteto-cli',
@@ -287,7 +276,29 @@ module.exports = {
       value: '<p class="sidebarHeading">Resources</p>',
       defaultStyle: true,
     },
-    'tutorials/index',
+
+    /* - "tutorials/getting-started-with-okteto"
+  - "tutorials/aws-lambda"
+  - "tutorials/compose-getting-started"
+  - "tutorials/external-resources"
+  - "tutorials/webpack" */
+    {
+      type: 'category',
+      label: 'Tutorials',
+      className: 'sidebarCategoryHideLinks',
+      collapsed: false,
+      link: {
+        type: 'doc',
+        id: 'tutorials/index',
+      },
+      items: [
+        'tutorials/aws-lambda',
+        'tutorials/compose-getting-started',
+        'tutorials/getting-started-with-okteto',
+        'tutorials/external-resources',
+        'tutorials/webpack',
+      ],
+    },
     {
       type: 'link',
       label: 'References',
