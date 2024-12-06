@@ -276,12 +276,6 @@ module.exports = {
       value: '<p class="sidebarHeading">Resources</p>',
       defaultStyle: true,
     },
-
-    /* - "tutorials/getting-started-with-okteto"
-  - "tutorials/aws-lambda"
-  - "tutorials/compose-getting-started"
-  - "tutorials/external-resources"
-  - "tutorials/webpack" */
     {
       type: 'category',
       label: 'Tutorials',
@@ -292,9 +286,9 @@ module.exports = {
         id: 'tutorials/index',
       },
       items: [
+        'tutorials/getting-started-with-okteto',
         'tutorials/aws-lambda',
         'tutorials/compose-getting-started',
-        'tutorials/getting-started-with-okteto',
         'tutorials/external-resources',
         'tutorials/webpack',
       ],

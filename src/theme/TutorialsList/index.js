@@ -1,44 +1,33 @@
 import React from 'react';
-import {
-  useDocById,
-  useActiveDocContext,
-  useCurrentSidebarCategory,
-} from '@docusaurus/plugin-content-docs/client';
+import { useDocById, useCurrentSidebarCategory } from '@docusaurus/plugin-content-docs/client';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 import Card from '../Card';
 
 import './styles.scss';
 
-function TutorialsList(props) {
-  const { activeVersion } = useActiveDocContext();
-
-  const sidebarData = useCurrentSidebarCategory();
-
-  const tutorialsList = sidebarData.items.map((doc) => doc.docId);
-
-  const tutorials = activeVersion.docs.filter((doc) => tutorialsList.includes(doc.id));
-
-  const orderedTutorials = tutorialsList
-    .map((tutorialPath) => tutorials.find((doc) => doc.id === tutorialPath))
-    .filter(Boolean);
+function TutorialsList() {
+  const category = useCurrentSidebarCategory();
 
   return (
     <>
-      {orderedTutorials?.length > 0 && (
+      {category.items?.length > 0 && (
         <div className="TutorialsListGrid">
-          {orderedTutorials.map((tutorial) => {
-            const data = useDocById(tutorial.id);
-            console.log(data);
-            const path = activeVersion.path;
+          {category.items.map((tutorial) => {
+            const frontmatter = useDocById(tutorial.docId);
+
+            /** Unfortunately, at the moment we don’t have access to custom frontmatter value
+             *  Meaning, we can’t do something like `logo: "aws"`.
+             *  We’ll check if the title string includes a keyword and include the logo in that case.
+             **/
             return (
               <Card
-                title={data.title}
-                url={`${path}/${tutorial.id}`}
-                logo={tutorial.logo && useBaseUrl(`/img/logos/${tutorial.logo}`)}
-                key={tutorial.id}
+                title={tutorial.label}
+                url={tutorial.href}
+                logos={findKeywordsInString(tutorial.label)}
+                key={tutorial.docId}
               >
-                {data.description}
+                {frontmatter.description}
               </Card>
             );
           })}
@@ -46,6 +35,15 @@ function TutorialsList(props) {
       )}
     </>
   );
+}
+
+function findKeywordsInString(string) {
+  const keywords = ['aws', 'docker', 'webpack'];
+  const foundKeywords = keywords.filter((keyword) =>
+    string.toLowerCase().includes(keyword.toLowerCase())
+  );
+
+  return foundKeywords.map((keyword) => useBaseUrl(`/img/logos/${keyword}.svg`));
 }
 
 export default TutorialsList;
