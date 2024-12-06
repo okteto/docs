@@ -246,7 +246,7 @@ module.exports = {
             'self-hosted/manage/buildkit-high-performance',
             'self-hosted/manage/backup',
             'self-hosted/manage/custom-resource-definitions',
-            'self-hosted/manage/airgap',
+            'self-hosted/manage/air-gapped',
             'self-hosted/manage/troubleshooting',
             'self-hosted/manage/diagnostics',
             'self-hosted/manage/uninstall-okteto',
