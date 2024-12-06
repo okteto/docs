@@ -11,7 +11,7 @@ import TiersList from "@theme/TiersList";
 
 # Air-Gapped Network Environments<TiersList tiers="Enterprise Self-Hosted" />
 
-Okteto Enterprise supports installation in air-gapped environments, which are isolated from the internet for security purposes.
+Okteto Enterprise can be installed in air-gapped environments—isolated networks without internet access.
 This guide explains how to install, configure and use a self-hosted Okteto instance entirely offline. For personalized assistance, feel free to [talk to us](https://www.okteto.com/contact/) to guide you during the installation.
 
 ## Step 1: Disable Okteto Telemetry
@@ -24,9 +24,9 @@ telemetry:
   enabled: false
 ```
 
-Disabling telemetry will automatically stop Okteto CLI analytics for all developers.
+Disabling telemetry ensures that no usage analytics are sent from the Okteto CLI.
 
-## Step 2: Host Images in your Private Registry
+## Step 2: Set Up a Private Registry for Required Images
 
 By default, all the images needed to deploy the Okteto Platform, and the images used by the Okteto CLI, are hosted in DockerHub.
 In air-gapped environments, you’ll need to host these images in your private registry.
@@ -36,7 +36,7 @@ In air-gapped environments, you’ll need to host these images in your private r
 For simplicity, we recommend using the same repository names and tags in your private registry.
 
 :::info
-Okteto doesn't support `imagePullSecrets`, so your cluster must be configured to have access to your Private Registry, 
+Since Okteto doesn’t support `imagePullSecrets`, ensure your Kubernetes cluster is pre-configured to access your private registry.
 :::
 
 **Required Images for Okteto Platform Installation**
@@ -63,6 +63,7 @@ For Okteto Chart {variables.chartVersion}, we recommend enforcing the usage of O
 
 ## Step 3: Update Helm Configuration
 
+These configurations ensure Okteto can pull required images from your private registry during deployment.
 Once your images are pushed to your private registry, update your Okteto Helm configuration as follows:
 
 ```yaml
@@ -96,8 +97,11 @@ redis:
 
 ## Step 4: Install or Upgrade Okteto 
 
-Execute the following command to install or upgrade your Okteto instance:
+Run the following command to install Okteto for the first time or to upgrade an existing instance:
 
 <CodeBlock language="bash">
   {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
 </CodeBlock>
+
+
+_Need help with your installation? [Contact us](https://www.okteto.com/contact/) for expert guidance._
