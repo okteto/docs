@@ -189,23 +189,6 @@ autoscaler:
   slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-### backend
-
-The backend service in Okteto handles the core functionalities of your application.
-
-- `image`: Specifies the image settings for your backend service.
-  - `registry`: The registry where the backend image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
-  - `repository`: The repository path for the backend image. Defaults to `okteto/backend` if not specified.
-  - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
-
-```yaml
-backend:
-  image:
-    registry: myregistry.com
-    repository: project/repo
-    tag: customTag
-```
-
 ### buildkit
 
 The build service. It's used in combination with `okteto build` to build containers directly in the cluster.
@@ -217,18 +200,9 @@ The build service. It's used in combination with `okteto build` to build contain
 - `hpa.min`: Minimum number of buildkit pods to keep running.
 - `hpa.max`: Maximum number of buildkit pods to scale to.
 - `hpa.cpu`: The amount of CPU utilization that will cause the HPA to scale the buildkit pods.
-- `image`: Specifies the image settings for your buildkit service.
-  - `registry`: The registry where the buildkit image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
-  - `repository`: The repository path for the buildkit image. Defaults to `okteto/buildkit` if not specified.
-  - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
 - `labels`: Labels to add to the buildkit pods.
 - `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
 - `priorityClassName`: The priority class to be used by buildkit pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `rootless`: Specifies if the buildkit should be run rootless.
-  - `image`: Specifies the image settings for your buildkit service.
-    - `registry`: The registry where the buildkit image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
-    - `repository`: The repository path for the buildkit image. Defaults to `okteto/buildkit` if not specified.
-    - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}-rootless` if not specified.
 - `replicaCount`: The number of buildkit pods. It defaults to 1.
 - `resources`: The resources for the buildkit pods.
 - `serviceAccount.create`: create a service account for buildkit. True by default.
@@ -289,11 +263,17 @@ If you're trying to configure Buildkit persistency for your Okteto installation,
 
 ### cli
 
-The cli that will be used for performing tasks like starting synchronisation service, run inside your pipeline jobs, etc.
+Settings for the Okteto CLI.
 
-- `image`: Container image used by the cli operation.
-  - `registry`: The registry where the cli image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
-  - `repository`: The repository path for the cli image. Defaults to `okteto/okteto` if not specified.
+- `image`: Specifies the image settings for the Okteto CLI.
+  - `registry`:  The registry where the Okteto CLI cli image is hosted. Defaults to `docker.io`.
+  - `repository`: The repository path for the Okteto CLI image. Defaults to `okteto/okteto`.
+
+```yaml
+cli:
+  registry: "my-custom-registry:5000" 
+  repository: "okteto/cli"
+```
 
 
 ### daemonset
@@ -304,10 +284,6 @@ The daemonset automatically configures every node of your cluster to work better
 - `annotations`: Annotations to add to the daemonset pods.
 - `extraEnv`: Environment variables to be set on the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
-- `image`: Container image used by the daemonset pods.
-  - `registry`: The registry where the daemonset image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
-  - `repository`: The repository path for the daemonset image. Defaults to `okteto/daemon` if not specified.
-  - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
 - `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `false`. It's disabled if `regcredsManager.pullSecrets.enabled=true`.
 - `priorityClassName`: The priority class to be used by the daemonset pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 
@@ -334,10 +310,6 @@ The defaultBackend receives errored requests from the ingress-controller and tra
 - `annotations`: Annotations to add to the defaultBackend pods.
 - `enabled`: Control if defaultBackend is deployed. Defaults to `true`.
 - `extraEnvs`: Environment variables to be set on the defaultBackend containers.
-- `image`: Configuration block to customize the image used by the defaultBackend pods.
-  - `registry`: registry for the defaultBackend pods (You can change all the registries by setting `globals.registry` to your registry)
-  - `repository`: Repository for the defaultBackend pods. Defaults to `okteto/backend`.
-  - `tag`: Tag used for the defaultBackend pods. Defaults to `{variables.chartVersion}`
 - `labels`: Labels to add to the defaultBackend pods.
 - `nameOverride`: String to override the full name of the defaultBackend service.
 - `port`: Internal port used for the defaultBackend. Defaults to `8080`.
@@ -370,10 +342,6 @@ The frontend service serves the web application.
 
 - `annotations`: Annotations to add to the frontend pods.
 - `extraEnv`: Environment variables to be set on the frontend containers.
-- `image`: Configuration block to customize the image used by the frontend pods.
-  - `registry`: registry for the frontend pods (You can change all the registries by setting `globals.registry` to your registry)
-  - `repository`: Repository for the frontend pods. Defaults to `okteto/frontend`
-  - `tag`: Tag used for the frontend pods. Defaults to `{variables.chartVersion}`
 - `labels`: Labels to add to the frontend pods.
 - `priorityClassName`: The priority class to be used by the frontend pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `replicaCount`: The number of frontend pods. It defaults to 2.
@@ -479,11 +447,10 @@ The jobs that deploy your [development environments from Git](development/deploy
 - `annotations`: Annotations to add to the installer job pods.
 - `extraEnv`: Environment variables to be set on the installer job containers.
 - `labels`: Labels to add to the installer job pods.
-- `runner`: Specifies the image settings for your installer jobs.
+- `runner`: to configure your [custom installer image](admin/custom-installer-image.mdx).
   - `registry`: The registry where the installer image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
   - `repository`: The repository path for the installer image. Defaults to `okteto/pipeline-runner` if not specified.
   - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
-- `runner`: to configure your [custom installer image](admin/custom-installer-image.mdx).
 - `activeDeadlineSeconds`: Maximum duration of the pipeline in seconds.
 - `gitSSHUser`: User to be used when cloning git repos using ssh.
 - `sshSecretName`: The name of the secret that contains the private key used when cloning git repos using ssh. If it doesn't exist, the key and the secret will be automatically generated by Okteto.
@@ -493,7 +460,9 @@ The jobs that deploy your [development environments from Git](development/deploy
 
 ```yaml
 installer:
-  runner: okteto/pipeline-runner:1.0.0
+  runner: 
+    repository: okteto/pipeline-runner
+    tag: {variables.chartVersion}
   extraEnv:
   - name: NO_PROXY
     value: ".example.com"
@@ -600,10 +569,6 @@ These are all the settings available to configure your Okteto Registry:
 
 - `annotations`: Annotations to add to the registry pods.
 - `extraEnv`: Environment variables to be set on the registry containers.
-- `image`: Specifies the image settings for your registry service.
-  - `registry`: The registry where the registry image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
-  - `repository`: The repository path for the registry image. Defaults to `okteto/registry` if not specified.
-  - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
 - `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precedence over the ones defined in the [ingress](self-hosted/helm-configuration.mdx#ingress) section.
 - `labels`: Labels to add to the registry pods.
 - `pullPolicy`: The security policy for image pulls. If set to `cluster`, any Okteto user can pull any image from the registry. When set to `namespace`, only users with access to the namespace can pull images from the namespace. It defaults to `namespace`.
@@ -812,6 +777,16 @@ The priority class must already exist in your cluster before using this setting.
 globals:
   priorityClassName: okteto-priority
 ```
+
+#### registry
+
+Defines the global registry applied for all the okteto components (except for the cli). For more information visit [air gapped](self-hosted/air-gapped.mdx)
+
+```yaml
+globals:
+  registry: my-custom-registry:5000
+```
+
 
 #### tolerations
 
