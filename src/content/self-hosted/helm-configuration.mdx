@@ -128,8 +128,8 @@ The API service. Account and Kubernetes credentials management, namespace creati
 ```yaml
 api:
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   replicaCount: 2
   resources:
     requests:
@@ -186,7 +186,7 @@ autoscaler:
     min: 1
     max: 10
     podLabel: cloud.google.com/gke-nodepool
-  slackWebhook:
+  slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ### backend
@@ -238,7 +238,7 @@ The build service. It's used in combination with `okteto build` to build contain
 - `persistence.enabled`: Configures a persistence volume for buildkit. Enabled by default.
 - `persistence.class`: The storage class of the persistence volume attached to every buildkit pod.
 - `persistence.size`: The size of the persistence volume attached to every buildkit pod. Defaults to `750Gi`.
-- `persistence.cacheRadio`: What percentage the persitence size should be use for the cache. Value should be between 0 and 1. Defaults to `0.9`.
+- `persistence.cacheRatio`: What percentage the persitence size should be use for the cache. Value should be between 0 and 1. Defaults to `0.5`.
 - `tolerations`: List of tolerations to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#tolerations).
 - `nodeSelectors`: Dictionary of node selectors to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the node selectors dictionary set in [`globals.nodeSelectors.okteto`](self-hosted/helm-configuration.mdx#nodeselectors).
 - `network.mode`: Controls the networking environment for containers during the build process. Defaults to `auto` but can be set to `host`, `none`, or `bridge`. Bridge mode can be useful for preventing port collisions in concurrent builds by isolating network environments.
@@ -247,22 +247,22 @@ The build service. It's used in combination with `okteto build` to build contain
 buildkit:
   port: 443
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   replicaCount: 1
   persistence:
     enabled: true
-    storageClass: ssd
+    class: ssd
     size: 180Gi
-    cache: 150000
+    cacheRatio: 0.8
   tolerations: 
   - key: "okteto-buildkit"
     operator: "Equal"
     value: "buildkit"
     effect: "NoExecute"
   nodeSelectors:
-      okteto-node-label: build
-      region: west
+    okteto-node-label: build
+    region: west
 ```
 
 In order to handle timeouts during communication between the client and the buildkit daemon, the following environment variables can be modified on the server side:
@@ -300,6 +300,7 @@ The cli that will be used for performing tasks like starting synchronisation ser
 
 The daemonset automatically configures every node of your cluster to work better with Okteto.
 
+- `enabled`: Control if the daemonset is installed. Defaults to `true`.
 - `annotations`: Annotations to add to the daemonset pods.
 - `extraEnv`: Environment variables to be set on the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
@@ -320,7 +321,7 @@ The daemonset performs the following tasks on each node:
 
 You can restrict the nodes where the daemonset is deployed using `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
 
-```
+```yaml
 tolerations:
   devPool: dev
 ```
@@ -358,7 +359,7 @@ The defaultBackend provides the following features:
 - Autowake namespaces: when a user access an endpoint from an slept namespace, the defaultBackend will issue a wake command.
 - Custom error pages: when a user access an endpoint and an error is produced, the defaultBackend will return a custom error page with hints on how to solve it.
 
-```
+```yaml
 tolerations:
   devPool: dev
 ```
@@ -381,8 +382,8 @@ The frontend service serves the web application.
 ```yaml
 frontend:
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   replicaCount: 2
   resources:
     requests:
@@ -394,7 +395,7 @@ frontend:
 
 The Okteto Garbage Collector service automatically scales idle applications to zero and deletes unused namespaces for optimal cost savings and resource management. It is enabled by default.
 
-The Garbage Collector service can also be [configured in the Admin Dashboard](admin/cleanup.mdx) by navigating to Admin -> Garbage Collector.
+The Garbage Collector service can also be [configured in the Admin Dashboard](admin/cleanup.mdx) by navigating to **Admin -> Garbage Collector** underneath the Settings section.
 
 - `annotations`: Annotations to add to the gc pods.
 - `labels`: Labels to add to the gc pods.
@@ -406,7 +407,7 @@ The Garbage Collector service can also be [configured in the Admin Dashboard](ad
 gc:
   enabled: true
   upSessionByLastSyncedFile: false
-  slackWebhook:
+  slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ### insights
@@ -478,7 +479,7 @@ The jobs that deploy your [development environments from Git](development/deploy
 - `annotations`: Annotations to add to the installer job pods.
 - `extraEnv`: Environment variables to be set on the installer job containers.
 - `labels`: Labels to add to the installer job pods.
-- `image`: Specifies the image settings for your installer jobs.
+- `runner`: Specifies the image settings for your installer jobs.
   - `registry`: The registry where the installer image is hosted. Defaults to `` (You can change all the registries by setting `globals.registry` to your registry).
   - `repository`: The repository path for the installer image. Defaults to `okteto/pipeline-runner` if not specified.
   - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
@@ -492,11 +493,10 @@ The jobs that deploy your [development environments from Git](development/deploy
 
 ```yaml
 installer:
-  image: okteto/installer:1.5.2
   runner: okteto/pipeline-runner:1.0.0
   extraEnv:
-    - name: NO_PROXY
-      value: ".example.com"
+  - name: NO_PROXY
+    value: ".example.com"
   activeDeadlineSeconds: 1800
   gitSSHUser: git
   sshSecretName: "okteto-ssh"
@@ -693,20 +693,20 @@ Apply default affinities to pods deployed in namespaces created by Okteto.
 affinity:
   devPool:
     preferredDuringSchedulingIgnoredDuringExecution:
-      - preference:
-          matchExpressions:
-            - key: cloud.google.com/spot
-              operator: In
-              values:
-                - "true"
-        weight: 10
+    - preference:
+        matchExpressions:
+        - key: cloud.google.com/spot
+          operator: In
+          values:
+          - "true"
+      weight: 10
   oktetoPool:
     preferredDuringSchedulingIgnoredDuringExecution:
-      - preference:
-          matchExpressions:
-            - key: dev.okteto.com/overloaded
-              operator: DoesNotExist
-        weight: 50
+    - preference:
+        matchExpressions:
+        - key: dev.okteto.com/overloaded
+          operator: DoesNotExist
+      weight: 50
 ```
 
 In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptive nodes.
@@ -772,6 +772,37 @@ The maximum length for `fullnameOverride` is 34 characters. Check how to [extend
 
 Global settings applicable to all Okteto components.
 
+#### jobs
+
+Specifies global configuration for jobs created in the `okteto` namespace:
+
+- `ttlSecondsAfterFinished`: time in seconds to wait until a finished job is deleted (defaults to `86400` - 1 day).
+
+
+```yaml
+globals:
+  jobs:
+    ttlSecondsAfterFinished: 86400
+```
+
+#### nodeSelectors
+
+Specifies the node selectors to be applied to pods, categorized under `okteto` or `dev`:
+
+- `okteto`: Node selectors applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
+- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
+
+
+```yaml
+globals:
+  nodeSelectors:
+    okteto:
+      okteto-node-label: okteto
+    dev:
+      okteto-node-label: dev
+      region: east
+```
+
 #### priorityClassName
 
 Defines the priority class to be used by all pods in the okteto namespace.
@@ -802,24 +833,6 @@ globals:
       operator: "Equal"
       value: "arm64dev"
       effect: "NoSchedule"
-```
-
-#### nodeSelectors
-
-Specifies the node selectors to be applied to pods, categorized under `okteto` or `dev`:
-
-- `okteto`: Node selectors applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
-- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
-
-
-```yaml
-globals:
-  nodeSelectors:
-    okteto:
-      okteto-node-label: okteto
-    dev:
-      okteto-node-label: dev
-      region: east
 ```
 
 ### ingress
@@ -922,27 +935,27 @@ Disabled by default.
 networkPolicies:
   enabled: true
   ingress:
-    - from:
-        - ipBlock:
-            cidr: 172.17.0.0/16
-            except:
-              - 172.17.1.0/24
-        - namespaceSelector:
-            matchLabels:
-              project: myproject
-        - podSelector:
-            matchLabels:
-              role: frontend
-      ports:
-        - protocol: TCP
-          port: 6379
+  - from:
+    - ipBlock:
+        cidr: 172.17.0.0/16
+        except:
+        - 172.17.1.0/24
+    - namespaceSelector:
+        matchLabels:
+          project: myproject
+    - podSelector:
+        matchLabels:
+          role: frontend
+    ports:
+    - protocol: TCP
+      port: 6379
   egress:
-    - to:
-        - ipBlock:
-            cidr: 10.0.0.0/24
-      ports:
-        - protocol: TCP
-          port: 5978
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+    ports:
+    - protocol: TCP
+      port: 5978
 ```
 
 ### overrideFileWatchers
