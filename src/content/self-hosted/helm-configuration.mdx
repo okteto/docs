@@ -212,7 +212,7 @@ The build service. It's used in combination with `okteto build` to build contain
 - `persistence.enabled`: Configures a persistence volume for buildkit. Enabled by default.
 - `persistence.class`: The storage class of the persistence volume attached to every buildkit pod.
 - `persistence.size`: The size of the persistence volume attached to every buildkit pod. Defaults to `750Gi`.
-- `persistence.cacheRatio`: What percentage the persitence size should be use for the cache. Value should be between 0 and 1. Defaults to `0.5`.
+- `persistence.cacheRatio`: What percentage the persistence size should be use for the cache. Value should be between 0 and 1. Defaults to `0.5`.
 - `tolerations`: List of tolerations to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#tolerations).
 - `nodeSelectors`: Dictionary of node selectors to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the node selectors dictionary set in [`globals.nodeSelectors.okteto`](self-hosted/helm-configuration.mdx#nodeselectors).
 - `network.mode`: Controls the networking environment for containers during the build process. Defaults to `auto` but can be set to `host`, `none`, or `bridge`. Bridge mode can be useful for preventing port collisions in concurrent builds by isolating network environments.
@@ -261,6 +261,21 @@ If you're trying to configure Buildkit persistency for your Okteto installation,
   allowfullscreen
 ></iframe>
 
+### cli
+
+Settings for the Okteto CLI.
+
+- `image`: Specifies the image settings for the Okteto CLI.
+  - `registry`:  The registry where the Okteto CLI image is hosted. Defaults to `docker.io`.
+  - `repository`: The repository path for the Okteto CLI image. Defaults to `okteto/okteto`.
+
+```yaml
+cli:
+  registry: "my-custom-registry:5000" 
+  repository: "okteto/cli"
+```
+
+
 ### daemonset
 
 The daemonset automatically configures every node of your cluster to work better with Okteto.
@@ -269,7 +284,6 @@ The daemonset automatically configures every node of your cluster to work better
 - `annotations`: Annotations to add to the daemonset pods.
 - `extraEnv`: Environment variables to be set on the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
-- `image`: Container image used by the daemonset pods.
 - `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `false`. It's disabled if `regcredsManager.pullSecrets.enabled=true`.
 - `priorityClassName`: The priority class to be used by the daemonset pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 
@@ -296,9 +310,6 @@ The defaultBackend receives errored requests from the ingress-controller and tra
 - `annotations`: Annotations to add to the defaultBackend pods.
 - `enabled`: Control if defaultBackend is deployed. Defaults to `true`.
 - `extraEnvs`: Environment variables to be set on the defaultBackend containers.
-- `image`: Configuration block to customize the image used by the defaultBackend pods.
-  - `repository`: Registry and repository for the defaultBackend pods.
-  - `tag`: Tag used for the defaultBackend pods.
 - `labels`: Labels to add to the defaultBackend pods.
 - `nameOverride`: String to override the full name of the defaultBackend service.
 - `port`: Internal port used for the defaultBackend. Defaults to `8080`.
@@ -357,7 +368,7 @@ The Garbage Collector service can also be [configured in the Admin Dashboard](ad
 - `annotations`: Annotations to add to the gc pods.
 - `labels`: Labels to add to the gc pods.
 - `slackWebhook`: If set, the garbage collector will send a notification when it scales a resource to zero or when it deletes a namespace.
-- `upSessionByLastSyncedFile`: If true, okteto up sessions will be scaled to zero if no files have been synchronized in the scale to zero period. Default behavior is to check for an active connection (regardless of inactivity)
+- `upSessionByLastSyncedFile`: If true, `okteto up` sessions will be scaled to zero if no files have been synchronized in the scale to zero period. Default behavior is to check for an active connection (regardless of inactivity)
 - `priorityClassName`: The priority class to be used by the gc pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 
 ```yaml
@@ -437,6 +448,9 @@ The jobs that deploy your [development environments from Git](development/deploy
 - `extraEnv`: Environment variables to be set on the installer job containers.
 - `labels`: Labels to add to the installer job pods.
 - `runner`: to configure your [custom installer image](admin/custom-installer-image.mdx).
+  - `registry`: The registry where the installer image is hosted. Defaults to the helm configuration setting `globals.registry`.
+  - `repository`: The repository path for the installer image. Defaults to `okteto/pipeline-runner` if not specified.
+  - `tag`: The image tag to deploy. Defaults to `{variables.chartVersion}` if not specified.
 - `activeDeadlineSeconds`: Maximum duration of the pipeline in seconds.
 - `gitSSHUser`: User to be used when cloning git repos using ssh.
 - `sshSecretName`: The name of the secret that contains the private key used when cloning git repos using ssh. If it doesn't exist, the key and the secret will be automatically generated by Okteto.
@@ -446,7 +460,9 @@ The jobs that deploy your [development environments from Git](development/deploy
 
 ```yaml
 installer:
-  runner: okteto/pipeline-runner:1.0.0
+  runner: 
+    repository: okteto/pipeline-runner
+    tag: {variables.chartVersion}
   extraEnv:
   - name: NO_PROXY
     value: ".example.com"
@@ -754,13 +770,23 @@ globals:
 
 #### priorityClassName
 
-Defines the priority class to be used by all pods in the okteto namespace.
+Defines the priority class to be used by all pods in the `okteto` namespace.
 The priority class must already exist in your cluster before using this setting.
 
 ```yaml
 globals:
   priorityClassName: okteto-priority
 ```
+
+#### registry
+
+Defines the global registry applied for all the Okteto components (except for the CLI). For more information visit [our air-gapped installation guide](self-hosted/manage/air-gapped.mdx).
+
+```yaml
+globals:
+  registry: my-custom-registry:5000
+```
+
 
 #### tolerations
 
@@ -792,7 +818,7 @@ Configure default values for the ingress created by Okteto.
 - `oktetoIngressClass`: The `ingressClassName` to apply to all the ingresses created during the Okteto installation (defaults to `nginx`).
 - `class`: If specified, Okteto will set this as the `ingressClassName` of all ingresses managed by Okteto. This is useful if you have more than one ingress controller in your cluster.
 - `forceIngressClass`: If enabled, all ingresses deployed in namespaces managed by Okteto will have the ingress class defined in `ingress.class` (default: `false`).
-- `forceIngressSubdomain`: If enabled, the subdomain of the host of all ingresses deployed in namespaces managed by Okteto must match the okteto wildcard subdomain (default: `false`).
+- `forceIngressSubdomain`: If enabled, the subdomain of the host of all ingresses deployed in namespaces managed by Okteto must match the Okteto wildcard subdomain (default: `false`).
 - `ip`: The internal IP of the ingress. Pods will call the Okteto API and the Okteto Registry using this IP. Required if the installation of the Okteto [NGINX Ingress Controller](self-hosted/helm-configuration.mdx#using-your-own-ingress-controller) is disabled.
 
 ```yaml
@@ -823,7 +849,7 @@ ingressLimits:
 
 ### injectDevelopmentBinaries
 
-Automatically inject kubectl, helm, and okteto binaries on every development environment, and on the git and helm deployment pipelines. This requires permissions to mount a host volume.
+Automatically inject `kubectl`, `helm`, and `okteto` binaries on every development container, and on the pipeline runner.
 
 If this is disabled, you'll need to provide your own image in `installer.image`.
 
