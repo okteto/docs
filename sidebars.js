@@ -12,41 +12,41 @@ module.exports = {
       label: 'Get Started',
       link: { type: 'doc', id: 'index' },
       items: [
-        "get-started/install-okteto-cli",
+        'get-started/install-okteto-cli',
         {
-          type: "category",
-          label: "Install Okteto Platform",
+          type: 'category',
+          label: 'Install Okteto Platform',
           link: { type: 'doc', id: 'get-started/install/index' },
           items: [
-            "get-started/install/amazon-eks",
-            "get-started/install/civo",
-            "get-started/install/digitalocean-doks",
-            "get-started/install/google-gke",
-            "get-started/install/microsoft-aks",
-            "get-started/install/openshift"
-          ]
+            'get-started/install/amazon-eks',
+            'get-started/install/civo',
+            'get-started/install/digitalocean-doks',
+            'get-started/install/google-gke',
+            'get-started/install/microsoft-aks',
+            'get-started/install/openshift',
+          ],
         },
         {
-          type: "category",
-          label: "Deploy your app",
+          type: 'category',
+          label: 'Deploy your app',
           link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
           items: [
-            "get-started/deploy-your-app/deploy",
-            "get-started/deploy-your-app/dependencies",
-            "get-started/deploy-your-app/endpoints",
-            "get-started/deploy-your-app/build",
-          ]
+            'get-started/deploy-your-app/deploy',
+            'get-started/deploy-your-app/dependencies',
+            'get-started/deploy-your-app/endpoints',
+            'get-started/deploy-your-app/build',
+          ],
         },
         {
-          type: "category",
-          label: "For Developers",
+          type: 'category',
+          label: 'For Developers',
           items: [
-            "get-started/dev-quickstart",
-            "get-started/using-okteto-cli-and-dashboard",
-            "get-started/advanced-commands-and-concepts",
-          ]
+            'get-started/dev-quickstart',
+            'get-started/using-okteto-cli-and-dashboard',
+            'get-started/advanced-commands-and-concepts',
+          ],
         },
-        ],
+      ],
     },
     {
       type: 'category',
@@ -100,7 +100,7 @@ module.exports = {
                 'development/containers/file-sync/php',
                 'development/containers/file-sync/python',
                 'development/containers/file-sync/ruby',
-                ],
+              ],
             },
             {
               type: 'category',
@@ -113,7 +113,7 @@ module.exports = {
             },
           ],
         },
-        "development/images",
+        'development/images',
         {
           type: 'category',
           label: 'Deploy environments',
@@ -131,18 +131,13 @@ module.exports = {
       type: 'category',
       label: 'Okteto Test',
       link: { type: 'doc', id: 'testing/index' },
-      items: [
-        'testing/getting-started-test',
-      ],
+      items: ['testing/getting-started-test'],
     },
     {
       type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
-      items: [
-        'previews/using-github-actions',
-        'previews/using-gitlab-cicd',
-      ],
+      items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
     },
     {
       type: 'category',
@@ -166,10 +161,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Private Repositories',
-          items: [
-            'admin/private-repositories/github-app',
-            'admin/private-repositories/ssh-key',
-          ],
+          items: ['admin/private-repositories/github-app', 'admin/private-repositories/ssh-key'],
         },
         {
           type: 'category',
@@ -255,19 +247,17 @@ module.exports = {
       ],
     },
     {
-      type: 'category',
-      label: 'Tutorials',
-      items: [
-        'tutorials/aws-lambda',
-        'tutorials/compose-getting-started',
-        'tutorials/getting-started-with-okteto',
-        'tutorials/external-resources',
-        'tutorials/webpack',
-      ],
+      type: 'html',
+      value: '<p class="sidebarHeading">Resources</p>',
+      defaultStyle: true,
     },
     {
       type: 'category',
       label: 'References',
+      link: {
+        type: 'doc',
+        id: 'reference/index',
+      },
       items: [
         'reference/okteto-cli',
         'reference/okteto-manifest',
@@ -279,18 +269,17 @@ module.exports = {
       ],
     },
     {
-      type: 'category',
-      label: 'Community and support',
-      items: [
-        'reference/faqs',
-        {
-          type: 'link',
-          label: 'Community forum',
-          href: 'https://community.okteto.com/',
-        },
-      ],
+      type: 'link',
+      label: 'Tutorials',
+      href: '/tutorials',
     },
-    "release-notes",
+    'reference/faqs',
+    'release-notes',
+    {
+      type: 'link',
+      label: 'Community forum',
+      href: 'https://community.okteto.com/',
+    },
     {
       type: 'link',
       label: 'Archives',

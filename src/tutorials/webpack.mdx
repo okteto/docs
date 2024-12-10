@@ -1,0 +1,175 @@
+---
+title: Configure Webpack to work inside a container
+description: Optimize your configurations to work inside a Docker container
+id: webpack
+---
+
+import Image from '@theme/Image';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+### Expose webpack's dev server outside the container
+
+In order to make your app reachable outside the container `webpack-dev-server` must be
+configured to use `0.0.0.0` as host.
+
+
+#### webpack.config.js
+```js {4}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0'
+    }
+  };
+```
+
+### Enable Hot Module Replacement
+
+If you want to use the Webpack [Hot Module Replacement](https://webpack.js.org/concepts/hot-module-replacement/)
+feature to hot reload changes while using the development server, you need to enable it and set the
+socket port to `443`.
+
+<Tabs
+  defaultValue="webpack5"
+  values={[
+    { label: 'Webpack 5', value: 'webpack5', },
+    { label: 'Webpack 4', value: 'webpack4', },
+  ]}
+>
+<TabItem value="webpack5">
+
+#### webpack.config.js
+```js {5,8}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      hot: true,
+      client: {
+        webSocketURL: {
+          port: 443
+        }
+      }
+    }
+  };
+```
+
+</TabItem>
+<TabItem value="webpack4">
+
+#### webpack.config.js
+```js {5,6}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      hot: true,
+      sockPort: 443
+    }
+  };
+```
+
+</TabItem>
+</Tabs>
+
+### Host check configuration
+
+Webpack performs a host check when accessing the server. External access to the server won't be
+allowed unless it's properly configured. Check [webpack's dev server documentation](https://webpack.js.org/configuration/dev-server)
+for more information.
+
+<Tabs
+  defaultValue="webpack5"
+  values={[
+    { label: 'Webpack 5', value: 'webpack5', },
+    { label: 'Webpack 4', value: 'webpack4', },
+  ]}
+>
+<TabItem value="webpack5">
+
+You can bypass this check entirely by setting
+the [`allowedHosts`](https://webpack.js.org/configuration/dev-server/#devserverallowedhosts)
+option to `all`:
+
+#### webpack.config.js
+```js {5}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      allowedHosts: 'all'
+    }
+  };
+```
+
+</TabItem>
+<TabItem value="webpack4">
+
+You can bypass this check entirely by setting
+the [`disableHostCheck`](https://v4.webpack.js.org/configuration/dev-server/#devserverdisablehostcheck)
+option to `true`:
+
+#### webpack.config.js
+```js {5}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      disableHostCheck: true
+    }
+  };
+```
+
+</TabItem>
+</Tabs>
+
+### Watching files
+
+Webpack uses the file system to get notified of file changes and enable features like hot-reloading.
+You might experience file watching issues if your docker image is not compatible with webpack's
+file system subsystem. If that's your case, enable the `polling` option:
+
+<Tabs
+  defaultValue="webpack5"
+  values={[
+    { label: 'Webpack 5', value: 'webpack5', },
+    { label: 'Webpack 4', value: 'webpack4', },
+  ]}
+>
+<TabItem value="webpack5">
+
+#### webpack.config.js
+```js {5,6,7}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      watchOptions: {
+        poll: true // Or you can set a value in milliseconds.
+      }
+    }
+  };
+```
+
+</TabItem>
+<TabItem value="webpack4">
+
+#### webpack.config.js
+```js {5,6,7}
+  module.exports = {
+    //...
+    devServer: {
+      host: '0.0.0.0',
+      watchOptions: {
+        poll: true // Or you can set a value in milliseconds.
+      }
+    }
+  };
+```
+
+</TabItem>
+</Tabs>
+
+Check [webpack's documentation](https://webpack.js.org/configuration/watch/#watchoptions)
+for more information about `watchOptions`.
