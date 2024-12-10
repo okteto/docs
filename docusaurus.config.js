@@ -278,7 +278,7 @@ module.exports = {
               label: '1.21',
               path: '1.21',
               banner: 'unmaintained',
-            }
+            },
           },
           include: ['**/*.md', '**/*.mdx'],
         },
@@ -297,6 +297,16 @@ module.exports = {
     ],
   ],
   plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'tutorials',
+        path: 'src/tutorials',
+        routeBasePath: 'tutorials',
+        sidebarPath: require.resolve('./sidebarTutorials.js'),
+        breadcrumbs: false,
+      },
+    ],
     'docusaurus-plugin-sass',
     [
       'docusaurus-plugin-copy',
