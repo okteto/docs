@@ -86,13 +86,6 @@ module.exports = {
     prism: {
       theme: require('./src/theme/theme-okteto.js'),
     },
-    algolia: {
-      appId: 'RS9BKUCQCT',
-      apiKey: 'ac5c1ba5f3d4e8eceb4ce860d568da39',
-      indexName: 'okteto',
-      algoliaOptions: {},
-      position: 'left',
-    },
     navbar: {
       hideOnScroll: false,
       logo: {
@@ -321,4 +314,53 @@ module.exports = {
     ],
   ],
   scripts: ['//js.hs-scripts.com/5418301.js'],
+  themes: [
+    [
+      require.resolve('@trieve/docusaurus-search-theme'),
+      {
+        apiKey: 'tr-dxh5rknNGetbVdUJe16iJihRKUH6QKMN',
+        datasetId: 'e7ac9f62-1a01-41ad-8e37-4b0e0bfb8843',
+        defaultSearchQueries: [
+          'Namespaces',
+          'Preview Endpoints',
+          'CLI installation',
+        ],
+        defaultAiQuestions: [
+          'How does okteto test work?',
+          'How to use preview endpoints?',
+          'How to manage users on the admin dashboard',
+        ],
+        brandLogoImgSrcUrl: 'https://www.okteto.com/docs/img/logo.svg',
+        brandName: 'Okteto',
+        brandColor: '#00d1ca',
+        responsive: true,
+        searchOptions: {
+          search_type: "fulltext",
+          // Filter out versions that are not the current version (1.25)
+          filters: {
+            must_not: [
+              {
+                "field": "tag_set",
+                "match": [
+                  "1.26",
+                  "1.24",
+                  "1.23",
+                  "1.22",
+                  "1.21",
+                  "1.20",
+                  "1.19",
+                  "1.18",
+                  "1.17",
+                  "1.16",
+                  "1.15",
+                  "1.14",
+                ]
+              }
+            ]
+          }
+        },
+        debounceMs: 50,
+      },
+    ]
+  ],
 };
