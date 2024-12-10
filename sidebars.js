@@ -252,26 +252,7 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Tutorials',
-      className: 'sidebarCategoryHideLinks',
-      collapsed: false,
-      link: {
-        type: 'doc',
-        id: 'tutorials/index',
-      },
-      items: [
-        'tutorials/getting-started-with-okteto',
-        'tutorials/aws-lambda',
-        'tutorials/compose-getting-started',
-        'tutorials/external-resources',
-        'tutorials/webpack',
-      ],
-    },
-    {
-      type: 'category',
       label: 'References',
-      className: 'sidebarCategoryHideLinks',
-      collapsed: false,
       link: {
         type: 'doc',
         id: 'reference/index',
@@ -285,6 +266,11 @@ module.exports = {
         'reference/feature-flags',
         'reference/ssh-server',
       ],
+    },
+    {
+      type: 'link',
+      label: 'Tutorials',
+      href: '/tutorials',
     },
     'reference/faqs',
     'release-notes',
