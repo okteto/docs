@@ -40,13 +40,6 @@ You can launch a remote Development Environment with [Okteto](https://okteto.com
 
 *A new version of the docs is created once the documentation for a certain version is "finished". This is typically done in preparation of a new release.*
 
-
-### Update Variables
-
-Review the content of `src/content/variables.json` and update the values of `cliVersion` and `chartVersion`.
-
-If the release comes with a new or a removed Kubernetes version, update `kubernetesMinVersion` and `kubernetesMaxVersion` accordingly.
-
 ### Create a new version
 To create a new version, run the following commands:
 
@@ -55,6 +48,15 @@ yarn run docusaurus docs:version 1.XX
 ```
 
 This will create a new version with the docs on your current branch. 
+
+### Update Variables
+
+Review the content of `src/content/variables.json` and update the values of `cliVersion` and `chartVersion`.
+
+If the release comes with a new or a removed Kubernetes version, update `kubernetesMinVersion` and `kubernetesMaxVersion` accordingly.
+
+Finally, update the value of `syncthingVersion` with the version specified [here](https://github.com/okteto/okteto/blob/master/Dockerfile#L3).
+
 
 ### Change the default version
 
