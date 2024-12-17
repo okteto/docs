@@ -1,7 +1,7 @@
 ---
 title: Air-Gapped Networks
 description: Installing Okteto in Air-Gapped Network Environments
-sidebar_label: Okteto in Air-Gapped Networks
+sidebar_label: Air-Gapped Networks
 id: air-gapped
 ---
 
@@ -45,13 +45,13 @@ Push the following images to your private registry for the Okteto Chart installa
 
 - **okteto/backend:{variables.chartVersion}**
 - **okteto/frontend:{variables.chartVersion}**
-- **okteto/buildkit:{variables.chartVersion}** and **okteto/buildkit:{variables.chartVersion}-rootless**
+- **okteto/buildkit:{variables.chartVersion}** or **okteto/buildkit:{variables.chartVersion}-rootless**
 - **okteto/registry:{variables.chartVersion}**
-- **okteto/pipeline-runner:{variables.chartVersion}**
+- **okteto/pipeline-runner:{variables.chartVersion}** or **okteto/pipeline-runner:{variables.chartVersion}-rootless**
 - **okteto/daemon:{variables.chartVersion}**
-- **registry.k8s.io/ingress-nginx/controller-chroot:{variables.nginxVersion}**
-- **ghcr.io/stakater/reloader:{variables.reloaderVersion}**
-- **bitnami/redis:{variables.redisVersion}**
+- **okteto/ingress-nginx-chroot:{variables.chartVersion}**
+- **okteto/reloader:{variables.chartVersion}**
+- **okteto/redis:{variables.chartVersion}**
 
 For each Okteto CLI version, push the following images to your private registry:
 
@@ -91,7 +91,7 @@ reloader:
   reloader:
     deployment:
       image:
-        name: <<your-registry-url>>/stakater/reloader
+        name: <<your-registry-url>>/okteto/reloader
 
 redis:
   global:
@@ -107,5 +107,38 @@ Run the following command to install Okteto for the first time or to upgrade an 
   {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
 </CodeBlock>
 
+
+## Step 5: Install the Okteto CLI
+
+Download the right version of the Okteto CLI from the following link:
+
+<CodeBlock language="bash">
+  {`https://github.com/okteto/okteto/releases/download/${variables.cliVersion}`}
+</CodeBlock>
+
+and save it on your Developers' machine. For Linux/MacOS, the binary will be named `okteto`. For Windows, the binary will be named `okteto.exe`.
+
+Then, create a `.okteto` folder inside your `$HOME` directory.
+This directory will store runtime configurations and dependencies used by the Okteto CLI.
+
+```bash
+mkdir -p $HOME/.okteto
+```
+
+Okteto uses [Syncthing](https://syncthing.net/) to synchronize files between your local machine and your remote Development Environments.
+Download the syncthing binary from their official releases page:
+
+<CodeBlock language="bash">
+  {`https://github.com/syncthing/syncthing/releases/tag/v${variables.syncthingVersion}`}
+</CodeBlock>
+
+Uncompress the downloaded file, and copy the `syncthing` binary (or `syncthing.exe` for Windows) to your `$HOME/.okteto` folder.
+
+Finally, if you are on Linux or MacOS, make sure to give executable permissions to both `okteto` and `syncthing`:
+
+```bash
+chmod +x okteto
+chmod +x $HOME/.okteto/syncthing
+```
 
 _Need help with your installation? [Contact us](https://www.okteto.com/contact/) for expert guidance._

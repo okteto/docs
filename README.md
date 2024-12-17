@@ -47,6 +47,9 @@ Review the content of `src/content/variables.json` and update the values of `cli
 
 If the release comes with a new or a removed Kubernetes version, update `kubernetesMinVersion` and `kubernetesMaxVersion` accordingly.
 
+
+Finally, update the value of `syncthingVersion` with the version specified [here](https://github.com/okteto/okteto/blob/master/Dockerfile#L3).
+
 ### Create a new version
 To create a new version, run the following commands:
 
