@@ -23,9 +23,13 @@ This version is compatible with Kubernetes versions 1.27 to 1.30
 This version is compatible with Kubernetes versions 1.27 to 1.30
 
 ### Breaking Changes {#breaking-changes-1.26}
+Please read the following changes before upgrading to 1.26
 
-- **Hostname Length Limit**: Deploys now fail if a service hostname exceeds 63 characters, showing an error message. Previously, the dev environment deployed successfully even if the endpoint didn’t work. This may affect environments that deployed without issues before
-- **Helm Release Name Limit**: Helm release names are now limited in length. Use `defaultBackend.nameOverride` to shorten the default backend service name if needed. If changing this during an upgrade, [follow this guide as it may impact the installation](self-hosted/helm-configuration.mdx#manual-migration-steps-when-renaming-the-defaultbackend-service)
+- **ACTION REQUIRED: Hostname Length Limit**\
+Deployments now fail if a service hostname exceeds 63 characters, and an error message is shown. This limit is automatically applied to all resources. Previously, dev environments could deploy successfully even if endpoints didn’t work. This change may affect environments that deployed without issues before.
+- **Helm Release Name Limit**:\
+Helm release names are now limited to 63 characters. While this limit is automatically enforced for most resources, the `DefaultBackend` service can still fail during installation if its name exceeds this limit. \
+To avoid installation errors, use the `defaultBackend.nameOverride` setting to shorten the `DefaultBackend` service name. If you need to rename the `DefaultBackend` during an upgrade,[follow this guide as it may impact the installation](https://www.okteto.com/docs/1.26/self-hosted/helm-configuration/#manual-migration-steps-when-renaming-the-defaultbackend-service).
 - **Private Repository Deploys**: Deploying private repositories now uses the Okteto backend as the SSH agent, rather than mounting the local SSH agent. This change ensures feature parity between remote and local deploys but may impact scenarios where private repositories are cloned as part of commands defined in the deploy section during remote execution
 - **Buildkit Persistence Enabled**: Buildkit persistence is now enabled by default, with a 100Gi disk and cache set to 90% of the disk size. If you previously used `buildkit.persistence.cache`, adjust to the new ratio, as this setting is no longer applicable
 
