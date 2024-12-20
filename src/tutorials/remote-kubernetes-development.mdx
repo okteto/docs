@@ -1,0 +1,151 @@
+---
+title: Remote Kubernetes Development in Visual Studio Code with Okteto
+description: Remote Kubernetes Development in Visual Studio Code with Okteto
+---
+
+import Image from '@theme/Image';
+
+Microsoft released the [Visual Studio Code Remote Development Extension Pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack) a few months ago, enabling developers to work with remote development environments directly in Visual Studio Code.
+
+This new model is very powerful. It lets you use containers (or even entire VMs) as your development environment while still using Visual Code. You can launch fully configurable, replicable and isolated development environments with one command, while getting the full benefit of Visual Studio Code's features and extensions. I'm a big fan.
+
+When the extension was launched, we (and a [few more folks](https://github.com/microsoft/vscode-remote-release/issues/12)) were a bit disappointed that it didn't support launching environments in Kubernetes. But it supported SSH, and [Okteto](https://github.com/okteto/okteto) was already capable of deploying development environments in Kubernetes. So with a little duct tape and ingenuity, we pretty quickly had our [remote development environments running in Kubernetes](/blog/vs-code-remote-development-in-kubernetes/).
+
+We showed our setup to friends and customers, and the overall feedback was great. And now we are ready to share it with everyone. I'm super excited to announce that our new [Visual Studio Code Remote - Kubernetes](https://marketplace.visualstudio.com/items?itemName=okteto.remote-kubernetes) extension is now available in the marketplace. [Install it](https://marketplace.visualstudio.com/items?itemName=okteto.remote-kubernetes#installation) and start developing in Kubernetes with Visual Studio Code in seconds.
+
+## Getting started
+
+This post will walk you through creating and connecting to a development environment in Kubernetes using Okteto's [Remote - Kubernetes](https://marketplace.visualstudio.com/items?itemName=okteto.remote-kubernetes) extension. You'll then create a Go application to show how you can edit and debug code directly from Visual Studio Code, just like you do it locally.
+
+### Prerequisites
+
+To get started, you'll need to:
+
+-   Install (or upgrade) Visual Studio Code 1.39 or newer.
+-   Install the [Remote - Development](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack) extension.
+-   Have access to a Kubernetes cluster.
+
+> You can deploy to your own Kubernetes cluster or give [Okteto Cloud](https://www.okteto.com) a try. Okteto Cloud is a development platform for Kubernetes applications. Sign up today to get a free developer account with 4 CPUs and 8GB of RAM.
+
+### Install the extension
+
+You can install the `Remote - Kubernetes` extension [from the marketplace](https://marketplace.visualstudio.com/items?itemName=okteto.remote-kubernetes), or directly from Visual Studio Code's extension sidebar.
+
+Once installed, the extension will add the following commands to the command palette:
+
+-   `Okteto: Down`
+-   `Okteto: Create manifest`
+-   `Okteto: Install`
+-   `Okteto: Up`
+
+### Get the sample application
+
+For the purpose of this post, we'll be using a Go application. You can clone it locally by running the command below.
+
+```
+git clone https://github.com/okteto/vscode-remote-go.git
+```
+
+Start Visual Studio Code, and open the application's folder.
+
+### Launch your development environment
+
+Open the command palette in Visual Studio Code and type `Okteto`:
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/okteto-up.png").default}
+  alt="Okteto: Up command"
+  width="1000"
+/>
+
+Choose the `Okteto: Up` command, and select the `vscode-remote-go/okteto.yml` manifest.
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/pick-manifest.png").default}
+  alt="Select your manifest"
+  width="1000"
+/>
+
+> The `okteto.yml` manifest tells the extension which image to use for development, the application ports to forward to your local machine, and the working directory of your remote development environment, among [many other things](/docs/reference/manifest/).
+
+Once your development environment is provisioned, the extension will launch a pop-up asking you to pick a host. Choose the `hello-world.okteto` host.
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/host.png").default}
+  alt="Select your remote development environment"
+  width="1000"
+/>
+
+After a few seconds, VS Code will connect over SSH and configure itself.
+
+Congratulations, you are now working on your remote development environment in Kubernetes! From this point onward, any actions you perform will happen directly in your Kubernetes development environment.
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/remote-dev-env.png").default}
+  alt="Your remote development environment"
+  width="1000"
+/>
+
+> The `Okteto: Up` command launches a development environment in your Kubernetes cluster using the image defined in `okteto.yml`. It will automatically inject an SSH server into the pod and update your local `.ssh/config` to integrate with Visual Studio Code's remote features.
+
+### Remote development
+
+The main benefit of using remote development environments is that you can configure them with the specific dependencies that your application needs without messing up your local environment. In this case, the environment already has `go 1.13` installed. You can check by opening a new terminal `Terminal > New Terminal (⌃⇧)` and running the command below:
+
+```
+okteto> go version
+```
+
+```
+go version go1.13.1 linux/amd64
+```
+
+First, install the `Go` extension in your remote environment. Once the extension is installed, press on the `reload` button to restart the remote Visual Studio Code instance and load the Go extension.This only needs to be done once, since the extensions will be stored in a persistent volume in Kubernetes.
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/extension.png").default}
+  alt="Extension"
+  width="1000"
+/>
+
+Now let's start the application. Press`F5` (or `Debug > Start Debugging`) to start the application directly in your development environment.
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/run.png").default}
+  alt="Start the application"
+  width="1000"
+/>
+
+Once the process starts open your browser and navigate to `http://localhost:8080` to access the application. You can access it via `localhost` because the extension is forwarding port `8080` to your local machine.
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/hello.png").default}
+  alt="Hello world!"
+  width="1000"
+/>
+
+### Debug directly in Kubernetes
+
+One of the coolest things about Visual Studio Code's remote extensions, is that you can use all the tools you're used to directly in your remote development environment, like a linter, or your debugger.
+
+Starting the application via `F5` already started the debugger. Open `main.go` and add a break point on line `17`. Go back to your browser, and reload the request. The execution will halt at your breakpoint. You can then inspect the request, the available variables, etc. Aww yeah 🥳!
+
+
+<Image
+  src={require("@site/static/img/tutorials/remote-kubernetes-development/debug.png").default}
+  alt="Debugger"
+  width="1000"
+/>
+
+
+### Shutting it down
+
+Once you're done developing, close the remote instance of Visual Studio Code and run the `Okteto: Down` command. This will delete the development environment. But don't worry, all your configurations and extensions are persisted in the cluster.
+
+## Conclusions
+
+The `Remote - Kubernetes` extension lets you launch replicable development environments directly in Kubernetes, with the extra benefit that you can keep using all the Visual Studio Code extensions. With this, you don't have to spend time installing dependencies, or configuring your environment. Open Visual Studio Code, run `Okteto: Up` and you'll be ready to develop in seconds!
+
+The sample application used in the post was [already configured](https://github.com/okteto/go-getting-started/) to work with Okteto and the `Remote - Kubernetes` extension. To use your own applications, run the `Okteto: Create Manifest` command to initialize your Okteto manifest, and then `Okteto: Up` to launch your development environment. Don't forget to commit the `okteto.yml` file it to your repository so that the rest of your collaborators can launch their development environments directly in Kubernetes.
+
+We would ❤️ to hear what you think about remote development and about our new extension. You can reach us [on Twitter](https://twitter.com/oktetohq),or in our [#okteto](https://kubernetes.slack.com/messages/CM1QMQGS0/) channel in the [Kubernetes community Slack](http://slack.k8s.io/).
