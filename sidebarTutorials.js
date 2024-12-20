@@ -30,6 +30,7 @@ module.exports = {
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
         'divert',
         'optimize-your-development-environment',
+        'how-to-create-and-use-data-clones-in-okteto',
       ],
     },
     {

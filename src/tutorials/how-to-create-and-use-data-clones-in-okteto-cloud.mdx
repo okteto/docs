@@ -1,0 +1,287 @@
+---
+title: How to Create a Development Environment with Realistic Data in Okteto
+description: Learn how to create a data clone of an application’s database, and how to use it when creating a new development environment.
+---
+
+import Image from '@theme/Image';
+
+Data cloning is the process of creating an independent identical copy of an application's database. Data clones come in handy during the development stage of an application's lifecycle as they can be used to test an application's behavior during development.
+
+The traditional process of creating data clones manually slows down your development workflow. Using a cloud native approach with Okteto, you can automatically create a development environment with realistic data by simply appending a few `annotations` to your application's manifest.
+
+In this blog post, you'll deploy an application to Okteto, learn how to create a data clone of the application's database, and then learn how to use it when creating a new development environment.
+
+## Prerequisite
+
+In order to follow this tutorial, you should have:
+
+-   A Kubernetes cluster with Okteto installed
+-   Knowledge of Kubernetes manifests
+-   [kubectl](https://kubernetes.io/docs/tasks/tools/) installed on your machine
+
+## Step 1: Deploy the sample application
+
+For this post, you'll be deploying a CRUD recipe application. Run the command from your terminal to clone the repository:
+
+```console
+$ git clone https://github.com/okteto/fastapi-snapshot-app
+$ cd fastapi-snapshot-app
+```
+
+In the `manifests` folder, the `k8s.yml` manifest file is responsible for the deployment of the application's service, and the `mongo.yml` manifest file is responsible for deploying the database service. The database service in this case is a MongoDB service.
+
+Deploy your application from your terminal:
+
+```console
+$ okteto kubeconfig
+$ kubectl apply -f manifests/
+```
+
+```console
+deployment.apps/fastapi-snapshot-demo created
+service/fastapi-snapshot-demo created
+persistentvolumeclaim/data created
+service/mongodb created
+statefulset.apps/mongodb created
+```
+
+<Image
+  src={require("@site/static/img/tutorials/how-to-create-and-use-data-clones-in-okteto-cloud/deployed.png").default}
+  alt="Deployed Application"
+  width="1000"
+/>
+
+Take note of your endpoint URL located under **Endpoints**.
+
+## Step 2: Populate the application database
+
+The next step is to add a few recipes into the database. This is the data that we'll be including in the development environments we'll create in the next steps.
+
+From your terminal, run the commands:
+
+```console
+$ curl -X 'POST' \
+  'https://fastapi-snapshot-demo-yournamespace.cloud.okteto.net/recipe' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "Donuts",
+  "ingredients": [
+    "Flour",
+    "Milk",
+    "Sugar",
+    "Vegetable Oil"
+  ]
+}'
+```
+
+```console
+$ curl -X 'POST' \
+  'https://fastapi-snapshot-demo-yournamespace.cloud.okteto.net/recipe' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "Pancake",
+  "ingredients": [
+    "Flour",
+    "Milk",
+    "Sugar",
+    "Baking Powder",
+    "Vegetable Oil"
+  ]
+}'
+```
+
+Verify that the database has been populated by retrieving the list of recipes present:
+
+```console
+$ curl -X 'GET' \
+  'https://fastapi-snapshot-demo-yournamespace.cloud.okteto.net/recipe' \
+  -H 'accept: application/json'
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "id": "60ce68651eeddf1c5ab796d1",
+      "name": "Donuts",
+      "ingredients": [
+        "Flour",
+        "Milk",
+        "Sugar",
+        "Vegetable Oil"
+      ]
+    },
+    {
+      "id": "60ce689c1eeddf1c5ab796d2",
+      "name": "Pancake",
+      "ingredients": [
+        "Flour",
+        "Milk",
+        "Sugar",
+        "Baking Powder",
+        "Vegetable Oil"
+      ]
+    }
+  ]
+}
+```
+
+## Step 3: Create a database snapshot
+
+A [volume snapshot](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) will be used to create the database clone for your application. Create a new manifest file `snapshot.yml` and add the following to it:
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshot
+metadata:
+  name: mongo-snapshot
+spec:
+  volumeSnapshotClassName: okteto-snapshot-class
+  source:
+    persistentVolumeClaimName: data-mongodb-0
+```
+
+In the volume snapshot manifest above, you are creating a volume snapshot named `mongo-snapshot`, the snapshot will be created from the persistent volume `data-mongodb-0` which was created by the MongoDB manifest.
+
+> The volume snapshot name `okteto-snapshot-class` is specific to Okteto Cloud. For enterprise users, follow the procedures in the [docs](https://okteto.com/docs/enterprise/administration/volume-snapshots#create-a-volumesnapshotclass/) to enable this feature.
+
+Next, create the volume snapshot from your terminal:
+
+```console
+$ kubectl apply -f manifests/vol.yml
+```
+
+Finally, verify that the volume snapshot has been created successfully.
+
+```console
+$ kubectl get volumesnapshot
+```
+
+```console
+volumesnapshot.snapshot.storage.k8s.io/mongo-snapshot created
+```
+
+## Step 4: Deploying your development environment with data
+
+The first step is to create a new namespace to house our development environment:
+
+```console
+$ okteto namespace create data-clone-$YOUR_OKTETO_USERNAME
+```
+
+The next step is to update the application's manifest to tell Okteto where to get the data from. To do this, create a new folder in the parent directory and copy `k8s.yml` and `mongo.yml` into it:
+
+```console
+$ mkdir data-clone-manifest
+$ cp manifests/{k8s.yml,mongo.yml} data-clone-manifest
+```
+
+Next, edit the content of the `mongo.yml` manifest:
+
+Update the `volumeClaimTemplates` section in the manifest:
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  ...
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        annotations:
+          dev.okteto.com/from-snapshot-name: mongo-snapshot
+          dev.okteto.com/from-snapshot-namespace: $YOUR_DATA_NAMESPACE
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+---
+```
+
+Replace `$YOUR_DATA_NAMESPACE` with the name of the namespace you created the volume snapshot in.
+
+In the updated manifest above, you have removed the section that creates a persistent volume for the MongoDB service and added a subsection under the Statefulset's spec.
+
+In the `volumeClaimTemplates` subsection, `annotations` have been added to instruct Okteto to create the data source for the stateful set from the snapshot created earlier `mongo-snapshot` in the `namespace`.
+
+Next, deploy your application using the newly created manifests:
+
+```console
+$ kubectl apply -f data-clone-manifest
+```
+
+```console
+deployment.apps/fastapi-snapshot-demo created
+service/fastapi-snapshot-demo created
+service/mongodb created
+statefulset.apps/mongodb created
+```
+
+The application has been redeployed and the endpoint can be accessed from the UI:
+
+<Image
+  src={require("@site/static/img/tutorials/how-to-create-and-use-data-clones-in-okteto-cloud/redeployed.png").default}
+  alt="Redeployed application"
+  width="1000"
+/>
+
+## Step 5: Verify that our data is there
+
+The final step is to retrieve the list of recipes from the newly deployed application. This is to verify that the development environment was created with the expected data.
+
+From your terminal, run the command:
+
+```console
+$ curl -X 'GET' \
+  'https://fastapi-snapshot-demo-data-clone-yournamespace.cloud.okteto.net/recipe' \
+  -H 'accept: application/json'
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "id": "60ce68651eeddf1c5ab796d1",
+      "name": "Donuts",
+      "ingredients": [
+        "Flour",
+        "Milk",
+        "Sugar",
+        "Vegetable Oil"
+      ]
+    },
+    {
+      "id": "60ce689c1eeddf1c5ab796d2",
+      "name": "Pancake",
+      "ingredients": [
+        "Flour",
+        "Milk",
+        "Sugar",
+        "Baking Powder",
+        "Vegetable Oil"
+      ]
+    }
+  ]
+}
+```
+
+From the response above, the data cloning process was successful.
+
+## Conclusion
+
+In this article, you learned how to deploy a development environment with data include on Okteto. Instead of having to copy or use a database deployed in production during development, a clone can be easily used to avoid errors and save time.
+
+By using the `kubectl` command, you're able to deploy your application to Okteto from your local machine without having to configure anything.
+
+By using `okteto namespace create` command, you're able to create a new namespace on your Okteto account without leaving your terminal.
+
+The code used for this article can be found on [GitHub](https://github.com/okteto/fastapi-snapshot-app/tree/data-clone-manifest/). In this tutorial, we are using Kubernetes manifests, but this feature also works with docker-compose and okteto stacks. [Check our documentation](https://okteto.com/docs/) to learn more about it!
