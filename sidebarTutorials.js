@@ -28,6 +28,7 @@ module.exports = {
         'external-resources',
         'webpack',
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
+        'using-github-actions-and-okteto-cloud-to-preview-changes',
       ],
     },
     {
