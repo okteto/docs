@@ -27,6 +27,7 @@ module.exports = {
         'compose-getting-started',
         'external-resources',
         'webpack',
+        'developing-a-helm-chart-app-in-okteto',
       ],
     },
     {

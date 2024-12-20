@@ -1,0 +1,387 @@
+---
+title: Developing and Deploying a Helm Chart Application in Okteto
+description: Need description
+---
+
+import Image from '@theme/Image';
+
+Deploying applications in Kubernetes can be complicated. Even the simplest application could require creating a series of interdependent components (e.g., namespaces, RBAC rules, ingress, services, deployments, pods, secrets, etc.), each with one or more YAML manifests.
+
+[Helm](https://helm.sh/) is the de-facto package manager for [Kubernetes](https://kubernetes.io/) applications that allows developers and operators to easily package, configure, and deploy applications onto Kubernetes clusters. If you're building an application that will run in Kubernetes, you should really look into leveraging Helm.
+
+In this article, we'll show you how you can deploy a Helm chart powered application to Okteto, a Kubernetes powered service. We'll also show you how to push your application images to the [Okteto container registry](/docs/cloud/registry/), create and configure a helm chart, and then develop the deployed application using Okteto's remote development environment.
+
+> If you're a beginner to Kubernetes, check out our [Kubernetes For Developers series](/blog/getting-started-with-kubernetes-as-a-developer) aimed at beginners.
+
+## Prerequisites
+
+In order to follow this tutorial, you should have:
+
+- An Okteto Cloud Account (It's free!)
+- Some [familiarity with Kubernetes](/blog/getting-started-with-kubernetes-as-a-developer)
+
+## Install Helm
+
+We'll be needing the Helm command line tool to create and deploy our application.
+
+### For MacOS
+
+```
+brew install helm
+```
+    
+
+### For Linux
+
+Debian/Ubuntu
+
+```
+curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+sudo apt-get install apt-transport-https --yes
+echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+```
+
+### For Windows
+
+```
+choco install kubernetes-helm
+```
+    
+## Building a helm powered application
+
+In this section, we'll create a helm chart to enable us to deploy an already built application. Unlike a docker-compose powered application, helm chart powered applications can not be deployed using the `okteto stack deploy` command. Helm powered applications also depend on prebuilt container images, so we'll have to build and push our images to a registry too.
+
+### Clone the application
+
+In your terminal, clone the GitHub repository and make it the working directory:
+
+```
+git clone -b default https://github.com/okteto/recipe-app
+cd recipe-app
+```
+    
+
+In the folder, we have an application prebuilt alongside a Dockerfile. As it stands, there is no manifest readily available for deploying the application to Kubernetes. We are going to create a helm chart for the application but before then, let's build the image and push it to Okteto's build registry.
+
+### Building the application image
+
+We will be building the image for this application from the Dockerfile to [Okteto's container registry](/docs/cloud/registry/). Before building the image, set the Okteto context:
+
+```bash
+okteto context
+```
+    
+
+Next, run the command to build the application:
+
+```bash
+okteto build -t okteto.dev/recipe-app:latest
+```
+    
+
+The command above builds and pushes the application's image allowing us to pull this image from our namespace easily.
+
+### Creating a helm chart
+
+To create a helm chart, we'll use the Helm command-line tool. In the application directory, run the command to create the helm chart:
+
+```bash
+helm create charts
+```
+The command above creates a new folder containing:
+
+```bash
+chart/
+├── Chart.yaml
+├── charts
+├── templates
+│ ├── NOTES.txt
+│ ├── _helpers.tpl
+│ ├── deployment.yaml
+│ ├── hpa.yaml
+│ ├── ingress.yaml
+│ ├── service.yaml
+│ ├── serviceaccount.yaml
+│ └── tests
+│     └── test-connection.yaml
+└── values.yaml
+```
+    
+
+The `Chart.yaml` contains basic information about the Helm Chart. Change the `name` and `description` to:
+
+```yaml
+name: recipe-app
+description:  A recipe application built on FastAPI
+```
+
+In the list of files above, we're majorly concerned with `_helpers.tpl`, `service.yaml`, `deployment.yaml` and `values.yaml` in this article.
+
+The `_helpers.tpl` contains variables to be defined in our normal k8s manifest. Instead of repeating variables such as annotations, labels, etc., in multiple manifests, they are placed in the `_helpers.tpl` file.
+
+Update the `_helpers.tpl` file to this:
+
+```python
+    {{/*
+    Expand the name of the chart.
+    */}}
+    {{- define "chart.name" -}}
+    {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+    {{- end }}
+    
+    {{/*
+    Create a default fully qualified app name.
+    We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+    If release name contains chart name it will be used as a full name.
+    */}}
+    {{- define "chart.fullname" -}}
+    {{- if .Values.fullnameOverride }}
+    {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+    {{- else }}
+    {{- $name := default .Chart.Name .Values.nameOverride }}
+    {{- if contains $name .Release.Name }}
+    {{- .Release.Name | trunc 63 | trimSuffix "-" }}
+    {{- else }}
+    {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    
+    {{/*
+    Create chart name and version as used by the chart label.
+    */}}
+    {{- define "chart.chart" -}}
+    {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+    {{- end }}
+    
+    {{/*
+    Common labels
+    */}}
+    {{- define "chart.labels" -}}
+    helm.sh/chart: {{ include "chart.chart" . }}
+    app.kubernetes.io/name: {{ include "chart.name" . }}
+    {{ include "chart.selectorLabels" . }}
+    {{- if .Chart.AppVersion }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    {{- end }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- end }}
+    
+    {{/*
+    Selector labels
+    */}}
+    {{- define "chart.selectorLabels" -}}
+    app.kubernetes.io/name: {{ include "chart.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- end }}
+    
+    {{/*
+    Create the name of the service account to use
+    */}}
+    {{- define "chart.serviceAccountName" -}}
+    {{- if .Values.serviceAccount.create }}
+    {{- default (include "chart.fullname" .) .Values.serviceAccount.name }}
+    {{- else }}
+    {{- default "default" .Values.serviceAccount.name }}
+    {{- end }}
+    {{- end }}
+```
+    
+
+The `deployment.yaml` manifest contains the instructions for deploying your application to Kubernetes. It comes prefilled and fetches the values from the `_helpers.tpl` and `values.yaml` file. Update the `containerPort` in the `container` section to 8080:
+
+```yaml
+containers:
+  - name: {{ .Chart.Name }}
+    securityContext:
+      {{- toYaml .Values.securityContext | nindent 12 }}
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    ports:
+      - name: http
+        containerPort: 8080
+        protocol: TCP
+```
+    
+
+Lastly, let's look into the `values.yaml` file. This stores the image name, replica count, service configuration data, etc. Update the image repository and tag value from:
+
+```yaml
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+```
+
+to
+
+```yaml
+image:
+  repository: $IMAGE_REGISTRY/recipe-app
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+```
+    
+
+In the code block above, replace `$IMAGE_REGISTRY` with:
+
+- `okteto.dev/recipe-app` if you used the Okteto registry
+- Your docker hub username if you pushed your image to docker hub.
+
+Next, under the `serviceAccount` heading, set the `create` variable to `false` as we're not interested in creating a [service account](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/):
+
+```yaml
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+```
+    
+
+Next, change the service type and port to:
+
+```yaml
+service:
+  type: LoadBalancer
+  port: 8080
+```
+    
+
+We have successfully configured our application's helm chart. The next step is to deploy it to Okteto.
+
+### Deploying to Okteto
+
+To deploy our application to Okteto, return to the base directory in your terminal and run the command:
+
+```
+helm install recipe-app chart/
+```
+
+We get a response from the console:
+
+```bash
+NAME: recipe-app
+LAST DEPLOYED: Mon Dec 13 19:09:29 2021
+NAMESPACE: youngestdev
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export NODE_PORT=$(kubectl get --namespace youngestdev -o jsonpath="{.spec.ports[0].nodePort}" services recipe-app-chart)
+  export NODE_IP=$(kubectl get nodes --namespace youngestdev -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+```
+    
+
+This tells us our application has been deployed. In our [Okteto dashboard](https://cloud.okteto.com), we can see the deployed application:
+
+<Image
+    src={require("@site/static/img/tutorials/developing-a-helm-chart-app-in-okteto/deployed.png").default}
+    alt=""
+    width="1000"
+  />
+
+## Development environments for Helm applications
+
+Helm chart powered applications can also be remotely developed in Okteto. Let's create a [development container](https://okteto.com/docs/reference/development-environment/) to verify this:
+
+```bash
+okteto init
+```
+Select the deployed application:
+
+```bash
+  i  Using youngestdev @ cloud.okteto.com as context
+This command walks you through creating an okteto manifest.
+It only covers the most common items, and tries to guess sensible defaults.
+See https://okteto.com/docs/reference/manifest/ for the official documentation about the okteto manifest.
+Use the arrow keys to navigate: ↓ ↑ → ←
+Select the resource you want to develop:
+  ▸ recipe-app-chart
+```
+
+The `okteto.yml` manifest is created and we can start our development container by running the command:
+
+```bash
+okteto up
+```
+```bash
+  i  Using youngestdev @ cloud.okteto.com as context
+  ✓  Persistent volume successfully attached
+  ✓  Images successfully pulled
+  ✓  Files synchronized
+    Context:   cloud.okteto.com
+    Namespace: youngestdev
+    Name:      recipe-app-chart
+    Forward:   8080 -> 8080
+    Reverse:   9000 <- 9000
+
+root@recipe-app-chart-okteto-c88fff58f-pt8c8:/app#
+```
+    
+
+We have verified that our application can indeed be developed locally. In our dashboard, the state of the application has changed to **In Development**:
+
+
+<Image
+    src={require("@site/static/img/tutorials/developing-a-helm-chart-app-in-okteto/development.png").default}
+    alt=""
+    width="1000"
+  />
+
+Let's start our application remotely:
+
+```bash
+python3 main.py
+```
+```
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     Started reloader process [80] using statreload
+INFO:     Started server process [82]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+    
+
+
+<Image
+    src={require("@site/static/img/tutorials/developing-a-helm-chart-app-in-okteto/original.png").default}
+    alt=""
+    width="1000"
+  />
+
+The development environment updates the application on every file change. Let's change the welcome message in `app/api.py`:
+
+```python
+@app.get("/", tags=["Root"])
+def get_root() -> dict:
+    return {
+        "message": "Welcome to your Okteto app powered by Helm charts live in development mode!"
+    }
+```
+    
+
+Okteto automatically synchronizes the changes, and the application is now updated:
+
+<Image
+    src={require("@site/static/img/tutorials/developing-a-helm-chart-app-in-okteto/updated.png").default}
+    alt=""
+    width="1000"
+  />
+
+
+We have successfully deployed a helm chart powered application as well as developed it using Okteto's remote development environment.
+
+## Conclusion
+
+In this article, you learned how to build an application's image and push it to Okteto's build registry and docker hub. You also learned how to create helm charts for your application for deployments to Kubernetes. The application deployed using helm charts was also developed remotely by creating a development environment in Okteto.
+
+The code used for this article can be found on [GitHub](https://github.com/okteto/recipe-app).
