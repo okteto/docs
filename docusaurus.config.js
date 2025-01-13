@@ -278,7 +278,7 @@ module.exports = {
               label: '1.23',
               path: '1.23',
               banner: 'unmaintained',
-            }
+            },
           },
           include: ['**/*.md', '**/*.mdx'],
         },
