@@ -157,6 +157,11 @@ module.exports = {
         },
         'admin/custom-installer-image',
         'admin/cleanup',
+        {
+          type: 'category',
+          label: 'Integrations',
+          items: ['admin/integrations/okta-user-deprovisioning'],
+        },
         'admin/okteto-insights',
         {
           type: 'category',
