@@ -330,5 +330,17 @@ module.exports = {
       },
     ],
   ],
-  scripts: ['//js.hs-scripts.com/5418301.js'],
+  scripts: [
+    // Hubspot script
+    {
+      src: '//js.hs-scripts.com/5418301.js',
+      async: true,
+    },
+    // Scarf Tracking Pixel
+    {
+      src: 'https://static.scarf.sh/a.png?x-pxid=3d66f625-f39a-46bd-8d3c-82d5f7ca6f16',
+      referrerPolicy: 'no-referrer-when-downgrade',
+      async: true,
+    },
+  ],
 };
