@@ -22,7 +22,8 @@ Once enabled, the GC automatically scales idle environments to zero and deletes 
 Admins can set custom sleep and delete periods for both Namespaces and Preview Environments:
 
 - **Sleep Period**: The amount of time, in hours, that an environment must remain idle before the GC scales it down to zero
-- **Delete Period**: The amount of time (in hours or days) that an environment must remain idle before the GC permanently deletes it. If the sleep period is set, this represents the amount of time that the environment must stay in sleeping status before it is deleted. If sleep period is disabled, this represents the amount of time since the last update in the environment before it is deleted.
+- **Delete Period**: The amount of time (in hours or days) that an environment must remain idle before the GC permanently deletes it.
+If the sleep period is set, this represents the amount of time that the environment must stay in sleeping status before it is deleted. If sleep period is disabled, this represents the amount of time since the last update in the environment before it is deleted.
 
 **Default Values**:
   - **Namespaces**
@@ -35,11 +36,22 @@ Admins can set custom sleep and delete periods for both Namespaces and Preview E
 
 <p align="left">
   <Image
-    src={require("@site/static/img/admin_garbage_collector+1.27.png").default}
+    src={require("@site/static/img/admin_garbage_collector+1.29.png").default}
     alt="wake a sleeping resource"
     width="1000"
   />
 </p>
+
+## Applying Garbage Collection to Personal Namespaces
+By default, personal namespaces (automatically created when a user logs in) were previously excluded from Garbage Collection.
+However, to improve consistency and optimize infrastructure usage, the contents of personal namespaces can now follow the same GC rules set in the Admin Dashboard.
+
+To enable GC for personal namespaces, navigate to **Admin → Garbage Collector** and find the **“Settings for Namespaces”** section. Here, you can toggle whether personal namespaces are included in GC.
+
+**How It Works**
+- Personal namespaces themselves will not be deleted, but their unused resources (e.g., Pods, Services, ConfigMaps) will be removed following the Sleep and Delete Period settings
+- **Persistent Volume Claims (PVCs) within personal namespaces will not be deleted** as part of the GC process
+- If a personal namespace remains unused past the defined threshold (e.g., 15 days), its **contents** will be cleaned up automatically
 
 ## Manually Sleeping Resources
 
