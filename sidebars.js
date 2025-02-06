@@ -146,33 +146,40 @@ module.exports = {
       items: [
         'admin/dashboard',
         'admin/catalog',
-        {
-          type: 'category',
-          label: 'Cloud Credentials',
-          link: { type: 'doc', id: 'admin/cloud-credentials/index' },
-          items: [
-            'admin/cloud-credentials/aws-cloud-credentials',
-            'admin/cloud-credentials/gcp-cloud-credentials',
-          ],
-        },
         'admin/custom-installer-image',
         'admin/cleanup',
+        {
+          type: 'category',
+          label: 'Integrations',
+          items: [
+            {
+              type: 'category',
+              label: 'Cloud Credentials',
+              link: { type: 'doc', id: 'admin/cloud-credentials/index' },
+              items: [
+                'admin/cloud-credentials/aws-cloud-credentials',
+                'admin/cloud-credentials/gcp-cloud-credentials',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Registry Credentials',
+              link: { type: 'doc', id: 'admin/registry-credentials/index' },
+              items: [
+                'admin/registry-credentials/amazon-ecr',
+                'admin/registry-credentials/azure-acr',
+                'admin/registry-credentials/dockerhub',
+                'admin/registry-credentials/google-artifact-registry',
+              ],
+            },
+          ],
+        },
+        'admin/okteto-api',
         'admin/okteto-insights',
         {
           type: 'category',
           label: 'Private Repositories',
           items: ['admin/private-repositories/github-app', 'admin/private-repositories/ssh-key'],
-        },
-        {
-          type: 'category',
-          label: 'Registry Credentials',
-          link: { type: 'doc', id: 'admin/registry-credentials/index' },
-          items: [
-            'admin/registry-credentials/amazon-ecr',
-            'admin/registry-credentials/azure-acr',
-            'admin/registry-credentials/dockerhub',
-            'admin/registry-credentials/google-artifact-registry',
-          ],
         },
         'admin/resource-manager',
       ],
