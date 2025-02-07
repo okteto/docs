@@ -28,6 +28,7 @@ module.exports = {
         'external-resources',
         'webpack',
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
+        'develop-and-deploy-a-flask-and-reactjs-app-in-okteto',
       ],
     },
     {
