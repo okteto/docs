@@ -342,5 +342,12 @@ module.exports = {
       referrerPolicy: 'no-referrer-when-downgrade',
       async: true,
     },
+    // PostHog tracking script
+    {
+      src: 'https://us.i.posthog.com/static/array.js',
+      async: true,
+      crossOrigin: 'anonymous',
+      onLoad: "window.posthog||(window.posthog=[]);posthog.init('phc_hABE2tLx6OC3RdADvVeFYfwtQQhYSE5swoqkQQscU6K', { api_host: 'https://us.i.posthog.com', person_profiles: 'identified_only' });"
+    }
   ],
 };
