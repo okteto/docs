@@ -329,6 +329,14 @@ module.exports = {
         id: 'GTM-W6RQFNT',
       },
     ],
+    [
+      "posthog-docusaurus",
+      {
+        apiKey: "phc_hABE2tLx6OC3RdADvVeFYfwtQQhYSE5swoqkQQscU6K",
+        appUrl: "https://us.i.posthog.com", // optional, defaults to "https://us.i.posthog.com"
+        enableInDevelopment: false, // optional
+      },
+    ],
   ],
   scripts: [
     // Hubspot script
@@ -341,13 +349,6 @@ module.exports = {
       src: 'https://static.scarf.sh/a.png?x-pxid=3d66f625-f39a-46bd-8d3c-82d5f7ca6f16',
       referrerPolicy: 'no-referrer-when-downgrade',
       async: true,
-    },
-    // PostHog tracking script
-    {
-      src: 'https://us.i.posthog.com/static/array.js',
-      async: true,
-      crossOrigin: 'anonymous',
-      onLoad: "window.posthog||(window.posthog=[]);posthog.init('phc_hABE2tLx6OC3RdADvVeFYfwtQQhYSE5swoqkQQscU6K', { api_host: 'https://us.i.posthog.com', person_profiles: 'identified_only' });"
     }
   ],
 };
