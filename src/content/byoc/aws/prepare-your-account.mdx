@@ -1,0 +1,56 @@
+---
+title: Prepare your account
+description: Prepare your AWS account to install Okteto
+sidebar_label: Prepare your account
+pagination_prev: byoc/aws/welcome
+---
+
+import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
+
+## Step 1: Get the AWS IAM Role Assumption External ID
+
+Contact your Okteto sales representative to get the AWS IAM Role Assumption External ID.
+
+## Step 2: Create the IAM Role
+
+Create a file named `trust-policy.json` with the following content or download it from <a href="./trust-policy.json" download="trust-policy.json">here</a>:
+
+```json title="trust-policy.json"
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "111122223333"
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "StringEquals": {
+// highlight-next-line
+                    "sts:ExternalId": "REPLACEME"
+                }
+            }
+        }
+    ]
+}
+```
+
+Then, create the IAM role using the trust policy we just created:
+
+```bash
+aws iam create-role --role-name okteto-byoc-integration --assume-role-policy-document file://trust-policy.json
+```
+
+## Step 3: Attach the necessary policies
+
+Now it's turn for adding the necessary policies to the role:
+
+```bash
+aws iam attach-role-policy --role-name okteto-byoc-integration --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+```
+
+## Step 4: Contact your sales representative
+
+Contact your Okteto sales representative to provide the ARN of the IAM role you just created. They will guide you through the next steps.
