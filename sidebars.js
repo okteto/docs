@@ -175,6 +175,7 @@ module.exports = {
             },
           ],
         },
+        'admin/okteto-api',
         'admin/okteto-insights',
         {
           type: 'category',

@@ -5,6 +5,40 @@ sidebar_label: Release notes
 id: release-notes
 ---
 
+## 1.29.0
+
+7 February 2025
+
+This version is compatible with Kubernetes versions 1.28 to 1.31 \
+Okteto Chart release 1.29 is designed to work with [Okteto CLI 3.4.x](https://github.com/okteto/okteto/releases/tag/3.4.0)
+
+
+### New Features {#new-features-1.29}
+
+- Added support for [Kubernetes 1.31](https://kubernetes.io/blog/2024/08/13/kubernetes-v1-31-release/)  <!-- 9081 -->
+- Personal Namespaces can now be [included in your Garbage Collection Policy](admin/cleanup.mdx#applying-garbage-collection-to-personal-namespaces) <!-- 9056 -->
+  - Personal Namespaces themselves will not be deleted, but their unused resources (e.g., Pods, Services, ConfigMaps) will be removed following the Sleep and Delete Period settings
+  - To leave developer workflows untouched, Persistent Volume Claims (PVCs) within Personal Namespaces will not be deleted as part of this process 
+- Introducing the [Okteto API (Beta)](admin/okteto-api.mdx)! 🎉 Now you can get programmatic information on namespaces and applications with authenticated API requests. Access the full API documentation via the Okteto Dashboard under **Admin → Admin Access Tokens**
+
+### Improvements {#improvements-1.29}
+
+- [Okteto CLI 3.4.0](https://github.com/okteto/okteto/releases/tag/3.4.0): Optimized image building in `okteto up`: Now, only the necessary images required for the process are built, instead of building all images. This reduces build times, speeds up environment startup, and minimizes unnecessary resource usage
+- [Okteto CLI 3.4.0](https://github.com/okteto/okteto/releases/tag/3.4.0): Improve warnings when a CLI user has a different version than within the accepted range set by the Okteto Admin
+- Added a warning for users on older browsers that may have compatibility issues
+
+
+### Bug Fixes {#bug-fixes-1.29}
+
+- Fixed an issue where [Divert](reference/okteto-manifest.mdx#divert) would not work with Docker Compose as intended
+- Buildkit in rootless mode when running in Kubernetes 1.30 no longer adds a deprecated annotation <!-- 9070 -->
+- Fixed an issue where Okteto failed to inject the ingress-nginx controller’s private IP in Okteto components when the service name was too long
+
+### Removal Notice {#removal-notice-1.29}
+
+- Support for Kubernetes [1.27](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.27.md) has been removed in this release.
+
+
 ## 1.28.2
 
 14 January 2025
@@ -45,7 +79,6 @@ Okteto Chart release 1.28 is designed to work with [Okteto CLI 3.3.x](https://gi
 
 - Enabled hourly intervals for [Garbage Collection delete schedules](admin/cleanup.mdx#configuring-the-sleep-and-delete-periods)  <!-- 9002 -->
 - Add new `unschedulable` status for when a pod has the reason Unschedulable for more than 3 minutes  <!-- 8937 -->
-- [Okteto CLI 3.3.0](https://github.com/okteto/okteto/releases/tag/3.3.0): Introduced the `skipIfNoFileChanges` field in the `test` section of the Okteto Manifest. This feature skips test execution if no files in the test context have changed since the last run, reducing unnecessary test runs
 - [Okteto CLI 3.3.0](https://github.com/okteto/okteto/releases/tag/3.3.0): Upgraded our BuildKit client to [0.18.2](https://github.com/moby/buildkit/releases/tag/v0.18.2)
 
 ### Bug Fixes
@@ -641,29 +674,3 @@ This version is compatible with Kubernetes versions 1.25 to 1.28.
 - Fix wrong "Waking Up" status when switching to a "Sleeping" namespace  <!-- 7817 -->
 - Properly render `code` nodes as inline elements inside a list item  <!-- 7821 -->
 - Fix BuildKit configuration behind our ingress-controller not working when BuildKit had more than 1 replica  <!-- 7816 -->
-
-## 1.17.0
-
-23 January 2024
-
-This version is compatible with Kubernetes versions 1.25 to 1.28.
-
-### Features
-
-- Enable search in namespace resources UI  <!-- 7577 -->
-- Enable admins to [transfer namespace ownership](core/namespaces.mdx#transfer-namespace-ownership)  <!-- 7593 -->
-- Add [Pod metrics to Okteto Insights](admin/okteto-insights.mdx#pod-metrics)  <!-- 7594 -->
-
-### Improvements
-
-- Hoist Personal Access Tokens menu from Setup to Settings  <!-- 7574 -->
-- Rename Launch to Deploy in the Okteto UI  <!-- 7576 -->
-- Rename Secrets to Variables under both Settings and Admin sections. This rename is for consistency in the UI and delivers no change in functionality   <!-- 7581 -->
-- Support for multi-line secrets  <!-- 7580 -->
-- Improve buildkit cache reloading on helm upgrades. Please note this upgrade will imply a restart in the build cache  <!-- 7615 -->
-
-### Bug Fixes
-
-- Surface buildkit errors through our ingress controller. Will result in better build error messages  <!-- 7526 -->
-- The Okteto Insights endpoint was not exposing build metrics when the Helm release name included the word "okteto"  <!-- 7600 -->
-- Fixed a scenario where the runtime of node containers could restart if the Okteto daemon pod were to be recreated, potentially impacting active 'okteto up' sessions <!-- 7625 -->
