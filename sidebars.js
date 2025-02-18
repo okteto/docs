@@ -161,6 +161,7 @@ module.exports = {
                 'admin/cloud-credentials/gcp-cloud-credentials',
               ],
             },
+            'admin/integrations/okta-user-deprovisioning',
             {
               type: 'category',
               label: 'Registry Credentials',
