@@ -1,15 +1,27 @@
 ---
-title: Volume snapshots
-description: Use volume snapshots in your development environments
-sidebar_label: Volume snapshots
+title: Volume Snapshots
+description: Use Volume Snapshots in your Development Environments
+sidebar_label: Volume Snapshots
 id: use-volume-snapshots
 ---
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-Volume snapshots allows you to initialize persistent volume claims with the contents of a preexisting volume snapshot.
-Use volume snapshots when working with large datasets or if you want to create development environments with real data coming from your production or staging environments.
+Okteto Volume Snapshots allow you to initialize Persistent Volume Claims (PVCs) with data from a previously created snapshot.
+This is useful when working with large datasets or when you need to create Development Environments with realistic data from production or staging.
+
+Common use cases:
+- Restoring a database (PostgreSQL, MySQL, etc.) with real data for development and testing
+- Quickly populating a Development Environment with staging or production data
+- Cloning datasets for machine learning models, logs, or images
+
+## How Volume Snapshots Work
+1. Your application uses a Persistent Volume Claim (PVC) to store data (e.g., a PostgreSQL or MySQL database)
+1. You create a snapshot of this volume, capturing the data at that moment
+1. When deploying a new Development Environment, you can restore the PVC from the snapshot, ensuring your app starts with the same dataset
+
+This allows you to spin up new environments with fresh, realistic data every time.
 
 ## Requirements
 
@@ -24,12 +36,12 @@ Use volume snapshots when working with large datasets or if you want to create d
 
 Follow [this guide](self-hosted/install/volume-snapshots.mdx) to enable Volume Snapshots in your cluster.
 
-Use a storage class provisioned by a CSI driver that [supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html) for the source persistent volume of your volume snapshots.
+Make sure your storage class supports snapshots by using a **CSI driver** that [supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html) for the source persistent volume of your volume snapshots.
 
 </TabItem>
 
 <TabItem value="saas">
-If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
+If your instance is managed by Okteto, Volume Snapshots are enabled by default.
 
 **Important**: you need to use the `csi-okteto` storage classes for the source persistent volume of your volume snapshots.
 
@@ -41,15 +53,17 @@ If your instance is hosted by Okteto, Volume Snapshots are enabled by default.
 Okteto enables developers to initialize persistent volume claims with the contents of a pre-existing volume snapshot.
 The volume snapshot is created from a persistent volume claim and it can contain database backups, big files, images, a copy of your staging data, etc.
 
-In order to use volume snapshots with your development environment you need to:
+In order to use Volume Snapshots with your Development Environment you need to follow these steps:
 
-- [Create the source persistent volume](core/use-volume-snapshots.mdx#creating-the-source-persistent-volume)
-- [Create a volume snapshot of the source persistent volume](core/use-volume-snapshots.mdx#creating-a-volume-snapshot)
-- [Consume the volume snapshot in a new persistent volume](core/use-volume-snapshots.mdx#consuming-a-volume-snapshot)
+- [1. Create the source persistent volume](core/use-volume-snapshots.mdx#1-create-the-source-persistent-volume-pvc)
+- [2. Create a volume snapshot of the source persistent volume](core/use-volume-snapshots.mdx#2-create-a-snapshot-of-the-pvc)
+- [3. Consume the volume snapshot in a new persistent volume](core/use-volume-snapshots.mdx#3-restore-a-pvc-from-a-snapshot)
 
-### Creating the Source Persistent Volume
+### 1. Create the Source Persistent Volume (PVC)
 
-First, create the source persistent volume. This is the data that you want to be able to clone into your development environment.  In the example below we use a database, but this could be anything that uses a volume for storage: databases, ML models, images, etc...
+The first step is to ensure your database or application is storing data in a Persistent Volume Claim (PVC).
+This is the data that you want to be able to clone into your Development Environment.
+In the example below we use a database, but this could be anything that uses a volume for storage: databases, ML models, images, etc...
 > If the default storage class of your cluster doesn't support volume snapshots, make sure you set the storage class to one that is compatible when creating your persistent volume.
 Check the [requirements](core/use-volume-snapshots.mdx#requirements) section to learn more about the available storage classes in Okteto.
 
@@ -97,7 +111,7 @@ volumes:
 </Tabs>
 
 
-### Creating a Volume Snapshot
+### 2. Create a Snapshot of the PVC
 
 After creating the source persistent volume, the next step is to create the Volume Snapshot. Volume snapshots are created with the content of the persistent volume at the time of creating the volume snapshot. Further updates on the persistent volume aren't reflected in the volume snapshot content.
 
@@ -116,8 +130,8 @@ spec:
     persistentVolumeClaimName: mysql-pvc
 ```
 
-### Consuming a Volume Snapshot
-Finally, you can use the volume snapshot created in the previous step to populate a new persistent volume.
+### 3. Restore a PVC from a Snapshot
+Finally, you can use the Volume Snapshot created in the previous step to populate a new persistent volume.
 Use the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations on any persistent volume claim to tell Okteto to initialize your persistent volume claim from an existing volume snapshot, as shown below:
 
 <Tabs
@@ -165,11 +179,22 @@ volumes:
 </TabItem>
 </Tabs>
 
-If the annotation `dev.okteto.com/from-snapshot-namespace` is not defined, Okteto will default to the namespace of the new persistent volume claim.
+✅ If the annotation `dev.okteto.com/from-snapshot-namespace` is **not defined**, Okteto will default to the Namespace of the new persistent volume claim.
 
-Use the annotation `dev.okteto.com/skip-snapshot-if-same-namespace: "true"` to skip the data cloning operation if the source snapshot and the new persistent volume claim are in the same namespace.
+✅ Use the annotation `dev.okteto.com/skip-snapshot-if-same-namespace: "true"` to skip the data cloning operation if the source snapshot and the new persistent volume claim are in the same namespace.
 
-For a full end to end sample, check the following resources:
+## Automating Snapshot Creation in Deployments
 
-- [How to Create a Development Environment with Realistic Data in Okteto](https://www.okteto.com/blog/how-to-create-and-use-data-clones-in-okteto-cloud/) blog post
-- [How to Create and Use Data Clones in Okteto](https://www.okteto.com/blog/how-to-create-and-use-data-clones-in-okteto-video/) video tutorial
+You can integrate snapshot creation into your Okteto Manifest so every deployment includes an updated snapshot:
+```yaml
+deploy: 
+   - create snapshot
+   - deploy app
+```
+
+<!-- Hiding as these links are currently broken
+## Next Steps & Additional Resources
+
+- 📖 [How to Create a Development Environment with Realistic Data in Okteto](https://www.okteto.com/blog/how-to-create-and-use-data-clones-in-okteto-cloud/) blog post
+- 🎥 [How to Create and Use Data Clones in Okteto](https://www.okteto.com/blog/how-to-create-and-use-data-clones-in-okteto-video/) video tutorial
+-->
