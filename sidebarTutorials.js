@@ -28,7 +28,7 @@ module.exports = {
         'external-resources',
         'webpack',
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
-        'how-to-create-and-use-data-clones-in-okteto-cloud',
+        'volume-snapshots-how-to-create-and-use-data-clones-in-okteto',
       ],
     },
     {
