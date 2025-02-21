@@ -40,8 +40,8 @@ In the `manifests` folder, the `k8s.yml` manifest file is responsible for the de
 Apply the manifests to deploy the application:
 
 ```console
-$ okteto kubeconfig
-$ kubectl apply -f manifests/
+okteto kubeconfig
+kubectl apply -f manifests/
 ```
 
 Expected output:
@@ -91,7 +91,7 @@ curl -X 'POST' \
 Verify that the database has been populated by retrieving the list of recipes present:
 
 ```console
-$ curl -X 'GET' \
+ curl -X 'GET' \
   'https://fastapi-snapshot-demo-yournamespace.YOURSUBDOMAIN/recipe' \
   -H 'accept: application/json'
 ```
@@ -130,10 +130,10 @@ Expected response:
 
 A Volume Snapshot will capture the database state at this moment.
 
-Create a new manifest file `snapshot.yml` and add the following to it:
+Create a new manifest file `snapshot.yml` in the `manifests` folder and add the following to it:
 
 ```yaml
-apiVersion: snapshot.storage.k8s.io/v1beta1
+apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
 metadata:
   name: mongo-snapshot
@@ -149,18 +149,13 @@ In the Volume Snapshot Manifest above, you are creating a Volume Snapshot named 
 Next, apply the Volume Snapshot from your terminal:
 
 ```console
-$ kubectl apply -f manifests/snapshot.yml
+kubectl apply -f manifests/snapshot.yml
 ```
 
 Finally, verify that the volume snapshot has been created successfully.
 
 ```console
-$ kubectl get volumesnapshot
-```
-
-Expected output:
-```console
-volumesnapshot.snapshot.storage.k8s.io/mongo-snapshot created
+kubectl get volumesnapshot
 ```
 
 ✅ Now we have a snapshot that can be used for new development environments!
@@ -171,7 +166,7 @@ volumesnapshot.snapshot.storage.k8s.io/mongo-snapshot created
 ### 1. Create a New Namespace for Development
 
 ```console
-$ okteto namespace create data-clone-$YOUR_OKTETO_USERNAME
+okteto namespace create data-clone-$YOUR_OKTETO_USERNAME
 ```
 
 ### 2. Modify the Application Manifest to Use the Snapshot
@@ -179,30 +174,67 @@ $ okteto namespace create data-clone-$YOUR_OKTETO_USERNAME
 Create a new folder in the parent directory and copy `k8s.yml` and `mongo.yml` into it:
 
 ```console
-$ mkdir data-clone-manifest
-$ cp manifests/{k8s.yml,mongo.yml} data-clone-manifest
+mkdir data-clone-manifest
+cp manifests/{k8s.yml,mongo.yml} data-clone-manifest
 ```
 
 Update `mongo.yml` to reference the snapshot:
 
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  clusterIP: None
+  selector:
+    app: mongo
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongodb
 spec:
-  ...
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-        annotations:
-          dev.okteto.com/from-snapshot-name: mongo-snapshot
-          dev.okteto.com/from-snapshot-namespace: $YOUR_DATA_NAMESPACE
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        resources:
-          requests:
-            storage: 1Gi
+  serviceName: mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongodb
+          image: bitnami/mongodb:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 27017
+              protocol: TCP
+          resources: { }
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /bitnami/mongodb
+              name: data
+              subPath: data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+            annotations:
+              dev.okteto.com/from-snapshot-name: mongo-snapshot
+              dev.okteto.com/from-snapshot-namespace: YOUR_DATA_SOURCE_NAMESPACE
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 1Gi
 ---
 ```
 
@@ -215,7 +247,7 @@ In the `volumeClaimTemplates` subsection, `annotations` have been added to instr
 ### 3. Deploy the New Development Environment Using the Newly Created Manifest
 
 ```console
-$ kubectl apply -f data-clone-manifest
+kubectl apply -f data-clone-manifest
 ```
 
 Expected output:
@@ -236,7 +268,7 @@ The final step is to retrieve the list of recipes from the newly deployed applic
 Run the following command to check if the development database contains the same data as the original:
 
 ```console
-$ curl -X 'GET' \
+curl -X 'GET' \
   'https://fastapi-snapshot-demo-data-clone-yournamespace.YOURSUBDOMAIN/recipe' \
   -H 'accept: application/json'
 ```
