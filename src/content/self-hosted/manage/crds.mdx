@@ -189,3 +189,34 @@ To apply the changes manually, run the command `kubectl apply -f aws-cloud-crede
 Each cloud provider credential configuration in Okteto must use a specific name: gcp-credentials-config for Google Cloud Platform and aws-credentials-config for Amazon Web Services.
 Only one credential configuration is allowed per provider, meaning you can define one for GCP and one for AWS, but no more than one for each.
 :::
+
+## Okta User De-provisioning
+Okta user de-provisioning can be managed through the [Admin dashboard](admin/integrations/okta-user-deprovisioning.mdx), but can also be managed via one of the CRDs installed by Okteto
+This allows administrators to define deprovisioning policies declaratively, ensuring that users who are removed from Okta are also deactivated in Okteto automatically.
+
+To start, **follow step 1** in the [Okta User Deprovisioning documentation](admin/integrations/okta-user-deprovisioning.mdx) to configure the event hook in Okta.
+
+Next, to configure Okta user deprovisioning using CRDs, create a resource with the following specifications:
+- `metadata.name`: Unique identifier for the deprovisioning rule
+- `spec.oktaEventsAuthSecret`: Reference to the Okta Event Hook Token used in your Okta event hook configuration
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: OktaUserDeprovisioning
+metadata:
+  name: okta-user-deprovisioning
+  namespace: okteto
+spec:
+  oktaEventsAuthSecret:
+  ...
+  ```
+
+  To apply the changes manually, run the command `kubectl apply -f okta-deprovisioning.yaml` from your terminal.
+
+:::note
+The referenced secrets must be created separately before applying the CRD.
+:::
+
+Once the event hook is created and the Okteto instance is configured, go back to the **Okta admin console** and verify the webhook. After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically deprovisioning users from the system.
+
+Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.
