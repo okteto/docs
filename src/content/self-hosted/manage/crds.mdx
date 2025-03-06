@@ -189,3 +189,60 @@ To apply the changes manually, run the command `kubectl apply -f aws-cloud-crede
 Each cloud provider credential configuration in Okteto must use a specific name: gcp-credentials-config for Google Cloud Platform and aws-credentials-config for Amazon Web Services.
 Only one credential configuration is allowed per provider, meaning you can define one for GCP and one for AWS, but no more than one for each.
 :::
+
+## Okta User De-provisioning
+Okta user de-provisioning can be managed through the [Admin dashboard](admin/integrations/okta-user-deprovisioning.mdx), or via one of the CRDs installed by Okteto.
+This allows administrators to define deprovisioning policies declaratively, ensuring that users who are removed from Okta are also deactivated in Okteto automatically.
+
+### 1. Create the Event Hook Token in Okta
+To start, **follow Step 1** in the [Okta User De-provisioning documentation](admin/integrations/okta-user-deprovisioning.mdx) to configure the event hook in Okta. When finished with Step 1, return here.
+
+### 2. Create the Required Secret
+Next, you must create an [Opaque **Kubernetes secret**](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) that contains the necessary configuration for Okta user de-provisioning.
+
+That secret should contain 2 keys with the information:
+- `eventsEnabled`: A boolean (`true` or `false`, base64-encoded) indicating whether Okta user de-provisioning is enabled
+  - "true" → `dHJ1ZQ==`
+  - "false" → `ZmFsc2U=`
+- `eventsAuthSecret`: The webhook authorization secret specified when configuring the event hook in Okta
+
+
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: okta-deprovisioning-secret
+  namespace: okteto
+type: Opaque
+data:
+  eventsAuthSecret: <base64-encoded-webhook-secret>
+  eventsEnabled: <base64-encoded-true-or-false>
+```
+
+### 3. Create the CRD Configuration
+
+Once the secret is created, define the Okta user de-provisioning CRD referencing the secret:
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: okta-config
+  namespace: okteto
+secretRef: okta-deprovisioning-secret
+```
+- `secretRef` is the secret name created in the previous step
+
+### 4. Apply the Configuration
+To apply the configuration run
+```sh
+kubectl apply -f okta-deprovisioning-secret.yaml
+kubectl apply -f okta-deprovisioning-crd.yaml
+```
+
+### 5. Verify Okta Event Hook Integration
+
+Once the CRD and secret are configured, go back to the **Okta admin console** and verify the webhook. After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically de-provisioning users from the system.
+
+Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.
