@@ -198,11 +198,15 @@ This allows administrators to define deprovisioning policies declaratively, ensu
 To start, **follow Step 1** in the [Okta User De-provisioning documentation](admin/integrations/okta-user-deprovisioning.mdx) to configure the event hook in Okta. When finished with Step 1, return here.
 
 ### 2. Create the Required Secret
-Next, you must create a **Kubernetes secret** that contains the necessary configuration for Okta user de-provisioning.
+Next, you must create an [Opaque **Kubernetes secret**](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) that contains the necessary configuration for Okta user de-provisioning.
 
 That secret should contain 2 keys with the information:
-- `eventsEnabled`: A boolean (`true` or `false`) indicating whether Okta user de-provisioning is enabled
+- `eventsEnabled`: A boolean (`true` or `false`, base64-encoded) indicating whether Okta user de-provisioning is enabled
+  - "true" → `dHJ1ZQ==`
+  - "false" → `ZmFsc2U=`
 - `eventsAuthSecret`: The webhook authorization secret specified when configuring the event hook in Okta
+
+
 
 ```yaml
 apiVersion: v1
@@ -212,8 +216,8 @@ metadata:
   namespace: okteto
 type: Opaque
 data:
-  eventsAuthSecret: <webhook-secret>
-  eventsEnabled: <true-or-false>
+  eventsAuthSecret: <base64-encoded-webhook-secret>
+  eventsEnabled: <base64-encoded-true-or-false>
 ```
 
 ### 3. Create the CRD Configuration
