@@ -32,6 +32,37 @@ _You can use `helm ls` to find the name of your release._
 
 Please review [the release notes](release-notes.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
 
+
+## Upgrading to Okteto 1.31.x
+
+With the upcoming release of Okteto, support for **Docker Image Manifest Schema 1** will be fully deprecated due to underlying upgrades in our dependencies.
+
+**What This Means for You**
+
+- If you are using older container images that rely on **Schema 1**, they will no longer be pulled or deployed successfully
+- This change aligns with the broader container ecosystem, as Schema 1 images have been deprecated since 2021 and are no longer supported by modern container runtimes
+
+### **How to Check If Your Images Are Affected**
+
+You can verify your images by running:
+
+```sh
+docker manifest inspect <image-name>
+```
+- If the output contains `"schemaVersion": 1`, you will need to update the image
+- If it contains `"schemaVersion": 2`, no action is required
+
+### **What You Need to Do**
+
+- If you are using Schema 1 images, we strongly recommend migrating to Schema 2 images before the next Okteto release
+- If your image is outdated, check for an updated version or rebuild and push it using a modern Docker version:
+
+```sh
+docker pull <old-image>
+docker tag <old-image> myrepo/myimage:v2
+docker push myrepo/myimage:v2
+```
+
 ## Upgrading to Okteto 1.26.x
 
 - **ACTION REQUIRED: Hostname Length Limit**\
