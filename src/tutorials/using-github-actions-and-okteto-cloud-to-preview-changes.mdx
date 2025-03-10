@@ -1,0 +1,235 @@
+---
+title: Using GitHub Actions and Okteto Cloud to Preview your Changes
+description: Use GitHub Actions and Okteto Cloud to preview changes with Preview Environments.
+---
+
+import Image from '@theme/Image';
+
+Preview environments serve an important role when performing code reviews for an incoming change or addition to an application's codebase. It is a fantastic way for technical and non-technical members of your team to assess and give feedback on the changes made to your application.
+
+In previous posts of our series on FastAPI you have learned [how to build a FastAPI application](/blog/building-and-deploying-a-fastapi-app-in-okteto-cloud/), [deploy the application to Okteto](/blog/deploying-an-existing-application-with-okteto-cloud/) and [add a database to it using Okteto stacks](/blog/adding-a-database-to-your-app-using-okteto-stack/). In this article, you will learn how to automatically create a preview environment for your pull requests, using GitHub Actions and Okteto.
+
+## What Are GitHub Actions
+
+[GitHub Actions](https://docs.github.com/en/actions/learn-github-actions/introduction-to-github-actions) are event-driven task automation tools that runs a series of command after an event has occurred. These events and commands are contained in a workflow file. The workflow file is responsible for the orderly execution by GitHub Actions.
+
+## Creating A GitHub Action Workflow
+
+GitHub Actions are created and managed from the **Actions** tab in a repository. Create a new workflow from the Actions tab:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/new-workflow.png").default}
+  alt="Create A New Workflow"
+  width="1000"
+/>
+
+There are a number of available templates in the GitHub Actions page. However, click on the **set up a workflow yourself** link. This opens a new page with a default workflow, let's rewrite the workflow file:
+
+Start by defining the name of the workflow, and the event which should trigger the execution of the workflow file:
+
+```yaml
+name: CRUD App Preview Deployment
+
+on:
+  pull_request:
+    branches:
+      - main
+
+```
+
+In the code block above, we have set the name of the workflow, and the event to trigger the workflow. The workflow file is executed when a pull request is made to the `main` branch. Next, let's define the series of tasks to be executed. These tasks are called **jobs** in GitHub Actions.
+
+Add the instructions below to the existing code in the workflow file:
+
+```yaml
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Context
+      uses: okteto/context@latest
+      with:
+        token: ${{ secrets.OKTETO_TOKEN }}
+
+    - name: Deploy preview environment
+      uses: okteto/deploy-preview@latest
+      env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: pr-${{ github.event.number }}-cindylopez
+        scope: personal
+        timeout: 15m
+```
+
+In the code block above, we defined the job `preview` which runs on the `ubuntu-latest` environment. The steps to be executed under this job is defined under the `steps` heading. Let's go over these steps.
+
+Replace `namespace` in the code block above with your Okteto default namespace.
+
+### Steps
+
+In our `preview` job, we have just one task to be executed.
+
+1.  `Deploy preview environment`: This step uses the action `okteto/deploy-preview@latest` to deploy the application using the okteto stack file defined in the repository. It will automatically login into your Okteto account making use of `secrets.OKTETO_TOKEN`. It will also add a comment on the pull request discussion indicating a link to the deployed application. Once again, _we have witnessed the adaptability of Okteto stacks_.
+
+### Adding Your Okteto Token To GitHub
+
+Before adding your Okteto token to GitHub, retrieve your Okteto token from your dashboard settings:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/dashboard-settings.png").default}
+  alt="Okteto dashboard - Settings"
+  width="1000"
+/>
+
+The workflow file needs your [Okteto account](https://cloud.okteto.com) token to function properly. Follow the steps below to add your okteto token to your GitHub repository:
+
+1.  In your repository, navigate to the **Settings** tab and click on the **Secrets** link on the menu by the left:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/okteto-secrets.png").default}
+  alt="Secrets"
+  width="1000"
+/>
+
+2.  Click on **New Repository Secret**
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/new-secret.png").default}
+  alt="Add A New Secret"
+  width="1000"
+/>
+
+3.  Create a new secret `OKTETO_TOKEN` and set the value to the token you copied from your dashboard.
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/create-new-secret.png").default}
+  alt="Create New Secret"
+  width="1000"
+/>
+
+You can learn more on how to store and manage GitHub secrets on their official [documentation](https://docs.github.com/en/actions/reference/encrypted-secrets).
+
+## Building The Preview Environment
+
+With the secret in place, let's go on to create a pull request from the `mongodb-crud` branch into the `main` branch to see the workflow in action:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/new-pull-request.png").default}
+  alt="New Pull Request"
+  width="1000"
+/>
+
+Immediately the pull request is created, the workflow kicks into action:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/workflow-in-action.png").default}
+  alt="Workflow In Action"
+  width="1000"
+/>
+
+To monitor the progress of the workflow in action, navigate to the **Actions** tab. The current workflow is listed like in the image below:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/actions.png").default}
+  alt="Actions Tab"
+  width="1000"
+/>
+
+Click on the workflow currently under execution. In the workflow page, click on the `preview` job to view the execution and logs of each step:
+
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/preview-job.png").default}
+  alt="Preview Job"
+  width="1000"
+/>
+
+The tasks undergoing execution are listed:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/task-execution.png").default}
+  alt="Tasks undergoing execution"
+  width="1000"
+/>
+
+With all the necessary details put in place, the execution completes successfully:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/workflow-complete.png").default}
+  alt="Workflow complete"
+  width="1000"
+/>
+
+Return to the pull request thread to view the comment made by `github-actions` bot:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/comment.png").default}
+  alt="Comment"
+  width="1000"
+/>
+
+### Destroying Preview Environment
+
+The preview environment ceases to be of use after the pull request has been merged. As such, there is no point in keeping the namespace created by the workflow earlier as newer pull requests will create new namespaces. Okteto provides an action to automatically delete a namespace.
+
+Repeating the steps followed in creating a workflow above, create a new workflow `preview-close` to automatically destroy the namespace after the pull request has either been merged or close:
+
+```yaml
+name: Delete Preview Namespace
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+
+      - name: Context
+        uses: okteto/context@latest
+        with:
+          token: ${{ secrets.OKTETO_TOKEN }}
+
+      - name: Destroy preview environment
+        uses: okteto/destroy-preview@latest
+        with:
+          name: pr-${{ github.event.number }}-namespace
+```
+
+Remember to change `namespace` to your Okteto namespace.
+
+With the workflow in place, let's merge the pull request and verify that the `Destroy Preview environment` workflow was executed:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/merge-pull-request.png").default}
+  alt="Merge Pull Request"
+  width="1000"
+/>
+
+Navigate to the **Actions** tab and click on the workflow undergoing execution:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/actions-tab.png").default}
+  alt="Actions Tab"
+  width="1000"
+/>
+
+The namespace has been deleted successfully:
+
+<Image
+  src={require("@site/static/img/tutorials/using-github-actions-and-okteto-cloud-to-preview-changes/workflow-complete.png").default}
+  alt="Workflow Execution Complete"
+  width="1000"
+/>
+
+## Conclusion
+
+In this article, you built a workflow for creating a preview environment when a pull request is made to the main branch and another workflow to delete the namespace containing the preview environment after the pull request has either been closed or merged.
+
+Once again, the deployment of the preview environment was made possible by the stack manifest we have been using from the [first post](/blog/building-and-deploying-a-fastapi-app-in-okteto-cloud/) in the series. This way, you are reusing the same manifest for development, deployment, and preview environments.
+
+The complete code used in this article can be found in our [GitHub repository](https://github.com/okteto/fastapi-crud)
