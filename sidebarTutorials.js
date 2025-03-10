@@ -28,6 +28,7 @@ module.exports = {
         'external-resources',
         'webpack',
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
+        'a-step-by-step-guide-on-deploying-your-docker-compose-application-to-okteto',
       ],
     },
     {
