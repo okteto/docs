@@ -38,7 +38,7 @@ function CardsList() {
 }
 
 function findKeywordsInString(string) {
-  const keywords = ['aws', 'docker', 'webpack', 'launchdarkly'];
+  const keywords = ['aws', 'docker', 'webpack', 'launchdarkly', ' okteto'];
   const foundKeywords = keywords.filter((keyword) =>
     string.toLowerCase().includes(keyword.toLowerCase())
   );
