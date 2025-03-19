@@ -30,12 +30,12 @@ git clone https://github.com/okteto/movies-catalog
 cd movies-catalog
 okteto deploy
 ```
-The `movies-catalog` application is composed of three microservices: Frontend, Catalog, and Rentals. Each service is defined in a dedicated repository and deployed together using the [dependencies](/docs/reference/okteto-manifest#divert) feature of the Okteto manifest. 
+The `movies-catalog` application is composed of three microservices: Frontend, Catalog, and Rentals. Each service is defined in a dedicated repository and deployed together using the [dependencies](/docs/reference/okteto-manifest#divert) feature of the Okteto manifest.
 
 This is what the application looks like:
 
  <Image
-    src={require("@site/static/img/divert-staging-diagram.png").default}
+    src={require("@site/static/img/divert/staging-diagram.png").default}
     alt="Movies App diagram"
     width="900"
   />
@@ -68,9 +68,9 @@ deploy:
     - helm upgrade --install rentals chart --set image=${OKTETO_BUILD_RENTALS_IMAGE}
   divert:
     namespace: staging
-``` 
+```
 
-The `deploy` commands tell Okteto to deploy the rentals service and database. The `divert` key tells Okteto to divert traffic to the `staging` namespace for all the other services. 
+The `deploy` commands tell Okteto to deploy the rentals service and database. The `divert` key tells Okteto to divert traffic to the `staging` namespace for all the other services.
 
 
 ## Step 3: Interact with the application
@@ -80,18 +80,17 @@ Now, let's interact with your `diverted` application. To try the application, cl
 If you remember, we rented a few movies in Step 1 of the tutorial. Now check out the version deployed on your personal namespace. Notice that the movies rented are different than the ones in staging? This is because Okteto is using your copy of the rental service, including the database. Any changes you make to that service (including synchronizing your code via `okteto up`) will only impact the services deployed on your namespace.
 
 :::note
-### How does this work?
 When using Divert, Okteto will use the hostname of the endpoint to route things accordingly. In this example, a request to `https://movies-staging.okteto.example.com` will only use the staging services, while a request to `https://movies-cindy.okteto.example.com` will go to your namespace first, and if the service is not there, then it will fallback to the shared namespace.
 
 <Image
-    src={require("@site/static/img/divert-personal-diagram.png").default}
+    src={require("@site/static/img/divert/personal-diagram.png").default}
     alt="Movies App diverted"
     width="900"
   />
-  
+
 :::
 
 ## Next steps
 Congratulations, you just deployed your first `diverted` development environment 🚀
 
-Diverted development environments are compatible with the rest of Okteto's features. Head over to our getting started guides for Go, ASP.NET, Java, Node.js, PHP, Python, or Ruby to see how to integrate it with the rest of your applications.
+Diverted development environments are compatible with the rest of Okteto's features. Head over to [our getting started guides](/docs/development/containers/file-sync/) to see how to configure Okteto to live-update your application with different programming languages and **debuggers**.
