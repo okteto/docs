@@ -6,6 +6,8 @@ id: okteto-manifest
 ---
 
 import useBaseUrl from '@docusaurus/useBaseUrl';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 `okteto.yaml` is a manifest format for describing development environments.
 
@@ -252,13 +254,38 @@ Your deploy commands will be executed before deploying your Docker Compose files
 
 #### Divert
 
-Divert is useful when you have many services and you only want to deploy a subset of them in your development environment, while connecting these services with a shared environment that runs all your microservices.
+Divert allows you to create lightweight development environments that include only the services you are actively working on while leveraging an existing shared environment for all other microservices. This approach significantly reduces infrastructure costs and complexity, especially in large microservices environments.
 
-When divert is enabled, Okteto adds the header `baggage.okteto-divert` to every request coming from the developer namespace.
-If the request reaches the shared namespace and matches a diverted virtual service, Okteto redirects the request back to the developer namespace.
+<Tabs
+  defaultValue="default"
+  values={[
+    { label: 'Default', value: 'default', },
+    { label: 'Istio', value: 'istio', },
+  ]}
+>
+<TabItem value="default">
+Use this configuration if your applications rely on Okteto-generated endpoints created for service-to-service communication.
+
+To deploy a `diverted` development environment, add the `divert.namespace` key under the `deploy` section of your manifest. This tells Okteto where to redirect service traffic.
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  divert:
+    namespace: staging
+```
+
+- `namespace`: The namespace that holds the full shareable environment. When a request is directed to a service that wasn't created by the `deploy` command, Okteto will automatically direct it to the environment running on this namespace.
+
+</TabItem>
+
+<TabItem value="istio">
+Use this configuration if your development environments use `Istio` for managing service-to-service communication.
+When divert is enabled, Okteto injects the header `baggage.okteto-divert` to every request coming from the developer Namespace.
+If a request reaches the shared Namespace and matches a diverted virtual service, Okteto automatically redirects the request back to the developer Namespace.
 
 To divert a virtual service as part of your development environment, use the following notation:
-
 ```yaml
 deploy:
   commands:
@@ -276,9 +303,11 @@ deploy:
         namespace: staging
 ```
 
-- `driver`: the backend for divert. Currently, the only supported driver is `istio`.
-- `virtualServices`: a list of virtual services to divert. Each virtual service is defined with it's name, namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
+- `driver`: the backend for divert. Use `istio` to enable this divert mode.
+- `virtualServices`: a list of virtual services to divert. Each virtual service is defined by it's name, Namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
 - `hosts`: the list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
+</TabItem>
+</Tabs>
 
 ### destroy ([string], optional)
 
