@@ -254,38 +254,48 @@ Your deploy commands will be executed before deploying your Docker Compose files
 
 #### Divert
 
-Divert allows you to create lightweight development environments that include only the services you are actively working on while leveraging an existing shared environment for all other microservices. This approach significantly reduces infrastructure costs and complexity, especially in large microservices environments.
+Divert allows you to create lightweight development environments that include only the services you are actively working on while leveraging an existing shared environment for all other microservices.
+This approach significantly reduces infrastructure costs and complexity, especially in large microservices environments.
+
+Okteto supports two different drivers: `nginx` (default) and `istio`.
 
 <Tabs
-  defaultValue="default"
+  defaultValue="nginx"
   values={[
-    { label: 'Default', value: 'default', },
+    { label: 'Nginx', value: 'nginx', },
     { label: 'Istio', value: 'istio', },
   ]}
 >
-<TabItem value="default">
-Use this configuration if your applications rely on Okteto-generated endpoints created for service-to-service communication.
+<TabItem value="nginx">
 
-To deploy a `diverted` development environment, add the `divert.namespace` key under the `deploy` section of your manifest. This tells Okteto where to redirect service traffic.
+Use the `nginx` driver if your applications rely on Okteto-generated endpoints for service-to-service communication.
+
+To deploy a `diverted` development environment, add the `divert.namespace` key under the `deploy` section of your Okteto Manifest.
+This configuration tells Okteto where to redirect requests for services not deployed in your current development environment.
 
 ```yaml
 deploy:
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
   divert:
+    driver: nginx
     namespace: staging
 ```
 
+- `driver`: Specifies the backend to divert requests. Use `nginx` (or leave this field unspecified) to use the default Nginx driver.
 - `namespace`: The namespace that holds the full shareable environment. When a request is directed to a service that wasn't created by the `deploy` command, Okteto will automatically direct it to the environment running on this namespace.
 
 </TabItem>
 
 <TabItem value="istio">
-Use this configuration if your development environments use `Istio` for managing service-to-service communication.
+
+Use the `istio` driver if your development environments use Istio for managing service-to-service communication.
+
 When divert is enabled, Okteto injects the header `baggage.okteto-divert` to every request coming from the developer Namespace.
 If a request reaches the shared Namespace and matches a diverted virtual service, Okteto automatically redirects the request back to the developer Namespace.
 
 To divert a virtual service as part of your development environment, use the following notation:
+
 ```yaml
 deploy:
   commands:
@@ -303,9 +313,9 @@ deploy:
         namespace: staging
 ```
 
-- `driver`: the backend for divert. Use `istio` to enable this divert mode.
-- `virtualServices`: a list of virtual services to divert. Each virtual service is defined by it's name, Namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
-- `hosts`: the list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
+- `driver`: Specifies the backend to divert requests. Use `istio` to use the Istio driver.
+- `virtualServices`: A list of virtual services to divert. Each virtual service is defined by it's name, Namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
+- `hosts`: The list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
 </TabItem>
 </Tabs>
 
