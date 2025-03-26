@@ -7,14 +7,82 @@ sidebar_label: Okteto BYOC on AWS
 import variables from '../../variables.json';
 import CodeBlock from '@theme/CodeBlock';
 
+
+Okteto's Bring Your Own Cluster (BYOC) model allows you to run the Okteto Platform in your own AWS account while still benefiting from a fully managed experience.
+This guide walks you through the steps to set up your AWS environment so Okteto can securely install and manage the platform.
+
 This guide will walk you through the process of installing Okteto Self-Hosted on AWS using the Bring Your Own Cluster (BYOC) model.
 
 ## Installation Requirements
 
-Before you start, make sure you have the following CLIs installed in your machine:
+Before you start, ensure the following:
 
-- `aws` >= 2.15 ([aws installation guides](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions))
+- The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) is installed and configured (version 2.15 or later)
+- You have access to an **empty AWS account** dedicated to Okteto BYOC
 
-You'll also need the following:
 
-- An empty AWS account dedicated to Okteto
+
+## Step 1: Get the AWS IAM Role Assumption External ID
+
+Contact your Okteto sales representative to obtain your unique **AWS IAM Role Assumption External ID**. This is required to securely allow Okteto to assume a role in your AWS account.
+
+## Step 2: Create the IAM Role
+
+Create a file named `trust-policy.json` with the following content or download it from <a href="./trust-policy.json" download="trust-policy.json">here</a>:
+
+```json title="trust-policy.json"
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "111122223333"
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "StringEquals": {
+// highlight-next-line
+                    "sts:ExternalId": "REPLACEME"
+                }
+            }
+        }
+    ]
+}
+```
+Replace `REPLACEME` with the External ID provided by Okteto.
+
+Then, create the IAM role using the trust policy we just created with the AWS CLI:
+
+```bash
+aws iam create-role \
+  --role-name okteto-byoc-integration \
+  --assume-role-policy-document file://trust-policy.json
+```
+
+## Step 3: Attach the Necessary Policies
+
+Attach the necessary policy to give Okteto access to manage infrastructure:
+
+```bash
+aws iam attach-role-policy \
+  --role-name okteto-byoc-integration \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+```
+
+## Step 4: Share the Role ARN With Your Okteto Representative
+
+Finally, provide the IAM Role ARN to your Okteto sales representative. They’ll complete the setup and guide you through connecting your cluster to Okteto.
+
+## ✅ What Happens Next
+
+Once you've shared the IAM Role ARN with your Okteto sales representative, we'll take it from here.
+
+Our team will:
+
+- Install Okteto into your AWS environment
+- Ensure the platform is configured and ready for your team to use
+
+You’ll be notified once installation is complete and receive onboarding support to help your team start developing with Okteto.
+
+> Welcome to Okteto BYOC — we’re excited to have you on board!
