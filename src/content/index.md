@@ -4,7 +4,7 @@ description: An overview of Okteto and how it helps teams build, test, and deplo
 ---
 
 ## Build modern development experiences with Okteto
-Okteto transforms the way developers code, test, and deploy applications by offering a seamless, cloud-native development experience. Say goodbye to the complexities of setting up local environments and the discrepancies between development and production. With Okteto, you get **ephemeral cloud-based environments**, **instant code sync**, and **built-in automations** all designed to improve developer productivity and platform team efficiency.
+Okteto transforms the way developers code, test, and deploy applications by offering a seamless, cloud-native development experience. Say goodbye to the complexities of setting up local environments and the discrepancies between development and production. With Okteto, you get **ephemeral cloud-based environments**, **instant code sync**, **remote debugging**, and **built-in automations** all designed to improve developer productivity and platform team efficiency.
 
 [Start your 30-day free trial](https://www.okteto.com/free-trial/)
 
@@ -51,7 +51,7 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 - **Bring Your Own Cloud (BYOC)**: We maintain Okteto, you bring the cloud. You get full control of data and workloads, with none of the management overhead  
   <!-- → [Learn about BYOC](get-started/install/byoc/index.mdx) -->
 
-- **Self-Hosted**: Install Okteto in your own Kubernetes cluster. Ideal for air-gapped, highly regulated, or on-premise environments  
+- **Self-Hosted**: Install Okteto in your own Kubernetes cluster. Ideal for air-gapped, highly regulated, on-premise environments, or for small teams with Kubernetes expertise
    [Install Okteto Self-Hosted](get-started/install/index.mdx)
 
 ---
