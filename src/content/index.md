@@ -48,11 +48,11 @@ Okteto helps you reduce cloud costs without manual effort. The [**Garbage Collec
 
 Okteto is flexible enough to meet your deployment and compliance needs.
 
-- **Bring Your Own Cloud (BYOC)**: We maintain Okteto, you bring the cloud. You get full control of data and workloads, with none of the management overhead  
-  <!-- → [Learn about BYOC](get-started/install/byoc/index.mdx) -->
+- **Bring Your Own Cloud (BYOC)**: We maintain Okteto, you bring the cloud. You get full control of data and workloads, with none of the management overhead\
+  [Learn about BYOC](byoc/index.mdx)
 
-- **Self-Hosted**: Install Okteto in your own Kubernetes cluster. Ideal for air-gapped, highly regulated, on-premise environments, or for small teams with Kubernetes expertise
-   [Install Okteto Self-Hosted](get-started/install/index.mdx)
+- **Self-Hosted**: Install Okteto in your own Kubernetes cluster. Ideal for air-gapped, highly regulated, on-premise environments, or for small teams with Kubernetes expertise\
+  [Install Okteto Self-Hosted](get-started/install/index.mdx)
 
 ---
 
