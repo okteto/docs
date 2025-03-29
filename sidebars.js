@@ -187,6 +187,15 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'Okteto BYOC',
+      link: { type: 'doc', id: 'byoc/index' },
+      items: [
+        'byoc/aws/index',
+        'byoc/gcp/index'
+      ]
+    },
+    {
+      type: 'category',
       label: 'Okteto Self-Hosted',
       link: { type: 'doc', id: 'self-hosted/index' },
       items: [
