@@ -1,0 +1,636 @@
+---
+title: Docker Compose reference
+description: Okteto allows you to develop applications using docker-compose files
+sidebar_label: Docker Compose
+id: docker-compose
+---
+
+Docker Compose are for developers who don't want to deal with the complexities of Kubernetes manifests.
+Okteto implements and extends the [Compose Specification](https://github.com/compose-spec/compose-spec) to make it easy to develop Docker Compose applications in Kubernetes.
+
+## Example
+
+```yaml
+services:
+  vote:
+    build: vote
+    scale: 2
+    environment:
+      - FLASK_ENV=development
+    command: python app.py
+    ports:
+      - 8080:8080
+    volumes:
+      - ./vote:/src
+
+  redis:
+    image: redis
+    ports:
+      - 6379
+    volumes:
+      - redis:/data
+
+volumes:
+  redis:
+```
+
+The equivalent Kubernetes manifests would have more than 300 lines of yaml!
+
+## Schema reference
+
+### services ([object], optional)
+
+Define the services that make up your Docker Compose application.
+
+```yaml
+services:
+  vote:
+    build: vote
+    scale: 2
+    ports:
+      - 8080:8080
+
+  redis:
+    image: redis
+    ports:
+      - 6379
+    volumes:
+      - redis:/data
+```
+
+Each service supports the fields in the [Compose Specification](https://github.com/compose-spec/compose-spec).
+We summarize the most relevant ones below:
+
+#### build ([string|object], optional)
+
+Indicate how to build the image of this service when running `okteto build` or `okteto deploy --build`.
+The value is the path to the build context:
+
+```yaml
+build: vote
+```
+
+It can also be an object with these fields:
+
+- `context`: the build context. When the value supplied is a relative path, it is interpreted as relative to the location of the Docker Compose file (default: `.`)
+- `dockerfile`: the path to the Dockerfile. It is a relative path to the build context (default: `Dockerfile`)
+- `target`: build the specified stage as defined inside the Dockerfile. See the multi-stage build [Docker official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
+- `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on, which can be helpful for secret or machine-specific values.
+
+```yaml
+build:
+  context: .
+  dockerfile: Dockerfile
+  target: prod
+  args:
+    - ENV1=prod
+    - ENV2=$VALUE
+```
+
+`okteto deploy` builds a new docker image, pushes it to the registry and redeploys your containers.
+
+#### cap_add ([string], optional)
+
+Add container capabilities. See `man 7 capabilities` for a full list.
+
+```yaml
+cap_add:
+  - ALL
+```
+
+#### cap_drop ([string], optional)
+
+Drop container capabilities. See `man 7 capabilities` for a full list.
+
+```yaml
+cap_drop:
+  - NET_ADMIN
+  - SYS_ADMIN
+```
+
+#### command (string, optional)
+
+Override the default command of the container image `CMD`.
+
+```yaml
+command: --debug
+```
+
+`command` can also be a list of strings:
+
+```yaml
+command: ["-p", "3000"]
+```
+
+#### depends_on ([string]|object, optional)
+
+Specify the conditions that the declared services must meet in order for the service to start. The condition must be one of the following:
+
+- `service_started`: Wait until the service is running.
+- `service_healthy`: Wait for one of the ports of the dependent service to be available.
+- `service_completed_successfully`: Wait until the dependent service has been successfully completed.
+
+```yaml
+depends_on:
+  app:
+    condition: service_started
+  db:
+    condition: service_healthy
+  initialization-svc:
+    condition: service_completed_successfully
+```
+
+You can also express dependencies as a list of services. In this case it will be the same as setting the condition to `service_started`.
+
+```yaml
+depends_on:
+  - app
+  - db
+  - initialization-svc
+```
+
+:::info
+💡 To enforce `depends_on` ordering during environment wake-up, enable the [`OKTETO_COMPOSE_DEPENDS_ON_ENABLED` feature flag](reference/feature-flags.mdx).
+:::
+
+#### entrypoint (string, optional)
+
+Override the default entrypoint of the container image `ENTRYPOINT`.
+
+```yaml
+entrypoint: yarn start
+```
+
+The entrypoint can also be a list of strings:
+
+```yaml
+entrypoint: ["yarn", "start"]
+```
+
+#### env_file (string, optional)
+
+Add environment variables from a file to the containers of a service.
+Environment variables declared in the [environment section](reference/docker-compose.mdx#environment-string-optional) override these values.
+This also holds true if those values are empty or undefined.
+
+```yaml
+env_file: .env
+```
+
+`env_file` also accepts a list of files:
+
+```yaml
+env_file:
+  - .env.frontend
+  - .env.api
+```
+
+#### environment ([string], optional)
+
+Add environment variables:
+
+```yaml
+environment:
+  DEV_MODE: yes
+  DB_HOST: postgres://${DB_HOST:-db}:${DB_PASSWORD}@postgres:5432/postgres
+```
+
+#### healthcheck (object, optional)
+
+healthcheck declares a check that's run to determine whether or not containers for a
+service are "healthy".
+
+- `start_period` (duration): Time between the start of the container and the initiation of the healthcheck.
+- `interval` (duration): Time between a healthcheck and a subsequent new try.
+- `timeout` (duration): Number of seconds after which the healthcheck times out.
+- `retries` (int): Number of retries before healthcheck fails.
+- `test` (string): Defines the command that will be run to check the container's health. It can be
+either a string or a list. If it's a list, the first item must be either `NONE`, `CMD` or `CMD-SHELL`.
+If it's a string, it's equivalent to specifying `CMD-SHELL` followed by that string.
+- `http` (object): Defines the path and port that has to be tested on the container to set
+ the healthcheck as successful
+- `x-okteto-readiness` (bool): Defines if the probe should be a readiness probe (default: `true`).
+- `x-okteto-liveness` (bool): Defines if the probe should be a liveness probe (default: `false`).
+
+```yaml
+healthcheck:
+  interval: 10s
+  timeout: 10m
+  retries: 5
+  start_period: 30s
+  http:
+    path: /
+    port: 8080
+```
+
+Healthchecks can also test a command as follows:
+
+```yaml
+healthcheck:
+  interval: 10s
+  timeout: 10m
+  retries: 5
+  start_period: 30s
+  test: echo 'db.runCommand({serverStatus:1}).ok' | mongo admin -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --quiet | grep 1
+```
+
+#### image (string, optional)
+
+The container image of each service.
+
+```yaml
+image: okteto/vote:compose
+```
+
+If [`build`](reference/docker-compose.mdx#build-stringobject-optional) is defined, `image` is optional. Otherwise, it's required.
+
+#### labels ([string], optional)
+
+Specify labels for the service. They translates to Kubernetes annotations.
+
+```yaml
+labels:
+  app: sample
+```
+
+You can set the update policy of a service by setting the label `dev.okteto.com/update`.
+
+Depending on the kind of resource the acceptance values are different:
+- rolling:  Will deploy a service with zero downtime. Only allowed for deployments and stateful sets.
+- recreate: Will wait until the current pod is deleted to start creating the new one. Only allowed on deployments.
+- on-delete: Will wait until the current pod is deleted to start creating the new one. Only allowed on stateful sets.
+
+```yaml
+services:
+  deployment:
+    image: python:alpine
+    labels:
+      "dev.okteto.com/update": rolling
+    entrypoint: python -m http.server 8080
+    ports:
+      - 8080:8080
+  sfs:
+    image: python:alpine
+    labels:
+      "dev.okteto.com/update": on-delete
+    entrypoint: python -m http.server 8080
+    ports:
+      - 8080:8080
+    volumes:
+    - /usr/src
+```
+
+:::info
+Remember that Docker Compose labels are translated into Kubernetes annotations.
+:::
+
+#### ports ([int], optional)
+
+Ports exposed by each service. By default, they're only accessible from the cluster private network.
+
+```yaml
+ports:
+  - 8080
+```
+
+To make the port public, use the following notation:
+
+```yaml
+ports:
+  - 8080:8080
+```
+
+If you need to configure HTTPS routes, use [endpoints](reference/docker-compose.mdx#endpoints-object-optional) instead of configuring an NGINX container in your Docker Compose file.
+
+The following ports are never made public:
+
+| Protocol        | Port                    |
+| --------------- | ----------------------- |
+| MySQL           | 3306                    |
+| OracleDB        | 1521,1830               |
+| PostgreSQL      | 5432                    |
+| SQL Server      | 1433,1434               |
+| MaxDB           | 7210                    |
+| Neo4j           | 7473                    |
+| ArangoDB        | 8529                    |
+| Cassandra       | 7000,7001,9042          |
+| InfluxDB        | 8086                    |
+| Elasticsearch   | 9200,9300               |
+| CouchDB         | 5984                    |
+| MongoDB         | 27017,27018,27019,28017 |
+| Redis           | 6379                    |
+| Riak            | 8087,8088               |
+| RethinkDB       | 828015,29015,28015      |
+| Solr            | 7574,8983               |
+| Golang debugger | 2345                    |
+| Node debugger   | 5858,9229               |
+| Java debugger   | 5005                    |
+| Ruby debugger   | 1234                    |
+| Python debugger | 4444,5678               |
+
+If you need make these ports public, you can use [endpoints](reference/docker-compose.mdx#endpoints-object-optional).
+
+#### resources (object, optional)
+
+Configure resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits).
+
+```yaml
+resources:
+  requests:
+    cpu: 300m
+    memory: 500Mi
+  limits:
+    cpu: 500m
+    memory: 800Mi
+```
+
+Or with the [docker-compose v3 configuration](https://docs.docker.com/compose/compose-file/compose-file-v3/#resources).
+
+```yaml
+deploy:
+  resources:
+    reservations:
+      cpus: 500m
+      memory: 800Mi
+    limits:
+      cpus: 300m
+      memory: 500Mi
+```
+
+#### restart (string, optional)
+
+Defines the policy that the platform will apply on container termination.
+
+- `always/unless-stopped/any`: The default restart policy. The policy always restarts the container until its removal.
+- `none/never/no`: The policy does not restart a container under any circumstances.
+- `on-failure`: The policy restarts a container if the exit code indicates an error.
+
+```yaml
+deploy:
+  restart_policy:
+    condition: on-failure
+    max_attempts: 3
+```
+
+If the restart policy is other than always, the service will be translated to a Kubernetes Job.
+
+#### scale (int, optional)
+
+Specify the number of containers running for each service (default: `1`).
+
+```yaml
+scale: 2
+```
+
+#### stop_grace_period (duration|int, optional)
+
+Specify how long to wait when attempting to stop a container before sending SIGKILL.
+If no unit of time is given, the system will interpret the number in seconds.
+
+`stop_grace_period` translates to the `terminationGracePeriod` setting in the pod.
+
+```yaml
+stop_grace_period: 10s
+```
+
+#### volumes ([string], optional)
+
+Define volumes accessible by the containers of a service at a given path.
+
+```yaml
+volumes:
+  - redis:/data
+```
+
+The volume `redis` must be defined in the [volumes section](reference/docker-compose.mdx#volumes-object-optional).
+
+The following notation is also accepted:
+
+```yaml
+volumes:
+  - /data
+```
+
+Finally, host volumes are also supported:
+
+```yaml
+volumes:
+  - .:/usr/app/src
+```
+
+Host volumes are ignored at deployment time if the service defines a `build` section. Otherwise, they are added to the content of the `image` defined by the service.
+
+`okteto up` uses host volumes to infer the [sync paths](reference/okteto-manifest.mdx#sync-string-required) between your local filesystem and your remote development container.
+
+By default, services mounting the same volume will be placed on the same node using Kubernetes's pod affinity. If you wish to disable this behavior, set the environment variable `OKTETO_COMPOSE_VOLUME_AFFINITY_ENABLED` to `false` when deploying. You can also optionally configure this variable from the Okteto UI to make it available to all development environments in your namespace.
+
+#### working_dir (string, optional)
+
+Override the default working directory of the container image `WORKDIR`.
+
+```yaml
+working_dir: "/app/code"
+```
+
+#### x-node-selector (map[string]string, optional)
+
+List of labels that the node must have to include the service containers on it.
+
+```yaml
+x-node-selector:
+  disktype: ssd
+```
+
+More information about Kubernetes node selectors is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
+
+### volumes ([object], optional)
+
+List of volumes created by the Docker Compose file.
+Volumes are mounted on the containers of a given service by referring the volume from the [volumes field](reference/docker-compose.mdx#volumes-string-optional) of the service.
+
+```yaml
+volumes:
+  redis:
+    driver_opts:
+      size: 1Gi
+```
+
+Each volume has the following properties:
+
+#### driver_opts.class (string, optional)
+
+Specify the storage class of the volume.
+
+```yaml
+driver_opts:
+  class: standard
+```
+
+#### driver_opts.size (string, optional)
+
+Specify the size of the volume. Defaults to 1Gi.
+
+```yaml
+driver_opts:
+  size: 1Gi
+```
+
+#### labels (string, optional)
+
+Specify labels for the volume. They will translate to Kubernetes annotations.
+
+```yaml
+labels:
+  app: redis
+```
+
+## Environment variables
+
+There are multiple parts of Docker Compose files that deal with environment variables in one sense or another.
+This section should help you find the information you need.
+
+### Environment variable substitution
+
+It’s possible to use environment variables in your shell to populate values inside your Docker Compose file:
+
+```yaml
+services:
+  web:
+    image: "app:${TAG}"
+```
+
+If you have multiple environment variables, you can substitute them by adding them to a file named `.env`.
+
+### The .env file
+
+You can set default values for any environment variables referenced in your Docker Compose file in an environment file named `.env`.
+The `.env` file is placed at the same folder than the Docker Compose file.
+
+For example:
+
+```console
+$ cat .env
+TAG=v1.5
+```
+
+```console
+$ cat docker-compose.yml
+services:
+   web:
+      image: "app:${TAG}"
+```
+
+When you run `okteto deploy` the `web` container uses the image `app:v1.5`.
+
+:::note
+
+Values in the shell take precedence over those specified in the `.env` file.
+
+:::
+
+### extensions (object, optional)
+
+Specifies a configuration that can be used in other services using anchors.
+Every top-level field starting with the prefix 'x-' will be interpreted as an extension.
+
+```yaml
+x-function: &environment
+  environment:
+    DEV_MODE: yes
+    DB_HOST: postgres://${DB_HOST:-db}:${DB_PASSWORD}@postgres:5432/postgres
+services:
+  app:
+    <<: *environment
+    image: okteto.dev/example
+```
+
+### Okteto Variables
+
+You can also use your [Okteto Variables](core/okteto-variables.mdx) in your Docker Compose file.
+
+For example, if your have an Okteto Variable named `PASSWORD` whose value is `change-me!`, the following Docker Compose file:
+
+```yaml
+services:
+  mysql:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${PASSWORD}
+```
+
+will use `change-me!` for the value of the `MYSQL_ROOT_PASSWORD` environment variable of the `mysql` service when you run `okteto deploy`.
+
+:::note
+
+Values in the shell and/or the `.env` file take precedence over those specified as Okteto Variables.
+
+:::
+
+## Okteto makes Docker Compose even more powerful!
+
+Okteto extends the Compose Specification to make it even easier for you and your team to build cloud-native applications.
+
+### endpoints ([object], optional)
+
+Endpoints expose HTTPS routes from outside the cluster to services within the cluster.
+Use this instead of having to run a NGINX proxy in your Docker Compose file.
+
+```yaml
+endpoints:
+  - path: /
+    service: frontend
+    port: 80
+  - path: /api
+    service: api
+    port: 8080
+```
+
+The endpoint uses the name of the development environment to generate a URL with the following format: https://NAME-NAMESPACE.okteto.example.com.
+
+Each endpoint has the following properties:
+
+#### path (string, required)
+
+The request path that will handle this route.
+
+#### service (string, required)
+
+The service that will receive the request.
+
+#### port (int, required)
+
+The port that will receive the request.
+
+If more than one endpoint is needed, you can declare multiple endpoints by using a map with the name of the endpoint and its specification:
+
+```yaml
+endpoints:
+  landing:
+    - path: /
+      service: nginx
+      port: 80
+  web:
+    - path: /
+      service: frontend
+      port: 80
+    - path: /api
+      service: api
+      port: 8080
+```
+
+In this case, the URLs `landing-NAMESPACE.okteto.example.com` and `web-NAMESPACE.okteto.example.com` are created.
+
+`endpoints` also accepts an extended notation to specify labels for each endpoint:
+
+```yaml
+endpoints:
+  labels:
+    kubernetes.io/ingress.class: nginx
+  rules:
+    - path: /
+      service: frontend
+      port: 3000
+    - path: /api
+      service: backend
+      port: 8080
+```
