@@ -5,6 +5,32 @@ sidebar_label: Release notes
 id: release-notes
 ---
 
+## 1.32.0
+
+8 May 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.32 is designed to work with [Okteto CLI 3.7.x](https://github.com/okteto/okteto/releases/tag/3.7.0)
+
+### New Features {#new-features-1.32}
+
+- Added support for waking up development environments without dependencies in parallel. This behavior is disabled by default and can be enabled via the [feature flag](reference/feature-flags.mdx) `OKTETO_PARALLEL_WAKE_UPS_FOR_DEVENVS`. When dependencies exist, their defined startup order is still respected <!-- 9219 -->
+
+### Improvements {#improvements-1.32}
+
+- Refreshed the Okteto Dashboard UI to improve the visual design and lay the groundwork for features coming later this year. The changes are purely visual; everything is still in the same place
+- Included changes to prevent an empty stage `Deploy <<dev environment name>>` log entries in the UI when deployments are triggered via `okteto deploy` from the CLI  <!-- 9225 -->
+- Upgraded our BuildKit client to [0.21.1](https://github.com/moby/buildkit/releases/tag/v0.21.1) for improved performance and stability
+- Enhanced privacy and security by removing sensitive repository information when Development Environments are deployed using the GitHub App integration <!-- 9256 -->
+- All pods deployed within a diverted Namespace now have 2 environment variables automatically injected that can be used at runtime. `OKTETO_SHARED_ENVIRONMENT` contains the name of the shared Namespace where all the services are deployed, and `OKTETO_DIVERTED_ENVIRONMENT` contains the routing key used to route the traffic to the proper version of the service (its value is the name of the Namespace where diverted services are deployed)
+- Endpoints in namespaces that include diverted services are now correctly displayed in the UI when using the `nginx` driver
+
+### Bug Fixes {#bug-fixes-1.32}
+
+- [Okteto CLI 3.7.0](https://github.com/okteto/okteto/releases/tag/3.7.0): Fixed a bug in the [Smart Builds](core/build-service.mdx#smart-builds) hash calculation process that caused indefinite hangs when hundreds of untracked files existed in the local Git repository
+- Unified the HTTP header used in [Divert](reference/okteto-manifest.mdx#divert) to propagate the routing key for both drivers `nginx` and `istio`. `istio` driver was using `baggage` header with the key `okteto-divert`, but `nginx` driver was using the header `baggage.okteto-divert`. Now, both drivers use the same standard [`baggage`](https://www.w3.org/TR/baggage/) header as `baggage: okteto-divert=<routing-key>`. For the `nginx` driver, the header `baggage.okteto-divert` is still being injected automatically for backward compatibility, but **it will be removed in the future**
+- Fixed an issue when using both [Divert](reference/okteto-manifest.mdx#divert) and [`endpoints`](/docs/reference/okteto-manifest#endpoints-object-required) to deploy a Development Environment. Endpoints for the diverted namespaces were not working as expected, as the HTTP header with the routing key was not being injected into the request
+
 ## 1.31.0
 
 4 April 2025
