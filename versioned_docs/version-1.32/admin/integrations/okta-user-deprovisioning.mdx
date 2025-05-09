@@ -1,0 +1,85 @@
+---
+title: Okta User Deprovisioning
+description: Automatically deprovision okteto users when they are removed from Okta
+sidebar_label: Okta User Deprovisioning
+id: okta-user-deprovisioning
+---
+
+import Image from "@theme/Image";
+
+If you have configured Okta as your identity provider for Okteto, you can automatically deprovision users once they are deleted in Okta.
+If you haven't yet configured Okta as your identity provider but would like to, please follow our [Installation Guide here](self-hosted/install/auth/okta.mdx).
+
+Okteto provides an endpoint to receive Okta [event hooks](https://help.okta.com/en-us/content/topics/automation-hooks/event-hooks-main.htm) that will automatically deprovision users when they are deleted or deactivated from Okta.
+
+:::note
+Only the `user.lifecycle.deactivate` and `user.lifecycle.delete.initiated` events are supported. If more events are added they will be ignored.
+:::
+
+## Configuration
+
+To set up the Okta event hook for user deprovisioning, follow these steps:
+
+### 1.	Configure the Event Hook in Okta
+
+Within your Okta management console, navigate to `Workflows -> Event Hooks` and create a new event hook with the following configuration:
+
+- **Name**: A descriptive name for the event hook
+- **URL**: `https://okteto.YOUR_SUBDOMAIN.com/api/okta`
+- **Authentication Field**: It must be set to `Authorization` as this is the field that Okteto uses to authenticate the request
+- **Authentication Secret**: Provide a secret value that will be used to authenticate the request. This value should match the value provided in the Okteto Helm config (more info below)
+- **Events**: Select the `User Deactivated` and/or `User Deleted` events
+
+:::tip
+Okteto handles both the **User Deactivated** and **User Deleted** events the same way, automatically deprovisioning the user in either case. If both events are selected, the User Deleted event will be skipped for users who are already deactivated.
+:::
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/okta-user-deprovision.png").default}
+    alt="Okta User Deprovision Configuration"
+     width="800"
+  />
+</p>
+
+### 2. Configure Okta Deprovisioning in the Okteto Admin Dashboard
+
+Okta requires verifying ownership of the URL before sending events.
+This is a special one-time event that Okta sends to the webhook, and Okteto automatically handles this verification.
+
+To be able to receive this event and all subsequent `deactivate` and `delete` events, you need to configure the webhook in the Okteto Admin Dashboard.
+
+<Image
+  src={require("@site/static/img/okta-user-deprovision-dashboard+1.32.png").default}
+  alt="Okta User Deprovision webhook verification"
+    width="800"
+/>
+
+To configure deprovisioning in Okteto:
+1. Navigate to **Admin → Integrations → Okta Deprovisioning** in the Okteto Admin Dashboard
+1. Enter the Okta Event Hook Token used in your Okta event hook configuration
+1. Click Enable to activate deprovisioning
+
+Once your event hook is created and Okteto is configured to receive events, you can verify the webhook in the **Okta admin console**.
+
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/okta-user-deprovision-verify.png").default}
+    alt="Okta User Deprovision webhook verification"
+     width="800"
+  />
+</p>
+
+### 3. Verify the Configuration
+
+Once the event hook is created and the Okteto instance is configured, go back to the **Okta admin console** and verify the webhook.
+After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically deprovisioning users from the system.
+
+Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.
+
+:::note
+This feature is compatible with Okteto Chart 1.30 and higher.
+If you get a 404 error during the verification process, ensure your Okteto instance is at least version 1.30.
+:::
+
