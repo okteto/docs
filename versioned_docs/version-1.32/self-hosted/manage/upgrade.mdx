@@ -1,0 +1,173 @@
+---
+title: Upgrade your Okteto instance
+description: How to upgrade your Okteto instance
+sidebar_label: Upgrade
+id: upgrade
+---
+
+import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
+
+## Upgrade your Okteto Instance
+
+> To ensure a successful Okteto upgrade, we recommend testing it on a dedicated test cluster. Please contact your sales representative to request a test license for your test cluster.
+
+To upgrade a new release, modify the `config.yaml` with your desired changes and then use:
+
+```console
+helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version <version_number>
+```
+
+For example:
+
+<CodeBlock language="bash">
+  {
+`helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version ${variables.chartVersion}
+`}
+</CodeBlock>
+
+_You can use `helm ls` to find the name of your release._
+
+Please review [the release notes](release-notes.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
+
+
+## Upgrading to Okteto 1.31.x
+
+With the upcoming release of Okteto, support for **Docker Image Manifest Schema 1** will be fully deprecated due to underlying upgrades in our dependencies.
+
+**What This Means for You**
+
+- If you are using older container images that rely on **Schema 1**, they will no longer be pulled or deployed successfully
+- This change aligns with the broader container ecosystem, as Schema 1 images have been deprecated since 2021 and are no longer supported by modern container runtimes
+
+### **How to Check If Your Images Are Affected**
+
+You can verify your images by running:
+
+```sh
+docker manifest inspect <image-name>
+```
+- If the output contains `"schemaVersion": 1`, you will need to update the image
+- If it contains `"schemaVersion": 2`, no action is required
+
+### **What You Need to Do**
+
+- If you are using Schema 1 images, we strongly recommend migrating to Schema 2 images before the next Okteto release
+- If your image is outdated, check for an updated version or rebuild and push it using a modern Docker version:
+
+```sh
+docker pull <old-image>
+docker tag <old-image> myrepo/myimage:v2
+docker push myrepo/myimage:v2
+```
+
+## Upgrading to Okteto 1.26.x
+
+- **ACTION REQUIRED: Hostname Length Limit**\
+Deployments now fail if a service hostname exceeds 63 characters, and an error message is shown. This limit is automatically applied to all resources. Previously, dev environments could deploy successfully even if endpoints didn’t work. This change may affect environments that deployed without issues before.
+- **Helm Release Name Limit**:\
+Helm release names are now limited to 63 characters. While this limit is automatically enforced for most resources, the `DefaultBackend` service can still fail during installation if its name exceeds this limit. \
+To avoid installation errors, use the `defaultBackend.nameOverride` setting to shorten the `DefaultBackend` service name. If you need to rename the `DefaultBackend` during an upgrade,[follow this guide as it may impact the installation](https://www.okteto.com/docs/1.26/self-hosted/helm-configuration/#manual-migration-steps-when-renaming-the-defaultbackend-service).
+- **Private Repository Deploys**: Deploying private repositories now uses the Okteto backend as the SSH agent, rather than mounting the local SSH agent. This change ensures feature parity between remote and local deploys but may impact scenarios where private repositories are cloned as part of commands defined in the deploy section during remote execution
+- **Buildkit Persistence Enabled**: Buildkit persistence is now enabled by default, with a 100Gi disk and cache set to 90% of the disk size. If you previously used `buildkit.persistence.cache`, adjust to the new ratio, as this setting is no longer applicable
+
+## Upgrading to Okteto 1.25.x
+
+Starting with the [1.25 release](release-notes.mdx#1250), Okteto will use CLI version 3.0.0 when deploying and destroying pipelines. Please familiarize yourself with the [changes in Okteto CLI 3.0.0](https://www.okteto.com/blog/cli-three-release/) before upgrading your cluster. 
+
+
+## Upgrading to Okteto 1.22.x
+
+As part of the [1.22 release](release-notes.mdx#1220), we have reorganized some helm settings that allow you to configure annotations, labels, and role bindings to apply to user's service accounts. Settings changed are the following:
+
+* `clusterRole` setting is now moved to [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `globalClusterRole` setting is now moved to [`serviceAccounts.clusterRoleBinding`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `user.serviceAccounts.annotations` is now moved to [`serviceAccounts.annotations`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `user.serviceAccounts.labels` is now moved to [`serviceAccounts.labels`](self-hosted/helm-configuration.mdx#serviceaccounts)
+* `user.extraRoleBindings.roleBindings` is now moved to [`serviceAccounts.extraRoleBindings`](self-hosted/helm-configuration.mdx#serviceaccounts)
+
+Summarizing, in case you have all or some of these settings configured as they were before:
+
+```yaml
+clusterRole: cluster-admin
+
+globalClusterRole: example-cluster-role
+
+user:
+  serviceAccount:
+    annotations:
+      custom.annotation/one: one
+      custom.annotation/two: two
+    labels:
+      custom.label/one: one
+      custom.label/two: two
+  extraRoleBindings:
+    enabled: true
+    roleBindings:
+      namespace-name1:
+        - cluster-role1
+        - cluster-role2
+      namespace-name2:
+        - cluster-role3
+```
+
+The configuration for 1.22 versions would be the following:
+
+```yaml
+serviceAccounts:
+  annotations:
+    custom.annotation/one: one
+    custom.annotation/two: two
+  labels:
+    custom.label/one: one
+    custom.label/two: two
+  roleBindings:
+    namespaces: cluster-admin
+  clusterRoleBinding: example-cluster-role
+  extraRoleBindings:
+    namespace-name1:
+      - cluster-role1
+      - cluster-role2
+    namespace-name2:
+      - cluster-role3
+```
+
+:::note
+Old settings are still considered and have preference, but their support will be removed in a future version. Please consider migrating them as soon as possible.
+:::
+
+We have also made another relevant change to consider when migrating to `1.22`. We have stopped creating an automatic role binding to any custom service account created on namespaces managed by Okteto to the cluster role specified on `serviceAccounts.roleBindings.namespaces` (`clusterRole` in previous versions). If you create any custom service account as part of your application, make sure you also create any role or role binding needed.
+
+If you experience issues with permissions in this regard, we recommend creating an explicit role and role-binding, but as an alternative solution you can also manually create the role-binding to the `cluster-admin` role, using the following approach:
+
+1. Create the `rb.yml.tpl` file with the following content:
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: <service-account-name>
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: <service-account-name>
+  namespace: ${OKTETO_NAMESPACE}
+```
+2. Replace `<service-account-name>` with the name of the service account you want to bind to the `cluster-admin` role.
+3. In the Okteto Manifest deploy commands, use  `envsubst` to replace the `${OKTETO_NAMESPACE}` variable:
+```yaml
+deploy:
+  - envsubst < k8s/rb.yml.tpl > k8s/rb.yml
+  - kubectl apply -f k8s
+```
+
+## Upgrading to Okteto 1.20.x
+
+In the Okteto [1.20 release](release-notes.mdx#1200), we have enabled [Pull Secrets by default](admin/registry-credentials/index.mdx). If you do no wish to manage Pull Secrets the following helm values should be disabled:
+
+- `regcredsManager.pullSecrets.enabled` should be set to `false`
+- `daemonset.configurePrivateRegistriesInNodes.enabled` should be set to `false` (if you are already preventing Okteto to manage credentials in the node, this may already be configured correctly)

@@ -239,20 +239,25 @@ module.exports = {
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.31',
+          lastVersion: '1.32',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.32',
-              path: '1.32',
+              label: '1.33',
+              path: '1.33',
             },
-            '1.31': {
+            '1.32': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.31',
+              label: '1.32',
               path: '/',
               banner: 'none',
+            },
+            '1.31': {
+              label: '1.31',
+              path: '1.31',
+              banner: 'unmaintained',
             },
             '1.30': {
               label: '1.30',
@@ -272,11 +277,6 @@ module.exports = {
             '1.27': {
               label: '1.27',
               path: '1.27',
-              banner: 'unmaintained',
-            },
-            '1.26': {
-              label: '1.26',
-              path: '1.26',
               banner: 'unmaintained',
             }
           },
@@ -342,12 +342,6 @@ module.exports = {
     // Hubspot script
     {
       src: '//js.hs-scripts.com/5418301.js',
-      async: true,
-    },
-    // Scarf Tracking Pixel
-    {
-      src: 'https://static.scarf.sh/a.png?x-pxid=3d66f625-f39a-46bd-8d3c-82d5f7ca6f16',
-      referrerPolicy: 'no-referrer-when-downgrade',
       async: true,
     }
   ],
