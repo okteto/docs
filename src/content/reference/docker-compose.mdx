@@ -1,5 +1,5 @@
 ---
-title: Docker Compose reference
+title: Docker Compose Reference
 description: Okteto allows you to develop applications using docker-compose files
 sidebar_label: Docker Compose
 id: docker-compose
@@ -634,3 +634,166 @@ endpoints:
       service: backend
       port: 8080
 ```
+
+
+## Compatibility Guide
+Okteto supports a large subset of the Docker Compose specification and introduces a few useful extensions to simplify Kubernetes development. The table below outlines the compatibility between standard Compose keys and Okteto's implementation, helping you understand which features are fully supported, partially supported with warnings, silently ignored, or unique to Okteto.
+
+### Legend
+
+| **Emoji** | **Meaning** |
+| --- | --- |
+| ✅ | Fully supported by Okteto – it is unmarshalled into a regular Go type |
+| ⚠️ | Recognized but *unsupported* – Okteto will recognize it but will throw a warning |
+| ⛔️ | The key is **missing** from Okteto’s structs, therefore *silently ignored* |
+| 🆕 | Key exists in Okteto but **is not part of the Compose Spec** (Okteto-specific) |
+
+---
+
+### Top-level Keys
+
+| **Key** | **Compose Spec** | **Okteto** | **Notes** |
+| --- | --- | --- | --- |
+| name | yes | ✅ |  |
+| services | yes | ✅ |  |
+| volumes | yes | ✅ |  |
+| networks | yes | ⚠️ | Warning shown to the user |
+| configs | yes | ⚠️ | Warning shown to the user |
+| secrets | yes | ⚠️ | Warning shown to the user |
+| version *(obsolete)* | yes | ✅ | Kept for back-compatibility |
+| profiles | yes | ⛔️ | Ignored |
+| x-* extension keys | yes | ⛔️ | Ignored but we ignore them consciously |
+| endpoints | — | 🆕 | Okteto-specific syntax |
+
+### Service Spec
+
+#### ✅ Supported
+```yaml
+annotations
+build.context / dockerfile / args
+cap_add / cap_drop
+command
+depends_on
+deploy.replicas
+deploy.resources.{limits|reservations}
+deploy.restart_policy.max_attempts
+entrypoint
+env_file
+environment
+healthcheck
+image
+labels
+mem_limit
+mem_reservation
+cpu_count / cpus
+ports / expose
+restart
+stop_grace_period
+user
+volumes
+volumes.sub_path
+working_dir
+scale (short syntax)
+```
+
+#### ⚠️ Recognized but Unsupported (Warning Shown)
+```yaml
+blkio_config
+cgroup_parent
+configs
+container_name
+cpu_percent
+cpu_period
+cpu_quota
+cpu_rt_period
+cpu_rt_runtime
+cpu_shares
+cpuset
+credential_spec
+device_cgroup_rules
+devices
+dns
+dns_opt
+dns_search
+domainname
+driver_opts
+extends
+external_links
+extra_hosts
+group_add
+hostname
+init
+ipc
+isolation
+links
+logging
+mac_address
+mem_swappiness
+memswap_limit
+network_mode
+networks
+oom_kill_disable
+oom_score_adj
+pid
+pids_limit
+platform
+privileged
+profiles
+pull_policy
+read_only
+runtime
+secrets
+security_opt
+shm_size
+stdin_open
+stop_signal
+storage_opts
+sysctls
+tmpfs
+tty
+ulimits
+userns_mode
+volumes_from
+```
+
+#### ⛔️ Silently Ignored
+```yaml
+attach
+cgroup
+develop
+gpus
+interface_name
+label_file
+link_local_ips
+post_start
+pre_stop
+provider.*
+uts
+```
+
+---
+
+### 🆕 Okteto-Specific Extras
+
+| **Key** | **Purpose** |
+| --- | --- |
+| public: true | Auto-generate a Kubernetes Ingress |
+| x-node-selector | Pod scheduling hint |
+| resources | Set CPU / Memory |
+| scale | Compose-style replica shorthand (alias for deploy.replicas) |
+
+---
+
+### Volume Section
+
+| **Attribute** | **Compose Spec** | **Okteto** | **Notes** |
+| --- | --- | --- | --- |
+| labels | yes | ✅ |  |
+| driver, driver_opts, external | yes | ⚠️ | Warning then ignored |
+| size, class | — | 🆕 | PVC size & storage-class helpers |
+
+---
+
+### Networks, Configs & Secrets Blocks
+
+All three blocks are **parsed only to raise a warning**; every sub-field therefore falls under ⚠️.
