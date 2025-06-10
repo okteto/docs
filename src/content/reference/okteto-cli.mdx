@@ -785,6 +785,41 @@ curl https://get.okteto.com -sSfL | sh
 brew upgrade okteto
 ```
 
+
+
+## Dynamic Environment Variables
+Okteto automatically creates dynamic environment variables for build dependencies so you can easily reference outputs from dependency builds in your own builds or pipelines.
+
+The format is:
+```
+OKTETO_DEPENDENCY_${DEPENDENCY_NAME}_BUILD_${BUILD_SVC}_${BUILD_ENVVAR}
+```
+Where:
+
+- `${DEPENDENCY_NAME}` is the name of the dependency (as defined in your manifest’s dependencies section)
+- `${BUILD_SVC}` is the service being built within that dependency
+- `${BUILD_ENVVAR}` is the name of the environment variable you wish to reference from the build
+
+**Example** - Suppose you have the following in your manifest:
+
+```yaml
+deploy:
+  - name: Deploy Application
+    command: |
+      helm upgrade --install hello-world ./hello-world \
+        --set helloworld.image.repository=${OKTETO_DEPENDENCY_HELLO_WORLD_NOCHART_BUILD_HELLO_WORLD_IMAGE} \
+        --set holamundo.image.repository=${OKTETO_DEPENDENCY_HOLA_MUNDO_NOCHART_BUILD_HOLA_MUNDO_IMAGE} \
+        --values values-okteto.yaml
+```
+- `OKTETO_DEPENDENCY_HELLO_WORLD_NOCHART_BUILD_HELLO_WORLD_IMAGE` will be resolved by Okteto to the image repository produced by the `hello-world` service build of the `hello-world-nocharts` dependency.
+- `OKTETO_DEPENDENCY_HOLA_MUNDO_NOCHART_BUILD_HOLA_MUNDO_IMAGE` will be resolved by Okteto to the image repository produced by the `hola-mundo` service build of the `hola-mundo-nocharts` dependency.
+
+This mechanism enables advanced automation and chaining of build artifacts or secrets between dependencies and services.
+
+:::tip
+Use these variables in your build args, deploy steps, or pipeline commands wherever you need to consume data produced by dependency builds.
+:::
+
 ## Troubleshooting
 
 ### Kubernetes authentication
