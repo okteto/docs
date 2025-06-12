@@ -766,8 +766,7 @@ globals:
 Specifies the node selectors to be applied to pods, categorized under `okteto` or `dev`:
 
 - `okteto`: Node selectors applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
-- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
-
+- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. These node selectors are only applied when a corresponding `tolerations.devPool` is defined. It also applies to the [Okteto Daemonset](#daemonset). This is a legacy behavior and may change in future releases.
 
 ```yaml
 globals:
@@ -778,6 +777,10 @@ globals:
       okteto-node-label: dev
       region: east
 ```
+
+:::note
+Node selectors defined in `globals.nodeSelectors.dev` will not be applied to user workloads unless a `tolerations.devPool` value is also set. This coupling is due to a legacy implementation and may be revised in future updates.
+:::
 
 #### priorityClassName
 
@@ -804,7 +807,7 @@ globals:
 Specifies the tolerations to be applied to pods, categorized under `okteto` or `dev`:
 
 - `okteto`: Tolerations applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
-- `dev`: Tolerations applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
+- `dev`: Tolerations applied to pods created by user applications, which run in namespaces managed by Okteto. Required for `globals.nodeSelectors.dev` to take effect. This also applies to the [Okteto Daemonset](#daemonset).
 
 ```yaml
 globals:
@@ -820,6 +823,10 @@ globals:
       value: "arm64dev"
       effect: "NoSchedule"
 ```
+
+:::note
+To apply node selectors for user workloads, you must define a `devPool` entry in `globals.tolerations`. See the [nodeSelectors](#nodeselectors) section for more details.
+:::
 
 ### ingress
 
