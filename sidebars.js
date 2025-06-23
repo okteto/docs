@@ -141,6 +141,12 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'AI Agent Fleets',
+      link: { type: 'doc', id: 'ai-agent-fleets/index' },
+      items: ['ai-agent-fleets/index'],
+    },
+    {
+      type: 'category',
       label: 'Administration',
       link: { type: 'doc', id: 'admin/index' },
       items: [
