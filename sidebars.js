@@ -167,6 +167,7 @@ module.exports = {
                 'admin/cloud-credentials/gcp-cloud-credentials',
               ],
             },
+            'admin/integrations/gcp-secrets-manager',
             'admin/integrations/okta-user-deprovisioning',
             {
               type: 'category',
