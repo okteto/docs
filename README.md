@@ -42,7 +42,7 @@ You can launch a remote Development Environment with [Okteto](https://okteto.com
 
 ### Update Variables
 
-Before creating a new version, update the variables so that they are included in the released version:
+Before creating a new version, make sure the variables are up to date so that they are included in the released version:
 
 Review the content of `src/content/variables.json` and update the values of `cliVersion` and `chartVersion`. \
 If the release comes with a new or a removed Kubernetes version, update `kubernetesMinVersion` and `kubernetesMaxVersion` accordingly. \
@@ -138,7 +138,7 @@ Remove the oldest version by following these steps:
 https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
 
 
-### After the new version has been merged, request a new search index
+### After the new version has been merged, request a new search index and update variables for the unreleased docs version
 Once the new version is live in production, you need to request a new search index to Algolia.
 
 1. Log in [Algolia](https://crawler.algolia.com/admin/crawlers)
@@ -146,6 +146,8 @@ Once the new version is live in production, you need to request a new search ind
 3. Click on "Restart crawling"
 
 It should take a few minutes and the search index will be completed.
+
+Update `src/content/variables.json` by incrementing the values of `cliVersion` and `chartVersion` to reflect the upcoming release versions.
 
 ## Components
 
