@@ -62,7 +62,7 @@ Here's how the timing works in practice:
    - Set sleep duration in hours (e.g., "3" for 3 hours)
    - Set delete period in days (e.g., "14" for 14 days)
 3. In the **Settings for Preview Environments** section:
-   - Configure similarly to namespaces
+   - Configure similarly to Namespaces
    - Consider shorter periods for temporary environments
 4. Click **Save** to apply changes
 
@@ -79,14 +79,14 @@ Start with conservative settings and adjust based on your team's usage patterns.
 </p>
 
 ## Applying Garbage Collection to Personal Namespaces
-By default, Personal Namespaces (automatically created when a user logs in) were previously excluded from Garbage Collection.
+By default, [Personal Namespaces](core/namespaces.mdx#personal-namespaces) (automatically created when a user logs in) were previously excluded from Garbage Collection.
 However, to improve consistency and optimize infrastructure usage, the contents of Personal Namespaces can now follow the same GC rules set in the Admin Dashboard.
 
 To enable GC for Personal Namespaces, navigate to **Admin → Garbage Collector** and find the **“Settings for Namespaces”** section. Here, you can toggle whether Personal Namespaces are included in GC.
 
 **How It Works**
 - Personal Namespaces themselves will not be deleted, but their unused resources (e.g., Pods, Services, ConfigMaps) will be removed following the Sleep and Delete Period settings
-- **Persistent Volume Claims (PVCs) within personal namespaces will not be deleted** as part of the GC process
+- **Persistent Volume Claims (PVCs) within Personal Namespaces will not be deleted** as part of the GC process
 - If a Personal Namespace remains unused past the defined threshold (e.g., 15 days), its **contents** will be cleaned up automatically
 
 ## Manually Sleeping Resources
@@ -98,13 +98,13 @@ The Okteto Garbage Collector automatically scales inactive applications to zero 
 Additionally, Namespaces can be manually scaled to zero by following these steps:
 
 1. Navigate to **Admin → Namespaces** under the Cluster Management section
-2. Find the namespace you want to sleep in the list
-3. Click the **three dots (⋯)** on the right side of the namespace row
+2. Find the Namespace you want to sleep in the list
+3. Click the **three dots (⋯)** on the right side of the Namespace row
 4. Select **Sleep** from the dropdown menu
 5. Confirm the action when prompted
 
 :::warning
-Manually sleeping a namespace will immediately scale down all deployments and statefulsets. This action cannot be undone automatically - you'll need to manually wake the namespace or wait for incoming traffic (if auto-wake is enabled).
+Manually sleeping a Namespace will immediately scale down all deployments and statefulsets. This action cannot be undone automatically - you'll need to manually wake the Namespace or wait for incoming traffic (if auto-wake is enabled).
 :::
 <p align="left">
   <Image
@@ -118,7 +118,7 @@ Manually sleeping a namespace will immediately scale down all deployments and st
 
 ### What Happens During Sleep
 
-When the Garbage Collector sleeps a namespace, it specifically:
+When the Garbage Collector sleeps a Namespace, it specifically:
 
 **Scaled to Zero:**
 - Kubernetes Deployments (pods stopped, but deployment config remains)
@@ -133,8 +133,7 @@ When the Garbage Collector sleeps a namespace, it specifically:
 - Okteto-specific configurations
 
 **Performance Impact:**
-- **Wake time**: 30 seconds to 2 minutes depending on image sizes and resource requests
-- **Memory usage**: Sleeping namespaces use minimal cluster memory
+- **Memory usage**: Sleeping Namespaces use minimal cluster memory
 - **Storage**: No change to persistent storage usage
 
 ### What Happens During Deletion
@@ -142,10 +141,10 @@ When the Garbage Collector sleeps a namespace, it specifically:
 When the delete period is reached, the Garbage Collector will:
 
 **Completely Remove:**
-- The entire Namespace and all contents
+- The entire Namespace and everything inside it will be deleted. For [Personal Namespaces](core/namespaces.mdx#personal-namespaces), only the resources inside the Namespace are deleted—the Namespace itself remains.
 - All deployments, services, config maps, secrets
-- **Persistent Volume Claims and their data**
-- Any custom resources within the namespace
+- **Persistent Volume Claims and their data** (except in [Personal Namespaces](core/namespaces.mdx#personal-namespaces), where PVCs are preserved and not deleted)
+- Any custom resources within the Namespace
 
 **Cannot Be Recovered:**
 - Deleted Namespaces cannot be restored
@@ -170,23 +169,23 @@ Understanding what activities prevent sleeping is crucial for effective garbage 
 
 Service accounts, config maps, secrets, or volumes you create will be unaffected by the `sleep` operation.
 
-Additionally, if you are using the Okteto Nginx Ingress Controller, incoming requests will automatically wake a sleeping namespace.
-However, note that these incoming requests do not count as activity to reset the inactivity counter and keep the namespace awake.
+Additionally, if you are using the Okteto Nginx Ingress Controller, incoming requests will automatically wake a sleeping Namespace.
+However, note that these incoming requests do not count as activity to reset the inactivity counter and keep the Namespace awake.
 The auto-wake behavior for incoming requests can also be disabled by [configuring the `autowake` field](self-hosted/helm-configuration.mdx#autowake).
 
 ### Manually Wake Sleeping Resources
 
-Okteto's UI will notify you when there are sleeping applications in your namespace. 
+Okteto's UI will notify you when there are sleeping applications in your Namespace. 
 
 **To wake all resources at once:**
-1. Navigate to your namespace in the Okteto UI
+1. Navigate to your Namespace in the Okteto UI
 2. Look for the sleeping resources notification banner
 3. Click the **Wake all** button to activate all sleeping resources simultaneously
 4. Wait 1-2 minutes for all resources to fully start
 
 **To wake specific resources:**
 1. Go to **Admin → Namespaces** 
-2. Find the sleeping namespace
+2. Find the sleeping Namespace
 3. Click the three dots (⋯) and select **Wake**
 4. Resources will begin starting automatically
 
@@ -234,17 +233,15 @@ If you are using Okteto Self-Hosted, you can also [configure this in the Helm Ch
 2. **Verify Timing**: Confirm the sleep period configuration and when the resource was last active
 3. **Check for Activity**: Look for recent deployments, `okteto up` sessions, or kubectl operations
 4. **Review Labels**: Ensure resources don't have `dev.okteto.com/persistent` label
-5. **Check Logs**: Look in **Admin → System Logs** for GC errors or warnings
 
 **Problem: Resources Deleted Unexpectedly**
 
 *Symptoms:* Important resources were deleted by GC
 
 *Solutions:*
-1. **Mark as Persistent**: Add `dev.okteto.com/persistent` label to critical namespaces
+1. **Mark as Persistent**: Add `dev.okteto.com/persistent` label to critical Namespaces
 2. **Adjust Periods**: Increase delete periods for your use case
 3. **Check Activity Tracking**: Ensure team knows what counts as "activity"
-4. **Recovery**: If recently deleted, check if backups are available
 
 **Problem: Personal Namespaces Being Affected**
 
@@ -252,12 +249,12 @@ If you are using Okteto Self-Hosted, you can also [configure this in the Helm Ch
 
 *Solutions:*
 1. **Check Settings**: Verify **Personal Namespaces GC** toggle in Admin → Garbage Collector
-2. **Understand Scope**: Remember that Personal Namespaces contents are cleaned, not the namespaces themselves
+2. **Understand Scope**: Remember that Personal Namespaces contents are cleaned, not the Namespaces themselves
 3. **PVC Protection**: Confirm PVCs are preserved as expected
 
 **Problem: Auto-wake Not Working**
 
-*Symptoms:* Incoming requests don't wake sleeping namespaces
+*Symptoms:* Incoming requests don't wake sleeping Namespaces
 
 *Solutions:*
 1. **Check Ingress**: Ensure you're using Okteto's Nginx Ingress Controller
@@ -293,11 +290,16 @@ If you are using Okteto Self-Hosted, you can also [configure this in the Helm Ch
 - Monitor and adjust based on usage patterns
 
 **2. Use Labels Strategically:**
+You can mark Namespaces or specific deployments as persistent directly from the Okteto UI. 
+To do this, follow the instructions in the [section above](#persistent-resources) to use the UI for marking a Namespace as persistent.
+
+Alternatively, you can use `kubectl` to add the label manually if you need more granularity:
+
 ```yaml
 # Mark production-like environments as persistent
 kubectl label namespace staging dev.okteto.com/persistent=true
 
-# Mark specific deployments as persistent within a namespace  
+# Mark specific deployments as persistent within a Namespace  
 kubectl label deployment database dev.okteto.com/persistent=true
 ```
 
