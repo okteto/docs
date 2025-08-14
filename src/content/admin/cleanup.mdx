@@ -19,6 +19,8 @@ Once enabled, the GC automatically scales idle environments to zero and deletes 
 
 ## Configuring the Sleep and Delete Periods
 
+### Understanding the Periods
+
 Admins can set custom sleep and delete periods for both Namespaces and Preview Environments:
 
 - **Sleep Period**: The amount of time, in hours, that an environment must remain idle before the GC scales it down to zero
@@ -33,6 +35,40 @@ If the sleep period is set, this represents the amount of time that the environm
   - **Preview Environments**
     - Sleep period: 1h
     - Delete period: 7 days
+
+### Configuration Examples
+
+Here's how the timing works in practice:
+
+**Example 1: Default Namespace Settings (3h sleep, 14d delete)**
+- Environment becomes idle on Monday 9:00 AM
+- Will sleep on Monday 12:00 PM (3 hours later)
+- Will be deleted 14 days after entering sleep mode
+
+**Example 2: Aggressive Preview Environment Settings (30min sleep, 2d delete)**
+- Preview environment idle since Tuesday 2:00 PM
+- Will sleep on Tuesday 2:30 PM (30 minutes later)
+- Will be deleted on Thursday 2:30 PM (2 days after sleeping)
+
+**Example 3: Sleep Disabled, Delete Only (delete after 7d)**
+- Environment becomes idle on Friday 10:00 AM
+- Will be deleted the following Friday 10:00 AM (7 days from last activity)
+
+### Step-by-Step Configuration
+
+1. Navigate to **Admin → Garbage Collector** in your Okteto dashboard
+2. In the **Settings for Namespaces** section:
+   - Toggle **Sleep Period** on/off
+   - Set sleep duration in hours (e.g., "3" for 3 hours)
+   - Set delete period in days (e.g., "14" for 14 days)
+3. In the **Settings for Preview Environments** section:
+   - Configure similarly to namespaces
+   - Consider shorter periods for temporary environments
+4. Click **Save** to apply changes
+
+:::tip
+Start with conservative settings and adjust based on your team's usage patterns. Monitor the effects for a few weeks before making the settings more aggressive.
+:::
 
 <p align="left">
   <Image
@@ -57,7 +93,19 @@ To enable GC for Personal Namespaces, navigate to **Admin → Garbage Collector*
 
 The Okteto Garbage Collector automatically scales inactive applications to zero if they haven't been used for longer than the `sleep` period set to automatically save resources in your cluster.
 
-Additionally, Namespaces can be manually scaled to zero by navigating to **Admin -> Namespaces** under the Cluster Management section and clicking on the three dots on the right side of the Namespace that you wish to sleep.
+### Manual Sleep Process
+
+Additionally, Namespaces can be manually scaled to zero by following these steps:
+
+1. Navigate to **Admin → Namespaces** under the Cluster Management section
+2. Find the namespace you want to sleep in the list
+3. Click the **three dots (⋯)** on the right side of the namespace row
+4. Select **Sleep** from the dropdown menu
+5. Confirm the action when prompted
+
+:::warning
+Manually sleeping a namespace will immediately scale down all deployments and statefulsets. This action cannot be undone automatically - you'll need to manually wake the namespace or wait for incoming traffic (if auto-wake is enabled).
+:::
 <p align="left">
   <Image
     src={require("@site/static/img/cleanup-namespace-sleep+1.33.png").default}
@@ -66,11 +114,54 @@ Additionally, Namespaces can be manually scaled to zero by navigating to **Admin
   />
 </p>
 
-## Inactive Applications and Resources
+## Understanding the Impact of Garbage Collection
+
+### What Happens During Sleep
+
+When the Garbage Collector sleeps a namespace, it specifically:
+
+**Scaled to Zero:**
+- Kubernetes Deployments (pods stopped, but deployment config remains)
+- StatefulSets (pods stopped, but statefulset config remains)
+- DaemonSets (if configured to be managed by GC)
+
+**Preserved During Sleep:**
+- Service accounts, config maps, and secrets
+- Persistent Volume Claims (PVCs) and their data
+- Services and ingress configurations
+- Custom Resource Definitions (CRDs)
+- Okteto-specific configurations
+
+**Performance Impact:**
+- **Wake time**: 30 seconds to 2 minutes depending on image sizes and resource requests
+- **Memory usage**: Sleeping namespaces use minimal cluster memory
+- **Storage**: No change to persistent storage usage
+
+### What Happens During Deletion
+
+When the delete period is reached, the Garbage Collector will:
+
+**Completely Remove:**
+- The entire Namespace and all contents
+- All deployments, services, config maps, secrets
+- **Persistent Volume Claims and their data**
+- Any custom resources within the namespace
+
+**Cannot Be Recovered:**
+- Deleted Namespaces cannot be restored
+- All application data is permanently lost
+- Users must recreate environments from source
+
+:::danger
+Deletion is permanent and irreversible. Ensure critical data is backed up or mark important Namespaces as persistent.
+:::
+
+## What Counts as Activity?
 
 Okteto considers an application inactive if a user hasn't performed any of the following tasks during the `sleep` period.
-The following events are considered activity that will prevent an application from being marked as inactive or will wake a sleeping namespace:
+Understanding what activities prevent sleeping is crucial for effective garbage collection. The GC only sleeps environments that have been truly inactive.
 
+### Activities That Prevent Sleeping or Will Wake a Sleeping Namespace
 - Deploying a Kubernetes Deployment or StatefulSet with `kubectl` or similar tools
 - Running `okteto deploy`
 - Running `okteto up`
@@ -85,7 +176,19 @@ The auto-wake behavior for incoming requests can also be disabled by [configurin
 
 ### Manually Wake Sleeping Resources
 
-Okteto's UI will notify you when there are sleeping applications in your namespace. Press the **Wake all** button to activate all sleeping resources at once.
+Okteto's UI will notify you when there are sleeping applications in your namespace. 
+
+**To wake all resources at once:**
+1. Navigate to your namespace in the Okteto UI
+2. Look for the sleeping resources notification banner
+3. Click the **Wake all** button to activate all sleeping resources simultaneously
+4. Wait 1-2 minutes for all resources to fully start
+
+**To wake specific resources:**
+1. Go to **Admin → Namespaces** 
+2. Find the sleeping namespace
+3. Click the three dots (⋯) and select **Wake**
+4. Resources will begin starting automatically
 
 <p align="left">
   <Image
@@ -117,3 +220,104 @@ In that case, the Garbage Collector will ignore only those specific resources wh
 You can set the `sleep` and `delete` periods in the [Admin Dashboard](#configuring-the-sleep-and-delete-periods) following the instructions above.
 
 If you are using Okteto Self-Hosted, you can also [configure this in the Helm Chart](self-hosted/helm-configuration.mdx#gc) along with options like a Slack webhook for notifications when resources are scaled to zero.
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+**Problem: Garbage Collector Not Sleeping Resources**
+
+*Symptoms:* Resources remain active despite exceeding the sleep period
+
+*Solutions:*
+1. **Check GC Status**: Go to **Admin → Garbage Collector** and verify it's enabled
+2. **Verify Timing**: Confirm the sleep period configuration and when the resource was last active
+3. **Check for Activity**: Look for recent deployments, `okteto up` sessions, or kubectl operations
+4. **Review Labels**: Ensure resources don't have `dev.okteto.com/persistent` label
+5. **Check Logs**: Look in **Admin → System Logs** for GC errors or warnings
+
+**Problem: Resources Deleted Unexpectedly**
+
+*Symptoms:* Important resources were deleted by GC
+
+*Solutions:*
+1. **Mark as Persistent**: Add `dev.okteto.com/persistent` label to critical namespaces
+2. **Adjust Periods**: Increase delete periods for your use case
+3. **Check Activity Tracking**: Ensure team knows what counts as "activity"
+4. **Recovery**: If recently deleted, check if backups are available
+
+**Problem: Personal Namespaces Being Affected**
+
+*Symptoms:* Personal Namespace contents are being deleted
+
+*Solutions:*
+1. **Check Settings**: Verify **Personal Namespaces GC** toggle in Admin → Garbage Collector
+2. **Understand Scope**: Remember that Personal Namespaces contents are cleaned, not the namespaces themselves
+3. **PVC Protection**: Confirm PVCs are preserved as expected
+
+**Problem: Auto-wake Not Working**
+
+*Symptoms:* Incoming requests don't wake sleeping namespaces
+
+*Solutions:*
+1. **Check Ingress**: Ensure you're using Okteto's Nginx Ingress Controller
+2. **Verify Configuration**: Check if `autowake` is disabled in Helm config
+3. **DNS/Routing**: Confirm requests are reaching the correct ingress endpoint
+
+
+## Best Practices and Use Cases
+
+### Recommended Settings by Team Size
+
+**Small Teams (5-15 developers):**
+- **Namespaces**: Sleep 6h, Delete 21d  
+- **Preview Environments**: Sleep 2h, Delete 3d
+- **Reasoning**: Longer periods account for time zones and varying work schedules
+
+**Medium Teams (15-50 developers):**
+- **Namespaces**: Sleep 4h, Delete 14d
+- **Preview Environments**: Sleep 1h, Delete 2d  
+- **Reasoning**: More active development requires faster cleanup of unused resources
+
+**Large Teams (50+ developers):**
+- **Namespaces**: Sleep 3h, Delete 10d
+- **Preview Environments**: Sleep 30min, Delete 1d
+- **Reasoning**: High resource utilization demands aggressive cleanup
+
+
+### Cost Optimization Strategies
+
+**1. Implement Graduated Cleanup:**
+- Short sleep periods (1-2h) for immediate cost savings
+- Moderate delete periods (7-14d) for safety
+- Monitor and adjust based on usage patterns
+
+**2. Use Labels Strategically:**
+```yaml
+# Mark production-like environments as persistent
+kubectl label namespace staging dev.okteto.com/persistent=true
+
+# Mark specific deployments as persistent within a namespace  
+kubectl label deployment database dev.okteto.com/persistent=true
+```
+
+**3. Monitor Resource Usage:**
+- Track sleeping vs. active resources weekly
+- Identify teams/projects with unused environments
+- Adjust periods based on actual usage patterns
+
+**4. Communicate with Teams:**
+- Provide clear guidelines on what constitutes "activity"
+- Train developers on waking and managing sleeping resources
+
+### Environment Protection Strategies
+
+**Critical Environments:**
+- Mark as persistent
+- Set very long delete periods (90d+)
+- Implement backup strategies for important data
+
+**Compliance Requirements:**
+- Configure longer retention periods for audit trails
+- Implement data backup before deletion
+- Document GC policies for compliance reviews
