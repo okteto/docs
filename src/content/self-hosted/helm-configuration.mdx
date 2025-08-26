@@ -5,6 +5,8 @@ sidebar_label: Helm Configuration
 id: helm-configuration
 ---
 
+import variables from '../variables.json';
+
 ## General Settings
 
 ### license
@@ -502,6 +504,26 @@ By default, the Private Endpoint component will inherit the configuration set at
 
 - `clientID`: Overrides `auth.*.clientID`.
 - `clientSecret`: Overrides `auth.*.clientSecret`.
+
+### prepullImages
+
+The prepull images daemonset ensures that essential Okteto images are available on every node in your cluster. This improves startup times for jobs and operations by avoiding image pulls when containers are created:
+
+- `enabled`: When set to `true`, the prepull images daemonset is installed. It defaults to `true`.
+- `priorityClassName`: The priority class to be used by the prepull images pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+
+```yaml
+prepullImages:
+  enabled: true
+  priorityClassName: "high-priority"
+```
+
+The following images are prepulled on every node:
+
+- **okteto/backend:{variables.chartVersion}**
+- **okteto/pipeline-runner:{variables.chartVersion}**
+- **okteto/okteto:{variables.cliVersion}**
+- **okteto/agent:{variables.chartVersion}**
 
 ### regcredsManager
 
