@@ -60,6 +60,6 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 
 - 🚀 [Follow the installation guide](get-started/install/index.mdx)
 - 🗓️ [Book a demo with our team](https://okteto.com/schedule/)
-- 🎁 [Get your Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
+- 🎁 [Sign up for our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
 
 Need help deciding which deployment model or feature fits best? [Contact us](https://okteto.com/schedule/) and we’ll walk you through it.
