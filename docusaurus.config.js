@@ -145,7 +145,7 @@ module.exports = {
         },
         {
           href: 'https://www.okteto.com/free-trial',
-          label: 'Get Free Trial',
+          label: 'Get Started',
           position: 'right',
           target: '_self',
           className: 'Button teal GetFreeTrialButton',
