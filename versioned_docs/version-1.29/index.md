@@ -38,4 +38,4 @@ Maximize efficiency and minimize costs with [Okteto's Garbage Collector](admin/c
 ## Get started today
 Jump into our [installation guide](get-started/install/index.mdx) to get started with Okteto. Or [Talk to us](https://okteto.com/schedule/) to let us show you how.
 
-Need a license key? [Sign-up for a free 30-day trial](https://www.okteto.com/free-trial/).
+Need a license key? [Sign-up for a Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/).

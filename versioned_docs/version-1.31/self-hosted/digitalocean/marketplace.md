@@ -77,7 +77,7 @@ clusters:
 
 You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
 
-If you are interested in evaluating Okteto, [sign up for our free 30 days trial. No credit card required](https://www.okteto.com/free-trial/).
+If you are interested in evaluating Okteto, [sign up for our Free Tier (5 seats, 1 year). No credit card required](https://www.okteto.com/free-trial/).
 
 ### Authentication
 
