@@ -79,10 +79,9 @@ Start with conservative settings and adjust based on your team's usage patterns.
 </p>
 
 ## Applying Garbage Collection to Personal Namespaces
-By default, [Personal Namespaces](core/namespaces.mdx#personal-namespaces) (automatically created when a user logs in) were previously excluded from Garbage Collection.
-However, to improve consistency and optimize infrastructure usage, the contents of Personal Namespaces can now follow the same GC rules set in the Admin Dashboard.
+[Personal Namespaces](core/namespaces.mdx#personal-namespaces) (automatically created when a user logs in) can follow the same Garbage Collection rules as other namespaces, but this feature must be toggled on in the Admin Dashboard.
 
-To enable GC for Personal Namespaces, navigate to **Admin → Garbage Collector** and find the **“Settings for Namespaces”** section. Here, you can toggle whether Personal Namespaces are included in GC.
+To enable GC for Personal Namespaces, navigate to **Admin → Garbage Collector** and find the **Settings for Namespaces** section. Here, you can toggle whether the contents of a Personal Namespaces are included in GC.
 
 **How It Works**
 - Personal Namespaces themselves will not be deleted, but their unused resources (e.g., Pods, Services, ConfigMaps) will be removed following the Sleep and Delete Period settings
@@ -120,9 +119,7 @@ Manually sleeping a Namespace will immediately scale down all deployments and st
 
 When the Garbage Collector sleeps a Namespace, it specifically:
 
-**Scaled to Zero:**
-- Kubernetes Deployments (pods stopped, but deployment config remains)
-- StatefulSets (pods stopped, but statefulset config remains)
+**Scaled to ZerKubernetes Deployments (replicas set to 0, so that pods are deleted but the deployment config remains)emaStatefulSets (replicas set to 0, so that pods are deleted but the statefulset config remains)emains)
 - DaemonSets (if configured to be managed by GC)
 
 **Preserved During Sleep:**
@@ -141,7 +138,7 @@ When the Garbage Collector sleeps a Namespace, it specifically:
 When the delete period is reached, the Garbage Collector will:
 
 **Completely Remove:**
-- The entire Namespace and everything inside it will be deleted. For [Personal Namespaces](core/namespaces.mdx#personal-namespaces), only the resources inside the Namespace (except PVCs) are deleted—the Namespace itself remains.
+- The entire Namespace and everything inside it will be deleted. For [Personal Namespaces](core/namespaces.mdx#personal-namespaces), only the resources inside the Namespace are deleted—the Namespace itself remains.
 - All deployments, services, config maps, secrets
 - **Persistent Volume Claims and their data** (except in [Personal Namespaces](core/namespaces.mdx#personal-namespaces), where PVCs are preserved and not deleted)
 - Any custom resources within the Namespace
