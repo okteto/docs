@@ -143,7 +143,10 @@ module.exports = {
       type: 'category',
       label: 'AI Agent Fleets',
       link: { type: 'doc', id: 'ai-agent-fleets/index' },
-      items: ['ai-agent-fleets/index'],
+      items: [
+        'ai-agent-fleets/index',
+        'ai-agent-fleets/ai-agent-fleets-admin-config'
+      ],
     },
     {
       type: 'category',
