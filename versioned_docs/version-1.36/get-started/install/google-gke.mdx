@@ -82,6 +82,56 @@ registry:
         enabled: true
 ```
 
+:::warning ARM Node Groups
+
+If you are using ARM-based node groups in your GKE cluster, you must add tolerations to your Helm configuration because GKE automatically applies taints to ARM nodes. Add the following tolerations to your `config.yaml`:
+
+```yaml
+globals:
+  tolerations:
+    okteto:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+    dev:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+ingress-nginx:
+  controller:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+okteto-nginx:
+  controller:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+redis:
+  master:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+reloader:
+  reloader:
+    deployment:
+      tolerations:
+        - key: "kubernetes.io/arch"
+          operator: "Equal"
+          value: "arm64"
+          effect: "NoSchedule"
+```
+
+:::
+
 _Note: This is the minimum configuration. Check our [Helm configuration](self-hosted/helm-configuration.mdx) docs to learn more_
 
 ### Installing the Okteto Helm chart
