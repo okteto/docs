@@ -138,6 +138,33 @@ Smart Builds needs access to a git repository to compute the content hash correc
 
 **Using Compose or commands in `deploy`:** when your manifest runs Okteto CLI commands that trigger image builds (for example, under `deploy: commands:` running `okteto deploy -f compose.yml`), ensure the `.git` directory is not excluded by `.oktetoignore`. Otherwise, Smart Builds cannot access git metadata and will fall back to a full build.
 
+### Limitations with explicit image tags
+
+Smart Builds are automatically disabled when you explicitly define the `image` field with a custom tag in your build configuration. Smart Builds work by generating a SHA based on your git repository status and using that SHA as the image tag. When you specify your own image tag, Smart Builds cannot determine if the build should be skipped.
+
+**Examples that will NOT use Smart Builds:**
+```yaml
+build:
+  api:
+    # Explicit image tag disables Smart Builds
+    image: "registry.okteto.example.com/${OKTETO_NAMESPACE}/movies-api:custom"
+    context: api
+    dockerfile: Dockerfile
+```
+
+**Examples that WILL use Smart Builds:**
+```yaml
+build:
+  api:
+    # No image field specified - Smart Builds enabled
+    context: api
+    dockerfile: Dockerfile
+    args:
+      GO_VERSION: 1.20
+```
+
+If you use environment variables in your image tag (e.g., `${OKTETO_NAMESPACE}`), the build will be triggered on every execution even if the environment variable resolves to the same value. This occurs because the hash calculation happens before environment variable expansion.
+
 ## Skipping Smart Builds behavior
 
 You can force the build of your images and skip the Smart Build optimization by running the following command:
