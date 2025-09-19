@@ -309,14 +309,6 @@ module.exports = {
     ],
     'docusaurus-plugin-sass',
     [
-      'docusaurus-plugin-copy',
-      {
-        include: ['**/*.{png,jpg,jpeg,svg,yaml,yml}'],
-        path: docsContentPath,
-        context: docsContentPath,
-      },
-    ],
-    [
       '@docusaurus/plugin-client-redirects',
       {
         fromExtensions: ['html'],
