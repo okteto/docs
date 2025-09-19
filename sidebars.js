@@ -141,12 +141,12 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'AI Agent Fleets',
-      link: { type: 'doc', id: 'ai-agent-fleets/index' },
+      label: 'Okteto AI',
+      link: { type: 'doc', id: 'okteto-ai/index' },
       items: [
-        'ai-agent-fleets/index',
-        'ai-agent-fleets/ai-getting-started',
-        'ai-agent-fleets/ai-agent-fleets-admin-config'
+        'okteto-ai/index',
+        'okteto-ai/ai-getting-started',
+        'okteto-ai/okteto-ai-admin-config'
       ],
     },
     {
