@@ -153,6 +153,26 @@ depends_on:
 💡 To enforce `depends_on` ordering during environment wake-up, enable the [`OKTETO_COMPOSE_DEPENDS_ON_ENABLED` feature flag](reference/feature-flags.mdx).
 :::
 
+#### endpoint_mode (string, optional)
+
+Specify the endpoint mode for the service. 
+
+- `vip` (default): Creates a virtual IP endpoint that maps to a standard Kubernetes ClusterIP service, providing load balancing across service replicas.
+- `dnsrr`: Creates a DNS round-robin endpoint that maps to a Kubernetes headless service (ClusterIP: None), where DNS queries return all pod IPs directly without load balancing.
+
+```yaml
+deploy:
+  endpoint_mode: dnsrr
+```
+
+:::warning
+When `endpoint_mode` is set to `dnsrr`, [Okteto Divert](reference/okteto-manifest.mdx#divert) will not work.
+:::
+
+:::info
+More information here: https://compose-spec.github.io/compose-spec/deploy.html#endpoint_mode
+:::
+
 #### entrypoint (string, optional)
 
 Override the default entrypoint of the container image `ENTRYPOINT`.
@@ -677,6 +697,7 @@ depends_on
 deploy.replicas
 deploy.resources.{limits|reservations}
 deploy.restart_policy.max_attempts
+deploy.endpoint_mode
 entrypoint
 env_file
 environment
