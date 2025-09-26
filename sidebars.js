@@ -158,6 +158,7 @@ module.exports = {
         'admin/catalog',
         'admin/custom-installer-image',
         'admin/cleanup',
+        'admin/ssh-known-hosts',
         {
           type: 'category',
           label: 'Integrations',
