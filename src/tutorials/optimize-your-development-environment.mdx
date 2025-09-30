@@ -80,7 +80,7 @@ COPY package.json .
 COPY src/ src/
 ```
 
-#### 4a Avoid recursive operations in Dockerfiles
+### 5. Avoid Recursive Operations in Dockerfiles
 
 ```jsx
 # Dockerfile
@@ -92,11 +92,42 @@ RUN chown -R user:group /app/dist
 COPY --from=build --chown=user:group /app/dist /app/dist
 ```
 
+### 6. Use Mount Caches
+
+When running building container images, you can take advantage of BuildKit’s cache mounts to persist build and dependency caches between runs. This dramatically reduces test setup time by reusing previously downloaded packages or compiled artifacts.
+
+Common caches to mount:
+- Node.js: `node_modules` or npm/yarn caches
+- Java: `.m2` (Maven)
+- Go: `.cache/go-build`
+
+```Dockerfile
+# Dockerfile
+
+FROM golang:1.24
+
+WORKDIR /app
+
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+COPY main.go main.go
+RUN --mount=type=cache,sharing=private,target=/root/.cache/go-build \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    go build -o /usr/src/api
+
+...
+```
+
+[Learn more here](https://docs.docker.com/build/cache/optimize/#use-cache-mounts).
+
 ## Context & Sync Management
 
-### 5. Use `.dockerignore` to Limit Build Context
+### 7. Use `.dockerignore` to Limit Build Context
 
-Exclude everything by default, then explicitly include only required files. For multi-Dockerfile setups, you can create image-specific `.dockerignore` files (e.g., `dev-dockerfile.dockerignore`).
+Exclude everything by default, then explicitly include only required files.
 
 ```gitignore
 # .dockerignore
@@ -112,9 +143,11 @@ Exclude everything by default, then explicitly include only required files. For 
 !src/**
 ```
 
-### 6. Use `.oktetoignore` to Control Deployment Context
+> For multi-Dockerfile setups, you can create image-specific `.dockerignore` files (e.g., `dev-dockerfile.dockerignore`).
 
-Exclude by default, and only include what’s needed for deployment or testing. The `.oktetoignore` file follows the same syntax that `.gitignore` files, [you can learn more about it here](/docs/core/remote-execution/#ignoring-files).
+### 8. Use `.oktetoignore` to Control Deployment Context
+
+Exclude by default, and only include what’s needed for deployment or testing. The `.oktetoignore` file follows the same syntax that `.gitignore` files.
 
 ```gitignore
 # .oktetoignore
@@ -133,9 +166,11 @@ Exclude by default, and only include what’s needed for deployment or testing. 
 
 ```
 
-### 7. Use `.stignore` to Control File Synchronization
+[Learn more  about the `.oktetoignore` file here](/docs/core/remote-execution/#ignoring-files).
 
-Only sync the files needed for active development. As a general rule, avoid syncing generated artifacts. [You can learn more about the `.stignore` file here](/docs/core/remote-execution/#ignoring-files).
+### 9. Use `.stignore` to Control File Synchronization
+
+Only sync the files needed for active development. As a general rule, avoid syncing generated artifacts. 
  
 ```
 # .stignore
@@ -148,7 +183,9 @@ Only sync the files needed for active development. As a general rule, avoid sync
 !public/**
 ```
 
-### 8. Precopy sync content into dev image
+[Learn more about the `.stignore` file here](/docs/core/remote-execution/#ignoring-files).
+
+### 10. Precopy sync content into dev image
 
 When using multi-stage Dockerfiles, preload source code into your dev image. This improves initial sync and warms build caches.
 
@@ -186,23 +223,78 @@ dev:
 
 ## Data & Environment Management
 
-### 9. Replace DB Seed Scripts with Volume Snapshots
+### 11. Replace DB Seed Scripts with Volume Snapshots
 
 Instead of running time-consuming and error-prone seed scripts, preload databases with [Okteto Volume Snapshots](/docs/self-hosted/install/volume-snapshots/. This makes environments faster and more realistic.
 
-[Learn more here](/docs/core/use-volume-snapshots/).
+[Learn more about Volume Snapshots here](/docs/core/use-volume-snapshots/).
 
-### 10. Leverage Okteto Divert
+### 12. Leverage Okteto Divert
 
 Not every use case requires fully isolated environments. With Divert, you can route traffic from a shared environment into your dev container. This saves resources while keeping the experience close to production.
 
 - [Our vision for Divert](https://www.okteto.com/blog/why-flexibility-is-key-to-scaling-development-environments)
 - [Getting Started Guide](/docs/tutorials/divert/)
 
+## Development
+
+
+### 13. Use Volumes for Dev Containers
+
+You can use volumes to persist files across okteto up sessions. This helps you avoid re-downloading or rebuilding the same dependencies every time your environment starts.
+
+Common examples include:
+- Dependencies: `node_modules`, `vendor/`
+- Build caches: `.m2`, `.cache/go-build`
+- Other reusable assets you don’t want to regenerate each time
+
+By persisting these files, your environment will start faster and use fewer resources.
+
+```yaml
+...
+dev:
+    app:
+      volumes:
+        - /usr/src/app/node_modules
+        - /root/.m2
+        - /root/.cache/go-build
+```
+
+[Learn more about Volumes for Dev Containers here](/docs/reference/okteto-manifest/#volumes-string-optional).
+
+
+### 14. Use Caches for Okteto Test 
+
+When running `okteto test`, you can use volumes to persist files across test runs. This prevents reinstalling dependencies or rebuilding caches every time, making your tests faster and more efficient.
+
+Typical files to persist:
+- Dependencies: `node_modules`, `vendor/`
+- Build caches: `.m2`, `.cache/go-build`
+- Other reusable assets needed for your test suite
+
+By persisting these files, your environment will start faster and use fewer resources.
+
+```yaml
+...
+test:
+    unit:
+      image: node:22
+      caches:
+        - /usr/src/app/node_modules
+        - /usr/src/app/downloaded_assets
+      commands:
+        - npm install
+        - npm test
+```
+
+[Learn more about Caches for Okteto Test here](/docs/reference/okteto-manifest/#caches-string-optional).
+
 
 ## Okteto AI 
 
-Okteto AI can generate production-ready code and handle repetitive tasks. By spinning up AI agents, you can free up developers’ time for high-value work while ensuring that routine changes, fixes, and tests are handled quickly and consistently. [You can learn more about Okteto AI here](https://okteto.com/ai).
+Okteto AI can generate production-ready code and handle repetitive tasks. By spinning up AI agents, you can free up developers’ time for high-value work while ensuring that routine changes, fixes, and tests are handled quickly and consistently. 
+- [Our vision for Okteto AI ](https://okteto.com/ai)
+- [Getting Started with Okteto AI](/docs/ai-agent-fleets/)
 
 ## Conclusion & Next Steps
 
