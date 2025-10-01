@@ -1,0 +1,566 @@
+---
+title: Release notes
+description: Release Notes
+sidebar_label: Release notes
+id: release-notes
+---
+
+## 1.37.0
+
+2 October 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.12.x](https://github.com/okteto/okteto/releases/tag/3.12.0)
+
+### Breaking Changes {#breaking-changes-1.37}
+
+- Removed the dependency on the Bitnami Redis Helm chart. Okteto now ships its own [Kubernetes templates to deploy Redis](self-hosted/helm-configuration.mdx#redis) <!-- 9663 -->
+- We've changed the [default value of `pullAlways` to **false**](self-hosted/helm-configuration.mdx#pullalways) for pods deployed in Okteto-managed namespaces. This speeds up pod creation when images are already present on the node, while still allowing `pullAlways` to be explicitly enabled if needed <!-- 9690 -->
+
+### New Features {#new-features-1.37}
+
+- Added a centralized [Known Hosts feature to the Admin UI](admin/ssh-known-hosts.mdx) (Admin → Settings → Known Hosts). Admins can now pin trusted SSH host keys and disable automatic ssh-keyscan, ensuring secure, consistent cloning of repositories and submodules without custom runner images <!-- 9662 -->
+
+### Improvements {#improvements-1.37}
+
+- Improved error handling in the Okteto AI Agent UI for API errors and "Prompt too long" warnings <!-- 9636 -->
+- Temporal rate limit (QPS exceeded) errors now return as "progressing" instead of failing immediately <!-- 9664 -->
+- We've renamed AI Agent Fleets to Okteto AI throughout the product <!-- 9677 -->
+- [Okteto CLI 3.12.0](https://github.com/okteto/okteto/releases/tag/3.12.0): Updated Syncthing to 2.0.x for improved synchronization performance
+- [Okteto CLI 3.12.0](https://github.com/okteto/okteto/releases/tag/3.12.0): Added support for `endpoint_mode` in Compose files ([see documentation](reference/okteto-manifest.mdx#endpoints-object-required)).
+
+### Bug Fixes {#bug-fixes-1.37}
+
+- Fixed issues with endpoint handling in the Okteto AI Agent view, including non-scrollable lists and incorrect display of custom endpoints <!-- 9653 --> <!-- 9666 -->
+- Fixed an "unable to load agent" error when returning focus to the window <!-- 9703 -->
+- Fixed autoscroll behavior when sending a new prompt in the Agent UI <!-- 9705 -->
+- [Okteto CLI 3.12.0](https://github.com/okteto/okteto/pull/4760): Improved CLI stability by waiting for SSE when streaming logs for pipeline, preview, deploy, and destroy operations
+
+## 1.36.2
+
+12 September 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
+
+### Improvements
+
+- Improve Okteto UI UX by showing "Pulling" status when encountering transient pull QPS exceeded errors
+
+### Bug Fixes
+
+- Fixed an issue with Kubernetes credential configuration in the delete agent job
+- Fixed a UI issue where the list of endpoints in the agent view was not scrollable
+
+## 1.36.1
+
+9 September 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
+
+### Bug Fixes
+- Fixed an issue with streaming Okteto Agent installation logs that was preventing the agent chat from loading
+
+## 1.36.0
+
+5 September 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
+
+### [Okteto AI Now Available (Beta)](okteto-ai/index.mdx)
+Okteto AI brings the power of AI directly into your development workflow, powered by Claude Code from Anthropic. Each agent operates independently in its own Kubernetes namespace with full isolation, giving you the safety and control you need for AI-assisted development.
+
+#### Key Capabilities
+
+- **Intelligent Repository Onboarding**: Agents can quickly understand and work with existing codebases, analyzing project structure, dependencies, and patterns to get up to speed faster than ever
+- **Application Scaffolding**: Generate new services, APIs, and applications from natural language descriptions, complete with best practices and proper project structure
+- **Task Automation**: Automate common development tasks like adding endpoints, refactoring code, updating dependencies, or implementing new features
+- **Real Containerized Environments**: All agents run in production-like Kubernetes environments with access to the same runtime, secrets, and configurations as your actual development setup
+- **Parallel Execution**: Launch multiple agents simultaneously to work on different features or experiments independently
+
+#### For Administrators
+Organization administrators have [full control over Okteto AI deployment](okteto-ai/okteto-ai-admin-config.mdx):
+- Enable the feature for your organization through the Admin Dashboard under Admin > Okteto AI
+- Toggle access per user to control who can launch AI agents in your organization
+- Configure LLM keys - Provide your own Anthropic API key (directly from Anthropic or via Amazon Bedrock)
+
+We're continuously improving Okteto AI based on your feedback. Try it today and let us know how it transforms your development workflow!
+
+### New Features {#new-features-1.36}
+
+- Added a [new Public API endpoint to delete users](admin/okteto-api.mdx)  <!-- 9572 -->
+- Added support for [configuring custom init containers](self-hosted/helm-configuration.mdx#installer) in the installer job  <!-- 9598 -->
+- Pre-pull Okteto images used by jobs to accelerate job start times. This deploys a new [DaemonSet in the cluster that pre-pulls images](self-hosted/helm-configuration.mdx#prepullimages ) onto nodes.  <!-- 9601 -->
+
+### Improvements {#improvements-1.36}
+
+- Installer now retries transient connection issues  <!-- 9608 -->
+- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Added support for overriding the [`readOnlyRootFilesystem`](reference/okteto-manifest.mdx#securitycontext-object-optional) property in the `securityContext` of dev containers defined in the Okteto Manifest
+
+### Bug Fixes {#bug-fixes-1.36}
+
+- Fixed previews layout issue that could hide logs when breadcrumb is visible  <!-- 9588 -->
+- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Fixed a panic when deploying an Okteto manifest with Divert using `okteto up` or `okteto test`
+- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Fixed an issue with the `--wait` flag in `okteto deploy` when deploying a subset of services from a Compose file. The command no longer hangs until timeout
+
+## 1.35.2
+
+29 August 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.35 is designed to work with [Okteto CLI 3.10.x](https://github.com/okteto/okteto/releases/tag/3.10.0)
+
+### Bug Fixes
+- Downgrade BuildKit dependency to version `0.22.0` to avoid a bug that was causing a huge consumption in CPU, provoking poor performance and stuck builds.
+
+## 1.35.1
+
+12 August 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.35 is designed to work with [Okteto CLI 3.10.x](https://github.com/okteto/okteto/releases/tag/3.10.0)
+
+### Bug Fixes
+- Fixed an issue in the daemonset which was causing the component to fail when the Okteto instance was not using self-signed certificates nor private CAs.
+
+## 1.35.0
+
+1 August 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.35 is designed to work with [Okteto CLI 3.10.x](https://github.com/okteto/okteto/releases/tag/3.10.0)
+
+### New Features {#new-features-1.35}
+- Added support for [Kubernetes 1.33](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.33.md) (support for 1.30 has been removed) and [Amazon Linux 2023](https://github.com/amazonlinux/amazon-linux-2023). [Please follow our upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-135x--kubernetes-133-support-and-amazon-linux-2023-al2023compatibility) when moving to Amazon Linux 2023
+- CIDR-based traffic filtering is now supported for BYOC (Bring Your Own Cluster) environments. Use this to improve security by restricting access to Okteto services to specific IP ranges.
+- Namespace deletion now properly applies the timeout value to dev environments that use a `destroy` section in their manifest. Previously, if a dev environment took longer than 5 minutes to destroy gracefully, the overall namespace deletion would fail, even if a longer timeout was specified. <!-- 9530 -->
+- Added support for `loadBalancerSourceRanges` in the BuildKit service configuration to better control external access
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Okteto now supports inheriting Kubernetes `nodeSelector` and resource settings in Development Environments. When omitted from the `okteto.yaml` manifest, these values can be pulled from the base Kubernetes resources using the `OKTETO_INHERIT_KUBERNETES_RESOURCES` and `OKTETO_INHERIT_KUBERNETES_NODESELECTOR` feature flags.
+
+### Improvements {#improvements-1.35}
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Improved the `okteto deploy` command to avoid rebuilding all images when deploying a compose and only a subset of services are being deployed.
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Updated the `okteto preview destroy` command to correctly propagate the `--timeout` flag to the backend, ensuring longer destroy operations don’t fail prematurely. ⚠️ This requires both CLI 3.10.0 and Chart 1.35.
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Enhanced `okteto context use` to better handle invalid or expired local tokens. The CLI will now prompt for login rather than failing with a non-actionable error.
+
+### Bug Fixes {#bug-fixes-1.35}
+- Fixed an issue that prevented some development environments from waking up as expected when there were dependency cycles between dev environments
+- Improved AWS IAM Role regex handling for tighter validation on Private Registry Credentials and Cloud Credentials
+
+### Removal Notice {#removal-notice-1.35}
+- Support for Kubernetes [1.30](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.30.md) has been removed in this release.
+
+
+## 1.34
+
+3 July 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.34 is designed to work with [Okteto CLI 3.9.x](https://github.com/okteto/okteto/releases/tag/3.9.0)
+
+### Improvements {#improvements-1.34}
+- [Okteto CLI 3.9.0](https://github.com/okteto/okteto/releases/tag/3.9.0): Added a [feature flag](reference/feature-flags.mdx) to return services in development to their "running" state (`okteto down`) when exiting the terminal session
+- [Okteto CLI 3.9.0](https://github.com/okteto/okteto/releases/tag/3.9.0): Included a [feature flag](reference/feature-flags.mdx) to make `dev.<name>.services` wait for file synchronization to finish before running their commands during `okteto up` execution  <!-- 4731 -->
+
+### Bug Fixes {#bug-fixes-1.34}
+
+- Fixed the "Retry Destroy" action so it now performs a graceful deletion instead of triggering a force destroy. Previously, both "Retry Destroy" and "Force Destroy" were triggering a force deletion  <!-- 9447 -->
+- Fixed breadcrumb layout regressions across several updates  <!-- 9472, 9474, 9478 -->
+- Prevented UI overflow of the redeploy button in the resources sidebar  <!-- 9486 -->
+- Fixed an error when running `okteto test` with defined artifacts but no output files; the `/okteto/artifacts` directory is now created by default to prevent execution failures <!-- 4735 -->
+
+
+## 1.33.1
+
+19 June 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.33 is designed to work with [Okteto CLI 3.8.x](https://github.com/okteto/okteto/releases/tag/3.8.0)
+
+### Bug Fixes
+
+- Fixed a glitch in the breadcrumb within the preview detail view when the monitor used has a big resolution <!-- 9474 -->
+
+## 1.33.0
+
+13 June 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.33 is designed to work with [Okteto CLI 3.8.x](https://github.com/okteto/okteto/releases/tag/3.8.0)
+
+### New Features {#new-features-1.33}
+
+- Introduced support for dependency-aware redeploy and destroy operations in multi-service environments
+  - [Okteto CLI 3.8.0](https://github.com/okteto/okteto/releases/tag/3.8.0): New `--dependencies` flag for `okteto pipeline deploy`, `okteto preview deploy`, and `okteto pipeline destroy` commands to include direct dependencies (defaults follow admin-level configuration)
+  - New environment variable format `OKTETO_DEPENDENCY_${DEPENDENCY_NAME}_BUILD_${BUILD_SVC}_${BUILD_ENVVAR}` for accessing dependency-specific build variables
+  - ⚠️ Note: The `--dependencies` flag only applies to direct dependencies and does not recurse further to avoid impacting cyclic relationships
+- New [**Deployments** admin panel](admin/dashboard.mdx#deployments) allowing configuration of default behavior for:
+  - Redeploying all direct dependencies by default
+  - Destroying all direct dependencies by default
+- Added a checkbox option in both the redeploy and destroy dialogs to optionally include direct dependencies when present
+
+### Improvements {#improvements-1.33}
+
+- Enforced GitHub App ID type as int64 for configmap rendering consistency to avoid fatal errors in the API components when the field was specified without quotes in the helm values  <!-- 9329 -->
+- Added breadcrumbs to the Preview Environment details page to make navigation easier
+- [Okteto CLI 3.8.0](https://github.com/okteto/okteto/releases/tag/3.8.0): `okteto namespace list` now supports an `output` option to specify `json` or `yaml` formats as `okteto preview list`
+
+### Bug Fixes {#bug-fixes-1.33}
+
+- Fixed text overflow issue in Resource Manager UI for small screens  <!-- 9289 -->
+- Hid sidebar redeploy button on smaller screens to avoid UI clutter  <!-- 9303 -->
+- Fixed "back to catalog" link navigation  <!-- 9310 -->
+- Fixed ellipsis rendering issues in previews  <!-- 9410 -->
+
+
+## 1.32.0
+
+8 May 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.32 is designed to work with [Okteto CLI 3.7.x](https://github.com/okteto/okteto/releases/tag/3.7.0)
+
+### New Features {#new-features-1.32}
+
+- Added support for waking up development environments without dependencies in parallel. This behavior is disabled by default and can be enabled via the [feature flag](reference/feature-flags.mdx) `OKTETO_PARALLEL_WAKE_UPS_FOR_DEVENVS`. When dependencies exist, their defined startup order is still respected <!-- 9219 -->
+
+### Improvements {#improvements-1.32}
+
+- Refreshed the Okteto Dashboard UI to improve the visual design and lay the groundwork for features coming later this year. The changes are purely visual; everything is still in the same place
+- Included changes to prevent an empty stage `Deploy <<dev environment name>>` log entries in the UI when deployments are triggered via `okteto deploy` from the CLI  <!-- 9225 -->
+- Upgraded our BuildKit client to [0.21.1](https://github.com/moby/buildkit/releases/tag/v0.21.1) for improved performance and stability
+- Enhanced privacy and security by removing sensitive repository information when Development Environments are deployed using the GitHub App integration <!-- 9256 -->
+- All pods deployed within a diverted Namespace now have 2 environment variables automatically injected that can be used at runtime. `OKTETO_SHARED_ENVIRONMENT` contains the name of the shared Namespace where all the services are deployed, and `OKTETO_DIVERTED_ENVIRONMENT` contains the routing key used to route the traffic to the proper version of the service (its value is the name of the Namespace where diverted services are deployed)
+- Endpoints in namespaces that include diverted services are now correctly displayed in the UI when using the `nginx` driver
+
+### Bug Fixes {#bug-fixes-1.32}
+
+- [Okteto CLI 3.7.0](https://github.com/okteto/okteto/releases/tag/3.7.0): Fixed a bug in the [Smart Builds](core/build-service.mdx#smart-builds) hash calculation process that caused indefinite hangs when hundreds of untracked files existed in the local Git repository
+- Unified the HTTP header used in [Divert](reference/okteto-manifest.mdx#divert) to propagate the routing key for both drivers `nginx` and `istio`. `istio` driver was using `baggage` header with the key `okteto-divert`, but `nginx` driver was using the header `baggage.okteto-divert`. Now, both drivers use the same standard [`baggage`](https://www.w3.org/TR/baggage/) header as `baggage: okteto-divert=<routing-key>`. For the `nginx` driver, the header `baggage.okteto-divert` is still being injected automatically for backward compatibility, but **it will be removed in the future**
+- Fixed an issue when using both [Divert](reference/okteto-manifest.mdx#divert) and [`endpoints`](/docs/reference/okteto-manifest#endpoints-object-required) to deploy a Development Environment. Endpoints for the diverted namespaces were not working as expected, as the HTTP header with the routing key was not being injected into the request
+
+## 1.31.0
+
+4 April 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.31 is designed to work with [Okteto CLI 3.6.x](https://github.com/okteto/okteto/releases/tag/3.6.0)
+
+### Deprecation Notice {#deprecation-notice-1.31}
+
+- ⚠️ Important: **Support for Docker Image Manifest Schema 1 images is removed in this** (1.31) due to upstream dependency changes. If you are using older images, they may fail to pull or deploy.\
+[Learn how to check and update your images →](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-131x--schema-1-image-deprecation)
+
+### New Features {#new-features-1.31}
+
+- Added a new [Okteto API endpoint](admin/okteto-api.mdx) to list users  <!-- 9175 -->
+- Added support for waking up resources within Development Environments respecting the dependencies defined through `depends_on` field in Docker Compose. By default this behavior is disabled, but it can be enabled [with the feature flag](reference/feature-flags.mdx) `OKTETO_COMPOSE_WAIT_FOR_DEPENDENCIES` (requires redeploying the application with [Okteto CLI 3.6.0](https://github.com/okteto/okteto/releases/tag/3.6.0)). <!-- 9187 -->
+- Added support for Kubernetes [1.32](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.32.md) (previous support for 1.29 was removed)
+
+### Improvements {#improvements-1.31}
+
+- Improved error messages when ssh-keyscan error fails for deploys triggered from the UI, `okteto pipeline deploy` or `okteto preview deploy`  <!-- 9197 -->
+- Patched IngressNightmare CVE-2025-1974 to enhance platform security  <!-- 9205 -->
+- Upgraded our BuildKit client to [0.20.2](https://github.com/moby/buildkit/releases/tag/v0.20.2)
+
+### Bug Fixes {#bug-fixes-1.31}
+
+- The `baggage.divert` header is now properly propagated to downstream services when using the `nginx` divert driver, allowing services to detect diverted requests
+- Fixed an issue where logs appeared out of order on initial load  <!-- 9139 -->
+- Support bundles now include Ingress NGINX logs and Helm values for installations managed via ArgoCD
+- Fixed UI overflow in the deploy dialog when rendering long lists  <!-- 9214 -->
+
+### Removal Notice {#removal-notice-1.31}
+
+- Support for Kubernetes [1.29](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.29.md) has been removed in this release.
+
+
+
+## 1.30.1
+
+26 March 2025
+
+This version is compatible with Kubernetes versions 1.29 to 1.31 \
+Okteto Chart release 1.30 is designed to work with [Okteto CLI 3.5.x](https://github.com/okteto/okteto/releases/tag/3.5.0)
+
+### Improvements
+
+- Updated ingress-nginx dependency as a preventive measure for a [critical vulnerability](https://thehackernews.com/2025/03/critical-ingress-nginx-controller.html). Note: The affected **admission webhook** component is **not enabled by default in our deployments**, but it could be enabled through helm settings
+
+### Bug Fixes
+
+- `baggage.okteto-divert` HTTP header is now included on every request going through the ingress-controller when using `nginx` driver for [Divert](reference/okteto-manifest.mdx#divert)
+- [Okteto CLI 3.5.1](https://github.com/okteto/okteto/releases/tag/3.5.1): Fixed Smart Builds cache calculation when the git repository has a high number of files in the build context
+
+## 1.30.0
+
+7 March 2025
+
+This version is compatible with Kubernetes versions 1.29 to 1.31 \
+Okteto Chart release 1.30 is designed to work with [Okteto CLI 3.5.x](https://github.com/okteto/okteto/releases/tag/3.5.0)
+
+### Deprecation Notice {#deprecation-notice-1.30}
+
+- ⚠️ Important: **Support for Docker Image Manifest Schema 1 images will be removed in next release** (1.31) due to upstream dependency changes. If you are using older images, they may fail to pull or deploy.\
+[Learn how to check and update your images →](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-131x--schema-1-image-deprecation)
+
+### New Features {#new-features-1.30}
+
+- Okta User De-provisioning: Okta users can now be [automatically de-provisioned in Okteto](admin/integrations/okta-user-deprovisioning.mdx) when removed from Okta
+- Okteto Test Insights: You can now view average success time metrics for your Okteto Test runs in [Okteto Insights](core/okteto-insights-dashboards.mdx#test-dashboard)  <!-- 9082 -->
+
+### Improvements {#improvements-1.30}
+
+- Automatic Cleanup of Orphaned Namespaces: Namespaces with no owner will now be automatically garbage collected to free up resources <!-- 9127 -->
+- The ingress-nginx package has been upgraded to 4.12.0  <!-- 9080 -->
+- Improved the interaction between helm and Horizontal Pod Autoscaler(HPA) to avoid longer upgrade periods and unnecessary BuildKit restarts when the number of replicas specified in helm values differs from the ones HPA enforces <!-- 9117 -->
+- If a deployment via UI, `okteto pipeline deploy`, or `okteto preview deploy` can’t be scheduled, it will be marked as failed after 5 minutes. <!-- 9104 -->
+- [Okteto CLI 3.5.0](https://github.com/okteto/okteto/releases/tag/3.5.0): Files listed in .dockerignore can now be excluded from the smart build context calculation by [setting the Admin Variable](reference/feature-flags.mdx) `OKTETO_SMART_BUILDS_IGNORE_FILES_ENABLED` to `true`
+- [Okteto CLI 3.5.0](https://github.com/okteto/okteto/releases/tag/3.5.0): We've optimized remote executions of Deploy and Destroy operations when buildkit execution is not needed
+
+### Bug Fixes {#bug-fixes-1.30}
+
+- Init container logs now appear before container logs in history  <!-- 9120, 9141 -->
+- [Okteto CLI 3.5.0](https://github.com/okteto/okteto/releases/tag/3.5.0): The CLI now waits if Buildkit is not available
+- [Okteto CLI 3.5.0](https://github.com/okteto/okteto/releases/tag/3.5.0): The `OKTETO_AUTODEPLOY` [feature flag](reference/feature-flags.mdx) now works as intended when set
+- [Okteto CLI 3.5.0](https://github.com/okteto/okteto/releases/tag/3.5.0): Fixed re-deploy logic for compose files with `depends_on` between services. If a dependency failed in a previous operation, a redeploy sometimes was being considered failed as it was taking into account the previous state
+
+### Removal Notice {#removal-notice-1.30}
+
+- Support for Kubernetes [1.28](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.28.md) has been removed in this release.
+
+
+## 1.29.0
+
+7 February 2025
+
+This version is compatible with Kubernetes versions 1.28 to 1.31 \
+Okteto Chart release 1.29 is designed to work with [Okteto CLI 3.4.x](https://github.com/okteto/okteto/releases/tag/3.4.0)
+
+
+### New Features {#new-features-1.29}
+
+- Added support for [Kubernetes 1.31](https://kubernetes.io/blog/2024/08/13/kubernetes-v1-31-release/)  <!-- 9081 -->
+- Personal Namespaces can now be [included in your Garbage Collection Policy](admin/cleanup.mdx#applying-garbage-collection-to-personal-namespaces) <!-- 9056 -->
+  - Personal Namespaces themselves will not be deleted, but their unused resources (e.g., Pods, Services, ConfigMaps) will be removed following the Sleep and Delete Period settings
+  - To leave developer workflows untouched, Persistent Volume Claims (PVCs) within Personal Namespaces will not be deleted as part of this process
+- Introducing the [Okteto API (Beta)](admin/okteto-api.mdx)! 🎉 Now you can get programmatic information on namespaces and applications with authenticated API requests. Access the full API documentation via the Okteto Dashboard under **Admin → Admin Access Tokens**
+
+### Improvements {#improvements-1.29}
+
+- [Okteto CLI 3.4.0](https://github.com/okteto/okteto/releases/tag/3.4.0): Optimized image building in `okteto up`: Now, only the necessary images required for the process are built, instead of building all images. This reduces build times, speeds up environment startup, and minimizes unnecessary resource usage
+- [Okteto CLI 3.4.0](https://github.com/okteto/okteto/releases/tag/3.4.0): Improve warnings when a CLI user has a different version than within the accepted range set by the Okteto Admin
+- Added a warning for users on older browsers that may have compatibility issues
+
+
+### Bug Fixes {#bug-fixes-1.29}
+
+- Fixed an issue where [Divert](reference/okteto-manifest.mdx#divert) would not work with Docker Compose as intended
+- Buildkit in rootless mode when running in Kubernetes 1.30 no longer adds a deprecated annotation <!-- 9070 -->
+- Fixed an issue where Okteto failed to inject the ingress-nginx controller’s private IP in Okteto components when the service name was too long
+
+### Removal Notice {#removal-notice-1.29}
+
+- Support for Kubernetes [1.27](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.27.md) has been removed in this release.
+
+
+## 1.28.2
+
+14 January 2025
+
+This version is compatible with Kubernetes versions 1.27 to 1.30 \
+Okteto Chart release 1.28 is designed to work with [Okteto CLI 3.3.x](https://github.com/okteto/okteto/releases/tag/3.3.1)
+
+### Bug Fixes
+
+- [Okteto CLI 3.3.1](https://github.com/okteto/okteto/releases/tag/3.3.1): Fixed an issue when deploying with divert through a docker compose file
+
+## 1.28.1
+
+10 January 2025
+
+This version is compatible with Kubernetes versions 1.27 to 1.30 \
+Okteto Chart release 1.28 is designed to work with [Okteto CLI 3.3.x](https://github.com/okteto/okteto/releases/tag/3.3.0)
+
+### Bug Fixes
+
+- [Okteto CLI 3.3.0](https://github.com/okteto/okteto/releases/tag/3.3.0): Fixed an issue where deployments of Compose files would always time out after 5 minutes
+- [Okteto CLI 3.3.0](https://github.com/okteto/okteto/releases/tag/3.3.0): Resolved a permission issue when deploying Compose files with volumes that were being initialized
+
+
+## 1.28.0
+
+10 January 2025
+
+This version is compatible with Kubernetes versions 1.27 to 1.30 \
+Okteto Chart release 1.28 is designed to work with [Okteto CLI 3.3.x](https://github.com/okteto/okteto/releases/tag/3.3.0)
+
+### New Features
+
+- [Okteto CLI 3.3.0](https://github.com/okteto/okteto/releases/tag/3.3.0): Introducing [Okteto Validate](reference/okteto-cli.mdx#validate), a CLI command allowing you to run validation on your Okteto Manifest
+- All [external dependencies](self-hosted/manage/air-gapped.mdx) now use images hosted under our [Docker Hub organization okteto/](https://registry.hub.docker.com/u/okteto) (e.g., ingress-nginx, reloader, redis)  <!-- 9014 -->
+
+### Improvements
+
+- Enabled hourly intervals for [Garbage Collection delete schedules](admin/cleanup.mdx#configuring-the-sleep-and-delete-periods)  <!-- 9002 -->
+- Add new `unschedulable` status for when a pod has the reason Unschedulable for more than 3 minutes  <!-- 8937 -->
+- [Okteto CLI 3.3.0](https://github.com/okteto/okteto/releases/tag/3.3.0): Upgraded our BuildKit client to [0.18.2](https://github.com/moby/buildkit/releases/tag/v0.18.2)
+
+### Bug Fixes
+
+- Addressed inconsistent states in the logs filters within the UI to improve reliability  <!-- 9015 -->
+- Fixed an issue where the okteto deploy command did not correctly receive variables specified in the commands section of an Okteto Manifest
+
+
+## 1.27.2
+
+10 January 2025
+
+This version is compatible with Kubernetes versions 1.27 to 1.30 \
+Okteto Chart release 1.27 is designed to work with [Okteto CLI 3.2.x](https://github.com/okteto/okteto/releases/tag/3.2.3)
+
+### Bug Fixes
+
+- [Okteto CLI 3.2.3](https://github.com/okteto/okteto/releases/tag/3.2.3): Fixed an issue that was provoking that deployment of compose file were timing out always after 5 minutes
+- [Okteto CLI 3.2.3](https://github.com/okteto/okteto/releases/tag/3.2.3): Fixed a permission issue when deploying compose files with volumes, and the volume was being initialized
+
+
+## 1.27.1
+
+17 December 2024
+
+This version is compatible with Kubernetes versions 1.27 to 1.30 \
+Okteto Chart release 1.27 is designed to work with [Okteto CLI 3.2.x](https://github.com/okteto/okteto/releases/tag/3.2.1)
+
+### Bug Fixes
+
+- Recovered `kustomize` binary as part of our default runner image.
+
+## 1.27.0
+
+12 December 2024
+
+This version is compatible with Kubernetes versions 1.27 to 1.30 \
+Okteto Chart release 1.27 is designed to work with [Okteto CLI 3.2.x](https://github.com/okteto/okteto/releases/tag/3.2.1)
+
+### Breaking Changes
+
+- Remove code for our deprecated Quickstarts feature <!-- 8842 -->
+- Helm chart now separates registry and repository fields for overwriting container images.
+Update configurations for `backend.image`, `frontend.image`, `buildkit.image`, `buildkit.rootless.image`, `registry.image` following [this guide](self-hosted/manage/air-gapped.mdx#step-2-set-up-a-private-registry-for-required-images) if you have previously overwritten these.
+- `cue`, `helmfile`, `kustomize`, `yq` and `docker-credential-ecr-login` binaries were removed from the Okteto's default pipeline runner image. If you need some of those binaries in your pipelines, you can build [your own runner image](admin/custom-installer-image.mdx).
+
+### New Features
+
+- We now allow the ability for admins of Okteto to [set the minimum accepted CLI version for their team](admin/dashboard.mdx#command-line-cli). This will apply for all users who are using CLI 3.2.0 and above <!-- 8829 -->
+- We've published the [Okteto Manifest JSON Schema for inline suggestions and validation for creating and editing Okteto manifests within your code editor](reference/okteto-manifest.mdx#validating-and-autocompleting-the-okteto-manifest-in-your-ide)
+- Added support for [overwriting CLI images at the Helm chart level](self-hosted/helm-configuration.mdx#cli)
+- Shipped additional support for the installation of [Okteto in Air-Gapped Environments](self-hosted/manage/air-gapped.mdx) <!-- 8914 -->
+- Configured buildkit probes to only accept requests when buildkit is healthy  <!-- 8871 -->
+- Added support for configuring the [Okteto control plane jobs TTL at the helm level](self-hosted/helm-configuration.mdx#jobs)  <!-- 8917 -->
+
+### Improvements
+
+- We've reorganized the [Admin Dashboard menu items](admin/dashboard.mdx) into groups for easier navigation  <!-- 8840 -->
+- For [Catalog](admin/catalog.mdx) and [Cloud Credentials](admin/cloud-credentials/index.mdx) items that were created via CRDs, we've added "read-only" tags in the Dashboard to avoid confusion on which items can be edited in the UI <!-- 8886 -->
+- Updated buildkit cacheRatio default value to `0.5`  <!-- 8921 -->
+- The Okteto installer image is no longer needed, binaries for the installer jobs are now installed from `okteto/backend` <!-- 8767 -->
+- [Okteto CLI 3.2.1](https://github.com/okteto/okteto/releases/tag/3.2.1): We merged `okteto/bin` and `okteto/busybox` images into the `okteto/okteto` image to reduce the number of images used in the CLI workflow
+- [Okteto CLI 3.2.1](https://github.com/okteto/okteto/releases/tag/3.2.1): You can now define the Admin Variable `OKTETO_DEV_PERSISTENT_VOLUME_SIZE` to configure the default volume size for Development Containers
+
+### Bug Fixes
+
+- Added `globals.priorityClassName` to sleep/wake jobs and the `events-exporter` component  <!-- 8846 -->
+- Added new logic to filter out terminated containers from Resource Manager calculations <!-- 8847 -->
+- Redacted service accounts from our diagnostics package  <!-- 8922 -->
+- [Okteto CLI 3.2.1](https://github.com/okteto/okteto/releases/tag/3.2.1): Fixed a problem when deploying a compose with failed health checks. We were not taking into account the timeout operation, so the deploy operation was stuck forever
+
+
+## 1.26.1
+
+12 November 2024
+
+This version is compatible with Kubernetes versions 1.27 to 1.30
+
+### Bug Fixes
+
+- Fixed the calculation of the total requested CPU/memory in Resource Manager Admin View by excluding completed pods.
+- Fixed an issue when Resource Manager was enabled in Manual mode and `quotas.limitranges.requests.limitRequestRatio` was also set.
+
+## 1.26.0
+
+9 November 2024
+
+This version is compatible with Kubernetes versions 1.27 to 1.30
+
+### Breaking Changes {#breaking-changes-1.26}
+Please read the following changes before upgrading to 1.26
+
+- **ACTION REQUIRED: Hostname Length Limit**\
+Deployments now fail if a service hostname exceeds 63 characters, and an error message is shown. This limit is automatically applied to all resources. Previously, dev environments could deploy successfully even if endpoints didn’t work. This change may affect environments that deployed without issues before.
+- **Helm Release Name Limit**:\
+Helm release names are now limited to 63 characters. While this limit is automatically enforced for most resources, the `DefaultBackend` service can still fail during installation if its name exceeds this limit. \
+To avoid installation errors, use the `defaultBackend.nameOverride` setting to shorten the `DefaultBackend` service name. If you need to rename the `DefaultBackend` during an upgrade,[follow this guide as it may impact the installation](https://www.okteto.com/docs/1.26/self-hosted/helm-configuration/#manual-migration-steps-when-renaming-the-defaultbackend-service).
+- **Private Repository Deploys**: Deploying private repositories now uses the Okteto backend as the SSH agent, rather than mounting the local SSH agent. This change ensures feature parity between remote and local deploys but may impact scenarios where private repositories are cloned as part of commands defined in the deploy section during remote execution
+- **Buildkit Persistence Enabled**: Buildkit persistence is now enabled by default, with a 100Gi disk and cache set to 90% of the disk size. If you previously used `buildkit.persistence.cache`, adjust to the new ratio, as this setting is no longer applicable
+
+### New Features
+
+- **[Introducing the Okteto Resource Manager](admin/resource-manager.mdx)**: a new feature that automatically optimizes CPU and memory requests for your environments. By analyzing real-time resource utilization, the Resource Manager dynamically adjusts resource requests to ensure efficient usage, prevent node overload, and improve overall cluster performance. This feature simplifies resource management, reduces manual adjustments, and enhances application stability, especially in larger clusters. The default installation provides recommendations but doesn't apply them automatically. [See our docs for details on how to apply these automatically](admin/resource-manager.mdx)
+- Added Okteto [Garbage Collector settings to the Admin Dashboard](admin/cleanup.mdx): Admins can now manage sleep and delete periods from the Dashboard, with the ability to set different configurations for Namespaces and Preview Environments
+- [Remote Execution can now be set as the default](core/remote-execution.mdx) in the Okteto Admin Dashboard, allowing admins to enforce consistent remote deploys. Remote deploys also include improvements for feature parity with local deploys, such as the ability to specify the context synchronization folder and private Git repository cloning during deploy commands using SSH keys
+- Added additional feature and documentation for [running Buildkit at scale](self-hosted/manage/buildkit-high-performance.mdx)  <!-- 8727 -->
+
+### Improvements
+
+- Okteto will now automatically create a Docker secret if one doesn't already exist in the Controller Manager. This prevents a misleading warning that was being displayed in some scenarios when deploying from the UI  <!-- 8566 -->
+- [Buildkit cache size is now automatically configured](self-hosted/helm-configuration.mdx#buildkit) based on its PVC volume size  <!-- 8723 -->
+- Removed Buildkit persistency as an installation step now that it defaults to true  <!-- 8771 -->
+- The Okteto frontend now runs rootless by default, while Buildkit operates without privileges when rootless mode is enabled  <!-- 8774, 8800 -->
+- We've [released Okteto CLI 3.1.0 with many new improvements](https://github.com/okteto/okteto/releases/tag/3.1.0)
+- [Okteto CLI 3.1.0](https://github.com/okteto/okteto/releases/tag/3.1.0): Added support for a `context` field in the Okteto Manifest, allowing you to specify the working directory for commands in the `deploy` and `destroy` sections
+- [Okteto CLI 3.1.0](https://github.com/okteto/okteto/releases/tag/3.1.0): [Added automatic retry for build operations](reference/feature-flags.mdx) when BuildKit is unavailable due to transient errors. The behavior can be controlled using the environment variables `OKTETO_BUILDKIT_MAX_RETRIES_FOR_TRANSIENT_ERRORS`, `OKTETO_BUILDKIT_WAIT_TIMEOUT`, and `OKTETO_BUILDKIT_RETRY_INTERVAL`.
+
+### Bug Fixes
+
+- Fixed an issue that was preventing Development Environments to be destroyed when the specified manifest doesn't exist  <!-- 8760 -->
+- Fixed a patch operation in the Okteto Insights cronjob that was causing the loss of node labels when there were concurrent operations from external processes  <!-- 8782 -->
+- Resolved an issue where build logs were not displayed in the UI when deploying dev or preview environments, causing the UI to appear frozen. Build logs now display correctly during deployments
+
+
+## 1.25.0
+
+7 October 2024
+
+This version is compatible with Kubernetes versions 1.27 to 1.30
+
+### New Features
+
+- [Announcing Okteto CLI 3.0](https://www.okteto.com/blog/cli-three-release/) - upgrading to chart release 1.25 requires a CLI upgrade to 3.0
+- Announcing [Cloud Credentials](admin/cloud-credentials/index.mdx), a central location to manage your cloud provider credentials for `deploy`, `destroy`, and `test` remote operations  <!-- 8550 -->
+- Added official [support for Red Hat OpenShift](get-started/install/openshift.mdx)
+- Added support and a new Namespace UI for [resource quotas at the individual Namespace level](core/namespaces.mdx#configure-namespace-quotas). This allows administrators to set the maximum resources that can be used per Namespace
+- Enabling [Okteto Insights Dashboards](core/okteto-insights-dashboards.mdx) for all SaaS and BYOC users of Okteto <!-- 8627 -->
+- Added support to allow override of [installer security context](self-hosted/helm-configuration.mdx#installer)  <!-- https://github.com/okteto/app/pull/8608 -->
+
+### Improvements
+
+- Support for [`priorityClassName`](reference/okteto-manifest.mdx#priorityclassname-string-optional) and [`accessMode`](reference/okteto-manifest.mdx#persistentvolume-object-optional) for volumes created by `okteto up`
+- Show more actionable feedback upon "failed to deploy okteto pipeline" error  <!-- 8521 -->
+- You can now list your Github App installations under Settings → Integrations  <!-- 8463 -->
+- Implemented a number of UI updates to ensure your Okteto experience stays smooth <!-- 8600, 8623, 8534, 8626 -->
+- Made a number of improvements to the [Okteto Insights Dashboards](core/okteto-insights-dashboards.mdx) to display historical build and deploy data, and provide a better experience loading large datasets
+
+### Bug Fixes
+
+- [Okteto CLI 3.0](https://github.com/okteto/okteto/releases/tag/3.0.0): Fix in Smart Builds logic to properly calculate when to build a new image if the build context points to a parent folder
+- Fixed wrong data parsing error from unknown git urls  <!-- 8504 -->
+- Fixed issue where interactive but hidden elements, such as links in closed deploy log stage, were wrongly accessible via keyboard navigation and screen readers <!-- 8522 -->
+- Fixed issue preventing password managers from filling in the login token <!-- 8510 -->
+- Reconfigured GitHub installation to error when trying to be installed by a non-admin  <!-- 8532 -->
+- Fixed external resources not being selectable on Preview Environments  <!-- 8525 -->
+- Fixed sleep namespaces job when statefulset within it is in dev mode  <!-- 8557 -->
+- Fix for Buildkit PVC cleanups in the "okteto" Namespace  <!-- 8567 -->
+- Fix keyboard navigation on Admin → Users actions dropdown menu  <!-- 8615 -->
+- Removed support for "Volumes" on the Admin Nodes view and Autoscaler  <!-- 8625 -->

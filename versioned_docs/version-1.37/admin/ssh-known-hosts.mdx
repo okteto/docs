@@ -1,0 +1,68 @@
+---
+title: SSH Known Hosts
+description: Centrally manage trusted known hosts for SSH connections in Okteto
+sidebar_label: SSH Known Hosts
+id: ssh-known-hosts
+---
+
+
+The SSH Known Hosts feature enables Okteto administrators to centrally manage trusted SSH hosts for all Git operations across the organization. By maintaining a single source of truth for the `known_hosts` file, you can ensure secure and reliable repository cloning without requiring custom runner images.
+
+## Key Benefits
+
+- **Centralized trust management** - Manage SSH host keys in one place for all teams
+- **Enhanced security** - Prevent man-in-the-middle attacks by verifying host keys
+- **Simplified operations** - No need for custom images or per-job SSH configuration
+
+## Getting Started
+
+### Enabling Known Hosts
+- Navigate to **Admin → Settings → Known Hosts**
+- Toggle **Enable Known Hosts** to activate the feature (disabled by default)
+- Once enabled:
+  - Okteto uses this centralized list for all SSH operations
+  - Automatic `ssh-keyscan` is disabled unless explicitly called in commands
+  - All Git clones and submodules honor this trust store
+
+### Configure Trusted Hosts
+- Add entries directly in the [OpenSSH `known_hosts` format](https://man.openbsd.org/sshd.8#SSH_KNOWN_HOSTS_FILE_FORMAT)
+- Well-known providers (GitHub, GitLab, Bitbucket, Azure DevOps) are included as commented placeholders
+
+## How It Works
+
+### Scope and Application
+The centralized `known_hosts` applies to:
+- **Installer jobs** - UI-triggered deploys, previews, and destroy operations
+- **Remote executor commands** - Commands run from the Okteto Manifest
+- **CLI operations** - When using `okteto deploy --remote`
+  
+### Runtime Behavior
+- The `known_hosts` file is mounted read-write in jobs (allowing runtime additions for dynamic hosts)
+- When using `okteto deploy --remote`, the server-level configuration always overrides local `known_hosts`
+- Changes made during job execution are ephemeral and don't modify the global configuration
+  
+### How This Affects the Okteto CLI
+- Remote executions automatically fetch the centralized list
+- CLI honors the centralized `known_hosts` when `okteto deploy --remote` is used
+
+## Example Configruation
+When cloning repositories, the system automatically configures Git to use the centralized hosts file:
+```bash
+GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/okteto/known_hosts -o StrictHostKeyChecking=yes"
+```
+
+## Advanced Scenarios
+
+### Working with Dynamic Hosts
+- Pipelines that clone additional repositories succeed as long as each host appears in the centralized `known_hosts`
+- Users can still run `ssh-keyscan` explicitly in their commands to add hosts at runtime
+- Dynamic endpoints created during deploy can append entries to the mounted `known_hosts` within the job. These changes are ephemeral to the job and do not modify the admin-configured global template
+
+### Error Handling
+If a host is missing from the list:
+- Cloning will fail with **Host key verification failed**
+
+
+
+
+
