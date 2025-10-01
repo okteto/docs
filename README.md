@@ -8,7 +8,7 @@ This repository is the source for https://okteto.com/docs. If you'd like to cont
 
 ### 💻 Develop locally
 
-*You'll need to install `node` 20+ and `yarn` 1.22+ locally in order to be able to build the doc site locally.* 
+*You'll need to install `node` 22+ and `yarn` 1.22+ locally in order to be able to build the doc site locally.* 
 
 
 Clone the repo and then run:
