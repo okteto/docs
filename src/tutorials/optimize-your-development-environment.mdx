@@ -1,0 +1,303 @@
+---
+title: Optimize your Okteto Development Environment
+description: Our recommendations on how to optimize your Okteto Environments
+id: optimize-your-development-environment
+logo: "okteto"
+---
+
+import Image from '@theme/Image';
+
+
+Fast, reliable environments are at the core of a great developer experience. Whether you’re writing code, running automated tests, spinning up preview environments for your team, or deploying AI agents, every second counts. Long build times and slow environments don’t just waste time—they break developer focus, reduce iteration speed, and delay feedback loops.
+
+By applying a few optimizations, you can significantly improve the speed and consistency of your Okteto environments. These changes will give your developers shorter feedback cycles, help your QA and test engineers validate changes faster, make preview environments feel more “production-like,” and allow your AI agents to operate at full efficiency.
+
+The following best practices will help you and your team get the most out of Okteto.
+
+
+## Image & Build Optimization
+
+### 1: Pin Images Instead of Using `latest`
+
+Always use explicit version tags or SHA digests. Using `latest` forces Kubernetes to pull images every time, preventing node cache reuse and slowing startup.
+
+```
+# ❌ Bad
+image: registry/redis:latest
+
+# ✅ Good
+image: registry/redis:8.2.1
+# or
+image: registry/redis@sha256:2678c...
+```
+
+### 2. Use Okteto Smart Builds
+
+Okteto tracks builds at the commit and configuration level. If another teammate already built an identical image, Okteto skips the build entirely. 
+
+When Okteto Smart Builds is enabled, you'll see logs like this:
+```
+% okteto deploy
+ i  Using cindy @ demo.okteto.dev as context
+ i  Okteto Smart Builds is skipping build of 'worker' because it's already built from cache.
+ i  Okteto Smart Builds is skipping build of 'tests' because it's already built from cache.
+ i  Okteto Smart Builds is skipping build of 'frontend' because it's already built from cache.
+ i  Okteto Smart Builds is skipping build of 'catalog' because it's already built from cache.
+ i  Okteto Smart Builds is skipping build of 'rent' because it's already built from cache.
+ i  Okteto Smart Builds is skipping build of 'api' because it's already built from cache.
+```
+
+> In most git repositories, Okteto Smart Builds will be enabled by default, [please refer to Okteto's documentation if that's not the case](/docs/core/build-service/#smart-builds).
+
+
+### 3. Order Dockerfile Lines by Update Frequency
+
+Put rarely updated instructions first and frequently updated ones last to maximize image caching. Please refer [to Docker's documentation on the topic](https://docs.docker.com/build/cache/optimize/#order-your-layers) to learn more about this.
+
+```docker
+# Rarely changes
+FROM node:20-alpine
+RUN apk add --no-cache bash
+
+# Changes occasionally
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Changes frequently
+COPY src/ ./src
+```
+
+### 4. Avoid `COPY . .` in Dockerfiles
+
+Copy only what you need. Copying everything invalidates the cache whenever any file changes. [This document has more information on the COPY command](https://docs.docker.com/build/building/best-practices/#add-or-copy).
+
+```docker
+# ❌ Bad
+COPY . .
+
+# ✅ Good
+COPY package.json .
+COPY src/ src/
+```
+
+### 5. Avoid Recursive Operations in Dockerfiles
+
+```jsx
+# Dockerfile
+
+# ❌ Bad
+RUN chown -R user:group /app/dist
+
+# ✅ Good
+COPY --from=build --chown=user:group /app/dist /app/dist
+```
+
+### 6. Use Mount Caches
+
+When running building container images, you can take advantage of BuildKit’s cache mounts to persist build and dependency caches between runs. This dramatically reduces test setup time by reusing previously downloaded packages or compiled artifacts.
+
+Common caches to mount:
+- Node.js: `node_modules` or npm/yarn caches
+- Java: `.m2` (Maven)
+- Go: `.cache/go-build`
+
+```Dockerfile
+# Dockerfile
+
+FROM golang:1.24
+
+WORKDIR /app
+
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+COPY main.go main.go
+RUN --mount=type=cache,sharing=private,target=/root/.cache/go-build \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    go build -o /usr/src/api
+
+...
+```
+
+[Learn more here](https://docs.docker.com/build/cache/optimize/#use-cache-mounts).
+
+## Context & Sync Management
+
+### 7. Use `.dockerignore` to Limit Build Context
+
+Exclude everything by default, then explicitly include only required files.
+
+```gitignore
+# .dockerignore
+
+# exclude evertyhing by default
+* 
+
+# only send this as part of the build context
+!Dockerfile
+!okteto.yml
+!docker-compose.yml
+!package.json
+!src/**
+```
+
+> For multi-Dockerfile setups, you can create image-specific `.dockerignore` files (e.g., `dev-dockerfile.dockerignore`).
+
+### 8. Use `.oktetoignore` to Control Deployment Context
+
+Exclude by default, and only include what’s needed for deployment or testing. The `.oktetoignore` file follows the same syntax that `.gitignore` files.
+
+```gitignore
+# .oktetoignore
+
+# exclude evertyhing by default
+*
+
+# only send this as part of the deploy context
+[deploy]
+!helm/**
+!k8s/**
+
+# only send this as part of the test context
+[test]
+!tests/**
+
+```
+
+[Learn more  about the `.oktetoignore` file here](/docs/core/remote-execution/#ignoring-files).
+
+### 9. Use `.stignore` to Control File Synchronization
+
+Only sync the files needed for active development. As a general rule, avoid syncing generated artifacts. 
+ 
+```
+# .stignore
+
+# exclude evertyhing by default
+*
+
+# only send this as part of the synchronization context
+!src/**
+!public/**
+```
+
+[Learn more about the `.stignore` file here](/docs/core/remote-execution/#ignoring-files).
+
+### 10. Precopy sync content into dev image
+
+When using multi-stage Dockerfiles, preload source code into your dev image. This improves initial sync and warms build caches.
+
+```Dockerfile
+# Dockerfile
+FROM golang:1.21 as builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY main.go main.go
+RUN go build -o myapp
+
+FROM alpine as production
+WORKDIR /app
+COPY --from=builder /app/myapp .
+```
+
+```yaml
+# okteto.yaml
+build:
+ myapp:
+   context: .
+   target: production
+
+ myapp-dev:
+   context: .
+   target: builder
+
+
+dev:
+ myapp:
+   image: ${OKTETO_BUILD_MYAPP_DEV_IMAGE}
+```
+
+## Data & Environment Management
+
+### 11. Replace DB Seed Scripts with Volume Snapshots
+
+Instead of running time-consuming and error-prone seed scripts, preload databases with [Okteto Volume Snapshots](/docs/self-hosted/install/volume-snapshots/. This makes environments faster and more realistic.
+
+[Learn more about Volume Snapshots here](/docs/core/use-volume-snapshots/).
+
+### 12. Leverage Okteto Divert
+
+Not every use case requires fully isolated environments. With Divert, you can route traffic from a shared environment into your dev container. This saves resources while keeping the experience close to production.
+
+- [Our vision for Divert](https://www.okteto.com/blog/why-flexibility-is-key-to-scaling-development-environments)
+- [Getting Started Guide](/docs/tutorials/divert/)
+
+## Development
+
+
+### 13. Use Volumes for Dev Containers
+
+You can use volumes to persist files across okteto up sessions. This helps you avoid re-downloading or rebuilding the same dependencies every time your environment starts.
+
+Common examples include:
+- Dependencies: `node_modules`, `vendor/`
+- Build caches: `.m2`, `.cache/go-build`
+- Other reusable assets you don’t want to regenerate each time
+
+By persisting these files, your environment will start faster and use fewer resources.
+
+```yaml
+...
+dev:
+    app:
+      volumes:
+        - /usr/src/app/node_modules
+        - /root/.m2
+        - /root/.cache/go-build
+```
+
+[Learn more about Volumes for Dev Containers here](/docs/reference/okteto-manifest/#volumes-string-optional).
+
+
+### 14. Use Caches for Okteto Test 
+
+When running `okteto test`, you can use volumes to persist files across test runs. This prevents reinstalling dependencies or rebuilding caches every time, making your tests faster and more efficient.
+
+Typical files to persist:
+- Dependencies: `node_modules`, `vendor/`
+- Build caches: `.m2`, `.cache/go-build`
+- Other reusable assets needed for your test suite
+
+By persisting these files, your environment will start faster and use fewer resources.
+
+```yaml
+...
+test:
+    unit:
+      image: node:22
+      caches:
+        - /usr/src/app/node_modules
+        - /usr/src/app/downloaded_assets
+      commands:
+        - npm install
+        - npm test
+```
+
+[Learn more about Caches for Okteto Test here](/docs/reference/okteto-manifest/#caches-string-optional).
+
+
+## Okteto AI 
+
+Okteto AI can generate production-ready code and handle repetitive tasks. By spinning up AI agents, you can free up developers’ time for high-value work while ensuring that routine changes, fixes, and tests are handled quickly and consistently. 
+- [Our vision for Okteto AI ](https://okteto.com/ai)
+- [Getting Started with Okteto AI](/docs/ai-agent-fleets/)
+
+## Conclusion & Next Steps
+
+Developers always want faster environments. By following these practices, your team will save hundreds of hours waiting for environments to be ready and enjoy smoother development, test, preview, and agent workflows.
+
+If you’d like a review of your setup—or just a second pair of eyes, [we’re here to help](https://support.okteto.com).
