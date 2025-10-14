@@ -33,9 +33,15 @@ When a Git clone operation fails using one protocol, Okteto automatically attemp
 - If SSH clone fails (e.g., due to missing known host), Okteto attempts HTTPS
 - If HTTPS clone fails (e.g., due to missing credentials), Okteto attempts SSH
 
+**Note:** This fallback only applies to the main repository clone. Submodules use the protocol specified in the `.gitmodules` file without fallback.
+
 This fallback ensures public repositories remain accessible and doesn't compromise security, as HTTPS clones are secured through certificate authorities (CA) rather than known hosts.
 
-**Important:** For private repositories, both protocols may require appropriate authentication. Configure known hosts for SSH access and ensure proper credentials are available for HTTPS access.
+**Important:** For private repositories, authentication is required through at least one protocol. Configure either:
+- **SSH authentication:** Add known hosts entries and configure the [Okteto-generated SSH key](https://www.okteto.com/docs/admin/private-repositories/ssh-key/) in your Git provider
+- **HTTPS authentication:** Use our [GitHub App integration](admin/private-repositories/github-app/)
+
+The fallback mechanism ensures deployment succeeds if either protocol is properly configured.
 
 ## How It Works
 
@@ -58,7 +64,7 @@ The centralized `known_hosts` applies to:
 When SSH clone fails due to missing known hosts, you may see a warning in the deployment UI even if the deployment ultimately succeeds. This occurs because:
 - The initial SSH clone attempt failed and triggered the warning
 - The automatic HTTPS fallback succeeded
-- The warning helps administrators identify when known hosts configuration may need updates
+- The warning indicates the known hosts configuration should be updated to avoid relying on the fallback mechanism
 
 ## Example Configuration
 When cloning repositories, the system automatically configures Git to use the centralized hosts file:
