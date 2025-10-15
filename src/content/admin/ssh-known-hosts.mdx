@@ -6,7 +6,7 @@ id: ssh-known-hosts
 ---
 
 
-The SSH Known Hosts feature enables Okteto administrators to centrally manage trusted SSH hosts for all Git operations across the organization. By maintaining a single source of truth for the `known_hosts` file, you can ensure secure and reliable repository cloning without requiring custom runner images.
+The SSH Known Hosts feature enables Okteto administrators to centrally manage trusted SSH hosts for SSH-based Git operations across the organization. This does not affect HTTPS-based Git clones, which rely on certificate authorities for security. By maintaining a single source of truth for the `known_hosts` file, you can ensure secure and reliable repository cloning without requiring custom runner images.
 
 ## Key Benefits
 
@@ -28,6 +28,21 @@ The SSH Known Hosts feature enables Okteto administrators to centrally manage tr
 - Add entries directly in the [OpenSSH `known_hosts` format](https://man.openbsd.org/sshd.8#SSH_KNOWN_HOSTS_FILE_FORMAT)
 - Well-known providers (GitHub, GitLab, Bitbucket, Azure DevOps) are included as commented placeholders
 
+### Clone Fallback Behavior
+When a Git clone operation fails using one protocol, Okteto automatically attempts to fallback to the other protocol:
+- If SSH clone fails (e.g., due to missing known host), Okteto attempts HTTPS
+- If HTTPS clone fails (e.g., due to missing credentials), Okteto attempts SSH
+
+**Note:** This fallback only applies to the main repository clone. Submodules use the protocol specified in the `.gitmodules` file without fallback.
+
+This fallback ensures public repositories remain accessible and doesn't compromise security, as HTTPS clones are secured through certificate authorities (CA) rather than known hosts.
+
+**Important:** For private repositories, authentication is required through at least one protocol. Configure either:
+- **SSH authentication:** Add known hosts entries and configure the [Okteto-generated SSH key](https://www.okteto.com/docs/admin/private-repositories/ssh-key/) in your Git provider
+- **HTTPS authentication:** Use our [GitHub App integration](admin/private-repositories/github.mdx)
+
+The fallback mechanism ensures deployment succeeds if either protocol is properly configured.
+
 ## How It Works
 
 ### Scope and Application
@@ -45,6 +60,12 @@ The centralized `known_hosts` applies to:
 - Remote executions automatically fetch the centralized list
 - CLI honors the centralized `known_hosts` when `okteto deploy --remote` is used
 
+### Understanding Deploy Warnings
+When SSH clone fails due to missing known hosts, you may see a warning in the deployment UI even if the deployment ultimately succeeds. This occurs because:
+- The initial SSH clone attempt failed and triggered the warning
+- The automatic HTTPS fallback succeeded
+- The warning indicates the known hosts configuration should be updated to avoid relying on the fallback mechanism
+
 ## Example Configuration
 When cloning repositories, the system automatically configures Git to use the centralized hosts file:
 ```bash
@@ -58,9 +79,20 @@ GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/okteto/known_hosts -o StrictHostKeyC
 - Users can still run `ssh-keyscan` explicitly in their commands to add hosts at runtime
 - Dynamic endpoints created during deploy can append entries to the mounted `known_hosts` within the job. These changes are ephemeral to the job and do not modify the admin-configured global template
 
+### Submodules with SSH
+Even if your main repository clones via HTTPS, submodules may be configured to use SSH URLs. In these cases:
+- The main repository clone via HTTPS succeeds normally
+- Submodule clones require the SSH host to be in the known hosts list
+- Ensure all submodule hosts are added to the known hosts configuration
+- Submodule clone failures do not fallback to HTTPS
+
 ### Error Handling
 If a host is missing from the list:
-- Cloning will fail with **Host key verification failed**
+- SSH clone will fail with **Host key verification failed**
+- Okteto will automatically attempt to clone via HTTPS as a fallback
+- For public repositories, the HTTPS fallback typically succeeds
+- For private repositories, the HTTPS fallback requires appropriate credentials (GitHub App integration, personal access tokens, etc.)
+- Check deploy logs for details on which protocol succeeded
 
 
 
