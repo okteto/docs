@@ -1,6 +1,4 @@
-# syntax=docker/dockerfile:1.7-labs
-
-FROM node:20 as dev
+FROM node:22 as dev
 
 WORKDIR /app
 
