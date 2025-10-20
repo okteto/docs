@@ -558,7 +558,6 @@ If `pullSecrets.enabled=false` these credentials are copied to all nodes through
 
 - `priorityClassName`: The priority class to be used by the controller manager pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `pullSecrets.enabled`: If enabled, private registry credentials defined in the cluster will be written to user namespaces as pull secrets and no longer be written to the nodes. Defaults to true.
-- `internalCertificate.annotations`: Annotations to add to the tls secret used in the controller manager webhook server.
 - `podAnnotations`: Annotations to add to the controller manager pods.
 - `podLabels`: Labels to add to the controller manager pods.
 - `webhookTimeout`: The timeout in seconds for request made to the validating webhook server
@@ -571,8 +570,6 @@ regcredsManager:
   priorityClassName:
   pullSecrets:
     enabled: false
-  internalCertificate:
-    annotations: {}
   podLabels: {}
   podAnnotations: {}
   webhookTimeout: 30
@@ -714,7 +711,6 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 - `priorityClassName`: The priority class to be used by the webhook pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `replicaCount`: The number of webhook pods. It defaults to 2.
 - `resources`: The resources for the webhook pods.
-- `internalCertificate.annotations`: Annotations to add to the internal certificate generated for the webhook.
 
 ## Advanced Configuration
 
@@ -861,7 +857,6 @@ globals:
   registry: my-custom-registry:5000
 ```
 
-
 #### tolerations
 
 Specifies the tolerations to be applied to pods, categorized under `okteto` or `dev`:
@@ -934,6 +929,20 @@ If this is disabled, you'll need to provide your own image in `installer.image`.
 ```yaml
 injectDevelopmentBinaries:
   enabled: true
+```
+
+### internalCertificate
+
+Configure the internal certificate created for internal communication.
+This certificate is used by `MutatingWebhookConfiguration` and `ValidatingWebhookConfiguration` Kubernetes objects created by Okteto.
+
+- `durationDays`: Expiration time (default: 10 years)
+- `annotations`: Annotations to add to the `kubernetes.io/tls` secret storing the certificate
+
+```yaml
+internalCertificate:
+  durationDays: 3650
+  annotations: {}
 ```
 
 ### kubetoken
