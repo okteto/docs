@@ -41,7 +41,7 @@ concurrency:
   # more info here: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
-  
+
 jobs:
   preview:
     runs-on: ubuntu-latest
@@ -60,6 +60,21 @@ jobs:
           name: pr-${{ github.event.number }}
           timeout: 15m
 ```
+
+:::warning
+**Important:** Always set `cancel-in-progress: false` for preview environment workflows.
+
+While it may be tempting to set this to `true` to cancel queued workflows when new commits are pushed, doing so will cancel **in-progress deployments**, which can lead to:
+- Incomplete deployments leaving your preview environment in an inconsistent state
+- Resource leaks in your Okteto cluster
+- Failed cleanup operations
+
+**Recommended approach:**
+- For preview deployments: Set `cancel-in-progress: false` (as shown above)
+- To manage queued workflows: Use GitHub's UI to manually cancel queued (not in-progress) workflows, or configure your CI/CD pipeline to handle this at the queue level rather than during execution
+
+The concurrency group configuration above ensures that workflows are properly queued per pull request, preventing concurrent deployments to the same preview environment.
+:::
 
 ## Step 2: Configure your secrets
 
