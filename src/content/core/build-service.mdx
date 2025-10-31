@@ -51,6 +51,40 @@ okteto build
 
 Read our documentation about the [`build` section](reference/okteto-manifest.mdx#build-object-optional) and the [`okteto build` command](reference/okteto-cli.mdx#build) for more information.
 
+## Dockerfile Compatibility
+
+Okteto Build is compatible with Dockerfile syntax. We leverage BuildKit's full capabilities, so any valid Dockerfile will work seamlessly with the Okteto Build service.
+
+### Mount Cache ID Management
+
+The only difference in Okteto Build compared to standard Docker behavior is how we manage the default ID for [mount caches](https://docs.docker.com/build/cache/optimize/#use-your-package-manager-wisely).
+
+**Docker's default behavior:**
+- The default cache ID is based solely on the target path
+- Example: `RUN --mount=type=cache,target=/go/pkg/mod` uses `/go/pkg/mod` as the cache ID
+
+**Okteto's default behavior:**
+- The default cache ID is based on the target path **and** the current git repository name
+- Example: For repository `myapp`, the same mount would use `myapp-/go/pkg/mod` as the cache ID
+
+This difference ensures that different repositories using the same target folder don't accidentally share the same cache, which could lead to unexpected behavior or conflicts.
+
+### Sharing Caches Between Repositories
+
+If you want to explicitly share caches between different repositories, you can manually set the cache ID:
+
+```dockerfile
+# Explicitly set a cache ID to share between repositories
+RUN --mount=type=cache,target=/go/pkg/mod,id=shared-go-cache \
+    go mod download
+
+# Or share npm cache across multiple projects
+RUN --mount=type=cache,target=/root/.npm,id=shared-npm-cache \
+    npm ci
+```
+
+For more information about mount caches and cache optimization, see the [official Docker documentation on build cache](https://docs.docker.com/build/cache/optimize/#use-your-package-manager-wisely).
+
 ## Smart Builds
 
 Buildkit comes with a local cache to reuse cache layers between image builds.
