@@ -188,6 +188,7 @@ module.exports = {
         },
         'admin/okteto-api',
         'admin/okteto-insights',
+        'admin/previews',
         {
           type: 'category',
           label: 'Private Repositories',
