@@ -246,3 +246,30 @@ kubectl apply -f okta-deprovisioning-crd.yaml
 Once the CRD and secret are configured, go back to the **Okta admin console** and verify the webhook. After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically de-provisioning users from the system.
 
 Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.
+
+## Known Hosts 
+
+SSH Known Hosts are mainly managed via the Admin dashboard, but can also be managed via one of the CRDs installed by Okteto: dynamicconfigs.admin.okteto.com.
+
+Using CRDs can be useful if you would like to add SSH Known Hosts manually with a simple kubectl command or manage your SSH Known Hosts configuration using GitOps.
+
+:::note
+If you add SSH Known Hosts using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+:::
+
+For example, if you want to add a configuration for SSH Known Hosts, you will need to create resources like this:
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: ssh-known-hosts
+  namespace: okteto
+  # Without the label "app.kubernetes.io/managed-by: okteto" = readonly
+spec:
+  content: |
+    github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+  enabled: "true"
+```
+
+To apply the changes manually, run the command `kubectl apply -f known-host.yaml` from your terminal to add the catalog item to the your Cloud Credential to the cluster.
