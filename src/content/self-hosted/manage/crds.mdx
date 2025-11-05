@@ -246,3 +246,64 @@ kubectl apply -f okta-deprovisioning-crd.yaml
 Once the CRD and secret are configured, go back to the **Okta admin console** and verify the webhook. After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically de-provisioning users from the system.
 
 Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.
+
+## Known Hosts 
+
+SSH Known Hosts can be managed through the Admin dashboard, or via one of the CRDs installed by Okteto. Managing them with CRDs lets you define host key entries declaratively and keep them under GitOps.
+
+:::note
+Entries created via CRDs will be visible in the UI but treated as read-only. If you omit the label "app.kubernetes.io/managed-by: okteto", the item is shown as read-only in the UI.
+:::
+
+
+### 1. Prepare the known_hosts content
+
+Collect the public host keys you want to trust, one per line, in standard OpenSSH known_hosts format, e.g.:
+
+```
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+```
+
+### 2. Create the Required Secret
+
+Create an Opaque Kubernetes Secret with two base64-encoded keys:
+- `content`: the full known_hosts file content (base64-encoded)
+- `enabled`: a boolean flag (true/false, base64-encoded)
+  - "true" → dHJ1ZQ==
+  - "false" → `ZmFsc2U=`
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssh-known-hosts-secret
+  namespace: okteto
+type: Opaque
+data:
+  content: <base64-of-known_hosts>
+  enabled: <dHJ1ZQ==|-ZmFsc2U=>
+```
+
+### 3. Create the CRD Configuration
+
+Reference the Secret from a DynamicConfig:
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: ssh-known-hosts
+  namespace: okteto
+secretRef: ssh-known-hosts-secret
+```
+
+### 4. Apply the Configuration
+ 
+ ```sh
+kubectl apply -f ssh-known-hosts-secret.yaml
+kubectl apply -f ssh-known-hosts-crd.yaml
+```
+
+### 5. Verify in the Admin Dashboard
+
+Open the Admin dashboard and check the SSH Known Hosts section. The entries from your CRD should be listed. If enabled is true, the configuration is active.
