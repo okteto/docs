@@ -86,7 +86,7 @@ Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaur
         "1.4": {
             label: "1.4",
             path: "1.4",
-            banner: "none",
+            banner: "unmaintained",
         },
     ```
 
@@ -116,14 +116,14 @@ Modify the redirection rules on `netlify.toml` so that `/docs/<OFFICIAL_VERSION>
   status = 302
 ```
 
-Update `/src/pages/archives.md` with the new latest version.
+Update `/src/pages/archives.md` with the new "current" version and the table of "previous" versions to remove the oldest one.
 
 Remove the oldest version by following these steps:
 
 - Remove the files for the oldest version from the folders `versioned_docs` and `versioned_sidebars`.
 - Remove the oldest version from the file `versions.json`.
 - Modify the `presets.docs.versions` section of  [`docusaurus.config.js`](docusaurus.config.js) to remove the entry in the `versions` subsection for the oldest version to only keep 6 versions.
-- Move the release notes from the oldest version from the bottom of the [Release Notes page](release-notes.mdx) to the top of the [Archived Release Notes page](archived-release-notes.mdx).
+- Move the release notes from the oldest version from the bottom of the [Release Notes page](src/content/release-notes.mdx) to the top of the [Archived Release Notes page](src/content/archived-release-notes.mdx).
 - Run `yarn build` to catch any broken anchors resulting from the previous step.
 - Add a redirect in the file `netlify.toml` from the oldest version to the default version:
 
@@ -135,7 +135,7 @@ Remove the oldest version by following these steps:
   status = 301
 ```
 
-https://github.com/okteto/docs/pull/314 is a good example of how to set up the files
+https://github.com/okteto/docs/pull/1122 is a good example of how to set up the files for version 1.38
 
 
 ### After the new version has been merged, request a new search index and update variables for the unreleased docs version
