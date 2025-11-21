@@ -156,6 +156,7 @@ module.exports = {
       items: [
         'admin/dashboard',
         'admin/catalog',
+        'admin/build-service',
         'admin/custom-installer-image',
         'admin/cleanup',
         'admin/ssh-known-hosts',
