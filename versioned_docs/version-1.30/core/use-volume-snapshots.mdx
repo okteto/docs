@@ -89,6 +89,22 @@ spec:
   resources:
     requests:
       storage: 10Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+spec:
+  containers:
+    - name: mysql
+      image: mysql
+      volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: mysql-pvc
 ```
 
 </TabItem>
@@ -110,6 +126,10 @@ volumes:
 </TabItem>
 </Tabs>
 
+:::note
+Before generating a snapshot of the source volume above, ensure that the PersistentVolumeClaim is bounded (i.e. with Status `Bound`), and that the data you want to snapshot is already written to the volume.
+On the Kubernetes and Compose implementations of the sample volume shown above, the defined PersistentVolumeClaim will be bound by a Pod that runs a MySQL database, but it could be any other application that writes data to your source volume.
+:::
 
 ### 2. Create a Snapshot of the PVC
 
