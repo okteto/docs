@@ -1,0 +1,142 @@
+---
+title: Configuring BuildKit for High Performance
+description: Configuring BuildKit for High Performance
+id: buildkit-high-performance
+sidebar_label: BuildKit High Performance
+---
+
+# Configuring BuildKit for High Performance
+
+Optimizing BuildKit performance is essential for a smooth development experience with Okteto.
+A high-performance BuildKit setup accelerates image builds, [test executions](testing/index.mdx), and deploy commands when using [Remote Execution](core/remote-execution.mdx).
+
+## 1. Dedicated Node Pool for BuildKit
+
+BuildKit is resource-intensive.
+We recommend deploying BuildKit in a dedicated node pool for optimal performance and to minimize interference from other workloads.
+
+To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following settings to your Okteto Helm configuration:
+
+```yaml
+buildkit:
+  nodeSelectors:
+    okteto-node-pool: build
+  tolerations:
+    - effect: NoSchedule
+      key: okteto-node-pool
+      operator: Equal
+      value: build
+```
+
+## 2. Scale Vertically: Increase CPUs for Faster Builds
+
+BuildKit performance depends heavily on allocated CPU and memory resources.
+Start with 2 nodes for higher availability, with the following recommended instance types (4 CPUs and 16GB RAM):
+
+- Amazon Web Services: `m6a.xlarge`
+- Google Cloud Platform: `t2d-standard-4`
+- Microsoft Azure Cloud Platform: `Standard_D4as_v5`
+
+Set the replicaCount to match the number of nodes in the BuildKit node pool:
+
+```yaml
+buildkit:
+  replicaCount: 2
+```
+
+Monitor performance and adjust node resources as needed.
+For instance, upgrading your BuildKit nodes to 8 CPUs and 32 GB of memory each can provide approximately a 2x performance improvement 😎.
+
+## 3. Configure SSD Storage
+
+BuildKit is I/O intensive, especially for pulling, extracting, and pushing container images.
+Using a SSD storage class can significantly improve your BuildKit performance.
+
+```yaml
+buildkit:
+  persistence:
+    enabled: true
+    class: <<your-ssd-storage-class>>
+```
+
+You may also increase the size of the BuildKit cache to increase the number of BuildKit cache hits (default: 100 GB):
+
+```yaml
+buildkit:
+  persistence:
+    enabled: true
+    size: 200Gi
+```
+
+## 4. Enable HPA to Optimize Performance and Costs
+
+Horizontal Pod Autoscaler (HPA) dynamically adjusts the number of BuildKit pods based on active build workloads.
+This ensures you have enough capacity during peak times while reducing costs during idle periods.
+
+Okteto supports the following metrics for HPA scaling:
+- `okteto_build_active_builds` - Number of active builds (recommended)
+- `okteto_build_cpu_pressure` - CPU pressure in 10-second intervals
+- `okteto_build_memory_usage` - Memory usage as a percentage out of 100%
+- `okteto_build_io_pressure` - I/O pressure in 10-second intervals
+
+By default, HPA is configured to scale based on the `okteto_build_active_builds` metric, with the following settings:
+
+```yaml
+buildkit:
+  hpa:
+    enabled: true
+    min: 1
+    max: 5
+    metrics:
+      - type: Pods
+        pods:
+          metric:
+            name: okteto_build_active_builds
+          target:
+            type: AverageValue
+            averageValue: "0.99"
+    behavior:
+      scaleUp:
+        policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 30
+      scaleDown:
+        stabilizationWindowSeconds: 600
+        policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 150
+```
+
+This configuration:
+- Scales up quickly (within 30 seconds) when build pressure increases
+- Scales down conservatively (pod by pod every 10 minutes) to avoid thrashing
+- Maintains between 1 and 5 BuildKit pods based on active builds
+
+:::info Metrics Adapter
+Okteto includes a built-in metrics adapter that exposes BuildKit metrics via the `v1beta2.custom.metrics.k8s.io` API. This adapter is automatically deployed when HPA is enabled.
+
+If you're already using your own custom metrics adapter (such as [Prometheus Adapter](https://github.com/kubernetes-sigs/prometheus-adapter)), you can disable Okteto's built-in adapter by setting `buildkit.hpa.adapter.enabled: false` in your Helm configuration. In that case, you can scrape metrics directly from the BuildKit pods on port 8080. All metrics have the `okteto_build` prefix.
+:::
+
+## 5. Save Costs with Spot Instances (optional)
+
+Use spot instances to reduce costs while maintaining sufficient resources for BuildKit.
+
+:::tip
+Ensure high availability by configuring at least 2 nodes across different zones.
+:::
+
+The Okteto CLI automatically retries any command if interrupted by BuildKit instance termination or failure to minimize the effect of using spot instances.
+If using [remote execution](core/remote-execution.mdx), **it is very important to ensure that your deploy/test/destroy commands are idempotent**, as commands may run again if a node terminates during the execution of the deploy or destroy operations.
+
+## 6. Follow Best Practices for Dockerfiles and Remote Execution
+
+Even the best BuildKit setup cannot compensate for un-optimized Dockerfiles or inefficient [Remote Execution](core/remote-execution.mdx) configurations.
+To make the most of your BuildKit configuration, we have the following recommendations:
+
+- Adhere to [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/).
+- Reduce file transfer times to BuildKit by using [.dockerignore](https://docs.docker.com/reference/dockerfile/#dockerignore-file) and [.oktetoignore](core/remote-execution.mdx#ignoring-files) files.
+- Use [BuildKit cache mounts](https://docs.docker.com/build/cache/optimize/) to persist cache folders between image builds. This can significantly speed up build times by caching dependencies and build artifacts.
+- Use [Test Container caches](https://www.okteto.com/docs/reference/okteto-manifest/#caches-string-optional) to persist cache folders between test executions. This ensures that test dependencies are cached, reducing the time taken for subsequent test runs.
