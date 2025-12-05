@@ -15,7 +15,7 @@ Volume Snapshots are also useful for loading test data when running tests in Okt
 In this tutorial, you'll:
 
 - ✅ deploy an application to Okteto
-- ✅ learn how to create a data clone of the application's database
+- ✅ learn how to create a volume snapshot of the application's database
 - ✅ and then learn how to use it when creating a new Development Environment
 
 ## Prerequisites
@@ -183,7 +183,7 @@ mongo-snapshot   true         data                                1Gi           
 okteto namespace create namespace-with-snapshot
 ```
 
-### 2. Modify the Application Manifest to Use the Snapshot
+### 2. Modify the Application Manifest to Use the Volume Snapshot
 
 Create a new folder in the parent directory and copy `k8s.yml` and `mongo.yml` into it:
 
@@ -192,7 +192,7 @@ mkdir manifests-with-snapshot
 cp manifests/{fastapi.yml,mongo.yml} manifests-with-snapshot
 ```
 
-Update the `PersistentVolumeClaim` in the `mongo.yml` manifest to include the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations, as shown below, replacing $YOUR_NAMESPACE with the name of the Okteto namespace where you created the volume snapshot (e.g. cindy).  
+Update the `PersistentVolumeClaim` in the `mongo.yml` manifest to include the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations, as shown below, replacing $YOUR_SOURCE_NAMESPACE with the name of the Okteto namespace where you created the volume snapshot (e.g. cindy).  
 
 ```yaml
 kind: PersistentVolumeClaim
@@ -201,7 +201,7 @@ metadata:
   name: data
   annotations:
     dev.okteto.com/from-snapshot-name: mongo-snapshot
-    dev.okteto.com/from-snapshot-namespace: $YOUR_INITIAL_NAMESPACE
+    dev.okteto.com/from-snapshot-namespace: $YOUR_SOURCE_NAMESPACE
 spec:
   storageClassName: csi-okteto
   accessModes:
