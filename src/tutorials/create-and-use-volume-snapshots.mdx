@@ -46,11 +46,14 @@ okteto deploy
 
 Expected output:
 ```console
-deployment.apps/fastapi-snapshot-demo created
-service/fastapi-snapshot-demo created
+...
+Executing command 'Deploy Application'...
 persistentvolumeclaim/data created
 service/mongodb created
 statefulset.apps/mongodb created
+deployment.apps/fastapi-snapshot-demo created
+service/fastapi-snapshot-demo created
+Command 'Deploy Application' successfully executed
 ```
 
 <Image
@@ -149,7 +152,12 @@ In the Volume Snapshot Manifest above, you are creating a Volume Snapshot named 
 Next, apply the Volume Snapshot from your terminal:
 
 ```console
+okteto kubeconfig
 kubectl apply -f manifests/snapshot.yml
+```
+
+```console
+volumesnapshot.snapshot.storage.k8s.io/mongo-snapshot created
 ```
 
 Finally, verify that the volume snapshot has been created successfully.
@@ -159,7 +167,8 @@ kubectl get volumesnapshot
 ```
 
 ```console
-
+NAME             READYTOUSE   SOURCEPVC   SOURCESNAPSHOTCONTENT   RESTORESIZE   SNAPSHOTCLASS           SNAPSHOTCONTENT                                    CREATIONTIME   AGE
+mongo-snapshot   true         data                                1Gi           okteto-snapshot-class   snapcontent-1b8d8e7a-0b09-43c5-adeb-a08005ffbb4d   32s            34s
 ```
 
 ✅ Now we have a snapshot that can be used for new development environments!
@@ -170,7 +179,7 @@ kubectl get volumesnapshot
 ### 1. Create a New Namespace for Development
 
 ```console
-okteto namespace create namespace-with-data
+okteto namespace create namespace-with-snapshot
 ```
 
 ### 2. Modify the Application Manifest to Use the Snapshot
@@ -178,8 +187,8 @@ okteto namespace create namespace-with-data
 Create a new folder in the parent directory and copy `k8s.yml` and `mongo.yml` into it:
 
 ```console
-mkdir data-clone-manifest
-cp manifests/{fastapi.yml,mongo.yml} data-clone-manifest
+mkdir manifests-with-snapshot
+cp manifests/{fastapi.yml,mongo.yml} manifests-with-snapshot
 ```
 
 Update the `PersistentVolumeClaim` in the `mongo.yml` manifest to include the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations, as shown below, replacing $YOUR_NAMESPACE with the name of the Okteto namespace where you created the volume snapshot (e.g. cindy).  
@@ -205,16 +214,40 @@ spec:
 
 ### 3. Deploy the New Development Environment Using the Newly Created Manifest
 
+Duplicate your `okteto.yml` file:
+```
+cp okteto.yml okteto.with-snapshot.yml
+```
+
+And update it so that the deploy steps uses the new manifests:
+```
+build:
+  fastapi:
+    context: .
+
+deploy:
+    - name: Deploy Application
+      command: |
+        kubectl apply -f manifests-with-snapshot/mongo.yml
+        envsubst < manifests-with-snapshot/fastapi.yml | kubectl apply -f -
+```
+
+Deploy the environment on the new namespace:
+
 ```console
-okteto deploy -n=namespace-with-data
+okteto deploy -n=namespace-with-snapshot -f okteto.with-snapshot.yml
 ```
 
 Expected output:
 ```console
-deployment.apps/fastapi-snapshot-demo created
-service/fastapi-snapshot-demo created
+...
+Executing command 'Deploy Application'...
+persistentvolumeclaim/data created
 service/mongodb created
 statefulset.apps/mongodb created
+deployment.apps/fastapi-snapshot-demo created
+service/fastapi-snapshot-demo created
+Command 'Deploy Application' successfully executed
 ```
 
 ✅ Your new development environment is now running with real data! It can be accessed from the UI
@@ -228,7 +261,7 @@ Run the following command to check if the development database contains the same
 
 ```console
 curl -X 'GET' \
-  'https://fastapi-snapshot-demo-namespace-with-data.examle.okteto.com/recipe' \
+  'https://fastapi-snapshot-demo-namespace-with-snapshot.example.okteto.com/recipe' \
   -H 'accept: application/json'
 ```
 
