@@ -1,12 +1,12 @@
 ---
 title: Volume Snapshots: How to Create a Development Environment with Realistic Data in Okteto
 description: Learn how to create a data clone of an application’s database, and how to use it when creating a new Development Environment.
+logo: okteto
 ---
 
 import Image from '@theme/Image';
 
-Data cloning allows you to create an independent, identical copy of an application’s database, making it easy to test with realistic data.
-Using Okteto Volume Snapshots, you can quickly create development environments that include production or staging data—without manually copying databases or waiting for CI/CD pipelines.
+Okteto Volume Snapshots allow you to initialize your development environments with data from a previously created snapshot. This is useful when working with large datasets or when you need to create Development Environments with realistic data from production or staging without having to manually copying databases or execute error-prone seed scripts.
 
 :::tip
 Volume Snapshots are also useful for loading test data when running tests in Okteto Test. If your tests require a database with preloaded data, you can configure your test environment to restore from a snapshot instead of initializing an empty database. This ensures consistency across test runs and reduces setup time.
@@ -21,9 +21,10 @@ In this tutorial, you'll:
 
 In order to follow this tutorial, you should have:
 
--   A **Kubernetes cluster with Okteto** installed
--   Familiarity with **Kubernetes manifests**
--   [kubectl](https://kubernetes.io/docs/tasks/tools/) installed on your machine
+- A **Kubernetes cluster with Okteto** installed
+- Familiarity with **Kubernetes manifests**
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) installed on your machine
+- At least one [VolumeSnapshotClass](https://kubernetes.io/docs/concepts/storage/volume-snapshot-classes/) defined on your cluster. If you are on Okteto BYOC, you already have this.  
 
 ## Step 1: Deploy the Sample Application
 
@@ -37,11 +38,10 @@ $ cd fastapi-snapshot-app
 
 In the `manifests` folder, the `k8s.yml` manifest file is responsible for the deployment of the application's service, and the `mongo.yml` manifest file is responsible for deploying the database service. The database service in this case is a MongoDB service.
 
-Apply the manifests to deploy the application:
+Deploy your development environment using the command below:
 
 ```console
-okteto kubeconfig
-kubectl apply -f manifests/
+okteto deploy
 ```
 
 Expected output:
@@ -64,11 +64,11 @@ statefulset.apps/mongodb created
 
 ## Step 2: Populate the Application Database
 
-Before taking a snapshot, add sample data. This is the data that we'll be including in the Development Environments that we'll create in the next steps.
+Before taking a snapshot, add sample data. This is the data that we'll be including in the Development Environments that we'll create in the next steps).
 
 ```console
 curl -X 'POST' \
-  'https://fastapi-snapshot-demo-yournamespace.YOURSUBDOMAIN/recipe' \
+  'https://fastapi-snapshot-demo-cindy.okteto.example.com/recipe' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -79,7 +79,7 @@ curl -X 'POST' \
 
 ```console
 curl -X 'POST' \
-  'https://fastapi-snapshot-demo-yournamespace.YOURSUBDOMAIN/recipe' \
+  'https://fastapi-snapshot-demo-cindy.okteto.example.com/recipe' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -92,7 +92,7 @@ Verify that the database has been populated by retrieving the list of recipes pr
 
 ```console
  curl -X 'GET' \
-  'https://fastapi-snapshot-demo-yournamespace.YOURSUBDOMAIN/recipe' \
+  'https://fastapi-snapshot-demo-cindy.okteto.example.com/recipe' \
   -H 'accept: application/json'
 ```
 
@@ -140,10 +140,10 @@ metadata:
 spec:
   volumeSnapshotClassName: okteto-snapshot-class
   source:
-    persistentVolumeClaimName: data-mongodb-0
+    persistentVolumeClaimName: data
 ```
 
-In the Volume Snapshot Manifest above, you are creating a Volume Snapshot named `mongo-snapshot`, the snapshot will be created from the persistent volume `data-mongodb-0` which was created by the MongoDB manifest.
+In the Volume Snapshot Manifest above, you are creating a Volume Snapshot named `mongo-snapshot`, the snapshot will be created from the persistent volume `data` which was created when deploying the development environment.
 
 
 Next, apply the Volume Snapshot from your terminal:
@@ -158,6 +158,10 @@ Finally, verify that the volume snapshot has been created successfully.
 kubectl get volumesnapshot
 ```
 
+```console
+
+```
+
 ✅ Now we have a snapshot that can be used for new development environments!
 
 
@@ -166,7 +170,7 @@ kubectl get volumesnapshot
 ### 1. Create a New Namespace for Development
 
 ```console
-okteto namespace create data-clone-$YOUR_OKTETO_USERNAME
+okteto namespace create namespace-with-data
 ```
 
 ### 2. Modify the Application Manifest to Use the Snapshot
@@ -175,79 +179,34 @@ Create a new folder in the parent directory and copy `k8s.yml` and `mongo.yml` i
 
 ```console
 mkdir data-clone-manifest
-cp manifests/{k8s.yml,mongo.yml} data-clone-manifest
+cp manifests/{fastapi.yml,mongo.yml} data-clone-manifest
 ```
 
-Update `mongo.yml` to reference the snapshot:
+Update the `PersistentVolumeClaim` in the `mongo.yml` manifest to include the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations, as shown below, replacing $YOUR_NAMESPACE with the name of the Okteto namespace where you created the volume snapshot (e.g. cindy).  
 
 ```yaml
+kind: PersistentVolumeClaim
 apiVersion: v1
-kind: Service
 metadata:
-  name: mongodb
+  name: data
+  annotations:
+    dev.okteto.com/from-snapshot-name: mongo-snapshot
+    dev.okteto.com/from-snapshot-namespace: $YOUR_INITIAL_NAMESPACE
 spec:
-  ports:
-    - port: 27017
-      targetPort: 27017
-  clusterIP: None
-  selector:
-    app: mongo
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: mongodb
-spec:
-  serviceName: mongodb
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mongo
-  template:
-    metadata:
-      labels:
-        app: mongo
-    spec:
-      containers:
-        - name: mongodb
-          image: bitnami/mongodb:latest
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 27017
-              protocol: TCP
-          resources: { }
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /bitnami/mongodb
-              name: data
-              subPath: data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: data
-            annotations:
-              dev.okteto.com/from-snapshot-name: mongo-snapshot
-              dev.okteto.com/from-snapshot-namespace: YOUR_DATA_SOURCE_NAMESPACE
-            spec:
-              accessModes:
-                - ReadWriteOnce
-              resources:
-                requests:
-                  storage: 1Gi
----
+  storageClassName: csi-okteto
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+...
 ```
 
-Replace `$YOUR_DATA_NAMESPACE` with the name of the namespace you created the volume snapshot in.
-
-In the updated manifest above, you have removed the section that creates a persistent volume for the MongoDB service and added a subsection under the Statefulset's spec.
-
-In the `volumeClaimTemplates` subsection, `annotations` have been added to instruct Okteto to create the data source for the stateful set from the snapshot created earlier `mongo-snapshot` in the `namespace`.
 
 ### 3. Deploy the New Development Environment Using the Newly Created Manifest
 
 ```console
-kubectl apply -f data-clone-manifest
+okteto deploy -n=namespace-with-data
 ```
 
 Expected output:
@@ -269,7 +228,7 @@ Run the following command to check if the development database contains the same
 
 ```console
 curl -X 'GET' \
-  'https://fastapi-snapshot-demo-data-clone-yournamespace.YOURSUBDOMAIN/recipe' \
+  'https://fastapi-snapshot-demo-namespace-with-data.examle.okteto.com/recipe' \
   -H 'accept: application/json'
 ```
 
@@ -306,6 +265,6 @@ By using Okteto Volume Snapshots, you can:
 - Eliminate the need for manual database migrations
 - Speed up the development and debugging process
 
-📖 Next Steps: [Explore more on Okteto Volume Snapshots](https://www.okteto.com/docs/core/use-volume-snapshots/)
+📖 Next Steps: [Explore more on Okteto Volume Snapshots](/docs/core/use-volume-snapshots/)
 
-The code used for this article can be found on [GitHub](https://github.com/okteto/fastapi-snapshot-app/tree/data-clone-manifest/).
+The code used for this article can be found on [GitHub](https://github.com/okteto/fastapi-snapshot-app).
