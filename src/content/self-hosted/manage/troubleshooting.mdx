@@ -93,7 +93,36 @@ wildcardCertificate:
 </TabItem>
 </Tabs>
 
-### 2. Inventory resources created by Okteto Helm release
+
+### 2. Wait for workloads to become “Available”
+
+Check that all Deployments and StatefulSets have completed their rollouts and that all Pods are in the Ready state:
+
+```bash
+# Deployments & StatefulSets rollouts
+kubectl rollout status deploy -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
+kubectl rollout status sts   -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
+
+# All pods to Ready (every container ready)
+kubectl wait pod -l app.kubernetes.io/instance="okteto" -n okteto --for=condition=Ready --timeout=180s
+```
+If any of the commands hits the timeout, consider jumping to [Step 8. Anything looks bad?](#8-anything-looks-bad) to investigate further.
+
+
+### 3. Spot Unhealthy Pods
+
+Check for Pods that are not in the Ready state or that have container restarts:
+
+```bash
+# Pods not Ready
+kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto --field-selector=status.phase!=Running -o wide
+
+# Restarts > 0
+kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'| (read; echo "$REPLY"; sort -k3 -nr)
+```
+
+
+### 4. Inventory resources created by Okteto Helm release
 
 Check that all the resources created by the Okteto Helm release are in a healthy state:
 
@@ -199,7 +228,6 @@ cronjob.batch/okteto-periodic-metrics      @hourly       <none>     False     0 
 cronjob.batch/okteto-resourcemanager       */5 * * * *   <none>     False     0        103s            3m4s
 cronjob.batch/okteto-telemetry             @daily        <none>     False     0        <none>          3m4s
 ```
-
 </TabItem>
 <TabItem value="kubectl-get-ingress-service-cm-secret-pvc">
 
@@ -257,31 +285,6 @@ persistentvolumeclaim/storage-okteto-buildkit-7c80387317-1   Bound    pvc-9e19e7
 
 </Tabs>
 
-### 3. Wait for workloads to become “Available”
-
-Check that all Deployments and StatefulSets have completed their rollouts and that all Pods are in the Ready state:
-
-```bash
-# Deployments & StatefulSets rollouts
-kubectl rollout status deploy -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
-kubectl rollout status sts   -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
-
-# All pods to Ready (every container ready)
-kubectl wait pod -l app.kubernetes.io/instance="okteto" -n okteto --for=condition=Ready --timeout=180s
-```
-If any of the commands hits the timeout, consider jumping to [Step 8. Anything looks bad?](#8-anything-looks-bad) to investigate further.
-
-### 4. Spot Unhealthy Pods
-
-Check for Pods that are not in the Ready state or that have container restarts:
-
-```bash
-# Pods not Ready
-kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto --field-selector=status.phase!=Running -o wide
-
-# Restarts > 0
-kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'| (read; echo "$REPLY"; sort -k3 -nr)
-```
 
 ### 5. Check that services have endpoints
 
