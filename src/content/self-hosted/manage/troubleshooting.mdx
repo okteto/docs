@@ -25,12 +25,10 @@ Please use our [Okteto Diagnostics tool](self-hosted/manage/diagnostics.mdx) to 
 On your terminal, run the following commands to check the status of your Okteto Helm release:
 
 ```bash
-REL=<Okteto release name> #Set Okteto Helm release name for ease
-
 helm list -n okteto
-helm status "$REL" -n okteto
-helm get notes "$REL" -n okteto # any post-install tips/tests
-helm get values "$REL" -n okteto -o yaml
+helm status "okteto" -n okteto
+helm get notes "okteto" -n okteto # any post-install tips/tests
+helm get values "okteto" -n okteto -o yaml
 ```
 
 The following are sample outputs of the commands:
@@ -55,7 +53,7 @@ okteto	okteto   	22      	2025-10-02 10:26:07.428432 -0400 EDT	deployed	okteto-1
 <TabItem value="helm-get-values">
 
 ```bash
-~ % helm get values "$REL" -n okteto -o yaml
+~ % helm get values "okteto" -n okteto -o yaml
 buildkit:
   persistence:
     enabled: true
@@ -100,8 +98,8 @@ wildcardCertificate:
 Check that all the resources created by the Okteto Helm release are in a healthy state:
 
 ```bash
-kubectl get all -l app.kubernetes.io/instance="$REL"
-kubectl get ingress,service,cm,secret,pvc -l app.kubernetes.io/instance="$REL"
+kubectl get all -l app.kubernetes.io/instance="okteto"
+kubectl get ingress,service,cm,secret,pvc -l app.kubernetes.io/instance="okteto"
 ```
 
 The following are sample outputs of the commands:
@@ -115,7 +113,7 @@ The following are sample outputs of the commands:
 <TabItem value="kubectl-get-all">
 
 ```bash
-~ % kubectl get all -l app.kubernetes.io/instance="$REL"
+~ % kubectl get all -l app.kubernetes.io/instance="okteto"
 NAME                                                       READY   STATUS      RESTARTS       AGE
 pod/okteto-api-54df74cbfb-24bt6                            1/1     Running     0              2d
 pod/okteto-api-54df74cbfb-kzvvq                            1/1     Running     0              2d
@@ -274,7 +272,7 @@ job.batch/okteto-telemetry-29374560   Complete   1/1           4s         15h
 <TabItem value="kubectl-get-ingress-service-cm-secret-pvc">
 
 ```bash
-~ % kubectl get ingress,service,cm,secret,pvc -l app.kubernetes.io/instance="$REL"
+~ % kubectl get ingress,service,cm,secret,pvc -l app.kubernetes.io/instance="okteto"
 NAME                                                CLASS                       HOSTS                       ADDRESS        PORTS     AGE
 ingress.networking.k8s.io/okteto                    okteto-controlplane-nginx   okteto.jona.okteto.me       34.21.79.137   80, 443   202d
 ingress.networking.k8s.io/okteto-buildkit           okteto-controlplane-nginx   buildkit.jona.okteto.me     34.21.79.137   80, 443   202d
@@ -333,11 +331,11 @@ Check that all Deployments and StatefulSets have completed their rollouts and th
 
 ```bash
 # Deployments & StatefulSets rollouts
-kubectl rollout status deploy -l app.kubernetes.io/instance="$REL" -n okteto --timeout=120s
-kubectl rollout status sts   -l app.kubernetes.io/instance="$REL" -n okteto --timeout=120s
+kubectl rollout status deploy -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
+kubectl rollout status sts   -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
 
 # All pods to Ready (every container ready)
-kubectl wait pod -l app.kubernetes.io/instance="$REL" -n okteto --for=condition=Ready --timeout=180s
+kubectl wait pod -l app.kubernetes.io/instance="okteto" -n okteto --for=condition=Ready --timeout=180s
 ```
 If any of the commands hits the timeout, consider jumping to [Step 8. Anything looks bad?](#8-anything-looks-bad) to investigate further.
 
@@ -347,10 +345,10 @@ Check for Pods that are not in the Ready state or that have container restarts:
 
 ```bash
 # Pods not Ready
-kubectl get pods -l app.kubernetes.io/instance="$REL" -n okteto --field-selector=status.phase!=Running -o wide
+kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto --field-selector=status.phase!=Running -o wide
 
 # Restarts > 0
-kubectl get pods -l app.kubernetes.io/instance="$REL" -n okteto -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'| (read; echo "$REPLY"; sort -k3 -nr)
+kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'| (read; echo "$REPLY"; sort -k3 -nr)
 ```
 
 ### 5. Check that services have endpoints
@@ -358,9 +356,9 @@ kubectl get pods -l app.kubernetes.io/instance="$REL" -n okteto -o custom-column
 Verify that all Services have healthy Endpoints:
 
 ```bash
-kubectl get svc -l app.kubernetes.io/instance="$REL" -n okteto
+kubectl get svc -l app.kubernetes.io/instance="okteto" -n okteto
 
-kubectl get endpoints -l app.kubernetes.io/instance="$REL" -n okteto
+kubectl get endpoints -l app.kubernetes.io/instance="okteto" -n okteto
 ```
 
 The following are sample outputs of the commands:
@@ -375,7 +373,7 @@ The following are sample outputs of the commands:
 <TabItem value="kubectl-get-svc">
 
 ```bash
-~ % kubectl get svc -l app.kubernetes.io/instance="$REL" -n okteto
+~ % kubectl get svc -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                  TYPE           CLUSTER-IP       EXTERNAL-IP                            PORT(S)                      AGE
 okteto-api                            ClusterIP      34.118.233.67    <none>                                 8080/TCP                     234d
 okteto-buildkit                       ClusterIP      34.118.236.79    <none>                                 443/TCP                      234d
@@ -396,7 +394,7 @@ okteto-ssh-agent                      ClusterIP      34.118.232.197   <none>    
 <TabItem value="kubectl-get-endpoints">
 
 ```bash
-~ % kubectl get endpoints -l app.kubernetes.io/instance="$REL" -n okteto
+~ % kubectl get endpoints -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                  ENDPOINTS                                                    AGE
 okteto-api                            10.112.0.9:8080,10.112.2.16:8080                             234d
 okteto-buildkit                       10.112.2.29:1234                                             234d
