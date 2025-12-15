@@ -35,6 +35,50 @@ _You can use `helm ls` to find the name of your release._
 
 Please review [the release notes](release-notes.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
 
+## Upgrading to Okteto 1.40.x – Default Registry Change to GitHub Container Registry
+
+Starting with Okteto 1.40, the default installation pulls Okteto images from **GitHub Container Registry (ghcr.io)** instead of Docker Hub. Images are still published to both registries, so you can choose which one to use.
+
+### Configuring Your Installation to Pull from Docker Hub
+
+If you need to continue pulling images from Docker Hub, add the following configuration to your Helm values file (`config.yaml`):
+
+```yaml
+globals:
+  registry: docker.io
+
+cli:
+  image:
+    registry: docker.io
+
+ingress-nginx:
+  controller:
+    image:
+      registry: docker.io
+
+okteto-nginx:
+  controller:
+    image:
+      registry: docker.io
+
+reloader:
+  global:
+    imageRegistry: docker.io
+```
+
+Then upgrade your Okteto instance using:
+
+<CodeBlock language="bash">
+  {
+`helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version ${variables.chartVersion}
+`}
+</CodeBlock>
+
+:::tip
+If you need to use a different registry (neither ghcr.io nor docker.io), see our [Air-Gapped Networks guide](air-gapped.mdx) for instructions on configuring a custom registry.
+:::
+
 ## Upgrading to Okteto 1.38.x – Certificate Configuration Changes
 
 - **Internal Certificate Unification**: Internal certificates have been unified into a [single configuration](self-hosted/helm-configuration.mdx#internalcertificate). During the upgrade, you may experience temporary communication issues lasting a few seconds as the new certificate configuration takes effect. This is expected behavior and should resolve automatically.
