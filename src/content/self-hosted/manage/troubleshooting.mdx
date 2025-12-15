@@ -5,6 +5,8 @@ sidebar_label: Troubleshooting
 id: troubleshooting
 ---
 
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
 
 Welcome to the Okteto troubleshooting guide. This page provides answers to some common issues encountered while using Okteto.
 Please also review our [FAQ Guide](reference/faqs.mdx) for additional help.
@@ -17,9 +19,398 @@ When reaching out to Okteto for support or when asking the [Okteto Community](ht
 ### For Administrators of Okteto:
 Please use our [Okteto Diagnostics tool](self-hosted/manage/diagnostics.mdx) to create a support bundle with cluster information, logs for okteto components, and other relevant information.
 
+## How to Check That Your Okteto Instance is Healthy
+### 1. Sanity check the Okteto Helm release
+
+On your terminal, run the following commands to check the status of your Okteto Helm release:
+
+```bash
+helm list -n okteto
+helm get values "okteto" -n okteto -o yaml
+```
+
+The following are sample outputs of the commands:
+<Tabs
+  defaultValue="helm-list"
+  values={[
+    { label: 'helm list', value: 'helm-list', },
+    { label: 'helm get values', value: 'helm-get-values', },
+  ]}
+>
+<TabItem value="helm-list">
+
+```bash
+~ % helm list
+NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
+okteto	okteto   	22      	2025-10-02 10:26:07.428432 -0400 EDT	deployed	okteto-1.36.0	464e721e7  
+```
+
+</TabItem>
+<TabItem value="helm-get-values">
+
+```bash
+~ % helm get values "okteto" -n okteto -o yaml
+buildkit:
+  persistence:
+    enabled: true
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-send-timeout: 180
+ingress-nginx:
+  controller:
+    config:
+      large-client-header-buffers: 4 100k
+      proxy-connect-timeout: "180"
+      proxy-read-timeout: "180"
+      proxy-send-timeout: "180"
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/okteto-letsencrypt
+insights:
+  enabled: true
+license: <LICENSE>
+okteto-nginx:
+  controller:
+    config:
+      large-client-header-buffers: 4 100k
+      proxy-connect-timeout: "180"
+      proxy-read-timeout: "180"
+      proxy-send-timeout: "180"
+registry:
+  storage:
+    filesystem:
+      persistence:
+        enabled: true
+subdomain: jona.okteto.me
+wildcardCertificate:
+  create: false
+  name: okteto-letsencrypt
+```
+
+</TabItem>
+</Tabs>
+
+
+### 2. Wait for workloads to become “Available”
+
+Check that all Deployments and StatefulSets have completed their rollouts and that all Pods are in the Ready state:
+
+```bash
+# Deployments & StatefulSets rollouts
+kubectl rollout status deploy -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
+kubectl rollout status sts   -l app.kubernetes.io/instance="okteto" -n okteto --timeout=120s
+
+# All pods to Ready (every container ready)
+kubectl wait pod -l app.kubernetes.io/instance="okteto" -n okteto --for=condition=Ready --timeout=180s
+```
+If any of the commands hits the timeout, consider jumping to [Step 8. Anything looks bad?](#8-anything-looks-bad) to investigate further.
+
+
+### 3. Spot Unhealthy Pods
+
+Check for Pods that are not in the Ready state or that have container restarts:
+
+```bash
+# Pods not Ready
+kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto --field-selector=status.phase!=Running -o wide
+
+# Restarts > 0
+kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'| (read; echo "$REPLY"; sort -k3 -nr)
+```
+
+
+### 4. Inventory resources created by Okteto Helm release
+
+Check that all the resources created by the Okteto Helm release are in a healthy state:
+
+```bash
+kubectl get all -l app.kubernetes.io/instance="okteto"
+kubectl get ingress,service -l app.kubernetes.io/instance="okteto"
+kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto"
+```
+
+The following are sample outputs of the commands:
+<Tabs
+  defaultValue="kubectl-get-all"
+  values={[
+    { label: 'kubectl get all', value: 'kubectl-get-all', },
+    { label: 'kubectl get ingress,service', value: 'kubectl-get-ingress-service', },
+    { label: 'kubectl get cm,secret,pvc', value: 'kubectl-get-cm-secret-pvc', },
+  ]}
+>
+<TabItem value="kubectl-get-all">
+
+```bash
+~ % kubectl get all -l app.kubernetes.io/instance="okteto"
+NAME                                                      READY   STATUS    RESTARTS   AGE
+pod/okteto-api-d6ccbfc8d-8fgb5                            1/1     Running   0          3m7s
+pod/okteto-api-d6ccbfc8d-bqrlp                            1/1     Running   0          3m7s
+pod/okteto-buildkit-8c96f331e1-0                          1/1     Running   0          3m5s
+pod/okteto-daemon-ggbh2                                   1/1     Running   0          3m8s
+pod/okteto-daemon-hr8w4                                   1/1     Running   0          3m8s
+pod/okteto-eventsexporter-0                               1/1     Running   0          3m4s
+pod/okteto-frontend-56d6fc4696-rblcn                      1/1     Running   0          3m6s
+pod/okteto-frontend-56d6fc4696-vlv5f                      1/1     Running   0          3m6s
+pod/okteto-ingress-nginx-controller-7bd8f79fbc-79gjs      1/1     Running   0          3m7s
+pod/okteto-ingress-nginx-controller-7bd8f79fbc-hc9cq      1/1     Running   0          3m7s
+pod/okteto-ingress-nginx-defaultbackend-88d58c8bd-9xr9g   1/1     Running   0          3m6s
+pod/okteto-ingress-nginx-defaultbackend-88d58c8bd-z7zlf   1/1     Running   0          3m6s
+pod/okteto-mutation-webhook-66548b9669-t9rcb              1/1     Running   0          3m5s
+pod/okteto-mutation-webhook-66548b9669-z6k6w              1/1     Running   0          3m4s
+pod/okteto-okteto-nginx-controller-7bb7686cdb-k5h5t       1/1     Running   0          3m7s
+pod/okteto-okteto-nginx-controller-7bb7686cdb-w6jh9       1/1     Running   0          3m7s
+pod/okteto-prepullimages-86c2t                            4/4     Running   0          3m8s
+pod/okteto-prepullimages-nt9g7                            4/4     Running   0          3m8s
+pod/okteto-redis-5998c6c5f4-c549r                         1/1     Running   0          3m6s
+pod/okteto-regcreds-6c7444697-4tvmh                       1/1     Running   0          3m5s
+pod/okteto-regcreds-6c7444697-r5r24                       1/1     Running   0          3m6s
+pod/okteto-registry-565bd4ff94-9skgf                      1/1     Running   0          3m5s
+pod/okteto-reloader-54d478cbbd-bzjb2                      1/1     Running   0          3m7s
+pod/okteto-ssh-agent-59dd765ff-5kk89                      1/1     Running   0          3m5s
+pod/okteto-ssh-agent-59dd765ff-kr4vt                      1/1     Running   0          3m5s
+
+NAME                                          TYPE           CLUSTER-IP       EXTERNAL-IP                            PORT(S)                      AGE
+service/okteto-api                            ClusterIP      34.118.228.121   <none>                                 8080/TCP                     3m11s
+service/okteto-buildkit                       ClusterIP      34.118.232.126   <none>                                 443/TCP                      3m11s
+service/okteto-cluster-endpoint               ExternalName   <none>           kubernetes.default.svc.cluster.local   443/TCP                      3m9s
+service/okteto-eventsexporter                 ClusterIP      34.118.227.140   <none>                                 8080/TCP                     3m10s
+service/okteto-frontend                       ClusterIP      34.118.230.239   <none>                                 8080/TCP                     3m10s
+service/okteto-ingress-nginx-controller       LoadBalancer   34.118.239.1     34.11.21.218                           80:32340/TCP,443:31322/TCP   3m12s
+service/okteto-ingress-nginx-defaultbackend   ClusterIP      34.118.238.41    <none>                                 80/TCP                       3m10s
+service/okteto-mutation-webhook               ClusterIP      34.118.232.212   <none>                                 443/TCP                      3m8s
+service/okteto-okteto-nginx-controller        ClusterIP      34.118.232.157   <none>                                 80/TCP,443/TCP               3m11s
+service/okteto-redis                          ClusterIP      34.118.238.162   <none>                                 6379/TCP                     3m9s
+service/okteto-regcreds                       ClusterIP      34.118.230.229   <none>                                 443/TCP                      3m9s
+service/okteto-registry                       ClusterIP      34.118.227.250   <none>                                 5000/TCP                     3m9s
+service/okteto-ssh-agent                      ClusterIP      34.118.230.24    <none>                                 3000/TCP                     3m8s
+
+NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/okteto-daemon          2         2         2       2            2           <none>          3m8s
+daemonset.apps/okteto-prepullimages   2         2         2       2            2           <none>          3m8s
+
+NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/okteto-api                            2/2     2            2           3m7s
+deployment.apps/okteto-frontend                       2/2     2            2           3m6s
+deployment.apps/okteto-ingress-nginx-controller       2/2     2            2           3m8s
+deployment.apps/okteto-ingress-nginx-defaultbackend   2/2     2            2           3m7s
+deployment.apps/okteto-mutation-webhook               2/2     2            2           3m5s
+deployment.apps/okteto-okteto-nginx-controller        2/2     2            2           3m7s
+deployment.apps/okteto-redis                          1/1     1            1           3m6s
+deployment.apps/okteto-regcreds                       2/2     2            2           3m6s
+deployment.apps/okteto-registry                       1/1     1            1           3m6s
+deployment.apps/okteto-reloader                       1/1     1            1           3m7s
+deployment.apps/okteto-ssh-agent                      2/2     2            2           3m5s
+
+NAME                                                            DESIRED   CURRENT   READY   AGE
+replicaset.apps/okteto-api-d6ccbfc8d                            2         2         2       3m7s
+replicaset.apps/okteto-frontend-56d6fc4696                      2         2         2       3m6s
+replicaset.apps/okteto-ingress-nginx-controller-7bd8f79fbc      2         2         2       3m7s
+replicaset.apps/okteto-ingress-nginx-defaultbackend-88d58c8bd   2         2         2       3m6s
+replicaset.apps/okteto-mutation-webhook-66548b9669              2         2         2       3m5s
+replicaset.apps/okteto-okteto-nginx-controller-7bb7686cdb       2         2         2       3m7s
+replicaset.apps/okteto-redis-5998c6c5f4                         1         1         1       3m6s
+replicaset.apps/okteto-regcreds-6c7444697                       2         2         2       3m6s
+replicaset.apps/okteto-registry-565bd4ff94                      1         1         1       3m5s
+replicaset.apps/okteto-reloader-54d478cbbd                      1         1         1       3m7s
+replicaset.apps/okteto-ssh-agent-59dd765ff                      2         2         2       3m5s
+
+NAME                                          READY   AGE
+statefulset.apps/okteto-buildkit-8c96f331e1   1/1     3m5s
+statefulset.apps/okteto-eventsexporter        1/1     3m5s
+
+NAME                                       SCHEDULE      TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+cronjob.batch/okteto-destroy-all-checker   */3 * * * *   <none>     False     0        103s            3m5s
+cronjob.batch/okteto-gc                    @hourly       <none>     False     0        <none>          3m5s
+cronjob.batch/okteto-insights-metrics      */5 * * * *   <none>     False     0        103s            3m5s
+cronjob.batch/okteto-installer-checker     */5 * * * *   <none>     False     0        103s            3m5s
+cronjob.batch/okteto-periodic-metrics      @hourly       <none>     False     0        <none>          3m4s
+cronjob.batch/okteto-resourcemanager       */5 * * * *   <none>     False     0        103s            3m4s
+cronjob.batch/okteto-telemetry             @daily        <none>     False     0        <none>          3m4s
+```
+</TabItem>
+<TabItem value="kubectl-get-ingress-service">
+
+```bash
+~ % kubectl get ingress,service -l app.kubernetes.io/instance="okteto"
+NAME                                                CLASS                       HOSTS                       ADDRESS        PORTS     AGE
+ingress.networking.k8s.io/okteto                    okteto-controlplane-nginx   okteto.jona.okteto.me       34.21.79.137   80, 443   202d
+ingress.networking.k8s.io/okteto-buildkit           okteto-controlplane-nginx   buildkit.jona.okteto.me     34.21.79.137   80, 443   202d
+ingress.networking.k8s.io/okteto-cluster-endpoint   okteto-controlplane-nginx   kubernetes.jona.okteto.me   34.21.79.137   80, 443   202d
+ingress.networking.k8s.io/okteto-registry           okteto-controlplane-nginx   registry.jona.okteto.me     34.21.79.137   80, 443   202d
+ingress.networking.k8s.io/okteto-wildcard           okteto-controlplane-nginx   *.jona.okteto.me            34.21.79.137   80, 443   202d
+
+NAME                                          TYPE           CLUSTER-IP       EXTERNAL-IP                            PORT(S)                      AGE
+service/okteto-api                            ClusterIP      34.118.233.67    <none>                                 8080/TCP                     202d
+service/okteto-buildkit                       ClusterIP      34.118.236.79    <none>                                 443/TCP                      202d
+service/okteto-cluster-endpoint               ExternalName   <none>           kubernetes.default.svc.cluster.local   443/TCP                      202d
+service/okteto-eventsexporter                 ClusterIP      34.118.230.3     <none>                                 8080/TCP                     202d
+service/okteto-frontend                       ClusterIP      34.118.232.147   <none>                                 8080/TCP                     202d
+service/okteto-ingress-nginx-controller       LoadBalancer   34.118.231.219   34.21.79.137                           80:31270/TCP,443:32017/TCP   202d
+service/okteto-ingress-nginx-defaultbackend   ClusterIP      34.118.230.224   <none>                                 80/TCP                       202d
+service/okteto-mutation-webhook               ClusterIP      34.118.233.42    <none>                                 443/TCP                      202d
+service/okteto-okteto-nginx-controller        ClusterIP      34.118.228.30    <none>                                 80/TCP,443/TCP               202d
+service/okteto-redis-headless                 ClusterIP      None             <none>                                 6379/TCP                     202d
+service/okteto-redis-master                   ClusterIP      34.118.228.154   <none>                                 6379/TCP                     202d
+service/okteto-regcreds                       ClusterIP      34.118.226.123   <none>                                 443/TCP                      202d
+service/okteto-registry                       ClusterIP      34.118.225.14    <none>                                 5000/TCP                     202d
+service/okteto-ssh-agent                      ClusterIP      34.118.232.197   <none>                                 3000/TCP                     202d
+
+NAME                                        DATA   AGE
+configmap/okteto                            167    202d
+configmap/okteto-helm-release-meta          6      91d
+configmap/okteto-ingress-config             1      202d
+configmap/okteto-ingress-nginx-controller   15     202d
+configmap/okteto-okteto-nginx-controller    14     202d
+configmap/okteto-preflight                  1      202d
+configmap/okteto-redactor                   1      202d
+configmap/okteto-redis-configuration        4      202d
+configmap/okteto-redis-health               6      202d
+configmap/okteto-redis-scripts              1      202d
+configmap/okteto-registry-config            1      202d
+configmap/okteto-support-bundle             1      202d
+
+NAME                                 TYPE                DATA   AGE
+secret/okteto                        Opaque              2      202d
+secret/okteto-mutation-webhook       kubernetes.io/tls   3      202d
+secret/okteto-regcreds               kubernetes.io/tls   3      202d
+secret/okteto-registry-http-secret   Opaque              1      202d
+
+NAME                                                         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/storage-okteto-buildkit-7c80387317-0   Bound    pvc-79219185-22de-4ccb-acd8-3228b3bb7323   100Gi      RWO            standard-rwo   <unset>                 86d
+persistentvolumeclaim/storage-okteto-buildkit-7c80387317-1   Bound    pvc-9e19e7f8-6f2f-4685-8a2d-dc340f4639e1   100Gi      RWO            standard-rwo   <unset>                 86d
+```
+
+</TabItem>
+<TabItem value="kubectl-get-cm-secret-pvc">
+
+```bash
+~ % kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto"
+NAME                                        DATA   AGE
+configmap/okteto                            167    202d
+configmap/okteto-helm-release-meta          6      91d
+configmap/okteto-ingress-config             1      202d
+configmap/okteto-ingress-nginx-controller   15     202d
+configmap/okteto-okteto-nginx-controller    14     202d
+configmap/okteto-preflight                  1      202d
+configmap/okteto-redactor                   1      202d
+configmap/okteto-redis-configuration        4      202d
+configmap/okteto-redis-health               6      202d
+configmap/okteto-redis-scripts              1      202d
+configmap/okteto-registry-config            1      202d
+configmap/okteto-support-bundle             1      202d
+
+NAME                                 TYPE                DATA   AGE
+secret/okteto                        Opaque              2      202d
+secret/okteto-mutation-webhook       kubernetes.io/tls   3      202d
+secret/okteto-regcreds               kubernetes.io/tls   3      202d
+secret/okteto-registry-http-secret   Opaque              1      202d
+
+NAME                                                         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/storage-okteto-buildkit-7c80387317-0   Bound    pvc-79219185-22de-4ccb-acd8-3228b3bb7323   100Gi      RWO            standard-rwo   <unset>                 86d
+persistentvolumeclaim/storage-okteto-buildkit-7c80387317-1   Bound    pvc-9e19e7f8-6f2f-4685-8a2d-dc340f4639e1   100Gi      RWO            standard-rwo   <unset>                 86d
+```
+</TabItem>
+
+</Tabs>
+
+
+### 5. Check that services have endpoints
+
+Verify that all Services have healthy Endpoints:
+
+```bash
+kubectl get svc -l app.kubernetes.io/instance="okteto" -n okteto
+
+kubectl get endpoints -l app.kubernetes.io/instance="okteto" -n okteto
+```
+
+The following are sample outputs of the commands:
+
+<Tabs
+  defaultValue="kubectl-get-svc"
+  values={[
+    { label: 'kubectl get svc', value: 'kubectl-get-svc', },
+    { label: 'kubectl get endpoints', value: 'kubectl-get-endpoints', },
+  ]}
+>
+<TabItem value="kubectl-get-svc">
+
+```bash
+~ % kubectl get svc -l app.kubernetes.io/instance="okteto" -n okteto
+NAME                                  TYPE           CLUSTER-IP       EXTERNAL-IP                            PORT(S)                      AGE
+okteto-api                            ClusterIP      34.118.233.67    <none>                                 8080/TCP                     234d
+okteto-buildkit                       ClusterIP      34.118.236.79    <none>                                 443/TCP                      234d
+okteto-cluster-endpoint               ExternalName   <none>           kubernetes.default.svc.cluster.local   443/TCP                      234d
+okteto-eventsexporter                 ClusterIP      34.118.230.3     <none>                                 8080/TCP                     234d
+okteto-frontend                       ClusterIP      34.118.232.147   <none>                                 8080/TCP                     234d
+okteto-ingress-nginx-controller       LoadBalancer   34.118.231.219   34.21.79.137                           80:31270/TCP,443:32017/TCP   234d
+okteto-ingress-nginx-defaultbackend   ClusterIP      34.118.230.224   <none>                                 80/TCP                       234d
+okteto-mutation-webhook               ClusterIP      34.118.233.42    <none>                                 443/TCP                      234d
+okteto-okteto-nginx-controller        ClusterIP      34.118.228.30    <none>                                 80/TCP,443/TCP               234d
+okteto-redis                          ClusterIP      34.118.227.133   <none>                                 6379/TCP                     20d
+okteto-regcreds                       ClusterIP      34.118.226.123   <none>                                 443/TCP                      234d
+okteto-registry                       ClusterIP      34.118.225.14    <none>                                 5000/TCP                     234d
+okteto-ssh-agent                      ClusterIP      34.118.232.197   <none>                                 3000/TCP                     234d
+```
+
+</TabItem>
+<TabItem value="kubectl-get-endpoints">
+
+```bash
+~ % kubectl get endpoints -l app.kubernetes.io/instance="okteto" -n okteto
+NAME                                  ENDPOINTS                                                    AGE
+okteto-api                            10.112.0.9:8080,10.112.2.16:8080                             234d
+okteto-buildkit                       10.112.2.29:1234                                             234d
+okteto-eventsexporter                 10.112.0.215:8080                                            234d
+okteto-frontend                       10.112.0.10:8080,10.112.2.17:8080                            234d
+okteto-ingress-nginx-controller       10.112.0.11:443,10.112.2.18:443,10.112.0.11:80 + 1 more...   234d
+okteto-ingress-nginx-defaultbackend   10.112.0.16:8080,10.112.2.19:8080                            234d
+okteto-mutation-webhook               10.112.0.13:8443,10.112.2.20:8443                            234d
+okteto-okteto-nginx-controller        10.112.0.15:443,10.112.2.21:443,10.112.0.15:80 + 1 more...   234d
+okteto-redis                          10.112.0.14:6379                                             20d
+okteto-regcreds                       10.112.0.17:9443,10.112.2.22:9443                            234d
+okteto-registry                       10.112.2.30:5000                                             234d
+okteto-ssh-agent                      10.112.0.19:3000,10.112.2.23:3000                            234d
+```
+
+</TabItem>
+
+</Tabs>
+
+### 6. Validate your DNS configuration
+
+Verify that the Okteto subdomain is resolving and accessible:
+
+```bash
+curl -i --max-time 5 "https://okteto.<Okteto instance subdomain>/healthz"
+```
+
+### 7. Test your Okteto Instance End-to-End
+
+Go through the build, deploy, and up commands with the Movies Okteto sample to test that Okteto deployments are working as expected:
+
+```bash
+git clone https://github.com/okteto/movies
+cd movies
+okteto build
+okteto deploy
+okteto up
+```
+
+### 8. Anything looks bad?
+
+Check the events and describe the failing Pods or other resources to gather more information about what might be wrong:
+
+```bash
+# a) Events (cluster is telling you what’s wrong)
+kubectl get events -n okteto --sort-by=.lastTimestamp | tail -n 40
+
+# b) Describe the failing thing (image pulls, scheduling, probe failures)
+kubectl describe pod <pod-name>
+```
+
 ## UPGRADE FAILED: “okteto” has no deployed releases
 
-This error will occur on your second install/upgrade if your initial install failed. If the first instal failed, delete the existing install before trying again:
+This error will occur on your second install/upgrade if your initial install failed. If the first install failed, delete the existing install before trying again:
 
 ```
 helm uninstall okteto
