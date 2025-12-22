@@ -13,8 +13,12 @@ module.exports = {
   favicon: 'img/favicon.ico',
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
-  onBrokenMarkdownLinks: 'throw',
   onDuplicateRoutes: 'warn',
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
+  },
   customFields: {
     image: 'https://www.okteto.com/docs/okteto-meta-image.png',
   },
