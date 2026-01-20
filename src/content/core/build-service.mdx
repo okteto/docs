@@ -219,18 +219,25 @@ You can also disable Smart Builds by setting the environment variable `OKTETO_SM
 If you define `OKTETO_SMART_BUILDS_ENABLED=false` as an [Admin Variable](admin/dashboard.mdx#admin-variables), Smart Builds is disabled for all the image builds for all developers in your organization.
 Admin variables are equivalent to defining that variable on every developer's machine.
 
-{/*
 ## Build Queue System
 
-Okteto implements an intelligent build queue system to ensure consistent build performance and fair resource distribution across your development teams. When you execute a build command, Okteto automatically routes your build to the BuildKit pod with the lowest resource utilization based on real-time metrics (CPU pressure, memory usage, IOPS, and active builds).
+Okteto implements a build queue system to ensure consistent build performance and fair resource distribution across your development teams. When you execute a build command, Okteto automatically routes your build to the Okteto Build pod with the lowest resource utilization based on real-time metrics (CPU pressure, memory usage, and IOPS).
 
-If all BuildKit pods are busy (exceeding configured resource thresholds), your build request enters a queue and waits until a BuildKit pod becomes ready.
-This happens when builds finish and resources are freed, or when new BuildKit pods are created through the BuildKit [Horizontal Pod Autoscaler](self-hosted/manage/buildkit-high-performance.mdx#4-enable-hpa-to-optimize-performance-and-costs).
+If all Okteto Build pods are busy (exceeding configured resource thresholds), your build request enters a queue and waits until a build pod becomes ready.
+This happens when builds finish and resources are freed, or when new build pods are created through the Okteto Build [Horizontal Pod Autoscaler](self-hosted/manage/buildkit-high-performance.mdx#4-enable-hpa-to-optimize-performance-and-costs).
 
-The Build Queue System ensures that builds have consistent performance by preventing BuildKit pods from being overloaded during high-demand periods.
-Administrators can monitor BuildKit performance, configure resource thresholds, and fine-tune the build queue behavior through the [Build Service admin dashboard](admin/build-service.mdx).
-You can also disable the build queue by setting the `OKTETO_BUILD_QUEUE_ENABLED` [feature flag](reference/feature-flags.mdx) if needed.
-  */}
+The Build Queue System ensures that builds have consistent performance by preventing Okteto Build pods from being overloaded during high-demand periods.
+Administrators can monitor Okteto Build performance, configure resource thresholds, and fine-tune the build queue behavior through the [Build Service admin dashboard](admin/build-service.mdx).
+
+:::tip
+You can disable the build queue by setting the `OKTETO_BUILD_QUEUE_ENABLED` [feature flag](reference/feature-flags.mdx) to `false` if needed.
+:::
+
+### Queue Wait Experience
+
+When all Okteto Build pods are busy, the Okteto CLI will wait for an available build pod before starting your build. During this time, you'll see clear messages indicating your position in the queue and the waiting status. The CLI automatically retries with exponential backoff to minimize unnecessary requests while ensuring your build starts as soon as resources become available.
+
+If the wait time exceeds the configured timeout (default 10 minutes), the build will fail with an error message suggesting you contact your Okteto administrators to increase the number of Okteto Build instances or adjust the resource threshold configuration. You can configure this timeout by setting the `OKTETO_BUILDKIT_QUEUE_WAIT_TIMEOUT` environment variable (e.g., `OKTETO_BUILDKIT_QUEUE_WAIT_TIMEOUT=15m`).
 
 ## Advanced timeouts configuration
 
