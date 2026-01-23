@@ -5,92 +5,294 @@ id: divert
 ---
 
 import Image from "@theme/Image";
-import useBaseUrl from '@docusaurus/useBaseUrl';
 
-Divert allows you to create Development Environments that include only the services you are actively working on while leveraging a shared environment for all other microservices. This approach significantly reduces infrastructure costs and complexity, especially in large environments.
+Divert allows you to create Development Environments that include only the services you are actively working on while leveraging a shared environment for all other microservices. This dramatically reduces infrastructure costs and setup time, especially in large microservice applications.
 
-In this tutorial, you'll learn how to use [Okteto Divert](/docs/reference/okteto-manifest#divert) to set up a Development Environment that contains only the services you are actively working on. All other services will automatically fall back to a shared ephemeral environment. You can find the code for the sample app we work with [for this tutorial here](https://github.com/okteto/movies-catalog).
+In this tutorial, you'll learn how to use [Okteto Divert](/docs/reference/okteto-manifest#divert) to set up a Development Environment that contains only the services you are actively working on, while all other services automatically fall back to a shared environment.
 
-## Prerequisites
-- Access to an Okteto instance
-- Okteto CLI installed and configured
-
-## Step 1: Deploy the shared environment
-
-We will use [the movies app](https://github.com/okteto/movies-catalog) to illustrate divert as part of your Development Environment. To begin, create a Namespace named `staging` on your Okteto instance. This is where our shared environment will run.
-
-```
-okteto namespace create staging
-```
-
-Then, deploy the Movies app:
-
-```
-git clone https://github.com/okteto/movies-catalog
-cd movies-catalog
-okteto deploy
-```
-The `movies-catalog` application is composed of three microservices: Frontend, Catalog, and Rentals. Each service is defined in a dedicated repository and deployed together using the [dependencies](/docs/reference/okteto-manifest#divert) feature of the Okteto manifest.
-
-This is what the application looks like:
-
- <Image
-    src={require("@site/static/img/divert/staging-diagram.png").default}
-    alt="Movies App diagram"
-    width="900"
-  />
-
-After a few seconds, the application will be built and deployed in the `staging` service. Feel free to interact with it to familiarize yourself with it.  Rent one or two movies.
-
-
-## Step 2: Deploy your personal Development Environment
-
-A key advantage of `divert` is that you only need to deploy the services you are actively working on in your Namespace, rather than the full application. For the purpose of this tutorial, we are going to work on the `rentals` service.
-
-First, switch back to your personal Namespace (replacing `cindy` with your Okteto username):
-
-```
-okteto namespace cindy
-```
-
-Then, deploy the Rentals service of the Movies app:
-```
-git clone https://github.com/okteto/movies-rentals
-cd movies-rentals
-okteto deploy
-```
-
-While the application deploys, let's take a look at the deploy section of the Okteto manifest:
-```
-deploy:
-  commands:
-    - okteto deploy -f mongodb-compose.yml
-    - helm upgrade --install rentals chart --set image=${OKTETO_BUILD_RENTALS_IMAGE}
-  divert:
-    namespace: staging
-```
-
-The `deploy` section tells Okteto to deploy the rentals service and database. The `divert` key tells Okteto to divert traffic to the `staging` Namespace for all the other services.
-
-
-## Step 3: Interact with the application
-
-Now, let's interact with your `diverted` application. To try the application, click on the endpoint of the frontend service (e.g. https://movies-cindy.okteto.example.com). Thanks to divert, you can seamlessly interact with the entire application, even though you have only deployed one service.
-
-If you remember, we rented a few movies in Step 1 of the tutorial. Now check out the version deployed on your Personal Namespace. Notice that the movies rented are different than the ones in staging? This is because Okteto is using your copy of the rental service, including the database. Any changes you make to that service (including synchronizing your code via `okteto up`) will only impact the services deployed on your Namespace.
-
-:::note
-When using Divert, Okteto will use the hostname of the endpoint to route things accordingly. In this example, a request to `https://movies-staging.okteto.example.com` will only use the staging services, while a request to `https://movies-cindy.okteto.example.com` will go to your Namespace first, and if the service is not there, then it will fallback to the shared Namespace.
-
-<Image
-    src={require("@site/static/img/divert/personal-diagram.png").default}
-    alt="Movies App diverted"
-    width="900"
-  />
-
+:::tip
+Learn more about Divert's architecture and traffic routing in the [Divert core concepts guide](/docs/1.41/core/divert/).
 :::
 
-## Next steps
-Congratulations, you just deployed your first `diverted` Development Environment 🚀
+## Prerequisites
 
-Diverted Development Environments are compatible with the rest of Okteto's features. Head over to [our getting started guides](/docs/development/containers/file-sync/) to learn how to configure Okteto for live-updating applications with different programming languages and **debugging tools**.
+- Access to an Okteto instance
+- [Okteto CLI](/docs/get-started/install-okteto-cli/) installed and configured
+- [ModHeader](https://modheader.com/) browser extension (or similar header modification tool)
+
+## Sample Application
+
+We'll use the [Movies with Divert](https://github.com/okteto-community/movies-with-divert) sample application, which consists of five microservices:
+
+| Service | Technology | Purpose |
+|---------|------------|---------|
+| Frontend | React/Node.js | User interface |
+| API Gateway | Go | Public API routing |
+| Catalog | Node.js/Express | Movie catalog management |
+| Rent | Java/Spring Boot | Rental logic |
+| Worker | Go | Background job processing |
+
+The application also includes MongoDB, PostgreSQL, and Kafka for data storage and messaging.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Frontend                                 │
+│                           (React)                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│    Catalog    │     │  API Gateway  │     │     Rent      │
+│   (Node.js)   │     │     (Go)      │     │    (Java)     │
+└───────┬───────┘     └───────┬───────┘     └───────┬───────┘
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│    MongoDB    │     │  PostgreSQL   │     │    Kafka      │
+└───────────────┘     └───────────────┘     └───────┬───────┘
+                                                    │
+                                                    ▼
+                                            ┌───────────────┐
+                                            │    Worker     │
+                                            │     (Go)      │
+                                            └───────────────┘
+```
+
+## Step 1: Deploy the Shared Environment
+
+First, deploy the complete Movies application to serve as the shared environment.
+
+### Clone the Repository
+
+```console
+git clone https://github.com/okteto-community/movies-with-divert
+cd movies-with-divert
+```
+
+### Deploy to a Shared Namespace
+
+```console
+okteto preview deploy \
+  --repository https://github.com/okteto-community/movies-with-divert \
+  --label=okteto-shared \
+  movies-shared
+```
+
+This command:
+
+1. Creates a namespace called `movies-shared`
+2. Deploys all five services plus their databases
+3. Labels it as a shared environment
+
+Wait for all services to be ready, then visit the application at its endpoint (e.g., `https://movies-movies-shared.okteto.example.com`). Rent a few movies to populate the database with test data.
+
+## Step 2: Deploy Your Personal Development Environment
+
+Now let's deploy only the Catalog service for development, while using the shared environment for everything else.
+
+### Set the Shared Namespace
+
+```console
+export OKTETO_SHARED_NAMESPACE="movies-shared"
+```
+
+### Deploy the Catalog Service
+
+```console
+okteto deploy -f okteto.catalog.yaml
+```
+
+Let's examine the `okteto.catalog.yaml` manifest:
+
+```yaml
+build:
+  catalog:
+    context: catalog
+
+deploy:
+  commands:
+    - helm upgrade --install catalog .hacks/catalog/chart --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+    - helm upgrade --install mongodb .hacks/mongodb/chart
+  divert:
+    driver: nginx
+    namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
+
+dev:
+  catalog:
+    image: node:18
+    command: bash
+    sync:
+      - catalog:/app
+    forward:
+      - 9229:9229
+```
+
+Key elements:
+
+- **build**: Builds only the catalog service image
+- **deploy.commands**: Deploys catalog and its MongoDB dependency
+- **deploy.divert**: Routes missing services to the shared namespace
+- **dev**: Configuration for live development with `okteto up`
+
+## Step 3: Test Your Diverted Environment
+
+### Without the Baggage Header
+
+First, test the shared environment directly:
+
+```console
+curl https://movies-movies-shared.okteto.example.com/api/catalog/healthz
+```
+
+Response:
+```json
+{"status": "ok", "namespace": "movies-shared"}
+```
+
+### With the Baggage Header
+
+Now test with the divert header pointing to your namespace:
+
+```console
+curl -H "baggage: okteto-divert=cindy" \
+  https://movies-movies-shared.okteto.example.com/api/catalog/healthz
+```
+
+Response:
+```json
+{"status": "ok", "namespace": "cindy"}
+```
+
+The request was routed to your personal catalog service!
+
+### Using ModHeader in Your Browser
+
+1. Install the [ModHeader](https://modheader.com/) browser extension
+2. Add a request header:
+   - **Name**: `baggage`
+   - **Value**: `okteto-divert=<your-namespace>`
+3. Visit the shared environment URL
+
+With the header enabled, requests will route to your diverted services while falling back to shared services for everything else.
+
+## Step 4: Start Developing
+
+Start a development session with hot-reload:
+
+```console
+okteto up -f okteto.catalog.yaml
+```
+
+This:
+
+1. Swaps your deployed catalog with a development container
+2. Syncs your local `catalog/` folder to the container
+3. Forwards port 9229 for debugging
+
+Make changes to your local code and see them reflected immediately in your running environment.
+
+## Available Divert Configurations
+
+The repository includes several pre-configured manifests for different development scenarios:
+
+### Frontend Development (`okteto.frontend.yaml`)
+
+**Use when**: Working on React UI components
+
+```console
+export OKTETO_SHARED_NAMESPACE="movies-shared"
+okteto deploy -f okteto.frontend.yaml
+```
+
+Deploys: Frontend only
+Shares: All backend services and databases
+
+### Catalog Development (`okteto.catalog.yaml`)
+
+**Use when**: Working on movie catalog or MongoDB integration
+
+```console
+export OKTETO_SHARED_NAMESPACE="movies-shared"
+okteto deploy -f okteto.catalog.yaml
+```
+
+Deploys: Catalog service, MongoDB
+Shares: Frontend, API, Rent, Worker, other databases
+
+### API Gateway Development (`okteto.api.yaml`)
+
+**Use when**: Working on the public API
+
+```console
+export OKTETO_SHARED_NAMESPACE="movies-shared"
+okteto deploy -f okteto.api.yaml
+```
+
+Deploys: API Gateway only
+Shares: All other services and databases
+
+### Rentals Development (`okteto.rentals.yaml`)
+
+**Use when**: Working on rental logic or Kafka integration
+
+```console
+export OKTETO_SHARED_NAMESPACE="movies-shared"
+okteto deploy -f okteto.rentals.yaml
+```
+
+Deploys: Rent service, Worker, Kafka, PostgreSQL
+Shares: Frontend, Catalog, API, MongoDB
+
+## Understanding the Traffic Flow
+
+With Divert enabled, here's how traffic flows for a user working on the Catalog service:
+
+```
+User Request (with baggage: okteto-divert=cindy)
+         │
+         ▼
+    ┌─────────┐
+    │Frontend │ ← Shared (movies-shared namespace)
+    └────┬────┘
+         │ (header propagated)
+         ▼
+    ┌─────────┐
+    │ Catalog │ ← Your version (cindy namespace)
+    └────┬────┘
+         │
+         ▼
+    ┌─────────┐
+    │ MongoDB │ ← Your version (cindy namespace)
+    └─────────┘
+```
+
+The key insight: only Catalog and MongoDB run in your namespace. Everything else comes from the shared environment, saving significant resources.
+
+## Cleanup
+
+When you're done developing, delete your personal namespace:
+
+```console
+okteto namespace delete cindy
+```
+
+The shared environment remains available for other developers.
+
+## Alternative: Divert with Queues
+
+For applications using message queues, check out the [TacoShop with Divert Queues](https://github.com/okteto-community/tacoshop-with-divert-queues) example, which demonstrates:
+
+- SQS queue routing based on the baggage header
+- Message filtering by namespace
+- Producer/consumer patterns for diverted environments
+
+## Next Steps
+
+Congratulations! You've deployed your first diverted Development Environment 🚀
+
+- Learn about [Divert Core Concepts](/docs/1.41/core/divert/) for architecture details
+- Explore [Using Divert](/docs/1.41/development/using-divert/) for advanced configuration
+- Try [okteto up](/docs/1.41/development/containers/file-sync/) for live code synchronization
+- Check out the [TacoShop example](https://github.com/okteto-community/tacoshop-with-divert-queues) for queue-based architectures
+- Review the [Istio Divert sample](https://github.com/okteto/divert-with-istio-sample) if using Istio service mesh

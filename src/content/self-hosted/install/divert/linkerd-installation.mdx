@@ -1,0 +1,304 @@
+---
+title: Linkerd Installation for Divert
+description: Install Linkerd to enhance Divert routing capabilities with the nginx driver
+sidebar_label: Linkerd Installation
+---
+
+:::info Administrator Guide
+This guide is for **Okteto administrators** setting up Linkerd in the cluster. Developers do not need to install anything - once Linkerd is configured in the cluster, Divert works transparently for all developers.
+:::
+
+This guide covers installing Linkerd to enhance Divert's routing capabilities when using the nginx driver. Linkerd provides service mesh functionality that enables more sophisticated traffic routing based on HTTP headers.
+
+:::warning For nginx Driver Only
+Linkerd is **only** for use with the **nginx driver**. If you're using the istio driver, do not install Linkerd - Istio already provides service mesh capabilities. See [Configure Divert](index.mdx) for the distinction between drivers.
+:::
+
+:::info
+Linkerd is **optional** for the nginx driver. The basic Divert functionality works without it, but Linkerd enables enhanced service-to-service routing within the mesh.
+:::
+
+## Prerequisites
+
+- Kubernetes cluster with Okteto installed using the **nginx driver** (default)
+- `kubectl` configured with cluster admin access
+- `helm` v3.x installed
+- Okteto using the default nginx driver (not istio)
+- **Administrator/operator** access (this is a one-time cluster setup)
+
+## Installation Steps
+
+:::tip For Administrators Only
+These steps are performed once by the Okteto administrator. Developers do not need to install the Linkerd CLI or perform any of these steps. Once Linkerd is installed in the cluster, it works transparently for all developers using Divert.
+:::
+
+### Step 1: Install the Linkerd CLI (Administrator Only)
+
+Install the Linkerd CLI on your **local machine** (as an administrator) to manage the Linkerd installation:
+
+```console
+# macOS/Linux
+curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install | sh
+
+# Add to PATH
+export PATH=$PATH:$HOME/.linkerd2/bin
+
+# Verify installation
+linkerd version
+```
+
+**Note**: Developers do not need this CLI. It's only for cluster administrators to install and manage Linkerd.
+
+### Step 2: Validate Cluster Compatibility
+
+```console
+linkerd check --pre
+```
+
+Address any issues before proceeding.
+
+### Step 3: Install Linkerd CRDs
+
+```console
+linkerd install --crds | kubectl apply -f -
+```
+
+### Step 4: Install Linkerd Control Plane
+
+```console
+linkerd install | kubectl apply -f -
+```
+
+### Step 5: Verify Installation
+
+```console
+linkerd check
+```
+
+All checks should pass before continuing.
+
+### Step 6: Install Linkerd Viz (Optional)
+
+For observability dashboards:
+
+```console
+linkerd viz install | kubectl apply -f -
+linkerd viz check
+```
+
+## Configure Okteto for Linkerd
+
+Once Linkerd is installed in the cluster, configure Okteto to automatically inject Linkerd sidecars into all developer namespaces. This is a one-time configuration by the administrator.
+
+### Enable Sidecar Injection
+
+Add the Linkerd annotation to Okteto-managed namespaces by updating your Okteto Helm values:
+
+```yaml
+namespace:
+  annotations:
+    linkerd.io/inject: enabled
+```
+
+Upgrade your Okteto installation:
+
+```console
+helm upgrade okteto okteto/okteto -f values.yaml
+```
+
+### Existing Namespaces
+
+For existing namespaces, add the annotation:
+
+```console
+kubectl annotate namespace <namespace> linkerd.io/inject=enabled
+```
+
+Then restart deployments to inject sidecars:
+
+```console
+kubectl rollout restart deployment -n <namespace>
+```
+
+## How Linkerd Enhances Divert
+
+Once configured by administrators, Linkerd works **transparently for all developers**. Developers don't need to install anything or change their workflow. When they use Divert, they automatically benefit from:
+
+1. **Header-based routing**: Linkerd routes requests based on the `baggage` header at the service mesh level
+2. **Automatic retries**: Failed requests are automatically retried to the correct service
+3. **Load balancing**: Intelligent load balancing across service instances
+4. **mTLS**: Automatic mutual TLS between services for enhanced security
+5. **Observability**: Detailed metrics and tracing for diverted traffic (visible to administrators)
+
+**For developers**: Divert "just works" - no CLI installation or special configuration needed.
+
+### Traffic Flow with Linkerd
+
+```
+Request with baggage header
+         │
+         ▼
+    ┌─────────────┐
+    │   Ingress   │
+    │   (nginx)   │
+    └──────┬──────┘
+           │ (header injected)
+           ▼
+    ┌─────────────┐
+    │   Linkerd   │ ← Routes based on baggage header
+    │   Sidecar   │
+    └──────┬──────┘
+           │
+           ▼
+    ┌─────────────┐
+    │   Service   │ ← Your diverted service
+    │   (local)   │
+    └──────┬──────┘
+           │ (header propagated)
+           ▼
+    ┌─────────────┐
+    │   Linkerd   │ ← Routes downstream call
+    │   Sidecar   │
+    └──────┬──────┘
+           │
+           ▼
+    ┌─────────────┐
+    │   Service   │ ← Shared service in staging
+    │  (staging)  │
+    └─────────────┘
+```
+
+## ServiceProfiles for Routing (Optional)
+
+For fine-grained control, create ServiceProfiles:
+
+```yaml
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: catalog.staging.svc.cluster.local
+  namespace: staging
+spec:
+  routes:
+    - name: GET /api/movies
+      condition:
+        method: GET
+        pathRegex: /api/movies.*
+      responseClasses:
+        - condition:
+            status:
+              min: 200
+              max: 299
+```
+
+## Network Policies Compatibility
+
+If you have network policies enabled (`networkPolicies.enabled: true`), Linkerd works within the existing policy framework. Ensure your policies allow:
+
+- Cross-namespace communication for Divert functionality
+- Traffic to and from Linkerd control plane
+
+Example network policy configuration in your Okteto Helm values:
+
+```yaml
+networkPolicies:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com/okteto-managed: "true"
+```
+
+:::tip
+For complete network policy options, see the [Helm Configuration reference](../../helm-configuration.mdx#networkpolicies).
+:::
+
+## Monitoring Diverted Traffic (Administrator Only)
+
+These monitoring capabilities are available to administrators with the Linkerd CLI. Developers use Divert normally without needing any of these tools.
+
+### Using Linkerd Dashboard
+
+```console
+linkerd viz dashboard
+```
+
+Navigate to the namespace view to see:
+
+- Request rates per service
+- Success rates
+- Latency percentiles
+- Traffic flow between services
+
+### CLI Monitoring
+
+```console
+# Watch traffic to a service
+linkerd viz stat deploy -n <namespace>
+
+# Live traffic tap
+linkerd viz tap deploy/<deployment> -n <namespace>
+```
+
+**Note**: Developers don't need these commands. They use Okteto's standard monitoring and observability features.
+
+## Troubleshooting
+
+### Sidecar Not Injected
+
+1. Verify namespace annotation:
+   ```console
+   kubectl get namespace <namespace> -o jsonpath='{.metadata.annotations}'
+   ```
+
+2. Check Linkerd injection status:
+   ```console
+   kubectl get pods -n <namespace> -o jsonpath='{.items[*].spec.containers[*].name}'
+   ```
+
+3. Restart deployments:
+   ```console
+   kubectl rollout restart deployment -n <namespace>
+   ```
+
+### Header Not Propagating
+
+1. Verify header format: `baggage: okteto-divert=<namespace>`
+2. Check application code propagates headers
+3. Use Linkerd tap to trace the request:
+   ```console
+   linkerd viz tap deploy/<deployment> --to deploy/<target>
+   ```
+
+### Traffic Not Routing Correctly
+
+1. Check ServiceProfile routes if configured
+2. Verify DNS resolution across namespaces
+3. Test direct service communication:
+   ```console
+   kubectl exec -it <pod> -- curl -H "baggage: okteto-divert=<ns>" http://service/path
+   ```
+
+## Uninstalling Linkerd
+
+If you need to remove Linkerd:
+
+```console
+# Remove viz extension
+linkerd viz uninstall | kubectl delete -f -
+
+# Remove control plane
+linkerd uninstall | kubectl delete -f -
+
+# Remove CRDs
+linkerd install --crds | kubectl delete -f -
+```
+
+Update Okteto Helm values to remove the namespace annotation.
+
+## Next Steps
+
+- **[Configure Divert](index.mdx)** - Overview of Divert configuration
+- **[Using Divert](development/using-divert.mdx)** - Developer implementation guide
+- **[Linkerd Documentation](https://linkerd.io/2/overview/)** - Official Linkerd docs

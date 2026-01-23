@@ -67,6 +67,7 @@ module.exports = {
           items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
         },
         'core/namespaces',
+        'core/divert',
         'core/build-service',
         'core/okteto-insights-dashboards',
         'core/okteto-manifest',
@@ -83,6 +84,7 @@ module.exports = {
       link: { type: 'doc', id: 'development/index' },
       items: [
         'development/using-okteto-cli',
+        'development/using-divert',
         {
           type: 'category',
           label: 'Development Containers',
@@ -251,6 +253,14 @@ module.exports = {
                 'self-hosted/install/auth/okta',
                 'self-hosted/install/auth/openid-connect',
                 'self-hosted/install/auth/token',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Configure Divert',
+              link: { type: 'doc', id: 'self-hosted/install/divert/index' },
+              items: [
+                'self-hosted/install/divert/linkerd-installation',
               ],
             },
             'self-hosted/install/github-integration',

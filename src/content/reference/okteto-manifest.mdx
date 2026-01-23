@@ -298,7 +298,25 @@ deploy:
 - `driver`: Specifies the backend to divert requests. Use `nginx` (or leave this field unspecified) to use the default Nginx driver.
 - `namespace`: The namespace that holds the full shareable environment. When a request is directed to a service that wasn't created by the `deploy` command, Okteto will automatically direct it to the environment running on this namespace.
 
-When `divert` is enabled, Okteto injects the key `okteto-divert` within the header [`baggage`](https://www.w3.org/TR/baggage/) into every request that passes through your development ingress. This header allows Okteto to route the request intelligently between services running in your personal namespace and services running in a shared environment.
+**Environment Variable Support:**
+
+The `namespace` field supports environment variable substitution:
+
+```yaml
+divert:
+  namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
+```
+
+**Behavior:**
+
+When you run `okteto deploy` with a `divert` configuration:
+
+1. **Deployment**: Only resources defined in your `deploy.commands` are created in your namespace
+2. **Header Injection**: Okteto injects the key `okteto-divert` within the header [`baggage`](https://www.w3.org/TR/baggage/) into every request that passes through your development ingress
+3. **Traffic Routing**: Requests with your baggage header route to your namespace; missing services fall back to the shared namespace
+4. **DNS Resolution**: Services resolve to the shared namespace when not deployed locally
+
+This header allows Okteto to route the request intelligently between services running in your personal namespace and services running in a shared environment.
 
 :::tip
 To maintain request routing across service boundaries, we recommend propagating the `baggage` (with the key `okteto-divert`) header to all downstream service calls.
@@ -307,8 +325,34 @@ Beyond request routing, this header can also be used to:
 - Redirect requests to services in other namespaces
 - Dynamically select the correct database instance for read/write operations
 
-Check out [this GitHub repository](https://github.com/okteto-community/divert-showcase/) for practical examples of how to integrate Divert into your service communication flows.
+Check out [Using Divert](../development/using-divert.mdx#header-propagation) for language-specific examples of header propagation.
 :::
+
+**Additional Examples:**
+
+With local database:
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install mongodb bitnami/mongodb
+    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+  divert:
+    namespace: staging
+```
+
+Using dependencies with divert:
+```yaml
+dependencies:
+  mongodb:
+    repository: https://github.com/okteto/mongodb
+    wait: true
+
+deploy:
+  commands:
+    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+  divert:
+    namespace: staging
+```
 
 </TabItem>
 
@@ -343,6 +387,13 @@ deploy:
 - `hosts`: The list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the key `okteto-divert` as part of the `baggage` header injected.
 </TabItem>
 </Tabs>
+
+**Related Documentation:**
+
+- **[Divert Core Concepts](../core/divert.mdx)** - Understanding Divert architecture and traffic routing
+- **[Using Divert](../development/using-divert.mdx)** - Implementation guide with header propagation examples
+- **[Divert Tutorial](/docs/tutorials/divert)** - Step-by-step getting started guide
+- **[Self-Hosted Configuration](../self-hosted/install/divert/index.mdx)** - Admin setup for Divert drivers
 
 ### destroy ([string], optional)
 
