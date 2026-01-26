@@ -1,0 +1,199 @@
+---
+title: Configure Divert
+description: Admin guide for configuring Divert drivers in self-hosted Okteto
+sidebar_label: Configure Divert
+---
+
+Divert enables developers to create lightweight development environments that deploy only the services they're actively working on, while routing traffic to shared services for everything else. This section covers the administrative setup required to enable Divert in your Okteto installation.
+
+## Divert Drivers
+
+Okteto supports two drivers for Divert routing:
+
+| Driver | Description | Default | Purpose |
+|--------|-------------|---------|---------|
+| **nginx** | Uses Okteto's built-in nginx ingress controller | ✅ Yes | Standard installations with Okteto-managed routing |
+| **istio** | Uses Istio's VirtualService for header-based routing | No | Environments with existing Istio service mesh |
+
+:::info Important Distinction
+**Istio and Linkerd serve different purposes:**
+- **Istio** is a **divert driver** - an alternative to the nginx driver for environments already using Istio
+- **Linkerd** is an **optional enhancement** for the **nginx driver** - it adds service mesh capabilities to nginx-based routing
+- You **cannot** use both Istio driver and Linkerd together
+- Choose one: nginx driver (with optional Linkerd) **OR** istio driver
+:::
+
+## nginx Driver (Default)
+
+The nginx driver is enabled by default in Okteto installations. It uses the `okteto-nginx` ingress controller to inject and route based on the `baggage: okteto-divert=<namespace>` header.
+
+### Requirements
+
+- Standard Okteto installation (no additional configuration needed)
+- Optional: [Linkerd service mesh](linkerd-installation.mdx) for enhanced service-to-service routing
+
+### How It Works
+
+1. When a developer deploys with `divert` configuration, Okteto creates ingress rules that inject the baggage header
+2. Requests through the developer's endpoint automatically include `baggage: okteto-divert=<namespace>`
+3. The nginx ingress controller routes requests to the appropriate namespace based on this header
+4. For service-to-service communication, applications must propagate the baggage header
+
+### Linkerd Integration (Optional)
+
+For enhanced service mesh capabilities with the nginx driver, you can install Linkerd. This provides:
+
+- Header-based routing at the service mesh level
+- Automatic mTLS between services
+- Advanced traffic management and observability
+- Improved reliability with retries and circuit breaking
+
+See [Linkerd Installation](linkerd-installation.mdx) for setup instructions.
+
+## istio Driver
+
+The istio driver is designed for environments that already use Istio for service mesh. It leverages Istio's VirtualService for header-based routing without requiring additional components.
+
+:::warning
+The istio driver is for environments that have **already installed Istio** and prefer Istio-native routing. If you don't have Istio, use the nginx driver instead. Do not install Istio just for Divert - the nginx driver is simpler and sufficient.
+:::
+
+### Requirements
+
+- Okteto configured with Istio ingress mode
+- Istio service mesh installed in the cluster
+- Istio sidecar injection enabled for Okteto-managed namespaces
+
+### Helm Configuration
+
+To enable Istio support, add the following to your Okteto Helm values:
+
+```yaml
+# Disable the default okteto-nginx since we're using Istio
+okteto-nginx:
+  enabled: false
+
+# Enable VirtualService endpoints in the UI
+virtualServices:
+  enabled: true
+
+# Enable Istio sidecar injection for all Okteto namespaces
+namespace:
+  labels:
+    istio-injection: enabled
+```
+
+### Istio Installation
+
+See the [Istio Divert Sample](https://github.com/okteto/divert-with-istio-sample) for detailed installation instructions, including:
+
+- Installing Istio base, istiod, and ingress gateway
+- Configuring the Istio ingress for Okteto
+- Setting up SSL/TLS certificates
+
+### How It Works (Istio)
+
+1. When a developer deploys with `divert` and `driver: istio`, Okteto:
+   - Creates/modifies VirtualServices to route based on the baggage header
+   - Clones the specified host VirtualServices to the developer namespace for header injection
+2. Requests through the developer's endpoint include the baggage header
+3. Istio's routing rules direct traffic to the appropriate namespace
+4. The Istio sidecar propagates headers through the service mesh
+
+## Developer Configuration
+
+Once an administrator has configured the Divert infrastructure, developers use the `divert` section in their `okteto.yaml`:
+
+### nginx Driver Example
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install myservice chart
+  divert:
+    driver: nginx  # Optional, this is the default
+    namespace: staging
+```
+
+### istio Driver Example
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install myservice chart
+  divert:
+    driver: istio
+    virtualServices:
+      - name: frontend-vs
+        namespace: staging
+        routes:
+          - main-route
+    hosts:
+      - virtualService: frontend
+        namespace: staging
+```
+
+## Header Format
+
+Both drivers use the same header format (unified in Okteto 1.31+):
+
+```
+baggage: okteto-divert=<namespace>
+```
+
+For backward compatibility with older nginx driver installations, the header `baggage.okteto-divert` is also supported but deprecated.
+
+## Network Policies
+
+If you have network policies enabled in your Okteto installation, ensure they allow cross-namespace communication for Divert to function properly.
+
+### Configuring Network Policies
+
+If using `networkPolicies.enabled: true` in your Helm values, add rules to allow:
+
+- Cross-namespace communication between developer namespaces and shared namespaces
+- Traffic from the ingress controller to all namespaces
+
+Example configuration in your Helm values:
+
+```yaml
+networkPolicies:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com/okteto-managed: "true"
+```
+
+:::tip
+For complete network policy configuration options, see the [Helm Configuration reference](../../helm-configuration.mdx#networkpolicies).
+:::
+
+## Troubleshooting
+
+### Divert Not Working
+
+1. **Check driver configuration**: Ensure the correct driver is installed and configured
+2. **Verify header propagation**: Test with `curl -H "baggage: okteto-divert=<namespace>"` to confirm routing works
+3. **Check namespace labels**: For Istio, verify `istio-injection: enabled` label exists
+4. **Review ingress configuration**: Ensure ingress rules are being created correctly
+
+### VirtualServices Not Appearing (Istio)
+
+1. Verify `virtualServices.enabled: true` in Helm values
+2. Check that Istio CRDs are installed
+3. Ensure the VirtualService is in a namespace managed by Okteto
+
+### Cross-Namespace Communication Failing
+
+1. Check network policies allow the traffic (see [Network Policies section](#network-policies))
+2. Verify DNS resolution works across namespaces
+3. Test direct pod-to-pod communication to isolate the issue
+
+## Next Steps
+
+- **[Linkerd Installation](linkerd-installation.mdx)** - Enhanced routing with Linkerd (nginx driver only)
+- **[Using Divert](development/using-divert.mdx)** - Developer implementation guide
+- **[Divert Tutorial](/docs/tutorials/divert)** - Getting started guide for developers
+- **[Core Concepts](core/divert.mdx)** - Understanding Divert architecture

@@ -15,10 +15,12 @@ module.exports = {
   onBrokenAnchors: 'throw',
   onDuplicateRoutes: 'warn',
   markdown: {
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'throw',
     },
   },
+  themes: ['@docusaurus/theme-mermaid'],
   customFields: {
     image: 'https://www.okteto.com/docs/okteto-meta-image.png',
   },
