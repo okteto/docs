@@ -74,6 +74,30 @@ Each BuildKit pod displays one of the following statuses:
 - **Stopping**: The pod is gracefully terminating, allowing active builds to complete.
 - **Error**: The pod has encountered an error.
 
+### Restarting a BuildKit Pod
+
+Administrators can restart individual BuildKit pods directly from the dashboard. This terminates the existing pod and creates a new one.
+
+#### When to Restart
+
+- **Stuck builds**: A build appears hung with no progress
+- **Repeated failures**: Builds are failing consistently on a specific pod
+- **Pod errors**: The pod shows an error status that hasn't self-resolved
+- **Performance degradation**: A pod is underperforming compared to others
+
+#### What Happens When You Restart
+
+- **Active builds are retried**: Builds running on that pod are automatically retried on another available pod, or on this pod once it's recreated
+- **Queued builds reroute**: If the build queue is enabled, waiting builds are routed to other available pods
+- **Cache is preserved**: The build cache is stored on a persistent volume and survives the restart
+- **Typical recovery time**: 30-60 seconds for the new pod to become ready
+
+#### How to Restart
+
+1. Locate the pod you want to restart in the Build Service dashboard
+2. Click the **Restart** button (or the overflow menu → **Restart**)
+3. Review the confirmation dialog and click **Restart** to confirm
+
 ### Disabling the Queue
 
 The build queue can be disabled by setting the `OKTETO_BUILD_QUEUE_ENABLED` [feature flag](reference/feature-flags.mdx) to `false`. When disabled, builds are sent immediately to an arbitrary BuildKit pod, regardless of resource utilization or configured thresholds.
