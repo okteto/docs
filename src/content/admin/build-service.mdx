@@ -19,6 +19,11 @@ The admin dashboard provides visibility into BuildKit pod health, resource utili
 
 For more information about optimizing BuildKit performance, see the [BuildKit High Performance guide](self-hosted/manage/buildkit-high-performance.mdx).
 
+## Enabling the Queue
+
+The build queue enables smarter resource allocation by routing builds to the least-loaded server and holding requests when all servers are at capacity. This prevents overload during peak usage and delivers more predictable build performance. \
+Enable it by setting the `OKTETO_BUILD_QUEUE_ENABLED` [feature flag](reference/feature-flags.mdx) to `true`. Build service queueing will become the default behavior in a later Okteto release.
+
 ## Accessing the Build Service Dashboard
 
 Navigate to **Admin → Build Service** in the Okteto UI to access the Build Service management interface.
@@ -68,6 +73,30 @@ Each BuildKit pod displays one of the following statuses:
 - **Starting**: The pod is initializing and not yet ready to accept builds.
 - **Stopping**: The pod is gracefully terminating, allowing active builds to complete.
 - **Error**: The pod has encountered an error.
+
+### Restarting a BuildKit Pod
+
+Administrators can restart individual BuildKit pods directly from the dashboard. This terminates the existing pod and creates a new one.
+
+#### When to Restart
+
+- **Stuck builds**: A build appears hung with no progress
+- **Repeated failures**: Builds are failing consistently on a specific pod
+- **Pod errors**: The pod shows an error status that hasn't self-resolved
+- **Performance degradation**: A pod is underperforming compared to others
+
+#### What Happens When You Restart
+
+- **Active builds are retried**: Builds running on that pod are automatically retried on another available pod, or on this pod once it's recreated
+- **Queued builds reroute**: If the build queue is enabled, waiting builds are routed to other available pods
+- **Cache is preserved**: The build cache is stored on a persistent volume and survives the restart
+- **Typical recovery time**: 30-60 seconds for the new pod to become ready
+
+#### How to Restart
+
+1. Locate the pod you want to restart in the Build Service dashboard
+2. Click the **Restart** button (or the overflow menu → **Restart**)
+3. Review the confirmation dialog and click **Restart** to confirm
 
 ### Disabling the Queue
 
