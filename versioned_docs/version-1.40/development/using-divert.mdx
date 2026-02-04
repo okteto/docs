@@ -365,23 +365,181 @@ Others can access your diverted environment using:
 
 ## Troubleshooting
 
+This section covers common issues developers encounter when using Divert. For admin-level troubleshooting, see [Configure Divert](../self-hosted/install/divert/index.mdx#troubleshooting).
+
+### Verify Sidecar Injection (nginx driver)
+
+**Check if Linkerd sidecar is running:**
+```bash
+kubectl get pods -n <your-namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
+```
+
+Should show both your application container and `linkerd-proxy`.
+
+**If sidecar is missing:**
+```bash
+# Check namespace annotation
+kubectl get namespace <your-namespace> -o jsonpath='{.metadata.annotations}'
+
+# Restart deployment to trigger injection
+kubectl rollout restart deployment/<your-deployment> -n <your-namespace>
+```
+
+### Check Ingress Controller
+
+**Verify ingress is created:**
+```bash
+kubectl get ingress -n <your-namespace>
+```
+
+Should show your service ingress with divert annotations.
+
+**Check ingress controller logs:**
+```bash
+kubectl logs -n okteto deployment/okteto-nginx -f | grep <your-namespace>
+```
+
+### Verify Linkerd Deployment (nginx driver)
+
+**Check Linkerd control plane:**
+```bash
+# Quick health check
+linkerd check
+
+# Or manually verify deployments
+kubectl get deployments -n linkerd
+```
+
+**Watch traffic flow:**
+```bash
+linkerd viz tap deployment/<your-deployment> --namespace <your-namespace>
+```
+
+### Header Propagation Issues
+
+**Test header at ingress:**
+```bash
+curl -v https://your-app.okteto.example.com 2>&1 | grep -i baggage
+# Should see: baggage: okteto-divert=<your-namespace>
+```
+
+**Verify header format:**
+```bash
+# ✅ Correct
+baggage: okteto-divert=alice-feature
+
+# ❌ Incorrect
+baggage.okteto-divert=alice-feature
+okteto-divert: alice-feature
+```
+
+**Check application code:**
+- Ensure all services propagate the `baggage` header to downstream calls
+- Add logging at service boundaries: `console.log('Baggage header:', req.headers['baggage'])`
+- Verify header exists in: HTTP clients, gRPC calls, message queue producers
+
+**Test service-to-service routing:**
+```bash
+kubectl exec -it deployment/<your-service> -n <your-namespace> -- \
+  curl -H "baggage: okteto-divert=<your-namespace>" \
+  http://api-service/endpoint
+```
+
 ### Traffic Not Being Diverted
 
 1. **Check header format**: Ensure you're using `baggage: okteto-divert=<namespace>` (not `baggage.okteto-divert`)
 2. **Verify header propagation**: All services in the call chain must forward the baggage header
 3. **Check namespace name**: The namespace in the header must match your Okteto namespace exactly
+4. **Verify divert config**: In your `okteto.yaml`:
+   ```yaml
+   deploy:
+     divert:
+       namespace: staging  # Must match shared environment
+       driver: nginx       # Must match cluster config
+   ```
 
 ### Services Not Discovered
 
 1. **Verify shared namespace**: Ensure the shared namespace is running and healthy
-2. **Check service names**: Service discovery uses Kubernetes DNS (`<service>.<namespace>.svc.cluster.local`)
+   ```bash
+   kubectl get pods -n staging
+   # All pods should be Running
+   ```
+
+2. **Check service names**: Service discovery uses Kubernetes DNS
+   ```bash
+   # Services are accessible at:
+   <service-name>.<namespace>.svc.cluster.local
+
+   # Test DNS resolution:
+   kubectl exec -it deployment/<your-service> -- \
+     nslookup api-service.staging.svc.cluster.local
+   ```
+
 3. **Review divert config**: Ensure `divert.namespace` points to the correct shared environment
+
+4. **Check network policies**:
+   ```bash
+   kubectl get networkpolicies -n staging
+   kubectl get networkpolicies -n <your-namespace>
+   # Ensure cross-namespace communication is allowed
+   ```
 
 ### Database Connection Issues
 
 1. **Check connection strings**: Ensure they resolve to the correct database (shared vs. local)
+   ```bash
+   # For shared database:
+   postgresql.staging.svc.cluster.local
+
+   # For local database:
+   postgresql.<your-namespace>.svc.cluster.local
+   ```
+
 2. **Verify network policies**: Ensure cross-namespace communication is allowed
+   ```bash
+   # Test connectivity
+   kubectl exec -it deployment/<your-service> -n <your-namespace> -- \
+     nc -zv postgresql.staging.svc.cluster.local 5432
+   ```
+
 3. **Test connectivity**: Use `kubectl exec` to test database connectivity from your pod
+   ```bash
+   kubectl exec -it deployment/<your-service> -n <your-namespace> -- \
+     psql -h postgresql.staging.svc.cluster.local -U user -d database
+   ```
+
+### Quick Diagnostic Checklist
+
+Run through this checklist when troubleshooting:
+
+- [ ] Linkerd sidecars are running in your pods (nginx driver)
+- [ ] Ingress is created with correct annotations
+- [ ] Shared namespace exists and all services are Running
+- [ ] Header format is correct: `baggage: okteto-divert=<namespace>`
+- [ ] Application code propagates headers to all downstream calls
+- [ ] DNS resolves shared services: `<service>.staging.svc.cluster.local`
+- [ ] Network policies allow cross-namespace traffic
+- [ ] `divert.namespace` in okteto.yaml matches shared environment
+
+### Getting Additional Help
+
+If issues persist:
+
+1. **Check pod logs**:
+   ```bash
+   kubectl logs deployment/<your-deployment> -n <your-namespace>
+   ```
+
+2. **Review pod events**:
+   ```bash
+   kubectl describe pod <pod-name> -n <your-namespace>
+   ```
+
+3. **Consult related documentation**:
+   - [Divert Core Concepts](../core/divert.mdx#troubleshooting) - Architecture and setup troubleshooting
+   - [Configure Divert](../self-hosted/install/divert/index.mdx#troubleshooting) - Admin configuration issues
+   - [Linkerd Installation](../self-hosted/install/divert/linkerd-installation.mdx#troubleshooting) - Service mesh issues
 
 ## Best Practices
 
