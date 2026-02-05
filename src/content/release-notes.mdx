@@ -7,19 +7,36 @@ id: release-notes
 
 ## 1.41.0
 
-TBD
+9 February 2026
 
 This version is compatible with Kubernetes versions 1.32 to 1.34 \
 Okteto Chart release 1.41 is designed to work with [Okteto CLI 3.16.x](https://github.com/okteto/okteto/releases/tag/3.16.0)
 
 ### New Features {#new-features-1.41}
 
-- **Build Queue System**: Okteto now implements a build queue system that ensures consistent build performance and fair resource distribution. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics (CPU pressure, memory usage, and IOPS). When all build pods are busy, builds enter a queue and wait until resources become available, preventing overload and ensuring predictable build times. This behavior is disabled by default but can be enable it by setting the `OKTETO_BUILD_QUEUE_ENABLED` feature flag to `true` via [Admin Variables](admin/dashboard.mdx#admin-variables). Learn more about the [Build Queue System](core/build-service.mdx#build-queue-system)
+- **Build Queue System**: Okteto now implements a build queue system that ensures consistent build performance and fair resource distribution. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics (CPU pressure, memory usage, and IOPS). When all build pods are busy, builds enter a queue and wait until resources become available, preventing overload and ensuring predictable build times. This behavior is disabled by default but can be enabled by setting the `OKTETO_BUILD_QUEUE_ENABLED` feature flag to `true` via [Admin Variables](admin/dashboard.mdx#admin-variables). Learn more about the [Build Queue System](core/build-service.mdx#build-queue-system)
 
 ### Improvements {#improvements-1.41}
 
 - **Configurable Build Service Thresholds**: Administrators can now configure resource thresholds (CPU pressure, memory usage, and IOPS) directly from the [Build Service admin dashboard](admin/build-service.mdx) to fine-tune when build pods are considered busy
-- **Server-Side Apply Support**: The Okteto CLI now properly handles resources created via server-side apply (SSA), ensuring Helm 4-created resources are correctly grouped in the UI and cleanup operations work as expected
+- **Restart Build Pods**: Administrators can now [restart individual build service pods directly from the Okteto Admin panel](admin/build-service.mdx#restarting-a-buildkit-pod). This makes it easier to recover from build service issues without requiring CLI access or contacting Okteto support.
+- **Configurable Autoscaler Eviction Behavior**: By default, Okteto adds the `cluster-autoscaler.kubernetes.io/safe-to-evict: true` annotation to all pods in managed namespaces, enabling aggressive node downscaling. This can disrupt developers working outside standard business hours. Administrators can now customize this behavior via Helm:
+```yaml
+unsupported:
+  addSafeToEvictAnnotation:
+    enabled: true   # Whether Okteto adds the annotation
+    value: true     # Annotation value (set to false for balanced downscaling)
+```
+Setting `value: false` tells the cluster autoscaler to avoid evicting Okteto-managed pods during scale-down, preserving active sessions. If the annotation is already present on a pod, Okteto will not overwrite it. The default behavior is unchanged from previous releases.
+- [Okteto CLI 3.16.0](https://github.com/okteto/okteto/releases/tag/3.16.0) All container logs are now included with `okteto doctor`
+
+### Bug Fixes {#bug-fixes-1.41}
+
+- **Activity Metrics Accuracy Fix**: Fixed an issue affecting instances with personal namespace garbage collection enabled, where system-initiated garbage collection operations were incorrectly counted as user activity, inflating usage metrics. The root cause was a loop where personal namespaces cycled between sleeping and active states, generating repeated system operations. Both issues are now resolved, ensuring reliable activity data and accurate namespace state reporting.
+- **Pod Affinity Fix for Shared Volumes**: Fixed an issue where pods sharing persistent volume claims (PVCs) were not always scheduled on the same node. This ensures that services using shared storage in okteto up are correctly co-located.
+- [Okteto CLI 3.16.0](https://github.com/okteto/okteto/releases/tag/3.16.0) Improved handling of transient network errors during builds, reducing false failures caused by temporary connectivity issues
+
+
 
 ## 1.40.0
 
@@ -63,7 +80,7 @@ Okteto Chart release 1.39 is designed to work with [Okteto CLI 3.14.x](https://g
 
 ### New Features {#new-features-1.39}
 
-- **Build Service Admin Dashboard** – Administrators can now monitor BuildKit performance and resource utilization through a new [Build Service dashboard](admin/build-service.mdx). Track real-time metrics including CPU pressure, memory usage, I/O pressure, and active builds for each BuildKit pod to ensure optimal build performance across your Okteto instance
+- **Build Service Admin Dashboard**: Administrators can now monitor BuildKit performance and resource utilization through a new [Build Service dashboard](admin/build-service.mdx). Track real-time metrics including CPU pressure, memory usage, I/O pressure, and active builds for each BuildKit pod to ensure optimal build performance across your Okteto instance
 
 ### Improvements {#improvements-1.39}
 
