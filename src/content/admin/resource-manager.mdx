@@ -31,6 +31,7 @@ It calculates the average usage and automatically adjusts the resource requests 
 1. Average Calculation: It calculates the average CPU and memory usage for each container family (grouped by development environment, controller name, and container name)
 1. Recommendation Generation: The Resource Manager generates new resource requests based on the average usage, applying a correction factor to ensure efficiency
 1. Automatic Application: When a new pod is created, the recommended resource requests are automatically applied unless overridden the annotation `dev.okteto.com/resource-manager: false`
+1. Data lifecycle: The Resource Manager keeps only ephemeral, aggregated state in Redis (persistence is disabled by default): it stores a running average (on first run RM reads the average from the Metrics Server; subsequent runs update that value by combining the new Metrics Server reading with the value in Redis). RM does not retain full historical time-series. If the Redis store is wiped the Resource Manager will simply recalculate and repopulate the aggregates on its next scheduled run (default: every 5 minutes); that cadence is configurable in the self-hosted Helm chart under the resourcemanager schedule property. 
 
 ## Configuring the Resource Manager
 ### Enabling the Resource Manager
