@@ -136,3 +136,37 @@ Developers have read access to Global Preview Environments, enabling them to tro
 - ✅ The role has permission to perform this action
 - ❌ The role does not have permission to perform this action
 - **-** This action is not applicable to the role or context
+
+## Kubernetes RBAC Model
+
+In addition to the Okteto platform roles described above, Okteto configures Kubernetes RBAC resources in each namespace it manages. This section explains how those permissions work at the Kubernetes level.
+
+### Namespace-scoped RoleBindings
+
+Okteto creates a **RoleBinding** in each developer namespace that grants the `cluster-admin` [ClusterRole](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles) to every admin, owner, and member of that namespace. Although the ClusterRole is named `cluster-admin`, the RoleBinding is **namespace-scoped** — it only grants permissions within that specific namespace, not across the entire cluster.
+
+You can think of this as: **every developer is an admin of their own namespaces**. Users cannot access or modify resources outside the namespaces they own or have been granted access to.
+
+### Default ServiceAccount binding
+
+By default, Okteto also binds the `default` ServiceAccount in each namespace to the same ClusterRole through a separate namespace-scoped RoleBinding. This is controlled by the [`namespace.autoRoleBinding.enabled`](self-hosted/helm-configuration.mdx#namespace) setting (defaults to `true`).
+
+This means pods that don't specify a custom ServiceAccount will have Kubernetes API access scoped to their own namespace. If your security policy requires restricting pod-level API access, you can disable this by setting `namespace.autoRoleBinding.enabled` to `false` in your [Helm configuration](self-hosted/helm-configuration.mdx#namespace).
+
+### Okteto control plane ServiceAccount
+
+The ServiceAccount in the `okteto` namespace is used by the Okteto control plane itself. This account has cluster-wide permissions because the control plane needs to create and manage namespaces, service accounts, role bindings, and other cluster-level resources on behalf of users. This is separate from the namespace-scoped permissions granted to developer namespaces.
+
+### Customizing namespace roles
+
+You can change the ClusterRole assigned in developer namespaces through the [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts) Helm configuration value. For example, to use a more restrictive role:
+
+```yaml
+serviceAccounts:
+  roleBindings:
+    namespaces: my-custom-role
+```
+
+The ClusterRole you specify must already exist in the cluster — Okteto does not create it. If you need to combine multiple ClusterRoles, use [ClusterRole aggregation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles).
+
+For global preview environments, the role is configured separately via [`serviceAccounts.roleBindings.previews`](self-hosted/helm-configuration.mdx#serviceaccounts) (defaults to `view`).
