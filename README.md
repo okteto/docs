@@ -165,7 +165,7 @@ Tiers is a `string` of tier separated by a space
 
 ### Image
 
-Since many of our images are used across multiple versions, if a screenshot is updated but should only apply to certain versions, please create a new image with the version number included in the filename. For example, `my-image-v1.22+.png`.
+Since many of our images are used across multiple versions, if a screenshot is updated but should only apply to certain versions, please create a new image with the version number included in the filename using the `+X.Y` suffix convention. For example, `my-image+1.22.png`.
 
 ##### Usage
 
@@ -174,7 +174,7 @@ import Image from "@theme/Image";
 
 <p align="center">
   <Image
-    src={require("@site/static/img/my-image-v1.22+.png").default}
+    src={require("@site/static/img/my-image+1.22.png").default}
     alt="Movies app architecture"
     width="850"
   />
