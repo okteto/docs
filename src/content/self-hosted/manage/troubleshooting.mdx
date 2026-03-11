@@ -408,6 +408,31 @@ kubectl get events -n okteto --sort-by=.lastTimestamp | tail -n 40
 kubectl describe pod <pod-name>
 ```
 
+## Daemon fails with “open /etc/hosts: permission denied”
+
+If the `okteto-daemon` pods fail with an error like:
+
+```json
+{“level”:”fatal”,”service”:”daemon”,”error”:”open /etc/hosts: permission denied”,”timestamp”:”...”,”message”:”tasks initialization failed”}
+```
+
+This means the node's operating system does not allow Okteto to modify the `/etc/hosts` file. Okteto requires write access to `/etc/hosts` on cluster nodes to configure [internal registry resolution](self-hosted/helm-configuration.mdx#overrideregistryresolution).
+
+**This commonly happens when using an unsupported node OS**, such as [Bottlerocket](https://aws.amazon.com/bottlerocket/) on AWS EKS. Bottlerocket uses a read-only root filesystem, which prevents Okteto from writing to `/etc/hosts`.
+
+To resolve this issue:
+
+1. **Switch to a supported node OS.** On AWS EKS, use Amazon Linux 2023 (AL2023) or Amazon Linux 2 (AL2). See [Amazon EKS installation requirements](get-started/install/amazon-eks.mdx) for details.
+2. **Recreate your node group** with the supported AMI family. For example, using `eksctl`:
+   ```bash
+   eksctl create nodegroup \
+     --cluster=”${CLUSTER_NAME}” \
+     --region=”${AWS_REGION}” \
+     --node-type=”m5.xlarge” \
+     --node-ami-family=”AmazonLinux2023”
+   ```
+3. **Drain and delete the old node group** running the unsupported OS.
+
 ## UPGRADE FAILED: “okteto” has no deployed releases
 
 This error will occur on your second install/upgrade if your initial install failed. If the first install failed, delete the existing install before trying again:
