@@ -5,6 +5,50 @@ sidebar_label: Release notes
 id: release-notes
 ---
 
+import Image from '@theme/Image';
+
+## 1.42.0
+
+12 March 2026
+
+This version is compatible with Kubernetes versions 1.32 to 1.34 \
+Okteto Chart release 1.42 is designed to work with [Okteto CLI 3.17.x](https://github.com/okteto/okteto/releases/tag/3.17.0)
+
+### Deprecation Notice {#deprecation-notice-1.42}
+
+- ⚠️ Important: **Support for Kubernetes [1.32](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.32.md) will be removed in the next release** (1.43). Support for Kubernetes [1.35](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.35.md) will be added. Please plan your cluster upgrades accordingly.
+
+### New Features {#new-features-1.42}
+
+- **Build Queue Enabled by Default**: The [build queue system](core/build-service.mdx#build-queue-system) introduced as opt-in in 1.41 is now enabled by default. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics, and when all build pods are busy, builds enter a queue to ensure consistent performance. Customers on significantly older CLI versions will continue using the legacy build path automatically. If you need to opt out, set the admin variable `OKTETO_BUILD_QUEUE_ENABLED` to `false` via [Admin Variables](admin/dashboard.mdx#admin-variables)
+
+### Improvements {#improvements-1.42}
+
+- **Persistent Namespace and Preview Indicators**: The "Keep Awake" option has been renamed to "Persistent" across the Dashboard and CLI for consistency. Namespaces and Preview Environments marked as [persistent](core/namespaces.mdx#mark-a-namespace-as-persistent-to-prevent-it-from-sleeping-and-deletion) now display a visual indicator in both the Okteto Dashboard and the CLI (`okteto namespace list` and `okteto preview list`), making it easier to identify which environments are exempt from automatic sleep and garbage collection <!-- 9986 -->
+- Updated the Deploy dialog UI with a new drawer design for improved consistency across the Dashboard <!-- DEV-1263 -->
+  <p align="center">
+    <video autoPlay loop muted playsInline style={{ maxWidth: "800px", width: "100%", height: "auto" }}>
+      <source src={require("@site/static/img/deploy-dialog.webm").default} type="video/webm" />
+      <source src={require("@site/static/img/deploy-dialog.mp4").default} type="video/mp4" />
+    </video>
+  </p>
+
+### Bug Fixes {#bug-fixes-1.42}
+- Fixed a panic in the API that occurred in rare situations where a Kubernetes resource was restarting and the error message was not provided by Kubernetes, which caused the API container to restart
+
+## 1.41.1
+
+17 February 2026
+
+This version is compatible with Kubernetes versions 1.32 to 1.34 \
+Okteto Chart release 1.41 is designed to work with [Okteto CLI 3.16.x](https://github.com/okteto/okteto/releases/tag/3.16.0)
+
+### Security {#security-1.41}
+
+Fixed a critical vulnerability in the OAuth2 authentication flow that could allow an attacker to steal user credentials. We are not aware of any exploitation of this vulnerability in the wild.
+
+We recommend all self-hosted customers upgrade to 1.41.1 as soon as possible. Full details will be published at a later date.
+
 ## 1.41.0
 
 6 February 2026
@@ -34,6 +78,19 @@ Okteto Chart release 1.41 is designed to work with [Okteto CLI 3.16.x](https://g
 - [Okteto CLI 3.16.0](https://github.com/okteto/okteto/releases/tag/3.16.0) Improved handling of transient network errors during builds, reducing false failures caused by temporary connectivity issues
 
 
+
+## 1.40.1
+
+17 February 2026
+
+This version is compatible with Kubernetes versions 1.32 to 1.34 \
+Okteto Chart release 1.40 is designed to work with [Okteto CLI 3.15.x](https://github.com/okteto/okteto/releases/tag/3.15.0)
+
+### Security {#security-1.40}
+
+Fixed a critical vulnerability in the OAuth2 authentication flow that could allow an attacker to steal user credentials. We are not aware of any exploitation of this vulnerability in the wild.
+
+We recommend all self-hosted customers upgrade to 1.40.1 as soon as possible. Full details will be published at a later date.
 
 ## 1.40.0
 
@@ -67,6 +124,19 @@ Okteto Chart release 1.40 is designed to work with [Okteto CLI 3.15.x](https://g
 ### Removal Notice {#removal-notice-1.40}
 - Support for Kubernetes [1.31](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.31.md) has been removed in this release.
 
+
+## 1.39.1
+
+17 February 2026
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.39 is designed to work with [Okteto CLI 3.14.x](https://github.com/okteto/okteto/releases/tag/3.14.0)
+
+### Security {#security-1.39}
+
+Fixed a critical vulnerability in the OAuth2 authentication flow that could allow an attacker to steal user credentials. We are not aware of any exploitation of this vulnerability in the wild.
+
+We recommend all self-hosted customers upgrade to 1.39.1 as soon as possible. Full details will be published at a later date.
 
 ## 1.39.0
 
@@ -184,7 +254,7 @@ Okteto Chart release 1.37 is designed to work with [Okteto CLI 3.12.x](https://g
 
 ### Breaking Changes {#breaking-changes-1.37}
 
-- Removed the dependency on the Bitnami Redis Helm chart. Okteto now ships its own [Kubernetes templates to deploy Redis](self-hosted/helm-configuration.mdx#redis) <!-- 9663 -->
+- Removed the dependency on the Bitnami Redis Helm chart. Okteto now ships its own Kubernetes templates to deploy Redis. As part of this change, the workload has been updated from a StatefulSet to a Deployment, and the available Redis configuration options [have been reduced and standardized](self-hosted/helm-configuration.mdx#redis). If you previously customized Redis using Bitnami-specific values, review and update your Helm values to align with the supported configuration before upgrading. <!-- 9663 -->
 - We've changed the [default value of `pullAlways` to **false**](self-hosted/helm-configuration.mdx#pullalways) for pods deployed in Okteto-managed namespaces. This speeds up pod creation when images are already present on the node, while still allowing `pullAlways` to be explicitly enabled if needed <!-- 9690 -->
 
 ### New Features {#new-features-1.37}
@@ -499,37 +569,3 @@ Okteto Chart release 1.30 is designed to work with [Okteto CLI 3.5.x](https://gi
 ### Removal Notice {#removal-notice-1.30}
 
 - Support for Kubernetes [1.28](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.28.md) has been removed in this release.
-
-
-## 1.29.0
-
-7 February 2025
-
-This version is compatible with Kubernetes versions 1.28 to 1.31 \
-Okteto Chart release 1.29 is designed to work with [Okteto CLI 3.4.x](https://github.com/okteto/okteto/releases/tag/3.4.0)
-
-
-### New Features {#new-features-1.29}
-
-- Added support for [Kubernetes 1.31](https://kubernetes.io/blog/2024/08/13/kubernetes-v1-31-release/)  <!-- 9081 -->
-- Personal Namespaces can now be [included in your Garbage Collection Policy](admin/cleanup.mdx#applying-garbage-collection-to-personal-namespaces) <!-- 9056 -->
-  - Personal Namespaces themselves will not be deleted, but their unused resources (e.g., Pods, Services, ConfigMaps) will be removed following the Sleep and Delete Period settings
-  - To leave developer workflows untouched, Persistent Volume Claims (PVCs) within Personal Namespaces will not be deleted as part of this process
-- Introducing the [Okteto API (Beta)](admin/okteto-api.mdx)! 🎉 Now you can get programmatic information on namespaces and applications with authenticated API requests. Access the full API documentation via the Okteto Dashboard under **Admin → Admin Access Tokens**
-
-### Improvements {#improvements-1.29}
-
-- [Okteto CLI 3.4.0](https://github.com/okteto/okteto/releases/tag/3.4.0): Optimized image building in `okteto up`: Now, only the necessary images required for the process are built, instead of building all images. This reduces build times, speeds up environment startup, and minimizes unnecessary resource usage
-- [Okteto CLI 3.4.0](https://github.com/okteto/okteto/releases/tag/3.4.0): Improve warnings when a CLI user has a different version than within the accepted range set by the Okteto Admin
-- Added a warning for users on older browsers that may have compatibility issues
-
-
-### Bug Fixes {#bug-fixes-1.29}
-
-- Fixed an issue where [Divert](reference/okteto-manifest.mdx#divert) would not work with Docker Compose as intended
-- Buildkit in rootless mode when running in Kubernetes 1.30 no longer adds a deprecated annotation <!-- 9070 -->
-- Fixed an issue where Okteto failed to inject the ingress-nginx controller’s private IP in Okteto components when the service name was too long
-
-### Removal Notice {#removal-notice-1.29}
-
-- Support for Kubernetes [1.27](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.27.md) has been removed in this release.

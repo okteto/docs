@@ -245,20 +245,25 @@ module.exports = {
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.40',
+          lastVersion: '1.41',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.41',
-              path: '1.41',
+              label: '1.42',
+              path: '1.42',
             },
-            '1.40': {
+            '1.41': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.40',
+              label: '1.41',
               path: '/',
               banner: 'none',
+            },
+            '1.40': {
+              label: '1.40',
+              path: '1.40',
+              banner: 'unmaintained',
             },
             '1.39': {
               label: '1.39',
@@ -278,11 +283,6 @@ module.exports = {
             '1.36': {
               label: '1.36',
               path: '1.36',
-              banner: 'unmaintained',
-            },
-            '1.35': {
-              label: '1.35',
-              path: '1.35',
               banner: 'unmaintained',
             }
           },
