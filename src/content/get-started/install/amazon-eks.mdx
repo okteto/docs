@@ -101,16 +101,29 @@ export AWS_PAGER=""
 For initial evaluation, we recommend a Kubernetes cluster with a pool of 3 `m5.xlarge` nodes with 250 GB each:
 
 ```bash
-eksctl create cluster \
-  --region="${AWS_REGION}" \
-  --name="${CLUSTER_NAME}" \
-  --with-oidc \
-  --version="${K8S_VERSION}" \
-  --nodes=3 \
-  --node-type="m5.xlarge" \
-  --node-volume-size="250" \
-  --node-volume-type="gp3" \
-  --node-ami-family="AmazonLinux2023"
+eksctl create cluster -f - <<EOF
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ${CLUSTER_NAME}
+  region: ${AWS_REGION}
+  version: "${K8S_VERSION}"
+
+autoModeConfig:
+  enabled: false
+
+iam:
+  withOIDC: true
+
+nodeGroups:
+  - name: ng-1
+    instanceType: m5.xlarge
+    desiredCapacity: 3
+    volumeSize: 250
+    volumeType: gp3
+    amiFamily: AmazonLinux2023
+EOF
 ```
 
 :::note
