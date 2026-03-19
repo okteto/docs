@@ -261,6 +261,7 @@ module.exports = {
               link: { type: 'doc', id: 'self-hosted/install/divert/index' },
               items: [
                 'self-hosted/install/divert/linkerd-installation',
+                'self-hosted/install/divert/istio-installation',
               ],
             },
             'self-hosted/install/github-integration',
