@@ -1,0 +1,94 @@
+---
+title: Collaborative Workflows
+description: How developers and AI agents work together using okteto up and okteto exec
+sidebar_label: Collaborative Workflows
+---
+
+In collaborative mode, a developer and an AI agent work together in the same environment. The developer manages the dev session with `okteto up`, and the agent runs commands inside the active dev container using `okteto exec`. Code changes sync automatically — there's no need for the agent to rebuild or redeploy after each edit.
+
+This is the workflow to use when you're actively developing and want an agent to help with tasks like running tests, checking logs, debugging, or making code changes while you stay in the loop.
+
+## How it works
+
+1. The agent runs `okteto deploy --wait` to set up the environment (or you do this yourself)
+2. **You** run `okteto up <service>` in your terminal to start the dev session
+3. The agent uses `okteto exec -- <command>` to run commands in the dev container
+4. Code changes sync to the container automatically via [file sync](development/containers/file-sync/index.mdx)
+5. The agent checks results with `okteto logs` and `okteto test`
+6. You iterate together until the task is complete
+
+:::warning
+`okteto up` is an interactive command that requires a human terminal. The agent must never run it — it will hang indefinitely. In collaborative mode, you always start the dev session yourself.
+:::
+
+## Workflow example: fixing a bug
+
+Here's what a typical collaborative session looks like:
+
+**You** start the dev environment:
+```bash
+okteto up api
+```
+
+**You** ask the agent:
+```
+The /api/orders endpoint returns a 500 error when the cart is empty.
+Can you investigate and fix it?
+```
+
+**The agent** investigates:
+```bash
+# Check recent logs for the error
+okteto logs api --since 10m
+
+# Run the failing test to reproduce
+okteto exec -- npm test -- --grep "empty cart"
+
+# After reading the code and making a fix...
+
+# Run the tests again to verify
+okteto exec -- npm test
+```
+
+Since file sync is active, the agent's code changes are immediately available in the running container. No rebuild needed.
+
+## CLI commands for agents
+
+These commands are safe for agents to use in collaborative mode:
+
+| Command | Purpose |
+|---------|---------|
+| `okteto deploy --wait` | Deploy all services in the environment |
+| `okteto exec -- <command>` | Run a command in the active dev container |
+| `okteto logs <service>` | View container logs |
+| `okteto logs <service> --since 5m` | View recent logs |
+| `okteto test <name>` | Run a test container defined in `okteto.yaml` |
+| `okteto endpoints` | List public URLs for the environment |
+| `okteto down` | Stop dev mode and restore the original deployment |
+
+### Commands agents must not run
+
+| Command | Why |
+|---------|-----|
+| `okteto up` | Interactive — requires a human terminal. Will hang if run by an agent. |
+| `okteto destroy` | Destructive — tears down the entire environment. Should only be run by the developer or with explicit policy. |
+
+## File sync
+
+When `okteto up` is running, Okteto automatically syncs file changes between your local machine and the dev container. This means:
+
+- The agent edits files locally, and changes appear in the container within seconds
+- The running application picks up changes immediately (with hot-reload or similar)
+- There's no need to run `okteto build` or `okteto deploy` for code changes during development
+
+This makes the feedback loop fast — the agent can make a change, run a test with `okteto exec`, and iterate without waiting for builds.
+
+## When to use collaborative mode
+
+- You want to stay in control of the development session
+- You're pair-programming with the agent on a feature or bug fix
+- You need the fast feedback loop of file sync + hot-reload
+- You want to review changes as they happen, not after the fact
+- The task requires judgment calls that the agent should check with you
+
+For tasks where the agent can handle the full lifecycle without human input, see [Autonomous Workflows](agentic/autonomous-workflows.mdx).

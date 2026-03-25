@@ -1,0 +1,116 @@
+---
+title: Autonomous Workflows
+description: How AI agents handle the full development lifecycle from ticket to pull request using Okteto
+sidebar_label: Autonomous Workflows
+---
+
+In autonomous mode, an AI agent handles the full development lifecycle without human intervention. The agent reads requirements, deploys an environment, writes code, builds images, runs tests, and opens a pull request. This workflow is triggered by a ticket, PR comment, or CI pipeline — not by a developer sitting at a terminal.
+
+This is the workflow to use when a task has clear requirements and acceptance criteria that the agent can validate on its own.
+
+## How it works
+
+1. Agent reads the ticket or issue for requirements and acceptance criteria
+2. `okteto deploy --wait` to spin up the full environment
+3. `okteto endpoints` to capture live URLs
+4. Agent makes code changes based on requirements
+5. `okteto build <service>` to rebuild changed service images
+6. `okteto deploy --wait` to redeploy with updated images
+7. `okteto test <name>` to run test containers
+8. Smoke-test live endpoints (e.g., `curl` against the URLs from step 3)
+9. `okteto logs <service> --since 5m` to check for runtime errors
+10. If anything fails: fix, rebuild, redeploy, re-test
+11. Commit changes and open a pull request
+
+:::warning
+`okteto up` is never used in autonomous mode. It's an interactive command that requires a human terminal. Use `okteto deploy` + `okteto build` to manage services instead.
+:::
+
+## Workflow example: ticket to PR
+
+A CI pipeline or webhook triggers the agent with a ticket:
+
+> **Ticket:** Add a `/health` endpoint to the API service that returns database connectivity status and uptime.
+
+**The agent** executes the full workflow:
+
+```bash
+# 1. Deploy the environment
+okteto deploy --wait
+
+# 2. Capture endpoints
+okteto endpoints
+
+# 3. Make code changes (agent edits source files)
+# ...
+
+# 4. Rebuild the API service image
+okteto build api
+
+# 5. Redeploy with the new image
+okteto deploy --wait
+
+# 6. Run tests
+okteto test integration
+
+# 7. Smoke-test the new endpoint
+curl -s https://api-myns.okteto.example.com/health
+
+# 8. Check logs for errors
+okteto logs api --since 5m
+
+# 9. Commit and open PR
+git add -A && git commit -m "Add /health endpoint with db status"
+gh pr create --title "Add health endpoint" --body "..."
+```
+
+If the tests or smoke tests fail, the agent iterates: reads the error, fixes the code, rebuilds, redeploys, and re-tests.
+
+## CLI commands for autonomous agents
+
+| Command | Purpose |
+|---------|---------|
+| `okteto deploy --wait` | Build images and deploy all services |
+| `okteto build <service>` | Build and push a single service image |
+| `okteto test <name>` | Run a test container defined in `okteto.yaml` |
+| `okteto endpoints` | List public URLs for the environment |
+| `okteto logs <service>` | View container logs |
+| `okteto logs <service> --since 5m` | View recent logs for error checking |
+
+### Commands agents must not run
+
+| Command | Why |
+|---------|-----|
+| `okteto up` | Interactive — will hang indefinitely. Not part of the autonomous workflow. |
+| `okteto destroy` | Destructive — should only run with explicit policy or cleanup automation. |
+| `kubectl` / `helm` directly | Bypasses Okteto's resource tracking. Use `okteto deploy` instead. |
+
+## The build-deploy-test loop
+
+The core pattern in autonomous mode is:
+
+1. **Build** — `okteto build <service>` compiles the code and pushes the image to the Okteto Registry
+2. **Deploy** — `okteto deploy --wait` rolls out the updated services
+3. **Test** — `okteto test <name>` runs validation against the live environment
+
+This loop repeats until all tests pass and the agent is confident in the changes. Each iteration gives the agent real feedback from a production-like environment, not from mocks or local simulations.
+
+## Auto-discovery from `okteto.yaml`
+
+The agent reads `okteto.yaml` to understand the project without hardcoded configuration:
+
+- **`build` section** — which services have images and how to build them
+- **`deploy` section** — how services are deployed
+- **`test` section** — which test containers exist and what commands they run
+
+This means the same agent workflow works across different projects. The agent adapts to whatever `okteto.yaml` defines.
+
+## When to use autonomous mode
+
+- The task has clear, verifiable requirements (e.g., "add endpoint X that returns Y")
+- You want ticket-to-PR automation
+- The agent is triggered by CI/CD, not by a developer at a terminal
+- Batch tasks: writing tests, applying lint fixes, updating dependencies across repos
+- You want to review results after the fact via the PR, not during development
+
+For tasks where you want to stay in the loop and iterate with the agent, see [Collaborative Workflows](agentic/collaborative-workflows.mdx).
