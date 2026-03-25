@@ -4,16 +4,23 @@ description: Install the Okteto plugin for Claude Code to give your agent built-
 sidebar_label: Claude Code Plugin
 ---
 
-Without guidance, AI agents don't know how to work with your Okteto environment — they'll try to build Docker images locally, run interactive commands that hang, or use kubectl directly and bypass Okteto's resource tracking.
+```bash
+/plugin marketplace add okteto/okteto-claude-plugins
+/plugin install okteto
+```
 
-The Okteto plugin for Claude Code solves this. It gives your agent built-in knowledge of how to develop, test, and deploy in Okteto environments — which commands to use, which to avoid, and how to discover your project's services from `okteto.yaml`. No per-repo configuration needed. Install the plugin once, and every project with an `okteto.yaml` just works.
+Source: [okteto/okteto-claude-plugins](https://github.com/okteto/okteto-claude-plugins) on GitHub
+
+The Okteto plugin for Claude Code gives your agent built-in knowledge of how to develop, test, and deploy in Okteto environments: which commands to use, which to avoid, and how to discover your project's services from `okteto.yaml`. Install the plugin once, and every project with an `okteto.yaml` just works.
+
+Without it, agents tend to build Docker images locally, run interactive commands that hang, or use kubectl directly and bypass Okteto's resource tracking. The plugin prevents all of that.
 
 ## What the plugin provides
 
-- **Okteto CLI knowledge** — the agent understands which commands to use and when, including which commands it should never run (like `okteto up`)
-- **Workflow patterns** — the agent knows how to work in both [collaborative](agentic/collaborative-workflows.mdx) and [autonomous](agentic/autonomous-workflows.mdx) modes
-- **Auto-discovery from `okteto.yaml`** — the agent reads your manifest to find services, build targets, dev containers, and test definitions instead of relying on hardcoded lists
-- **`/dev-setup` command** — a slash command that sets up the development environment step by step
+- The agent understands which CLI commands to use and when, including which ones it should never run (like `okteto up`)
+- It knows how to work in both [collaborative](agentic/collaborative-workflows.mdx) and [autonomous](agentic/autonomous-workflows.mdx) modes
+- It reads your `okteto.yaml` to find services, build targets, dev containers, and test definitions instead of relying on hardcoded lists
+- It includes a `/dev-setup` slash command that walks through environment setup step by step
 
 ## Prerequisites
 
@@ -32,57 +39,51 @@ Install the plugin from the Okteto marketplace:
 /plugin install okteto
 ```
 
-This installs:
-- The main Okteto skill covering both operating modes
-- The `/dev-setup` slash command for environment setup
+This installs the main Okteto skill (covering both operating modes) and the `/dev-setup` slash command.
 
 ## Using the plugin
 
 ### First session
 
-After installation, the agent automatically has context about Okteto. You can start working right away:
+After installation, the agent has context about Okteto immediately. You can start working right away.
 
-**Collaborative mode** — if you already have a dev environment running with `okteto up`:
+If you already have a dev environment running with `okteto up`:
 ```
 I have okteto up running for the api service. Can you check the
 logs for errors and run the test suite?
 ```
 
-**Autonomous mode** — for a standalone task:
+For a standalone task where the agent handles everything:
 ```
 Deploy the environment, add a /health endpoint to the api service,
 run the tests, and open a PR.
 ```
 
-The agent will read your `okteto.yaml` to understand your project structure before taking action.
+The agent reads your `okteto.yaml` to understand the project structure before taking action.
 
 ### The `/dev-setup` command
 
-Use `/dev-setup` to have the agent walk through environment setup:
+Run `/dev-setup` to have the agent set up the environment:
 
 ```
 /dev-setup
 ```
 
-The agent will:
-1. Read your `okteto.yaml` to discover services and configuration
-2. Run `okteto deploy --wait` to deploy the environment
-3. Run `okteto endpoints` to list available URLs
-4. Report the environment status and suggest next steps
+The agent will read your `okteto.yaml` to discover services, run `okteto deploy --wait` to bring the environment up, run `okteto endpoints` to list the available URLs, and then report status with suggested next steps.
 
 ### Auto-discovery
 
 The plugin teaches the agent to read `okteto.yaml` sections to understand your project:
 
-- **`build`** — which services have container images and how to build them
-- **`deploy`** — how services are deployed (Helm charts, scripts, etc.)
-- **`dev`** — which services support dev mode, their images, sync paths, and startup commands
-- **`test`** — which test containers are available and what commands they run
+- `build` — which services have container images and how to build them
+- `deploy` — how services are deployed (Helm charts, scripts, etc.)
+- `dev` — which services support dev mode, their images, sync paths, and startup commands
+- `test` — which test containers are available and what commands they run
 
-This means the plugin works across any Okteto project. You don't need to maintain separate agent configuration files.
+The plugin works across any Okteto project without separate agent configuration files.
 
 ## Next steps
 
-- [Collaborative Workflows](agentic/collaborative-workflows.mdx) — learn how to work with your agent in your IDE
-- [Autonomous Workflows](agentic/autonomous-workflows.mdx) — set up end-to-end agent pipelines
-- [Best Practices](agentic/best-practices.mdx) — avoid common pitfalls
+- [Collaborative Workflows](agentic/collaborative-workflows.mdx) — working with your agent in your IDE
+- [Autonomous Workflows](agentic/autonomous-workflows.mdx) — end-to-end agent pipelines
+- [Best Practices](agentic/best-practices.mdx) — common pitfalls and how to avoid them

@@ -3,9 +3,9 @@ title: Agentic Workflows
 description: How AI agents use the Okteto CLI to develop, test, and deploy code in Okteto environments
 ---
 
-AI agents are most effective when they can deploy code, run tests, and get feedback from real environments — not just read and write files locally. Okteto gives agents isolated, production-like environments they can use to validate their work the same way a human developer would, using the same CLI and the same `okteto.yaml` manifest. No special infrastructure or per-repo configuration is needed.
+AI agents are most effective when they can deploy code, run tests, and get feedback from real environments, not just read and write files locally. Okteto gives agents isolated, production-like environments where they can validate their work using the same CLI and `okteto.yaml` manifest that human developers use. No special infrastructure or per-repo configuration needed.
 
-This section covers how to connect AI agents (such as [Claude Code](https://claude.ai/code)) to your Okteto environments, whether you're working alongside an agent in your IDE or letting an agent handle a task end-to-end.
+This section covers how to connect AI agents (such as [Claude Code](https://claude.ai/code)) to your Okteto environments, whether you're working alongside an agent in your IDE or letting it handle a task end-to-end.
 
 :::note
 This is different from [Okteto AI](okteto-ai/index.mdx), which is a standalone product for launching and managing agents from the Okteto Dashboard. Agentic workflows are about bringing your own agent tooling to work with Okteto environments directly.
@@ -13,48 +13,47 @@ This is different from [Okteto AI](okteto-ai/index.mdx), which is a standalone p
 
 ## Why Okteto for agents
 
-**Isolated environments on demand.** Each agent gets its own Okteto namespace with dedicated compute, storage, and network. Agents can't interfere with each other or with production.
+Each agent gets its own Okteto namespace with dedicated compute, storage, and network, so agents can't interfere with each other or with production.
 
-**`okteto.yaml` as the single source of truth.** Agents read the manifest to discover which services exist, how they're built, how they're deployed, and what tests are available. No hardcoded service lists or extra config files to maintain.
+Agents read `okteto.yaml` to discover which services exist, how they're built, how they're deployed, and what tests are available. No hardcoded service lists or extra config files to maintain. The same `okteto.yaml` that developers use is the only thing the agent needs.
 
-**Same tooling as humans.** Agents use the same CLI commands developers use — `okteto deploy`, `okteto build`, `okteto test`, `okteto logs`. If it works for a developer, it works for an agent.
+The CLI commands are identical too: `okteto deploy`, `okteto build`, `okteto test`, `okteto logs`. If it works for a developer, it works for an agent.
 
-**Live feedback loops.** Agents can deploy changes, hit live endpoints, read logs, and run tests against real infrastructure — not mocks or simulations.
-
-**Preview environments.** Every PR can get its own running environment that stakeholders can access without local setup.
+Agents can deploy changes, hit live endpoints, read logs, and run tests against real infrastructure. And every PR can get its own running environment that stakeholders can access without any local setup.
 
 ## Two operating modes
 
 ### Collaborative mode
 
-A developer works alongside an agent in their IDE or terminal. The developer manages the development environment with `okteto up`, and the agent runs commands inside it using `okteto exec`.
-
-Best for: pair programming with an agent, interactive debugging, feature development where you want to stay in the loop.
+A developer works alongside an agent in their IDE or terminal. The developer manages the dev environment with `okteto up`, and the agent runs commands inside it using `okteto exec`. This is the way to go when you're pair-programming with an agent, doing interactive debugging, or working on something where you want to stay in the loop.
 
 See [Collaborative Workflows](agentic/collaborative-workflows.mdx) for details.
 
 ### Autonomous mode
 
-An agent handles the full lifecycle — from reading a ticket to opening a pull request — without human intervention. The agent uses `okteto deploy`, `okteto build`, and `okteto test` to manage the environment directly.
-
-Best for: ticket-to-PR automation, CI-triggered agent pipelines, batch tasks like writing tests or fixing lint errors across a codebase.
+An agent handles the full lifecycle, from reading a ticket to opening a pull request, without human intervention. It uses `okteto deploy`, `okteto build`, and `okteto test` to manage the environment directly. This works well for ticket-to-PR automation, CI-triggered pipelines, or batch tasks like writing tests across a codebase.
 
 See [Autonomous Workflows](agentic/autonomous-workflows.mdx) for details.
 
 ## The `okteto up` rule
 
-`okteto up` starts an interactive development session with file sync and a live terminal. It requires human interaction and will hang indefinitely if run by an agent.
+`okteto up` starts an interactive development session with file sync and a live terminal. It requires human interaction and will hang indefinitely if an agent runs it.
 
-**Agents must never run `okteto up`.**
+Agents must never run `okteto up`.
 
-- In collaborative mode, the **human** runs `okteto up`. The agent uses `okteto exec` to run commands in the active dev container.
+- In collaborative mode, the human runs `okteto up`. The agent uses `okteto exec` to run commands in the active dev container.
 - In autonomous mode, the agent uses `okteto deploy` + `okteto build` to manage services directly. `okteto up` is not part of the workflow.
 
 ## Getting started
 
-Install the [Claude Code Plugin for Okteto](agentic/claude-code-plugin.mdx) to give your agent built-in knowledge of Okteto CLI commands, workflow patterns, and auto-discovery from `okteto.yaml`.
+Install the [Claude Code Plugin for Okteto](agentic/claude-code-plugin.mdx):
 
-Then choose your workflow:
+```bash
+/plugin marketplace add okteto/okteto-claude-plugins
+/plugin install okteto
+```
+
+This gives your agent built-in knowledge of Okteto CLI commands, workflow patterns, and auto-discovery from `okteto.yaml`. Then choose your workflow:
 - [Collaborative Workflows](agentic/collaborative-workflows.mdx) — work alongside your agent
 - [Autonomous Workflows](agentic/autonomous-workflows.mdx) — let the agent handle it end-to-end
 - [Best Practices](agentic/best-practices.mdx) — common pitfalls and how to avoid them

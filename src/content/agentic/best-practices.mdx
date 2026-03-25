@@ -4,7 +4,7 @@ description: Common pitfalls when using AI agents with Okteto and how to avoid t
 sidebar_label: Best Practices
 ---
 
-Agents work best with Okteto when they follow the same patterns human developers use — deploying through the CLI, building with the Okteto Build Service, and reading `okteto.yaml` for service discovery. Most issues come from agents bypassing these patterns. This page covers the common mistakes and how to prevent them.
+Agents work best with Okteto when they follow the same patterns human developers use: deploy through the CLI, build with the Okteto Build Service, read `okteto.yaml` for service discovery. Most issues come from agents bypassing these patterns.
 
 ## Best practices
 
@@ -30,13 +30,13 @@ Agents should use `okteto build` to build container images. This uses the [Oktet
 # Good
 okteto build api
 
-# Bad — no access to Okteto Build Service, image won't be in the registry
+# Bad — image won't be in the registry
 docker build -t api .
 ```
 
 ### Use `okteto deploy`, not raw `kubectl` or `helm`
 
-Okteto tracks resources deployed through `okteto deploy`. If an agent uses `kubectl` or `helm` directly, Okteto loses track of those resources, which can cause issues with cleanup, status tracking, and environment management.
+Okteto tracks resources deployed through `okteto deploy`. If an agent uses `kubectl` or `helm` directly, Okteto loses track of those resources and can't clean them up or show them in the Dashboard.
 
 ```bash
 # Good
@@ -49,18 +49,18 @@ kubectl apply -f manifests/
 
 ### Never run `okteto up` from an agent
 
-`okteto up` starts an interactive development session with a terminal and file sync. It requires human interaction and will hang if run by an agent.
+`okteto up` starts an interactive development session with a terminal and file sync. It requires human interaction and will hang if an agent runs it.
 
-- In [collaborative mode](agentic/collaborative-workflows.mdx): the **human** runs `okteto up`, the agent uses `okteto exec`
+- In [collaborative mode](agentic/collaborative-workflows.mdx): the human runs `okteto up`, the agent uses `okteto exec`
 - In [autonomous mode](agentic/autonomous-workflows.mdx): use `okteto deploy` + `okteto build` instead
 
 ### Never run `okteto destroy` without authorization
 
-`okteto destroy` tears down all resources in the environment. An agent should never run this without explicit policy or human approval, as it could destroy shared resources or in-progress work.
+`okteto destroy` tears down all resources in the environment. An agent should never run this without explicit policy or human approval, since it could destroy shared resources or in-progress work.
 
 ### Use `--wait` with `okteto deploy`
 
-Always pass `--wait` when deploying so the agent waits for all services to be ready before proceeding. Without it, the agent might try to test or access services that haven't finished starting.
+Always pass `--wait` when deploying so the agent waits for services to be ready before moving on. Without it, the agent might try to test services that haven't finished starting.
 
 ```bash
 # Good — waits for all pods to be ready
@@ -74,42 +74,28 @@ okteto deploy
 
 ### Agent hangs and becomes unresponsive
 
-**Most likely cause:** The agent ran `okteto up`, which is an interactive command waiting for terminal input.
-
-**Fix:** Stop the agent, and make sure your workflow uses `okteto exec` (collaborative) or `okteto deploy` + `okteto build` (autonomous) instead. The [Claude Code Plugin](agentic/claude-code-plugin.mdx) teaches agents to avoid this automatically.
+The most common cause is the agent running `okteto up`, which is interactive and sits waiting for terminal input. Stop the agent, and switch to `okteto exec` (collaborative) or `okteto deploy` + `okteto build` (autonomous). The [Claude Code Plugin](agentic/claude-code-plugin.mdx) teaches agents to avoid this automatically.
 
 ### Build fails
 
-**Check the build logs** from `okteto build <service>`. Common causes:
-
-- Missing dependencies in the Dockerfile
-- Build context doesn't include required files
-- Registry authentication issues
+Check the build logs from `okteto build <service>`. Common causes include missing dependencies in the Dockerfile, a build context that doesn't include required files, or registry authentication issues.
 
 If the agent is trying to use `docker build` locally, switch to `okteto build` to use the Okteto Build Service.
 
 ### Tests fail after deployment
 
-**Check that services are ready.** Make sure you're using `okteto deploy --wait` so all pods are running before tests execute.
-
-**Check the logs.** Use `okteto logs <service> --since 5m` to look for startup errors or crash loops.
-
-**Check the test definition.** Review the `test` section of `okteto.yaml` to make sure the test container has the right image, commands, and dependencies.
+First, make sure you're using `okteto deploy --wait` so all pods are running before tests execute. Then check `okteto logs <service> --since 5m` for startup errors or crash loops. Also review the `test` section of `okteto.yaml` to make sure the test container has the right image, commands, and dependencies.
 
 ### Agent uses wrong service names
 
-If the agent is using service names that don't match your project, it's probably not reading `okteto.yaml`. Make sure the [Claude Code Plugin](agentic/claude-code-plugin.mdx) is installed, which teaches the agent to auto-discover services from the manifest.
+The agent is probably not reading `okteto.yaml`. Make sure the [Claude Code Plugin](agentic/claude-code-plugin.mdx) is installed, which teaches the agent to auto-discover services from the manifest.
 
 ### Environment endpoints not accessible
 
-Run `okteto endpoints` to get the current URLs. If no endpoints appear:
-
-- Check that the services are deployed: `okteto logs <service>`
-- Verify that your `okteto.yaml` or Helm chart exposes the correct ports
-- Make sure `okteto deploy --wait` completed successfully
+Run `okteto endpoints` to get the current URLs. If nothing shows up, check that services are deployed with `okteto logs <service>`, verify that your `okteto.yaml` or Helm chart exposes the correct ports, and confirm that `okteto deploy --wait` completed successfully.
 
 ### Agent creates resources Okteto can't track
 
 This happens when the agent uses `kubectl`, `helm`, or other tools directly instead of `okteto deploy`. Resources created outside of Okteto's deploy pipeline won't appear in the Dashboard and won't be cleaned up automatically.
 
-**Fix:** Make sure all deployments go through `okteto deploy`. If you need custom commands, add them to the `deploy` section of `okteto.yaml`.
+Make sure all deployments go through `okteto deploy`. If you need custom commands, add them to the `deploy` section of `okteto.yaml`.

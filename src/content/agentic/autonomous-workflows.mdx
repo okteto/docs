@@ -4,9 +4,9 @@ description: How AI agents handle the full development lifecycle from ticket to 
 sidebar_label: Autonomous Workflows
 ---
 
-Some tasks don't need a developer in the loop — they need clear requirements, a real environment to test against, and an agent that can iterate until the job is done. In autonomous mode, an agent handles the full lifecycle: deploying an Okteto environment, writing code, building images, running tests against live services, and opening a pull request when everything passes.
+Some tasks don't need a developer in the loop. They need clear requirements, a real environment to test against, and an agent that can iterate until the job is done. In autonomous mode, an agent handles the full lifecycle: deploying an Okteto environment, writing code, building images, running tests against live services, and opening a pull request when everything passes.
 
-This workflow is triggered by a ticket, PR comment, or CI pipeline. The agent validates its own work against real infrastructure, not mocks — so when the PR lands, it's already been tested in a production-like environment.
+This workflow is typically triggered by a ticket, PR comment, or CI pipeline. The agent validates its own work against real infrastructure, so when the PR lands, the changes have already been tested in a production-like environment.
 
 ## How it works
 
@@ -30,9 +30,9 @@ This workflow is triggered by a ticket, PR comment, or CI pipeline. The agent va
 
 A CI pipeline or webhook triggers the agent with a ticket:
 
-> **Ticket:** Add a `/health` endpoint to the API service that returns database connectivity status and uptime.
+> Add a `/health` endpoint to the API service that returns database connectivity status and uptime.
 
-**The agent** executes the full workflow:
+The agent executes the full workflow:
 
 ```bash
 # 1. Deploy the environment
@@ -81,29 +81,29 @@ If the tests or smoke tests fail, the agent iterates: reads the error, fixes the
 
 | Command | Why |
 |---------|-----|
-| `okteto up` | Interactive — will hang indefinitely. Not part of the autonomous workflow. |
-| `okteto destroy` | Destructive — should only run with explicit policy or cleanup automation. |
+| `okteto up` | Interactive. Will hang indefinitely. Not part of the autonomous workflow. |
+| `okteto destroy` | Should only run with explicit policy or cleanup automation. |
 | `kubectl` / `helm` directly | Bypasses Okteto's resource tracking. Use `okteto deploy` instead. |
 
 ## The build-deploy-test loop
 
-The core pattern in autonomous mode is:
+The core pattern in autonomous mode:
 
-1. **Build** — `okteto build <service>` compiles the code and pushes the image to the Okteto Registry
-2. **Deploy** — `okteto deploy --wait` rolls out the updated services
-3. **Test** — `okteto test <name>` runs validation against the live environment
+1. `okteto build <service>` compiles the code and pushes the image to the Okteto Registry
+2. `okteto deploy --wait` rolls out the updated services
+3. `okteto test <name>` runs validation against the live environment
 
-This loop repeats until all tests pass and the agent is confident in the changes. Each iteration gives the agent real feedback from a production-like environment, not from mocks or local simulations.
+The agent repeats this loop until all tests pass. Each iteration gives real feedback from a running environment, which is what lets the agent self-correct without human intervention.
 
 ## Auto-discovery from `okteto.yaml`
 
 The agent reads `okteto.yaml` to understand the project without hardcoded configuration:
 
-- **`build` section** — which services have images and how to build them
-- **`deploy` section** — how services are deployed
-- **`test` section** — which test containers exist and what commands they run
+- `build` section: which services have images and how to build them
+- `deploy` section: how services are deployed
+- `test` section: which test containers exist and what commands they run
 
-This means the same agent workflow works across different projects. The agent adapts to whatever `okteto.yaml` defines.
+The agent adapts to whatever `okteto.yaml` defines, so the same workflow works across different projects.
 
 ## When to use autonomous mode
 
