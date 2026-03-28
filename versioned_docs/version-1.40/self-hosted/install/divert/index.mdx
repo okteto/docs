@@ -18,9 +18,9 @@ Okteto supports two drivers for Divert routing:
 :::info Important Distinction
 **Istio and Linkerd serve different purposes:**
 - **Istio** is a **divert driver** - an alternative to the nginx driver for environments already using Istio
-- **Linkerd** is an **optional enhancement** for the **nginx driver** - it adds service mesh capabilities to nginx-based routing
+- **Linkerd** is **required for the nginx driver** - it provides service mesh capabilities for service-to-service routing
 - You **cannot** use both Istio driver and Linkerd together
-- Choose one: nginx driver (with optional Linkerd) **OR** istio driver
+- Choose one: nginx driver (requires Linkerd) **OR** istio driver
 :::
 
 ## nginx Driver (Default)
@@ -30,23 +30,28 @@ The nginx driver is enabled by default in Okteto installations. It uses the `okt
 ### Requirements
 
 - Standard Okteto installation (no additional configuration needed)
-- Optional: [Linkerd service mesh](linkerd-installation.mdx) for enhanced service-to-service routing
+- **Required**: [Linkerd service mesh](linkerd-installation.mdx) for service-to-service routing
 
 ### How It Works
 
 1. When a developer deploys with `divert` configuration, Okteto creates ingress rules that inject the baggage header
 2. Requests through the developer's endpoint automatically include `baggage: okteto-divert=<namespace>`
 3. The nginx ingress controller routes requests to the appropriate namespace based on this header
-4. For service-to-service communication, applications must propagate the baggage header
+4. Linkerd's service mesh handles service-to-service routing based on the propagated baggage header
+5. Applications must propagate the baggage header for routing to work across service boundaries
 
-### Linkerd Integration (Optional)
+### Linkerd Integration (Required)
 
-For enhanced service mesh capabilities with the nginx driver, you can install Linkerd. This provides:
+For service-to-service routing with the nginx driver, Linkerd must be installed. Linkerd provides:
 
-- Header-based routing at the service mesh level
+- Header-based routing at the service mesh level for inter-service communication
 - Automatic mTLS between services
 - Advanced traffic management and observability
 - Improved reliability with retries and circuit breaking
+
+:::warning Required Component
+While ingress-level routing works without Linkerd, **service-to-service routing requires Linkerd** to be installed. Without Linkerd, only external ingress traffic can be diverted, not internal service-to-service calls.
+:::
 
 See [Linkerd Installation](linkerd-installation.mdx) for setup instructions.
 
@@ -172,24 +177,246 @@ For complete network policy configuration options, see the [Helm Configuration r
 
 ## Troubleshooting
 
+This section covers admin-level troubleshooting for Divert configuration. For developer troubleshooting, see [Using Divert](../../../development/using-divert.mdx#troubleshooting).
+
+### Verify Sidecar Injection
+
+**Check namespace annotation (nginx driver with Linkerd):**
+```bash
+kubectl get namespace <namespace> -o jsonpath='{.metadata.annotations}'
+```
+
+Should include: `linkerd.io/inject: enabled`
+
+**Check Istio sidecar injection (istio driver):**
+```bash
+kubectl get namespace <namespace> -o jsonpath='{.metadata.labels}'
+```
+
+Should include: `istio-injection: enabled`
+
+**Verify sidecars are running:**
+```bash
+# For Linkerd
+kubectl get pods -n <namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
+
+# Should show linkerd-proxy or istio-proxy alongside application containers
+```
+
+### Check Ingress Controller Status
+
+**Verify ingress controller is running (nginx driver):**
+```bash
+kubectl get deployments -n okteto
+# Should see okteto-nginx deployment in Ready state
+
+kubectl get pods -n okteto -l app=okteto-nginx
+# All pods should be Running
+```
+
+**Check ingress controller logs:**
+```bash
+kubectl logs -n okteto deployment/okteto-nginx -f
+```
+
+**For Istio driver, check Istio ingress gateway:**
+```bash
+kubectl get pods -n istio-system -l app=istio-ingressgateway
+kubectl logs -n istio-system deployment/istio-ingressgateway -f
+```
+
+### Verify Linkerd Deployment (nginx driver)
+
+**Check Linkerd control plane health:**
+```bash
+# Using Linkerd CLI
+linkerd check
+
+# Manual verification
+kubectl get deployments -n linkerd
+# Should show: linkerd-destination, linkerd-identity, linkerd-proxy-injector
+
+kubectl get pods -n linkerd
+# All pods should be Running
+```
+
+**Verify Linkerd viz extension (for monitoring):**
+```bash
+linkerd viz check
+kubectl get deployments -n linkerd-viz
+```
+
+**Check ServiceProfiles (if configured):**
+```bash
+kubectl get serviceprofiles --all-namespaces
+```
+
+### Header Propagation Testing
+
+**Test ingress header injection:**
+```bash
+# Create a test deployment with divert
+curl -v https://test-app-namespace.okteto.example.com 2>&1 | grep -i baggage
+# Should see: baggage: okteto-divert=<namespace>
+```
+
+**Verify header format:**
+```bash
+# Correct format
+baggage: okteto-divert=alice-feature
+
+# Incorrect formats
+baggage.okteto-divert=alice-feature  # Wrong separator
+okteto-divert: alice-feature          # Wrong header name
+```
+
+**Test service-to-service routing:**
+```bash
+# Deploy test pods in two namespaces
+kubectl run test-client -n dev --image=curlimages/curl --command -- sleep 3600
+kubectl run test-server -n staging --image=hashicorp/http-echo --command -- /http-echo -listen=:5678 -text="shared"
+
+# Test routing with header
+kubectl exec -it test-client -n dev -- \
+  curl -H "baggage: okteto-divert=dev" \
+  http://test-server.staging.svc.cluster.local:5678
+```
+
 ### Divert Not Working
 
 1. **Check driver configuration**: Ensure the correct driver is installed and configured
+   ```bash
+   # For nginx driver
+   kubectl get deployment okteto-nginx -n okteto
+
+   # For istio driver
+   kubectl get deployment istiod -n istio-system
+   ```
+
 2. **Verify header propagation**: Test with `curl -H "baggage: okteto-divert=<namespace>"` to confirm routing works
+
 3. **Check namespace labels**: For Istio, verify `istio-injection: enabled` label exists
+   ```bash
+   kubectl get namespace <namespace> -o yaml | grep -A 5 labels
+   ```
+
 4. **Review ingress configuration**: Ensure ingress rules are being created correctly
+   ```bash
+   kubectl get ingress --all-namespaces
+   kubectl describe ingress <ingress-name> -n <namespace>
+   ```
+
+5. **Check Okteto configuration**:
+   ```bash
+   kubectl get configmap okteto-config -n okteto -o yaml
+   # Verify driver settings
+   ```
 
 ### VirtualServices Not Appearing (Istio)
 
 1. Verify `virtualServices.enabled: true` in Helm values
+   ```bash
+   helm get values okteto -n okteto
+   ```
+
 2. Check that Istio CRDs are installed
+   ```bash
+   kubectl get crd | grep istio
+   ```
+
 3. Ensure the VirtualService is in a namespace managed by Okteto
+   ```bash
+   kubectl get virtualservices --all-namespaces
+   ```
+
+4. Check Okteto API logs for VirtualService creation:
+   ```bash
+   kubectl logs -n okteto deployment/okteto-api | grep -i virtualservice
+   ```
 
 ### Cross-Namespace Communication Failing
 
 1. Check network policies allow the traffic (see [Network Policies section](#network-policies))
+   ```bash
+   kubectl get networkpolicies --all-namespaces
+   kubectl describe networkpolicy <policy-name> -n <namespace>
+   ```
+
 2. Verify DNS resolution works across namespaces
+   ```bash
+   kubectl run dns-test --image=busybox --rm -it -- \
+     nslookup service-name.namespace.svc.cluster.local
+   ```
+
 3. Test direct pod-to-pod communication to isolate the issue
+   ```bash
+   # Get pod IPs
+   kubectl get pods -n namespace-a -o wide
+   kubectl get pods -n namespace-b -o wide
+
+   # Test connectivity
+   kubectl exec -it pod-in-namespace-a -- nc -zv <pod-ip-in-namespace-b> 8080
+   ```
+
+4. Check if service mesh is blocking traffic:
+   ```bash
+   # For Linkerd
+   linkerd viz tap deployment/<deployment> -n <namespace>
+
+   # For Istio
+   istioctl proxy-status
+   ```
+
+### Common Configuration Issues
+
+1. **Linkerd not installed**: Required for nginx driver
+   ```bash
+   linkerd version
+   # Should show both client and server versions
+   ```
+
+2. **Wrong driver in okteto.yaml**: Manifest specifies different driver than cluster
+   ```bash
+   # Check what user specified
+   cat okteto.yaml | grep -A 2 divert
+
+   # Check cluster configuration
+   kubectl get configmap okteto-config -n okteto -o yaml
+   ```
+
+3. **Network policies too restrictive**: Blocking cross-namespace traffic
+   ```bash
+   # Temporarily disable to test
+   kubectl delete networkpolicy <policy-name> -n <namespace>
+   ```
+
+4. **Istio and Linkerd both installed**: Cannot use both together
+   ```bash
+   kubectl get namespaces -o custom-columns=NAME:.metadata.name,ISTIO:.metadata.labels.istio-injection,LINKERD:.metadata.annotations.linkerd\\.io/inject
+   ```
+
+### Getting Help
+
+For persistent issues:
+
+1. **Collect diagnostic information**:
+   ```bash
+   kubectl logs -n okteto deployment/okteto-api > okteto-api.log
+   kubectl logs -n okteto deployment/okteto-nginx > okteto-nginx.log
+   linkerd check > linkerd-check.log  # If using nginx driver
+   kubectl get all --all-namespaces > cluster-state.txt
+   ```
+
+2. **Enable debug logging** in Okteto Helm values:
+   ```yaml
+   api:
+     logLevel: debug
+   ```
+
+3. **Consult related documentation**:
+   - [Linkerd Installation](linkerd-installation.mdx#troubleshooting) - Linkerd-specific issues
+   - [Using Divert](../../../development/using-divert.mdx#troubleshooting) - Developer-side troubleshooting
+   - [Divert Core Concepts](../../../core/divert.mdx#troubleshooting) - Architecture and flow troubleshooting
 
 ## Next Steps
 
