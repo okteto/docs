@@ -8,7 +8,12 @@ sidebar_label: Istio Installation
 This guide is for **Okteto administrators** setting up Istio in the cluster. Developers do not need to install anything - once Istio is configured, Divert works transparently for all developers.
 :::
 
-This guide covers installing Istio and configuring Okteto to use the Istio driver for Divert. The Istio driver uses Istio's VirtualService for header-based routing and is designed for environments that already use Istio or prefer Istio-native service mesh capabilities.
+This guide covers two things:
+
+1. **Inbound ingress** — routing external user traffic through Istio instead of the default `okteto-nginx` ingress controller
+2. **In-cluster divert routing** — using Istio VirtualServices and sidecars for header-based routing between namespaces
+
+The Istio driver uses Istio's VirtualService for header-based routing and is designed for environments that already use Istio or prefer Istio-native service mesh capabilities.
 
 :::warning For Istio Driver Only
 This installation is **only** required when using the **istio driver**. If you're using the default nginx driver, do not install Istio - see [Configure Divert](index.mdx) for the distinction between drivers.
@@ -20,6 +25,23 @@ This installation is **only** required when using the **istio driver**. If you'r
 - `kubectl` configured with cluster admin access
 - `helm` v3.x installed
 - **Administrator/operator** access (this is a one-time cluster setup)
+
+## Understanding Okteto's Ingress Controllers
+
+Before configuring Istio, it helps to understand how Okteto's ingress controllers work:
+
+| Controller | Ingress Class | Service Type | Purpose |
+|------------|---------------|--------------|---------|
+| **`ingress-nginx`** | `okteto-controlplane-nginx` | LoadBalancer | The external-facing controller. Serves the Okteto control plane (API, Frontend, Buildkit, Registry) and forwards wildcard `*.subdomain` traffic to the user traffic controller |
+| **`okteto-nginx`** | `okteto-nginx` | ClusterIP | An internal controller dedicated to user/dev namespace ingress traffic |
+
+Okteto runs two separate nginx controllers to isolate user traffic from control plane traffic. This prevents developer app deployments from disrupting control plane access during reconfigurations and updates, and vice versa (this is an nginx limitation).
+
+When you enable Istio, you disable `okteto-nginx` so that Istio handles user ingress traffic instead. The `ingress-nginx` controller continues to serve the Okteto control plane and forwards wildcard user traffic to the Istio ingress gateway (via the ingress you create in Step 7).
+
+:::tip Disabling both ingress controllers
+If you want Istio (or another ingress controller) to handle **all** traffic including the Okteto control plane, see [Using your own ingress controller](#using-your-own-ingress-controller) below.
+:::
 
 ## Configure Okteto for Istio
 
@@ -51,6 +73,13 @@ helm upgrade okteto okteto/okteto -f values.yaml
 ```
 
 ## Install Istio
+
+:::tip Already have Istio installed?
+If your cluster already has Istio base CRDs, Istiod, and an ingress gateway running, you can skip Steps 1, 3, 4, 5, and 6. You only need to:
+- Set your domain variable (Step 2)
+- Configure the ingress to route wildcard traffic to your existing Istio ingress gateway service (Step 7) — update the `service.name` to match your existing gateway's service name
+- Verify the installation (Step 8)
+:::
 
 ### Step 1: Add the Istio Helm Repository
 
@@ -144,7 +173,7 @@ helm install --namespace istio-ingress istio-ingress istio/gateway --values isti
 
 ### Step 7: Configure the Istio Ingress
 
-Create a `istio-ingress-config.yaml` file to route traffic from Okteto's control plane nginx to the Istio ingress:
+Create a `istio-ingress-config.yaml` file to route wildcard user traffic from Okteto's control plane nginx to the Istio ingress gateway:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -164,10 +193,19 @@ spec:
         pathType: Prefix
         backend:
           service:
+            # This must match the Kubernetes Service name of your Istio
+            # ingress gateway. If you installed Istio using the steps above,
+            # this is "istio-ingress". If you're using an existing Istio
+            # installation, replace this with your gateway service name
+            # (e.g., "istio-ingressgateway").
             name: istio-ingress
             port:
               number: 80
 ```
+
+:::note
+The `backend.service.name` must point to the Kubernetes Service fronting your Istio ingress gateway pods. If you are using an existing Istio installation, this is typically `istio-ingressgateway` in the `istio-system` namespace. Adjust the service name and apply the ingress resource to the namespace where the service lives.
+:::
 
 Apply the configuration (using `envsubst` to substitute your domain):
 
@@ -305,6 +343,36 @@ For complete network policy options, see the [Helm Configuration reference](../.
    ```
 2. Confirm `OKTETO_DOMAIN` was substituted correctly in the ingress manifest
 3. Check that `okteto-nginx` is disabled in your Okteto Helm values
+
+## Using Your Own Ingress Controller
+
+The configuration above only disables `okteto-nginx` (the user traffic ingress controller) in favor of Istio. The `ingress-nginx` controller still handles control plane traffic (API, Frontend, Buildkit, Registry).
+
+If you want to disable **both** nginx ingress controllers and use Istio (or another ingress controller) for all traffic, including the Okteto control plane:
+
+```yaml
+ingress-nginx:
+  enabled: false
+
+okteto-nginx:
+  enabled: false
+
+defaultBackend:
+  enabled: false
+```
+
+When disabling both controllers, you must also configure:
+
+- **`ingress.oktetoIngressClass`** — the ingress class to use for all ingresses created during the Okteto installation
+- **`ingress.class`** — the ingress class to use for all ingresses created by Okteto for developer namespaces
+- **`ingress.ip`** — the cluster IP of your ingress controller
+
+:::warning Feature limitations
+When disabling Okteto's nginx controllers, the following features are **not available**:
+- Autowake Namespaces
+- Error Pages
+- Private Endpoints
+:::
 
 ## Uninstalling Istio
 
