@@ -23,6 +23,17 @@ Okteto supports two drivers for Divert routing:
 - Choose one: nginx driver (with optional Linkerd) **OR** istio driver
 :::
 
+## Okteto's Ingress Controllers
+
+By default, Okteto deploys two nginx ingress controllers:
+
+| Controller | Ingress Class | Service Type | Purpose |
+|------------|---------------|--------------|---------|
+| **`ingress-nginx`** | `okteto-controlplane-nginx` | LoadBalancer | The external-facing controller. Serves the Okteto control plane (API, Frontend, Buildkit, Registry) and forwards wildcard `*.subdomain` traffic to the user traffic controller |
+| **`okteto-nginx`** | `okteto-nginx` | ClusterIP | An internal controller dedicated to user/dev namespace ingress traffic |
+
+Running two separate controllers isolates user traffic from control plane traffic, preventing developer app deployments from disrupting control plane access during reconfigurations and updates, and vice versa (this is an nginx limitation). When using the Istio driver, `okteto-nginx` is disabled in favor of Istio handling user traffic. See the [Istio Installation](istio-installation.mdx) guide for details.
+
 ## nginx Driver (Default)
 
 The nginx driver is enabled by default in Okteto installations. It uses the `okteto-nginx` ingress controller to inject and route based on the `baggage: okteto-divert=<namespace>` header.
