@@ -1,6 +1,6 @@
 ---
-title: Welcome to Okteto!
-description: An overview of Okteto and how it helps teams build, test, and deploy faster.
+title: Okteto docs - cloud development environments for Kubernetes
+description: Learn how to use Okteto to build, test, and deploy applications with cloud development environments on Kubernetes. Guides, references, and tutorials.
 ---
 
 ## Build modern development experiences with Okteto
@@ -62,4 +62,4 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 - 🗓️ [Book a demo with our team](https://okteto.com/schedule/)
 - 🎁 [Sign up for our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
 
-Need help deciding which deployment model or feature fits best? [Contact us](https://okteto.com/schedule/) and we’ll walk you through it.
+Need help deciding which deployment model or feature fits best? [Contact us](https://okteto.com/schedule/) and we'll walk you through it.
