@@ -34,29 +34,24 @@ We'll use the [Movies with Divert](https://github.com/okteto-community/movies-wi
 
 The application also includes MongoDB, PostgreSQL, and Kafka for data storage and messaging.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend                                 │
-│                           (React)                                │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│    Catalog    │     │  API Gateway  │     │     Rent      │
-│   (Node.js)   │     │     (Go)      │     │    (Java)     │
-└───────┬───────┘     └───────┬───────┘     └───────┬───────┘
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│    MongoDB    │     │  PostgreSQL   │     │    Kafka      │
-└───────────────┘     └───────────────┘     └───────┬───────┘
-                                                    │
-                                                    ▼
-                                            ┌───────────────┐
-                                            │    Worker     │
-                                            │     (Go)      │
-                                            └───────────────┘
+```mermaid
+graph TB
+    Frontend["Frontend (React)"]
+    Catalog["Catalog (Node.js)"]
+    API["API Gateway (Go)"]
+    Rent["Rent (Java)"]
+    MongoDB[(MongoDB)]
+    PostgreSQL[(PostgreSQL)]
+    Kafka[(Kafka)]
+    Worker["Worker (Go)"]
+
+    Frontend --> Catalog
+    Frontend --> API
+    Frontend --> Rent
+    Catalog --> MongoDB
+    API --> PostgreSQL
+    Rent --> Kafka
+    Kafka --> Worker
 ```
 
 ## Step 1: Deploy the Shared Environment
@@ -248,23 +243,22 @@ Shares: Frontend, Catalog, API, MongoDB
 
 With Divert enabled, here's how traffic flows for a user working on the Catalog service:
 
-```
-User Request (with baggage: okteto-divert=cindy)
-         │
-         ▼
-    ┌─────────┐
-    │Frontend │ ← Shared (movies-shared namespace)
-    └────┬────┘
-         │ (header propagated)
-         ▼
-    ┌─────────┐
-    │ Catalog │ ← Your version (cindy namespace)
-    └────┬────┘
-         │
-         ▼
-    ┌─────────┐
-    │ MongoDB │ ← Your version (cindy namespace)
-    └─────────┘
+```mermaid
+graph TB
+    User["User Request<br/>(with baggage: okteto-divert=cindy)"]
+    Frontend["Frontend"]
+    Catalog["Catalog"]
+    MongoDB[(MongoDB)]
+
+    User --> Frontend
+    Frontend -- "header propagated" --> Catalog
+    Catalog --> MongoDB
+
+    classDef shared fill:#e8e8e8,stroke:#999,color:#000
+    classDef personal fill:#00d1ca,stroke:#00a89c,color:#000
+
+    class Frontend shared
+    class Catalog,MongoDB personal
 ```
 
 The key insight: only Catalog and MongoDB run in your namespace. Everything else comes from the shared environment, saving significant resources.
