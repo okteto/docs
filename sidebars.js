@@ -13,6 +13,9 @@ module.exports = {
       link: { type: 'doc', id: 'index' },
       items: [
         'get-started/install-okteto-cli',
+        'get-started/dev-quickstart',
+        'get-started/using-okteto-cli-and-dashboard',
+        'get-started/advanced-commands-and-concepts',
         {
           type: 'category',
           label: 'Install Okteto Platform',
@@ -35,15 +38,6 @@ module.exports = {
             'get-started/deploy-your-app/dependencies',
             'get-started/deploy-your-app/endpoints',
             'get-started/deploy-your-app/build',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'For Developers',
-          items: [
-            'get-started/dev-quickstart',
-            'get-started/using-okteto-cli-and-dashboard',
-            'get-started/advanced-commands-and-concepts',
           ],
         },
       ],
