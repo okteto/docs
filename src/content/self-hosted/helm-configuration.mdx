@@ -946,6 +946,99 @@ ingress:
   ip: ""
 ```
 
+### endpoints
+
+Configure how the Okteto control plane and dev namespace endpoints are exposed. The `endpoints` section has two sub-sections: `okteto` (control plane) and `dev` (dev namespaces).
+
+#### Control plane endpoints (`endpoints.okteto`)
+
+Choose how the Okteto control plane (API, Frontend, Buildkit, Registry) is exposed. Exactly one of `ingress` or `gatewayAPI` must be enabled.
+
+**Ingress mode** (default):
+
+- `endpoints.okteto.ingress.enabled`: Enable Ingress-based exposure for the control plane (default: `true`). Requires `ingress-nginx.enabled: true`.
+- `endpoints.okteto.ingress.annotations`: Custom annotations added to all control plane Ingress resources.
+- `endpoints.okteto.ingress.labels`: Custom labels added to all control plane Ingress resources.
+- `endpoints.okteto.ingress.class`: IngressClass for control plane Ingress resources. If empty, falls back to `ingress.oktetoIngressClass` (default: `okteto-controlplane-nginx`).
+- `endpoints.okteto.ingress.controller.ip`: IP of the ingress controller for internal DNS resolution. If empty, falls back to `ingress.ip`.
+
+**Gateway API mode**:
+
+- `endpoints.okteto.gatewayAPI.enabled`: Enable Gateway API HTTPRoute-based exposure for the control plane (default: `false`). Requires `ingress-nginx.enabled: false`. Operators must provide an existing Gateway resource.
+- `endpoints.okteto.gatewayAPI.annotations`: Custom annotations added to all control plane HTTPRoute resources.
+- `endpoints.okteto.gatewayAPI.labels`: Custom labels added to all control plane HTTPRoute resources.
+- `endpoints.okteto.gatewayAPI.gateway.name`: Name of the operator-managed Gateway (**required** when `gatewayAPI.enabled` is `true`).
+- `endpoints.okteto.gatewayAPI.gateway.namespace`: Namespace where the Gateway is located (**required** when `gatewayAPI.enabled` is `true`).
+- `endpoints.okteto.gatewayAPI.gateway.section`: Section name within the Gateway (for example, `https`).
+
+```yaml
+endpoints:
+  okteto:
+    ingress:
+      enabled: true
+      annotations: {}
+      labels: {}
+      class: ""
+      controller:
+        ip: ""
+    gatewayAPI:
+      enabled: false
+      annotations: {}
+      labels: {}
+      gateway:
+        name: ""
+        namespace: ""
+        section: ""
+```
+
+#### Dev namespace endpoints (`endpoints.dev`)
+
+Configure how endpoints in developer namespaces are exposed. These values take precedence over the legacy `ingress.*` equivalents.
+
+**Ingress configuration** (`endpoints.dev.ingress`):
+
+- `enabled`: Informational flag for ingress-based endpoint support (default: `true`).
+- `annotations`: Custom annotations for all ingresses in dev namespaces. Takes precedence over legacy `namespace.ingress.annotations`; merged when both are set.
+- `labels`: Custom labels for all ingresses in dev namespaces. Takes precedence over legacy `namespace.ingress.labels`; merged when both are set.
+- `class`: Ingress class for dev namespace ingresses. Takes precedence over `ingress.class`. Leave empty to use the cluster default.
+- `forceClass`: If enabled, all ingresses in dev namespaces have their ingress class overwritten (default: `false`). Also enabled when the legacy `ingress.forceIngressClass` is `true`.
+- `forceSubdomain`: If enabled, all ingresses in dev namespaces must match the Okteto wildcard subdomain (default: `false`). Also enabled when the legacy `ingress.forceIngressSubdomain` is `true`.
+- `subdomain`: Subdomain for generating hosts. If empty, inherits from the top-level `subdomain` value.
+
+**Gateway API configuration** (`endpoints.dev.gatewayAPI`):
+
+- `enabled`: Enable Gateway API HTTPRoute mutation webhook for dev namespaces (default: `false`).
+- `annotations`: Custom annotations added to all HTTPRoutes in dev namespaces.
+- `labels`: Custom labels added to all HTTPRoutes in dev namespaces.
+- `gateway.name`: Name of the Gateway for HTTPRoutes (**required** when enabled).
+- `gateway.namespace`: Namespace where the Gateway is located (**required** when enabled).
+- `gateway.section`: Section name within the Gateway (for example, `http`).
+- `gateway.force`: If `true`, applies transformations to all HTTPRoutes with gateway parentRefs and overrides their gateway reference. If `false`, only applies to HTTPRoutes already matching the configured gateway (default: `false`).
+- `subdomain`: Subdomain for generating hosts. If empty, inherits from the top-level `subdomain` value.
+
+```yaml
+endpoints:
+  dev:
+    ingress:
+      enabled: true
+      annotations: {}
+      labels: {}
+      class: ""
+      forceClass: false
+      forceSubdomain: false
+      subdomain: ""
+    gatewayAPI:
+      enabled: false
+      annotations: {}
+      labels: {}
+      gateway:
+        name: ""
+        namespace: ""
+        section: http
+        force: false
+      subdomain: ""
+```
+
 ### ingressLimits
 
 Configure ingress connections limits for each public endpoint. Disabled by default.
