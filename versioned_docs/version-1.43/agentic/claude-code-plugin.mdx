@@ -1,0 +1,89 @@
+---
+title: Claude Code Plugin for Okteto
+description: Install the Okteto plugin for Claude Code to give your agent built-in knowledge of Okteto workflows
+sidebar_label: Claude Code Plugin
+---
+
+An agent that can only read and edit files locally is going to miss problems that only show up in a running environment. The Okteto plugin for Claude Code connects your agent to your Okteto environment so it can deploy services, run tests against real infrastructure, and iterate on failures using the same CLI and `okteto.yaml` that you already have.
+
+```bash
+/plugin marketplace add okteto/okteto-claude-plugins
+/plugin install okteto
+```
+
+Source: [okteto/okteto-claude-plugins](https://github.com/okteto/okteto-claude-plugins) on GitHub
+
+Install the plugin once, and every project with an `okteto.yaml` just works. The agent learns which commands to use, which to avoid, and how to discover your project's services from the manifest. Without it, agents tend to build Docker images locally, run interactive commands that hang, or use kubectl directly. The plugin prevents all of that.
+
+## What the plugin provides
+
+- The agent understands which CLI commands to use and when, including which ones it should never run (like `okteto up`)
+- It knows how to work in both [collaborative](agentic/collaborative-workflows.mdx) and [autonomous](agentic/autonomous-workflows.mdx) modes
+- It reads your `okteto.yaml` to find services, build targets, dev containers, and test definitions instead of relying on hardcoded lists
+- It includes a `/dev-setup` slash command that walks through environment setup step by step
+
+## Prerequisites
+
+Before installing the plugin, make sure you have:
+
+- [Okteto CLI installed and configured](get-started/install-okteto-cli.mdx) with your Okteto instance
+- An `okteto.yaml` file in your project repository (see [Okteto Manifest](core/okteto-manifest.mdx))
+- [Claude Code](https://claude.ai/code) installed on your machine
+
+## Installation
+
+Install the plugin from the Okteto marketplace:
+
+```bash
+/plugin marketplace add okteto/okteto-claude-plugins
+/plugin install okteto
+```
+
+This installs the main Okteto skill (covering both operating modes) and the `/dev-setup` slash command.
+
+## Using the plugin
+
+### First session
+
+After installation, the agent has context about Okteto immediately. You can start working right away.
+
+If you already have a dev environment running with `okteto up`:
+```
+I have okteto up running for the api service. Can you check the
+logs for errors and run the test suite?
+```
+
+For a standalone task where the agent handles everything:
+```
+Deploy the environment, add a /health endpoint to the api service,
+run the tests, and open a PR.
+```
+
+The agent reads your `okteto.yaml` to understand the project structure before taking action.
+
+### The `/dev-setup` command
+
+Run `/dev-setup` to have the agent set up the environment:
+
+```
+/dev-setup
+```
+
+The agent will read your `okteto.yaml` to discover services, run `okteto deploy --wait` to bring the environment up, run `okteto endpoints` to list the available URLs, and then report status with suggested next steps.
+
+### Auto-discovery
+
+The plugin teaches the agent to read `okteto.yaml` sections to understand your project:
+
+- `build` — which services have container images and how to build them
+- `deploy` — how services are deployed (Helm charts, scripts, etc.)
+- `dev` — which services support dev mode, their images, sync paths, and startup commands
+- `test` — which test containers are available and what commands they run
+
+The plugin works across any Okteto project without separate agent configuration files.
+
+## Next steps
+
+- [Collaborative Workflows](agentic/collaborative-workflows.mdx) — working with your agent in your IDE
+- [Autonomous Workflows](agentic/autonomous-workflows.mdx) — end-to-end agent pipelines
+- [Best Practices](agentic/best-practices.mdx) — common pitfalls and how to avoid them
