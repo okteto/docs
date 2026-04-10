@@ -13,7 +13,7 @@ Here you can find the documentation for the current released version of Okteto.
 
 | Version |   Documentation    |                    Release Notes |
 | :------ | :----------------: | -------------------------------: |
-| 1.42    | [Documentation](/) | [Release Notes](/release-notes/) |
+| 1.43    | [Documentation](/) | [Release Notes](/release-notes/) |
 
 ## Previously released versions
 
@@ -21,6 +21,7 @@ Here you can find the documentation for previously released versions of Okteto.
 
 | Version |     Documentation      |                                        Release Notes |
 | :------ | :--------------------: | ---------------------------------------------------: |
+| 1.42    | [Documentation](/1.42) |                [Release Notes](/1.42/release-notes/) |
 | 1.41    | [Documentation](/1.41) |                [Release Notes](/1.41/release-notes/) |
 | 1.40    | [Documentation](/1.40) |                [Release Notes](/1.40/release-notes/) |
 | 1.39    | [Documentation](/1.39) |                [Release Notes](/1.39/release-notes/) |
@@ -31,6 +32,5 @@ Here you can find the documentation for previously released versions of Okteto.
 | 1.34    | [Documentation](/1.34) |                [Release Notes](/1.34/release-notes/) |
 | 1.33    | [Documentation](/1.33) |                [Release Notes](/1.33/release-notes/) |
 | 1.32    | [Documentation](/1.32) |                [Release Notes](/1.32/release-notes/) |
-| 1.31    | [Documentation](/1.31) |                [Release Notes](/1.31/release-notes/) |
 
 Release notes for previous versions can be found here: [Archived Release Notes](/archived-release-notes/)

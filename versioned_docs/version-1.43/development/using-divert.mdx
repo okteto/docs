@@ -1,0 +1,406 @@
+---
+title: Using Divert
+description: Practical guide for implementing Divert in your development workflow
+sidebar_label: Using Divert
+id: using-divert
+---
+
+This guide covers the practical implementation of Divert in your Okteto development environments, including manifest configuration, header propagation, and common patterns for databases and message queues.
+
+## Okteto Manifest Configuration
+
+The `divert` section goes under `deploy` in your `okteto.yaml` to configure traffic routing between your development environment and a shared namespace.
+
+### Basic Divert Configuration (nginx driver)
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install myservice chart --set image=${OKTETO_BUILD_IMAGE}
+  divert:
+    driver: nginx  # Optional, nginx is the default
+    namespace: staging
+```
+
+| Field | Description |
+|-------|-------------|
+| `driver` | The backend for divert routing. Options: `nginx` (default) or `istio` |
+| `namespace` | The shared namespace containing the full application stack |
+
+When you run `okteto deploy`, Okteto automatically:
+
+1. Deploys only the services defined in your manifest
+2. Configures routing to redirect requests for missing services to the shared namespace
+3. Injects the `baggage: okteto-divert=<your-namespace>` header into requests through your endpoints
+
+### Istio Driver Configuration
+
+If your cluster uses Istio for service mesh, use the `istio` driver:
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install myservice chart --set image=${OKTETO_BUILD_IMAGE}
+  divert:
+    driver: istio
+    virtualServices:
+      - name: frontend-vs
+        namespace: staging
+        routes:
+          - route-to-frontend
+    hosts:
+      - virtualService: frontend
+        namespace: staging
+```
+
+For complete configuration details, see the [manifest reference](../reference/okteto-manifest.mdx#divert).
+
+## Project Structure Patterns
+
+### Single Service Development
+
+For working on a single service, create a dedicated manifest:
+
+```yaml
+# okteto.frontend.yaml
+build:
+  frontend:
+    context: frontend
+
+deploy:
+  commands:
+    - helm upgrade --install frontend chart/frontend --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  divert:
+    namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
+```
+
+### Multi-Service Development
+
+When working on related services together:
+
+```yaml
+# okteto.rentals.yaml
+build:
+  rent:
+    context: rentals
+  worker:
+    context: worker
+
+deploy:
+  commands:
+    - helm upgrade --install rent chart/rent --set image=${OKTETO_BUILD_RENT_IMAGE}
+    - helm upgrade --install worker chart/worker --set image=${OKTETO_BUILD_WORKER_IMAGE}
+    - helm upgrade --install kafka chart/kafka
+    - helm upgrade --install postgresql chart/postgresql
+  divert:
+    namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
+```
+
+### Using Environment Variables
+
+Reference the shared namespace via environment variable for flexibility:
+
+```console
+export OKTETO_SHARED_NAMESPACE="movies-shared"
+okteto deploy -f okteto.frontend.yaml
+```
+
+## Header Propagation
+
+For Divert to work across your service mesh, implement header propagation in your services. The `baggage` header must be extracted from incoming requests and included in all outgoing requests.
+
+### JavaScript/Node.js (Express)
+
+```javascript
+const express = require('express');
+const axios = require('axios');
+
+const app = express();
+
+// Middleware to capture baggage header
+app.use((req, res, next) => {
+  req.baggage = req.headers['baggage'] || '';
+  next();
+});
+
+// Propagate in outgoing requests
+app.get('/api/movies', async (req, res) => {
+  const response = await axios.get('http://catalog:8080/movies', {
+    headers: { 'baggage': req.baggage }
+  });
+  res.json(response.data);
+});
+```
+
+### Go
+
+```go
+package main
+
+import (
+    "net/http"
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    baggage := r.Header.Get("baggage")
+
+    // Create downstream request
+    req, _ := http.NewRequest("GET", "http://catalog:8080/movies", nil)
+    req.Header.Set("baggage", baggage)
+
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    // Handle response...
+}
+```
+
+### Java/Spring Boot
+
+```java
+@RestController
+public class ApiController {
+
+    private final WebClient webClient;
+
+    @GetMapping("/api/movies")
+    public Mono<Movies> getMovies(@RequestHeader(value = "baggage", required = false) String baggage) {
+        return webClient.get()
+            .uri("http://catalog:8080/movies")
+            .header("baggage", baggage != null ? baggage : "")
+            .retrieve()
+            .bodyToMono(Movies.class);
+    }
+}
+```
+
+### Python (FastAPI)
+
+```python
+from fastapi import FastAPI, Request
+import httpx
+
+app = FastAPI()
+
+@app.get("/api/movies")
+async def get_movies(request: Request):
+    baggage = request.headers.get("baggage", "")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "http://catalog:8080/movies",
+            headers={"baggage": baggage}
+        )
+        return response.json()
+```
+
+## Database Isolation Patterns
+
+When using Divert, you can choose between shared or isolated databases depending on your needs.
+
+### Shared Database (Default)
+
+Services connect to the database in the shared namespace. This is the simplest approach and works well when you don't need to modify the database schema or data:
+
+```yaml
+# Your diverted service uses the shared database
+env:
+  - name: DATABASE_URL
+    value: postgresql://postgres:5432/movies  # Resolves to shared namespace
+```
+
+### Isolated Database per Developer
+
+Deploy your own database instance when you need isolation for schema changes or test data:
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install mongodb chart/mongodb  # Local database
+    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_IMAGE}
+  divert:
+    namespace: staging
+```
+
+Your service then connects to the local database:
+
+```yaml
+env:
+  - name: MONGODB_URL
+    value: mongodb://mongodb:27017/catalog  # Local instance
+```
+
+## Message Queue Routing Patterns
+
+For queue-based systems, you can route messages based on the baggage header to ensure proper service isolation.
+
+### SQS Queue Routing
+
+When publishing messages, include the namespace in the message attributes:
+
+```javascript
+// Producer: Include routing info in message
+const baggage = req.headers['baggage'] || '';
+const namespace = extractNamespace(baggage);  // Extract from "okteto-divert=namespace"
+
+await sqs.sendMessage({
+  QueueUrl: QUEUE_URL,
+  MessageBody: JSON.stringify(orderData),
+  MessageAttributes: {
+    'okteto-namespace': {
+      DataType: 'String',
+      StringValue: namespace || 'shared'
+    }
+  }
+});
+```
+
+Consumer filters messages by namespace:
+
+```javascript
+// Consumer: Filter messages by namespace
+const messages = await sqs.receiveMessage({
+  QueueUrl: QUEUE_URL,
+  MessageAttributeNames: ['okteto-namespace']
+});
+
+for (const message of messages.Messages) {
+  const targetNamespace = message.MessageAttributes?.['okteto-namespace']?.StringValue;
+
+  if (targetNamespace === CURRENT_NAMESPACE || targetNamespace === 'shared') {
+    // Process this message
+    await processOrder(JSON.parse(message.Body));
+  }
+}
+```
+
+### Kafka Topic Routing
+
+Use message headers for Kafka routing:
+
+```javascript
+// Producer
+await producer.send({
+  topic: 'orders',
+  messages: [{
+    value: JSON.stringify(order),
+    headers: {
+      'okteto-namespace': namespace
+    }
+  }]
+});
+
+// Consumer
+await consumer.run({
+  eachMessage: async ({ message }) => {
+    const targetNamespace = message.headers['okteto-namespace']?.toString();
+
+    if (targetNamespace === CURRENT_NAMESPACE || !targetNamespace) {
+      await processOrder(JSON.parse(message.value));
+    }
+  }
+});
+```
+
+## Testing Your Diverted Environment
+
+### Using curl
+
+Test routing with the baggage header:
+
+```console
+# Without header - uses shared services
+curl https://movies-staging.okteto.example.com/api/catalog/healthz
+# Response: {"status": "ok", "namespace": "staging"}
+
+# With header - routes to your namespace
+curl -H "baggage: okteto-divert=alice" \
+  https://movies-staging.okteto.example.com/api/catalog/healthz
+# Response: {"status": "ok", "namespace": "alice"}
+```
+
+### Using Browser Extensions
+
+Install a header modification extension (like [ModHeader](https://modheader.com/)) and add:
+
+- **Header Name**: `baggage`
+- **Header Value**: `okteto-divert=<your-namespace>`
+
+### Automated Testing
+
+Include header propagation in your test setup:
+
+```javascript
+// Jest/Mocha test setup
+const request = require('supertest');
+
+describe('Catalog API', () => {
+  it('should return movies', async () => {
+    const response = await request(app)
+      .get('/api/movies')
+      .set('baggage', `okteto-divert=${process.env.OKTETO_NAMESPACE}`)
+      .expect(200);
+
+    expect(response.body.namespace).toBe(process.env.OKTETO_NAMESPACE);
+  });
+});
+```
+
+## Multi-Developer Collaboration
+
+### Accessing Another Developer's Environment
+
+To test a colleague's changes, use their namespace in the baggage header:
+
+```console
+curl -H "baggage: okteto-divert=bob-feature" \
+  https://movies-staging.okteto.example.com/api/movies
+```
+
+### Sharing Your Work
+
+Others can access your diverted environment using:
+
+1. Your personal endpoint: `https://movies-alice.okteto.example.com`
+2. Or the shared endpoint with your header: `baggage: okteto-divert=alice`
+
+## Troubleshooting
+
+### Traffic Not Being Diverted
+
+1. **Check header format**: Ensure you're using `baggage: okteto-divert=<namespace>` (not `baggage.okteto-divert`)
+2. **Verify header propagation**: All services in the call chain must forward the baggage header
+3. **Check namespace name**: The namespace in the header must match your Okteto namespace exactly
+
+### Services Not Discovered
+
+1. **Verify shared namespace**: Ensure the shared namespace is running and healthy
+2. **Check service names**: Service discovery uses Kubernetes DNS (`<service>.<namespace>.svc.cluster.local`)
+3. **Review divert config**: Ensure `divert.namespace` points to the correct shared environment
+
+### Database Connection Issues
+
+1. **Check connection strings**: Ensure they resolve to the correct database (shared vs. local)
+2. **Verify network policies**: Ensure cross-namespace communication is allowed
+3. **Test connectivity**: Use `kubectl exec` to test database connectivity from your pod
+
+## Best Practices
+
+1. **Name namespaces descriptively**: Use patterns like `<username>-<feature>` for clarity
+2. **Clean up when done**: Delete personal namespaces after completing work
+3. **Keep shared environment updated**: Regularly deploy updates to the shared staging environment
+4. **Document header propagation**: Ensure all team members understand which headers to propagate
+5. **Use environment variables**: Reference shared namespace via variables for flexibility
+6. **Monitor resource usage**: Track namespace quotas and clean up unused resources
+
+## Next Steps
+
+- **[Divert Core Concepts](core/divert.mdx)** - Understanding Divert architecture
+- **[Divert Tutorial](/docs/tutorials/divert)** - Step-by-step getting started guide
+- **[Manifest Reference](reference/okteto-manifest.mdx#divert)** - Complete configuration options
+- **[Example Repositories](#example-repositories)** - Working code samples
+
+## Example Repositories
+
+- [Movies with Divert](https://github.com/okteto-community/movies-with-divert) - Multi-service example
+- [TacoShop with Divert Queues](https://github.com/okteto-community/tacoshop-with-divert-queues) - Queue routing patterns
+- [Divert with Istio Sample](https://github.com/okteto/divert-with-istio-sample) - Istio driver configuration
