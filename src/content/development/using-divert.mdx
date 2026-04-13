@@ -53,6 +53,12 @@ deploy:
         namespace: staging
 ```
 
+The Istio driver has two key configuration fields:
+
+- **`virtualServices`**: Lists the Istio VirtualService resources in the shared namespace where traffic should be diverted. Okteto modifies these virtual services to add header-based routing logic so that requests containing the baggage header are sent to the corresponding service in your development namespace. You can target all routes defined in the virtual service or specify a subset using the `routes` field.
+
+- **`hosts`**: Creates a dedicated copy of the listed virtual services in your development namespace, each with its own host (e.g., `https://service-a-<dev-namespace>.<subdomain>`). Requests reaching this host automatically have the baggage header injected. Internally, the copied virtual service still points to the original virtual service in the shared namespace, ensuring the rest of the request flow goes through the shared environment with the divert header applied.
+
 For complete configuration details, see the [manifest reference](../reference/okteto-manifest.mdx#divert).
 
 ## Project Structure Patterns
