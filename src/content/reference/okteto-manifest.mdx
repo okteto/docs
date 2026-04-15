@@ -90,6 +90,8 @@ build:
       SOURCE_IMAGE: ${OKTETO_BUILD_BASE_IMAGE}
     secrets:
       npmrc: .npmrc
+      token:
+        env: MY_TOKEN
 ```
 
 Each image supports the following fields:
@@ -99,7 +101,30 @@ Each image supports the following fields:
 - `depends_on`: list of images that need to be built first.
 - `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`).
 - `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](core/container-registry.mdx) is used).
-- `secrets`: list of secrets exposed to the build. The value of each secret refers to a file. Okteto will resolve references containing a `$` sign in this file to environment variables on the machine Okteto is running on.
+- `secrets`: list of secrets exposed to the build. Each secret can be sourced from a file or an environment variable. Secrets support three formats:
+
+  - **Short form** (file path): the value is a path to a local file. Okteto resolves references containing a `$` sign in this file to environment variables on the machine Okteto is running on.
+    ```yaml
+    secrets:
+      npmrc: .npmrc
+    ```
+  - **Long form with `file`**: explicitly specify a file path.
+    ```yaml
+    secrets:
+      npmrc:
+        file: .npmrc
+    ```
+  - **Long form with `env`**: source the secret value from an environment variable.
+    ```yaml
+    secrets:
+      token:
+        env: MY_TOKEN
+    ```
+
+  :::note
+  Each secret must specify either `file` or `env`, but not both.
+  :::
+
 - `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
