@@ -51,6 +51,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Core concepts',
+      link: { type: 'doc', id: 'core/index' },
       items: [
         {
           type: 'category',
