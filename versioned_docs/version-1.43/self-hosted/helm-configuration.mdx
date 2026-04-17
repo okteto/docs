@@ -925,9 +925,64 @@ globals:
 To apply node selectors for user workloads, you must define a `devPool` entry in `globals.tolerations`. See the [nodeSelectors](#nodeselectors) section for more details.
 :::
 
+### endpoints
+
+Configure how Okteto exposes the control plane and development environment endpoints. The `endpoints` block provides scoped configuration for each context — control plane (`endpoints.okteto`) and dev namespaces (`endpoints.dev`).
+
+:::note
+The `endpoints` values take precedence over the legacy [`ingress`](#ingress) and [`namespace.ingress`](#namespace) values when both are set. Legacy values continue to work for backward compatibility.
+:::
+
+#### endpoints.okteto.ingress
+
+Configure Ingress-based exposure for the Okteto control plane. This is enabled by default.
+
+- `enabled`: Enable Ingress resources for the control plane (default: `true`).
+- `annotations`: Annotations added to all control plane Ingress resources.
+- `labels`: Labels added to all control plane Ingress resources.
+- `class`: The `ingressClassName` for control plane Ingress resources. If empty, falls back to [`ingress.oktetoIngressClass`](#ingress) (default: `okteto-controlplane-nginx`).
+- `controller.ip`: IP of the ingress controller for internal DNS resolution. If empty, falls back to [`ingress.ip`](#ingress).
+
+```yaml
+endpoints:
+  okteto:
+    ingress:
+      enabled: true
+      annotations: {}
+      labels: {}
+      class: ""
+      controller:
+        ip: ""
+```
+
+#### endpoints.dev.ingress
+
+Configure Ingress behavior for development namespaces. These values provide more granular control than the legacy [`ingress`](#ingress) and [`namespace.ingress`](#namespace) values.
+
+- `enabled`: Informational flag indicating whether Ingress-based endpoints are enabled for dev applications (default: `true`).
+- `annotations`: Annotations added to all Ingress resources in dev namespaces. Merged with [`namespace.ingress.annotations`](#namespace) when both are set, with `endpoints.dev.ingress` values taking precedence.
+- `labels`: Labels added to all Ingress resources in dev namespaces. Merged with [`namespace.ingress.labels`](#namespace) when both are set, with `endpoints.dev.ingress` values taking precedence.
+- `class`: The `ingressClassName` for dev namespace Ingress resources. Takes precedence over [`ingress.class`](#ingress). If both are empty, falls back to built-in defaults.
+- `forceClass`: When enabled, all Ingress resources in dev namespaces have their ingress class overwritten. Also enabled when [`ingress.forceIngressClass`](#ingress) is `true` (default: `false`).
+- `forceSubdomain`: When enabled, all Ingress resources in dev namespaces must match the Okteto wildcard subdomain. Also enabled when [`ingress.forceIngressSubdomain`](#ingress) is `true` (default: `false`).
+- `subdomain`: Subdomain for generating dev namespace hosts. If empty, inherits from the top-level [`subdomain`](#subdomain) value. Use this to route dev environment traffic through a different domain than the control plane.
+
+```yaml
+endpoints:
+  dev:
+    ingress:
+      enabled: true
+      annotations: {}
+      labels: {}
+      class: ""
+      forceClass: false
+      forceSubdomain: false
+      subdomain: ""
+```
+
 ### ingress
 
-Configure default values for the ingress created by Okteto.
+Configure default values for the ingress created by Okteto. For more granular per-scope configuration, see [`endpoints`](#endpoints).
 
 - `annotations`: The annotations to apply to all the ingresses created during the Okteto installation.
 - `oktetoIngressClass`: The `ingressClassName` to apply to all the ingresses created during the Okteto installation (defaults to `okteto-controlplane-nginx`).
