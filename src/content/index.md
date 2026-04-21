@@ -1,6 +1,6 @@
 ---
-title: Okteto docs - cloud development environments for Kubernetes
-description: Learn how to use Okteto to build, test, and deploy applications with cloud development environments on Kubernetes. Guides, references, and tutorials.
+title: Okteto Docs — the developer platform for human and AI teams
+description: Okteto is the developer platform for engineering teams. Cloud dev environments, preview environments per PR, integrated testing, and AI-native workflows — self-hosted or BYOC.
 ---
 
 ## Build modern development experiences with Okteto
