@@ -230,7 +230,9 @@ Variables [defined by the user](core/okteto-variables.mdx) take precedence over 
 
 We recommend using [build secrets](reference/okteto-manifest.mdx#secrets-string-optional) to inject sensitive data into your Dockerfile.
 
-The example below shows how to configure your Okteto manifest to mount a local `.env` file into your Dockerfile:
+#### File-based secrets
+
+Mount a local file as a build secret. Okteto resolves any `$` references in the file to environment variables before passing it to the build.
 
 ```yaml
 build:
@@ -253,6 +255,25 @@ ${MY_PASSWORD}
 ```
 
 where `MY_PASSWORD` can be a local environment variable or an Okteto Secret, and it gets substituted by Okteto before mounting the file as a build secret.
+
+#### Environment variable-based secrets
+
+You can also source a build secret directly from an environment variable using the `env` key:
+
+```yaml
+build:
+  api:
+    context: .
+    secrets:
+      my_token:
+        env: MY_TOKEN
+```
+
+This passes the value of the `MY_TOKEN` environment variable as a build secret. You can access it in your Dockerfile the same way as file-based secrets:
+
+```dockerfile
+RUN --mount=type=secret,id=my_token cat /run/secrets/my_token
+```
 
 
 ## Garbage Collector
