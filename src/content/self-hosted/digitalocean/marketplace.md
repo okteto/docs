@@ -1,5 +1,6 @@
 ---
 title: Getting started after deploying Okteto on DigitalOcean
+description: "Configure your Okteto instance after deploying from the DigitalOcean Marketplace. Set up DNS, authentication, and connect your Kubernetes cluster."
 ---
 
 import Image from '@theme/Image';
