@@ -1,6 +1,6 @@
-const sanityClient = require('@sanity/client');
+const { createClient } = require('@sanity/client');
 
-const client = sanityClient({
+const client = createClient({
   projectId: process.env.SANITY_PROJECTID,
   dataset: process.env.SANITY_DATASET,
   apiVersion: '2021-03-25',
