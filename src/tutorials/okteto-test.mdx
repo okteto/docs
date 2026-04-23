@@ -1,0 +1,264 @@
+---
+title: Testing your application with Okteto Test
+description: Run unit tests, API tests, and end-to-end tests in Okteto Test Containers using the Movies sample app
+id: okteto-test
+---
+
+This tutorial walks you through running unit tests and end-to-end tests in [Okteto Test Containers](/docs/testing/getting-started-test). You will deploy the Movies sample app, configure test containers for the frontend, API, and end-to-end layers, and execute each test suite against a live Okteto environment.
+
+## What you will learn
+
+- How to configure test containers in `okteto.yaml`
+- How to run unit tests for individual services
+- How to run end-to-end integration tests with Playwright
+- How to use caches and artifacts to speed up test execution
+
+## Prerequisites
+
+Before you start, make sure you have:
+
+- Access to an Okteto instance. Otherwise, follow the [installation guide](/docs/get-started/install/index)
+- The [Okteto CLI configured](/docs/get-started/install-okteto-cli) with your Okteto instance
+- Completed the [deploy your first app guide](/docs/get-started/deploy-your-app/index)
+
+## Step 1: Clone and deploy the Movies app
+
+Get a local copy of the Movies sample app:
+
+```bash
+git clone https://github.com/okteto/getting-started
+cd getting-started
+```
+
+Switch to the `onboarded` branch, which includes pre-configured test containers:
+
+```bash
+git checkout onboarded
+```
+
+Deploy the application:
+
+```bash
+okteto deploy
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Running 'Helm Install'
+Release "movies" has been upgraded. Happy Helming!
+NAME: movies
+LAST DEPLOYED: Tue Jun  4 15:37:11 2024
+NAMESPACE: pchico83
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindy.okteto.example.com
+ ✓  Development environment 'getting-started' successfully deployed
+```
+
+## Step 2: Understand the test configuration
+
+Open `okteto.yaml` at the root of the repository. The `test` section defines three test containers:
+
+```yaml title="okteto.yaml"
+test:
+  frontend:
+    image: node:20
+    context: frontend
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+  api:
+    image: node:20
+    context: api
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+  e2e:
+    image: ghcr.io/okteto/playwright:chromium
+    context: e2e
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+```
+
+Each test container has these fields:
+
+| Field | Purpose |
+|-------|---------|
+| `image` | The runtime image for the test container |
+| `context` | The folder synchronized between your local machine and the test container |
+| `caches` | Folders persisted between runs to speed up execution |
+| `commands` | The commands that run your tests |
+| `artifacts` | Files exported to your local filesystem after execution (e2e only) |
+
+The `frontend` folder also contains an `.oktetoignore` file that prevents synchronizing binaries, build artifacts, and the `node_modules` folder to the test container.
+
+## Step 3: Run the frontend unit tests
+
+Execute the frontend test container:
+
+```bash
+okteto test frontend
+```
+
+The first run takes longer because caches aren't initialized yet:
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'frontend'
+ i  Running 'yarn install'
+yarn install v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+Done in 43.31s.
+ ✓  Command 'yarn install' successfully executed
+ i  Running 'yarn test'
+yarn run v1.22.22
+$ jest
+PASS src/components/Hero.test.jsx
+PASS src/components/TitleList.test.jsx
+PASS src/components/Item.test.jsx
+PASS src/components/App.test.jsx
+PASS src/components/UserProfile.test.jsx
+PASS src/components/ListToggle.test.jsx
+Test Suites: 6 passed, 6 total
+Tests:       20 passed, 20 total
+Snapshots:   0 total
+Time:        5.658 s
+Ran all test suites.
+Done in 6.59s.
+ ✓  Command 'yarn test' successfully executed
+ ✓  Test container 'frontend' passed
+```
+
+Run it again and notice the faster execution time — caches are now warm.
+
+## Step 4: Run the API unit tests
+
+Execute the API test container:
+
+```bash
+okteto test api
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'api'
+ i  Running 'yarn install'
+yarn install v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+Done in 9.01s.
+ ✓  Command 'yarn install' successfully executed
+ i  Running 'yarn test'
+yarn run v1.22.22
+$ jest
+PASS ./load.test.js
+PASS ./server.test.js
+Test Suites: 2 passed, 2 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        1.098 s
+Ran all test suites.
+Done in 1.79s.
+ ✓  Command 'yarn test' successfully executed
+ ✓  Test container 'api' passed
+```
+
+## Step 5: Run end-to-end tests with Playwright
+
+The `e2e` test container uses Playwright to run browser-based integration tests against your live deployment:
+
+```bash
+okteto test e2e
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'e2e'
+ i  Running 'bash run_tests.sh'
+yarn install v1.22.19
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+Done in 4.53s.
+yarn run v1.22.19
+$ playwright test
+Running 6 tests using 2 workers
+  ✓  1 [chromium] › content.spec.js:26:5 › displays the movies section (3.2s)
+  ✓  2 [chromium] › content.spec.js:48:5 › displays the watching section (3.2s)
+  ✓  3 [chromium] › header.spec.js:3:5 › displays the header (762ms)
+  ✓  4 [chromium] › hero.spec.js:3:5 › displays the hero (936ms)
+  ✓  5 [chromium] › main.spec.js:3:5 › has title (1.6s)
+  ✓  6 [chromium] › main.spec.js:10:5 › matches screenshot (3.6s)
+  6 passed (9.9s)
+To open last HTML report run:
+  yarn playwright show-report
+Done in 10.88s.
+ ✓  Command 'bash run_tests.sh' successfully executed
+ ✓  Test container 'e2e' passed
+```
+
+The e2e tests use the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` environment variables to construct the base URL. You can see how this works in the [Playwright config](https://github.com/okteto/getting-started/blob/main/e2e/playwright.config.js#L3).
+
+Because the `artifacts` field is configured, the `test-results` and `playwright-report` folders are downloaded to your local machine after execution. Open the Playwright report to inspect test details.
+
+:::tip
+To access private services like MongoDB from your integration tests, use the hostname `mongodb.${OKTETO_NAMESPACE}`. See how this works in the [data helper](https://github.com/okteto/getting-started/blob/main/e2e/data/getStoredData.js#L5).
+:::
+
+## Step 6: Add a new test container
+
+Create a new test container for a custom validation. Add the following to the `test` section of your `okteto.yaml`:
+
+```yaml title="okteto.yaml"
+test:
+  smoke:
+    image: curlimages/curl:latest
+    commands:
+      - curl -sf https://movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN} > /dev/null
+```
+
+Run the smoke test:
+
+```bash
+okteto test smoke
+```
+
+This verifies that your Movies app endpoint is reachable. You can extend this pattern to add health checks, API contract tests, or any validation that runs against your live environment.
+
+## Summary
+
+You configured and ran three types of tests in Okteto Test Containers:
+
+- **Unit tests** for the frontend and API services, each running in isolated containers with cached dependencies
+- **End-to-end tests** using Playwright against a live deployment, with test artifacts exported locally
+- **A custom smoke test** that validates endpoint availability
+
+Test Containers run the same way in your development workflow and in [Okteto Preview Environments](/docs/previews/index), giving you consistent test results across your inner and outer development loops.
+
+## Next steps
+
+- [Okteto Test documentation](/docs/testing/getting-started-test) for the full reference on test container configuration
+- [Preview Environments](/docs/previews/index) to run tests automatically on every pull request
+- [Okteto Manifest reference](/docs/reference/okteto-manifest#test-object-optional) for all available test container fields

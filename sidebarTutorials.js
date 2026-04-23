@@ -31,6 +31,9 @@ module.exports = {
         'divert',
         'optimize-your-development-environment',
         'create-and-use-volume-snapshots',
+        'okteto-test',
+        'okteto-ai-first-agent',
+        'agentic-workflows',
       ],
     },
     {
