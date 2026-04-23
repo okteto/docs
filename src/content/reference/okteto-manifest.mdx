@@ -90,6 +90,10 @@ build:
       SOURCE_IMAGE: ${OKTETO_BUILD_BASE_IMAGE}
     secrets:
       npmrc: .npmrc
+      server_cert:
+        file: /path/to/server.cert
+      npm_token:
+        env: NPM_TOKEN
 ```
 
 Each image supports the following fields:
@@ -99,7 +103,30 @@ Each image supports the following fields:
 - `depends_on`: list of images that need to be built first.
 - `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`).
 - `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](core/container-registry.mdx) is used).
-- `secrets`: list of secrets exposed to the build. The value of each secret refers to a file. Okteto will resolve references containing a `$` sign in this file to environment variables on the machine Okteto is running on.
+- `secrets`: list of secrets exposed to the build. Each secret can be defined using one of three forms:
+
+  - **Shorthand (file path):** the value is a file path. Okteto resolves references containing a `$` sign to environment variables on the machine Okteto is running on.
+    ```yaml
+    secrets:
+      my_secret: /path/to/secret/file
+    ```
+  - **Explicit `file` key:** equivalent to the shorthand form but using a structured syntax.
+    ```yaml
+    secrets:
+      my_secret:
+        file: /path/to/secret/file
+    ```
+  - **Environment variable (`env` key):** the secret value is read from the specified environment variable at build time.
+    ```yaml
+    secrets:
+      my_secret:
+        env: MY_ENV_VAR
+    ```
+
+  :::warning
+  A secret cannot specify both `file` and `env`. Each secret must use one form or the other.
+  :::
+
 - `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
