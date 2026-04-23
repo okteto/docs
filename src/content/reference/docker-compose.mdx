@@ -76,6 +76,7 @@ It can also be an object with these fields:
 - `dockerfile`: the path to the Dockerfile. It is a relative path to the build context (default: `Dockerfile`)
 - `target`: build the specified stage as defined inside the Dockerfile. See the multi-stage build [Docker official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine okteto is running on, which can be helpful for secret or machine-specific values.
+- `secrets`: a list of secret names (short form) to expose during the build. Each name must reference a secret defined in the [top-level `secrets` section](reference/docker-compose.mdx#secrets-object-optional). Secrets are available inside the Dockerfile via `RUN --mount=type=secret,id=<name>`.
 
 ```yaml
 build:
@@ -86,6 +87,37 @@ build:
     - ENV1=prod
     - ENV2=$VALUE
 ```
+
+Build secrets example:
+
+```yaml
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+  server-cert:
+    file: ./server.cert
+
+services:
+  api:
+    build:
+      context: .
+      secrets:
+        - npm_token
+        - server-cert
+```
+
+In the Dockerfile, access these secrets with `--mount=type=secret`:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM node:18
+RUN --mount=type=secret,id=npm_token \
+    NPM_TOKEN=$(cat /run/secrets/npm_token) npm install
+```
+
+:::note
+Only the short form (`- secret_name`) is supported in `build.secrets`. The long form with `source`/`target` is not supported.
+:::
 
 `okteto deploy` builds a new docker image, pushes it to the registry and redeploys your containers.
 
@@ -504,6 +536,44 @@ labels:
   app: redis
 ```
 
+### secrets ([object], optional)
+
+Define secrets that can be referenced by services during the build process. Each secret has a name and a source — either a file path or an environment variable.
+
+```yaml
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+  server-cert:
+    file: ./server.cert
+```
+
+Each secret has one of the following properties:
+
+#### environment (string)
+
+The name of an environment variable whose value becomes the secret content.
+
+```yaml
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+```
+
+#### file (string)
+
+The path to a file whose contents become the secret value. The path is relative to the location of the Docker Compose file.
+
+```yaml
+secrets:
+  server-cert:
+    file: ./server.cert
+```
+
+:::note
+Top-level secrets are used exclusively during builds. Reference them from [`build.secrets`](reference/docker-compose.mdx#build-stringobject-optional) in your service definition. Runtime secrets (`services.<svc>.secrets`) are not supported.
+:::
+
 ## Environment variables
 
 There are multiple parts of Docker Compose files that deal with environment variables in one sense or another.
@@ -679,7 +749,7 @@ Okteto supports a large subset of the Docker Compose specification and introduce
 | volumes | yes | ✅ |  |
 | networks | yes | ⚠️ | Warning shown to the user |
 | configs | yes | ⚠️ | Warning shown to the user |
-| secrets | yes | ⚠️ | Warning shown to the user |
+| secrets | yes | ✅ | Supported for build-time secrets (`file` and `environment` types) |
 | version *(obsolete)* | yes | ✅ | Kept for back-compatibility |
 | profiles | yes | ⛔️ | Ignored |
 | x-* extension keys | yes | ⛔️ | Ignored but we ignore them consciously |
@@ -690,7 +760,7 @@ Okteto supports a large subset of the Docker Compose specification and introduce
 #### ✅ Supported
 ```yaml
 annotations
-build.context / dockerfile / args
+build.context / dockerfile / args / secrets
 cap_add / cap_drop
 command
 depends_on
@@ -763,7 +833,7 @@ profiles
 pull_policy
 read_only
 runtime
-secrets
+secrets (runtime)
 security_opt
 shm_size
 stdin_open
@@ -815,6 +885,21 @@ uts
 
 ---
 
-### Networks, Configs & Secrets Blocks
+### Networks & Configs Blocks
 
-All three blocks are **parsed only to raise a warning**; every sub-field therefore falls under ⚠️.
+Networks and configs blocks are **parsed only to raise a warning**; every sub-field therefore falls under ⚠️.
+
+### Secrets Block
+
+Top-level `secrets` definitions are ✅ **supported for build-time use**. Each secret supports:
+
+| **Attribute** | **Description** |
+| --- | --- |
+| `file` | Path to a file whose contents become the secret value |
+| `environment` | Name of an environment variable whose value becomes the secret value |
+
+Services reference these secrets via [`build.secrets`](reference/docker-compose.mdx#build-stringobject-optional) (short form only).
+
+:::warning
+Runtime secrets (`services.<svc>.secrets` for volume-mounting secrets into running containers) remain unsupported and still emit a warning.
+:::
