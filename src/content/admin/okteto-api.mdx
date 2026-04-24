@@ -47,8 +47,79 @@ You must include your Admin Access Token in the Authorization header for each re
 
 The Okteto API includes operations for:
 - Namespaces → List and manage Development and Preview Environments
+- Namespace Labels → List, set, and delete user-defined labels on Namespaces
 - Applications → Track applications within Namespaces
 - Users → List and delete users within your Okteto account
 
 Refer to the Swagger page for request parameters, response structures, and error handling details.
+
+### Namespace labels
+
+The Okteto API provides endpoints for managing user-defined labels on Namespaces you own. Labels are key-value pairs that follow [Kubernetes label syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set) and can be used to organize and categorize your Namespaces.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/namespaces/{namespaceName}/labels` | List all user-defined labels on a Namespace |
+| `PUT` | `/namespaces/{namespaceName}/labels` | Replace all user-defined labels on a Namespace |
+| `DELETE` | `/namespaces/{namespaceName}/labels` | Remove specific labels from a Namespace |
+
+#### List labels
+
+```bash
+curl -s -X GET \
+  -H "Authorization: Bearer $OKTETO_TOKEN" \
+  https://okteto.example.com/api/v0/namespaces/my-namespace/labels
+```
+
+```json
+{
+  "labels": {
+    "env": "staging",
+    "team": "backend"
+  }
+}
+```
+
+#### Set labels
+
+`PUT` replaces all existing user-defined labels with the provided set. Any labels not included in the request are removed.
+
+```bash
+curl -s -X PUT \
+  -H "Authorization: Bearer $OKTETO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"labels": {"env": "staging", "team": "backend"}}' \
+  https://okteto.example.com/api/v0/namespaces/my-namespace/labels
+```
+
+```json
+{
+  "labels": {
+    "env": "staging",
+    "team": "backend"
+  }
+}
+```
+
+#### Delete labels
+
+`DELETE` removes specific labels by key. Pass an array of label keys to remove.
+
+```bash
+curl -s -X DELETE \
+  -H "Authorization: Bearer $OKTETO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"labels": ["env"]}' \
+  https://okteto.example.com/api/v0/namespaces/my-namespace/labels
+```
+
+The response returns the remaining labels after deletion:
+
+```json
+{
+  "labels": {
+    "team": "backend"
+  }
+}
+```
 
