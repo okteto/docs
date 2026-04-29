@@ -214,14 +214,6 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Billing and Licensing',
-      link: { type: 'doc', id: 'billing/index' },
-      items: [
-        'billing/how-billing-works',
-      ],
-    },
-    {
-      type: 'category',
       label: 'Okteto BYOC',
       link: { type: 'doc', id: 'byoc/index' },
       items: [
@@ -334,6 +326,7 @@ module.exports = {
       label: 'Tutorials',
       href: '/tutorials',
     },
+    'billing',
     'reference/faqs',
     'release-notes',
     {
