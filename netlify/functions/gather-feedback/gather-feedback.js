@@ -8,18 +8,41 @@ const client = createClient({
   useCdn: false,
 });
 
-const allowedOrigins = ['https://okteto.com', 'https://www.okteto.com'];
+const isAllowedOrigin = (origin) => {
+  if (!origin) return false;
+
+  if (origin === 'https://okteto.com' || origin === 'https://www.okteto.com') {
+    return true;
+  }
+
+  // Netlify deploy previews
+  if (
+    origin.startsWith('https://deploy-preview-') &&
+    origin.endsWith('--okteto-docs.netlify.app')
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
 const getHeaders = (origin) => ({
-  'Access-Control-Allow-Origin': allowedOrigins.includes(origin)
-    ? origin
-    : 'https://www.okteto.com',
+  'Access-Control-Allow-Origin': origin,
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 });
 
 const handler = async (event) => {
   const origin = event.headers.origin || '';
+
+  if (!isAllowedOrigin(origin)) {
+    return {
+      statusCode: 403,
+      headers: getHeaders(origin),
+      body: 'Forbidden',
+    };
+  }
+
   const headers = getHeaders(origin);
 
   if (event.httpMethod === 'OPTIONS') {
