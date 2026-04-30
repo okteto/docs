@@ -49,16 +49,13 @@ const Feedback = () => {
 
     handleSessionStorage({ url: data.pageURL, helpful: data.helpful });
 
-    fetch(
-      'https://deploy-preview-1233--okteto-docs.netlify.app/.netlify/functions/gather-feedback',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      }
-    ).then((response) => {
+    fetch('https://okteto-docs.netlify.app/.netlify/functions/gather-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    }).then((response) => {
       if (response.status === 200) setFeedback({ submitted: true, helpful: data.helpful });
       setLoading(false);
     });
