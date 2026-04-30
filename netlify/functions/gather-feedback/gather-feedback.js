@@ -37,14 +37,6 @@ const handler = async (event) => {
     };
   }
 
-  if (!allowedOrigins.includes(origin)) {
-    return {
-      statusCode: 403,
-      headers,
-      body: 'Forbidden',
-    };
-  }
-
   try {
     const body = JSON.parse(event.body || '{}');
 
