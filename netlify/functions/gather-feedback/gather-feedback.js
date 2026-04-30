@@ -72,6 +72,8 @@ const handler = async (event) => {
       helpful: body.helpful || '',
     };
 
+    console.log(doc);
+
     await client.create(doc);
 
     return {
@@ -80,6 +82,7 @@ const handler = async (event) => {
       body: JSON.stringify({ success: true }),
     };
   } catch (error) {
+    console.log(error.message);
     return {
       statusCode: 500,
       headers,
