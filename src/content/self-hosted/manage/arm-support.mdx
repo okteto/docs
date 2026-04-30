@@ -1,0 +1,162 @@
+---
+title: ARM Support
+description: How to install and configure Okteto on ARM-based Kubernetes clusters
+sidebar_label: ARM Support
+id: arm-support
+---
+
+Okteto supports installation on ARM-based Kubernetes clusters for self-hosted deployments. This lets you run the Okteto control plane on ARM infrastructure, which can offer better cost efficiency compared to equivalent x86 instance types.
+
+## Support Status
+
+| Cloud Provider | Recommended Instance | Status |
+|---|---|---|
+| Google GKE | Tau T2A (`t2a-standard-4`) | GA |
+| Amazon EKS | Graviton 2/3 (`m7g.xlarge`) | Beta |
+
+ARM support is covered by the same release pipeline as x86. All control plane images are published as multi-arch (amd64 + arm64).
+
+:::note
+ARM support is available for **self-hosted deployments only**. BYOC and SaaS deployments are not supported.
+:::
+
+## Requirements
+
+- **Fresh installations only.** Migrating an existing x86 cluster to ARM is not supported. ARM clusters must be provisioned from scratch.
+- **Homogeneous clusters.** All nodes in the cluster must be ARM-based. Mixed architecture clusters (ARM + x86 nodes) are not supported.
+
+## Google GKE (GA)
+
+ARM support on GCP using Tau T2A instances is generally available. Automated tests run against ARM clusters on GCP for every release and in weekly scheduled runs.
+
+### Cluster Configuration
+
+We recommend creating a GKE cluster using Tau T2A nodes. The recommended instance type is `t2a-standard-4`:
+
+```bash
+gcloud container clusters create CLUSTER_NAME \
+  --zone ZONE \
+  --machine-type=t2a-standard-4 \
+  --num-nodes=3 \
+  --disk-size=250
+```
+
+:::note
+Tau T2A instances are only available in certain GCP regions and zones. See the [GCP documentation](https://cloud.google.com/compute/docs/general-purpose-machines#t2a_machines) for regional availability.
+:::
+
+### Helm Configuration
+
+GKE automatically applies `kubernetes.io/arch=arm64:NoSchedule` taints to ARM nodes. You must add the following tolerations to your `config.yaml` so that Okteto components can be scheduled on those nodes:
+
+```yaml
+globals:
+  tolerations:
+    okteto:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+    dev:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+ingress-nginx:
+  controller:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+okteto-nginx:
+  controller:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+reloader:
+  reloader:
+    deployment:
+      tolerations:
+        - key: "kubernetes.io/arch"
+          operator: "Equal"
+          value: "arm64"
+          effect: "NoSchedule"
+```
+
+For the full installation walkthrough, follow the [GKE installation guide](get-started/install/google-gke.mdx).
+
+## Amazon EKS (Beta)
+
+:::warning Beta
+ARM support on Amazon EKS is in **Beta**. Validation is performed manually when introducing support for new Kubernetes versions. We recommend testing in a non-production environment before using this in production.
+:::
+
+AWS Graviton 2 and Graviton 3 instances are supported. The recommended instance type is `m7g.xlarge`, which is equivalent in size to the standard `m5.xlarge` but typically delivers better performance at a lower cost.
+
+### Cluster Configuration
+
+```bash
+eksctl create cluster -f - <<EOF
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ${CLUSTER_NAME}
+  region: ${AWS_REGION}
+  version: "${K8S_VERSION}"
+
+autoModeConfig:
+  enabled: false
+
+iam:
+  withOIDC: true
+
+nodeGroups:
+  - name: ng-1
+    instanceType: m7g.xlarge
+    desiredCapacity: 3
+    volumeSize: 250
+    volumeType: gp3
+    amiFamily: AmazonLinux2023
+EOF
+```
+
+### Helm Configuration
+
+<!-- TODO: Engineering to confirm whether EKS ARM nodes require tolerations (similar to GKE) and provide exact values if so -->
+
+For the full installation walkthrough, follow the [Amazon EKS installation guide](get-started/install/amazon-eks.mdx).
+
+## Dependencies
+
+The following dependencies bundled in the Okteto Helm chart have been validated for ARM compatibility:
+
+- **Reloader**
+- **Redis**
+- **ingress-nginx**
+
+:::warning
+ARM compatibility of these dependencies must be re-verified before bumping their versions. Check the relevant project release notes for architecture support before upgrading.
+:::
+
+## Limitations
+
+The following scenarios are not supported in the current release:
+
+| Scenario | Notes |
+|---|---|
+| Migration from x86 clusters | No migration tooling; fresh install required |
+| Mixed architecture clusters | All nodes must be the same architecture |
+| BYOC deployments | Not supported |
+| Azure AKS ARM | Not supported |
+| GCP Axion (C4A) instances | Not supported |
+| Oracle Ampere A1/A2 | Not supported |
+| Bare metal ARM | Not supported |
+| Divert | Not supported on ARM (planned for a future release) |
+| External Secrets Operator | Not supported on ARM |
+| GPU support | Not supported on ARM |
+| Windows containers | Not supported on ARM |
+| WebAssembly (WASM) runtime | Not supported on ARM |
