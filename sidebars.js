@@ -169,6 +169,7 @@ module.exports = {
       link: { type: 'doc', id: 'admin/index' },
       items: [
         'admin/dashboard',
+        'admin/billing',
         'admin/catalog',
         'admin/build-service',
         'admin/custom-installer-image',
@@ -326,7 +327,6 @@ module.exports = {
       label: 'Tutorials',
       href: '/tutorials',
     },
-    'billing',
     'reference/faqs',
     'release-notes',
     {
