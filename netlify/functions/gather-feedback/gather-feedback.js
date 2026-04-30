@@ -5,42 +5,90 @@ const client = createClient({
   dataset: process.env.SANITY_DATASET,
   apiVersion: '2021-03-25',
   token: process.env.SANITY_TOKEN,
-})
+  useCdn: false,
+});
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return false;
+
+  if (origin === 'https://okteto.com' || origin === 'https://www.okteto.com') {
+    return true;
+  }
+
+  // Netlify deploy previews
+  if (
+    origin.startsWith('https://deploy-preview-') &&
+    origin.endsWith('--okteto-docs.netlify.app')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+const getHeaders = (origin) => ({
+  'Access-Control-Allow-Origin': origin,
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+});
 
 const handler = async (event) => {
+  const origin = event.headers.origin || '';
 
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+  if (!isAllowedOrigin(origin)) {
+    return {
+      statusCode: 403,
+      headers: getHeaders(origin),
+      body: 'Forbidden',
+    };
   }
 
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST",
-  };
+  const headers = getHeaders(origin);
 
-  const {feedback, pageURL, helpful, pageTitle, submittedOn} = JSON.parse(event.body);
-
-  const doc = {
-    "_type": "docsFeedback",
-    feedback,
-    pageTitle,
-    pageURL,
-    submittedOn,
-    helpful
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+    };
   }
 
-  return client
-    .create(doc)
-    .then(res => {
-      return {
-        statusCode: 200,
-        headers
-      }
-    })
-    .catch(error => {
-      return { statusCode: 500, body: error.toString() }
-    })
-}
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: 'Method Not Allowed',
+    };
+  }
 
-module.exports = { handler }
+  try {
+    const body = JSON.parse(event.body || '{}');
+
+    const doc = {
+      _type: 'docsFeedback',
+      feedback: body.feedback || '',
+      pageTitle: body.pageTitle || '',
+      pageURL: body.pageURL || '',
+      submittedOn: body.submittedOn || new Date().toISOString(),
+      helpful: body.helpful || '',
+    };
+
+    console.log(doc);
+
+    await client.create(doc);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ success: true }),
+    };
+  } catch (error) {
+    console.log(error.message);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
+
+module.exports = { handler };
