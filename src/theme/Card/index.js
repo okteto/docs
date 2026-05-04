@@ -11,7 +11,7 @@ const Card = ({ title, url, logo, children }) => {
       {children}
       {logo && (
         <div className="CardLogos">
-          <img src={logo} width="32" height="32" />
+          <img src={logo} width="32" height="32" alt={title || ""} />
         </div>
       )}
     </div>
