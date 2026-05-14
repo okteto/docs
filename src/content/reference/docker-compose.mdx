@@ -282,7 +282,7 @@ service are "healthy".
 either a string or a list. If it's a list, the first item must be either `NONE`, `CMD` or `CMD-SHELL`.
 If it's a string, it's equivalent to specifying `CMD-SHELL` followed by that string.
 - `http` (object): Defines the path and port that has to be tested on the container to set
- the healthcheck as successful
+ the healthcheck as successful. This key is an Okteto extension not part of the standard Compose spec.
 - `x-okteto-readiness` (bool): Defines if the probe should be a readiness probe (default: `true`).
 - `x-okteto-liveness` (bool): Defines if the probe should be a liveness probe (default: `false`).
 
@@ -406,7 +406,7 @@ If you need make these ports public, you can use [endpoints](reference/docker-co
 
 #### resources (object, optional)
 
-Configure resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits).
+Configure resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits). This top-level key is an Okteto extension — the standard Compose spec places resources under `deploy.resources`.
 
 ```yaml
 resources:
@@ -776,7 +776,7 @@ Okteto supports a large subset of the Docker Compose specification and introduce
 | version *(obsolete)* | yes | ✅ | Kept for back-compatibility |
 | profiles | yes | ⛔️ | Ignored |
 | x-* extension keys | yes | ⛔️ | Ignored but we ignore them consciously |
-| endpoints | — | 🆕 | Okteto-specific syntax |
+| endpoints | — | 🆕 | Okteto extension for defining HTTPS routes |
 
 ### Service Spec
 
@@ -893,10 +893,12 @@ uts
 
 | **Key** | **Purpose** |
 | --- | --- |
+| endpoints | Define HTTPS routes for services |
 | public: true | Auto-generate a Kubernetes Ingress |
 | x-node-selector | Pod scheduling hint |
-| resources | Set CPU / Memory |
-| scale | Compose-style replica shorthand (alias for deploy.replicas) |
+| resources | Top-level CPU / memory requests and limits (shorthand for `deploy.resources`) |
+| healthcheck.http | HTTP path and port healthcheck probe |
+| scale | Compose-style replica shorthand (alias for `deploy.replicas`) |
 
 ---
 
