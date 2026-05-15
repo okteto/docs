@@ -1,5 +1,5 @@
 ---
-title: Okteto Docs — the developer platform for human and AI teams
+title: "Welcome to Okteto: the developer platform for human and AI teams"
 description: Okteto is the developer platform for engineering teams. Cloud dev environments, preview environments per PR, integrated testing, and AI-native workflows — self-hosted or BYOC.
 ---
 
