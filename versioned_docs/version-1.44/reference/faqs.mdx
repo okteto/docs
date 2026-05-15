@@ -1,0 +1,173 @@
+---
+title: Frequently Asked Questions (FAQs)
+description: Frequently asked questions about Okteto
+sidebar_label: FAQs
+id: faqs
+---
+
+## Can I use Okteto CLI with Minikube?
+
+Yes. Okteto CLI accelerates your development workflow regardless of where your Kubernetes cluster is running.
+
+If you can run `kubectl apply`, you can benefit from Okteto CLI.
+
+For Minikube, k3s, or similar local Kubernetes distributions, you can directly use our [open source project](https://github.com/okteto/okteto). For shared remote clusters, we recommend you take a look at [Okteto](https://okteto.com/) to handle credential management, namespace isolation, integration with GitHub among other things.
+
+## Why is Okteto better than traditional development?
+
+Among the many advantages, Okteto allows developers to:
+
+- Reduce local setup and eliminate integration issues by developing the same way your application runs in production
+- Test your application as fast as you type code, without needing to use `docker` or `kubectl` in your inner loop cycle
+- No more CPU cycles wasted in your machine. Hardware and network just limited by the power of the cloud
+- Your development endpoints are always available. No need to expose your local machine to the internet through remote tunnels
+
+## How is Okteto different from other tools like Skaffold?
+
+Skaffold automates the workflow for building, pushing, and deploying your application. You iterate on your application source code locally and then deploy to local or remote Kubernetes clusters.
+
+Okteto's philosophy is to move development entirely to Kubernetes. The Skaffold pipeline, even though automated, is still slow. With Okteto, you code locally in your favorite IDE and Okteto automatically synchronizes your changes to your remote development environment. No commit, build, push, or deploy required.
+
+The main differences from tools like Skaffold are:
+
+- Okteto decouples deployment from development. You can deploy your application with `kubectl`, `Helm`, a serverless framework or even a CI job and use Okteto later to develop any component of your application
+- Use any docker image as your remote development environment, with your favorite tools. Okteto doesn't require you to change the way you build, debug, or deploy your applications. Since builds are executed in your remote development environment, you benefit from fast incremental builds, hot reloaders, or the dependency caching offered by your programming language. Native builds are always faster than building images and redeploying containers
+- You can integrate Okteto with your local IDE remote plugins, making it possible to execute your favorite IDE extensions and debuggers as you develop your application directly in Kubernetes
+- Okteto provides bidirectional synchronization. For example, you can execute package managers like `npm` or `pip` in your remote development environment and the changes are synchronized back to your local file system
+
+## Is Okteto compatible with Flux/ArgoCD?
+
+Okteto decouples deployment from development, making it possible to use it with tools like Flux or ArgoCD.
+
+We recommend you to stop the Flux/ArgoCD reconciliation loop while running `okteto up`. For example, add this field to your Okteto Manifest to stop the Flux reconciliation loop:
+
+```yaml
+annotations:
+  fluxcd.io/ignore: "true"
+```
+
+:::tip
+Please see our [ArgoCD Configuration Guide](self-hosted/manage/argocd.mdx) for our full recommendation on deploying Okteto with ArgoCD
+:::
+
+
+## How to use private images?
+
+In order to use your private registry credentials, use the Okteto's built-in [Registry Credentials](/admin/registry-credentials/index.mdx) feature.
+
+## Why are my [Endpoints](core/endpoints/automatic-ssl.mdx) not present in the CLI or UI?
+
+Endpoint links are not present within Okteto if there are no services actively running. If your endpoints are missing, consider the following states and their implications:
+
+#### Progressing: 
+* Description: Your deployment is in the process of being rolled out
+* Possible Causes:
+  * Your service is still being started
+  * Okteto is waiting for all healthchecks to pass
+  * There are pending updates or new deployments
+* Actions:
+  * Wait for the deployment to complete
+  * Look at the events of the deployment for any issues
+
+#### Pulling:
+* Description: The image for your deployment is in the process of being pulled
+* Possible Causes:
+  * Your service is still being started
+* Actions:
+  * Wait for the deployment to complete
+  * Look at the events of the deployment for any issues
+
+#### Booting:
+* Description: Starting the containers for your deployment
+* Possible Causes:
+  * All containers for your service are not yet ready
+* Actions:
+  * Wait for all containers to finish starting and enter their ready state
+  * Look at the events of the deployment for any issues
+
+#### Running:
+* Description: Your deployment is active, and the service should be running correctly
+* Possible Causes:
+  * Network policies or firewall rules could be blocking the endpoint
+* Actions:
+  * Verify the service annotations in your manifest to ensure `dev.okteto.com/auto-ingress: "true"` is present
+  * Verify your [Docker Compose endpoints](reference/docker-compose.mdx#endpoints-object-optional) are configured correctly
+
+#### Unschedulable:
+* Description: At least one of the pods of your service cannot be scheduled.
+* Possible Causes:
+  * You cluster doesn't have enough resources to allocate the pods
+  * Some of the pod tolerations are preventing the pods from being scheduled
+* Actions:
+  * Check the events for the pods that belong to your service: `kubectl events --for pod/my-pod-1234 -n my-ns`
+  * Contact your cluster administrator and check if your cluster is at capacity
+
+#### Error:
+* Description: There is an issue with your deployment preventing the service from running correctly
+* Possible Causes:
+  * Errors in the application code or container image
+  * Misconfiguration in your service or deployment manifest
+  * Insufficient resources or quota limits in the cluster
+* Actions:
+  * Check the logs of the affected service through the UI or with [`okteto logs`](reference/okteto-cli.mdx#logs)
+  * Validate the container image and configuration settings
+  * Ensure that resource requests and limits are properly set and the cluster has enough capacity
+
+## What are the custom error pages I see when accessing my endpoints?
+
+When you access an endpoint and encounter an error (such as accessing a sleeping namespace or when a service is temporarily unavailable), Okteto displays custom error pages with helpful hints on how to resolve the issue. These pages are designed to provide clear guidance on what went wrong and what actions you can take.
+
+Common scenarios where you'll see custom error pages include:
+- Accessing a sleeping namespace that is in the process of waking up
+- Service temporarily unavailable due to deployment or restart
+
+These error pages are served automatically by the defaultBackend component and require no additional configuration. For more information about namespace sleeping and autowake behavior, see the [Garbage Collection documentation](admin/cleanup.mdx#custom-error-pages).
+
+## Every time I make a change, tsc detects two changes:
+
+This is related to how syncthing interacts with `tsc`. Syncthing creates a temporary file and replaces the original file with the new one.
+
+To solve the problem you just add the flag `--synchronousWatchDirectory` to your `tsc` command.
+
+## I cannot connect to the Kubernetes cluster using the kubeconfig file generated by Okteto
+
+Starting with Okteto CLI version `2.20`, the kubeconfig file generated by Okteto uses a [credential plugin](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins) to get the credentials for your Kubernetes clusters from your Okteto instance. It is a typical pattern used by many Kubernetes providers, such as Google Kubernetes Engine (GKE), Azure Kubernetes Service (AKS), or Amazon Elastic Kubernetes Service (EKS) to connect to Kubernetes clusters.
+
+We recommend you add the Okteto CLI to your PATH and run the 'okteto context' command to connect your CLI to your Okteto instance before executing the `okteto kubeconfig` command. You can also optionally download your Kubeconfig from the Okteto UI. Please refer to [our documentation](get-started/install-okteto-cli.mdx) for more information on this topic.
+
+Once you have the CLI installed you have to connect to your instance using the command `okteto context use https://okteto.example.com` as is described [here](get-started/install-okteto-cli.mdx). If you're not logged into Okteto yet, it will also run the login sequence.
+
+Once your Okteto context is configured to access Okteto, you should be able to connect to your Kubernetes cluster using the kubeconfig file generated by Okteto or generate a new one running [`okteto kubeconfig`](reference/okteto-cli.mdx#kubeconfig).
+
+You can also disable the usage of the credential plugin by setting the environment variable `OKTETO_USE_STATIC_KUBETOKEN` to `true` before running any Okteto command. Be aware that using those static tokens are not recommended by Kubernetes and you will start getting warnings in your `kubectl` output starting with Kubernetes version `1.27`.
+
+## How can I use the `--platform` flag with `okteto build`?
+
+With `okteto build --platform` you can specify the platform (or architecture) for which you'd like to build the container images. For example, you could use a multiplatform image and the `okteto build --platform` command to deploy your web application on a Kubernetes cluster that consists of nodes running on both x86-64 and ARMv7 architectures.
+By using the multiplatform images built using this method, you can deploy the same images across the cluster without worrying about the underlying hardware differences.
+
+Let's consider an example where you have a Node.js application that you want to build and deploy on both x86_64 and ARM-based platforms. You have a Dockerfile in your project directory that defines the build process.
+Here's how Okteto CLI can help you build multiplatform images for your application:
+
+1. Building the image for x86_64 architecture:
+
+```console
+okteto build -f Dockerfile -t myapp:latest --platform linux/amd64
+```
+
+2. Building the image for ARMv7 architecture:
+
+```console
+okteto build -f Dockerfile -t myapp:latest --platform linux/arm/v7
+```
+
+3. Building a multiarchitectural image:
+
+```console
+okteto build -f Dockerfile -t myapp:latest --platform linux/amd64,linux/arm/v7
+```
+
+This command builds a multi-architecture Docker image named `myapp` with the latest tag for both x86_64 and ARM platforms.
+
+By using these commands, you can easily build the application image for different platforms without needing to maintain separate Dockerfiles or perform manual modifications.
+This is particularly useful when you want to deploy your application to heterogeneous environments where you have both x86_64 and ARM-based devices, such as a mixed-cluster Kubernetes setup.
