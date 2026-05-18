@@ -1,0 +1,175 @@
+---
+title: AI-assisted development with Okteto
+description: Deploy a multi-service app and use an AI agent to develop and test in a live Okteto environment
+id: ai-assisted-development
+---
+
+Okteto Development Environments let AI agents deploy, test, and debug against real infrastructure instead of editing files locally. This tutorial walks you through deploying the [movies](https://github.com/okteto/movies) sample app to Okteto, connecting Claude Code to the live environment with the Okteto plugin, and using the agent to add a feature while validating against running services.
+
+By the end, you have:
+
+- A running multi-service app in your Okteto Namespace
+- An AI agent connected to your environment through the Claude Code plugin
+- A new feature developed and tested against live services
+
+## Prerequisites
+
+- An Okteto account with access to a [Namespace](/docs/core/namespaces)
+- [Okteto CLI](/docs/get-started/install-okteto-cli) installed and configured with your Okteto instance
+- [Claude Code](https://claude.ai/code) installed on your machine
+- [Git](https://git-scm.com/) installed
+
+## Step 1: Install the Okteto plugin for Claude Code
+
+The Okteto plugin gives Claude Code built-in knowledge of Okteto CLI commands and teaches it to discover your project's services from `okteto.yaml`.
+
+Open Claude Code and run:
+
+```console
+/plugin marketplace add okteto/okteto-claude-plugins
+/plugin install okteto
+```
+
+The plugin loads automatically for any project that has an `okteto.yaml` file.
+
+## Step 2: Clone and deploy the movies app
+
+Clone the sample application:
+
+```console
+git clone https://github.com/okteto/movies
+cd movies
+```
+
+The movies app is a microservices application with five services:
+
+| Service | Language | Role |
+|---------|----------|------|
+| **frontend** | React | Web UI for browsing and renting movies |
+| **catalog** | Node.js | REST API serving the movie catalog from MongoDB |
+| **rent** | Java | Accepts rental requests and publishes to Kafka |
+| **worker** | Go | Consumes rental events from Kafka and writes to PostgreSQL |
+| **api** | Go | Serves rental records from PostgreSQL |
+
+Deploy the full environment:
+
+```console
+okteto deploy --wait
+```
+
+This builds all service images with the [Okteto Build Service](/docs/core/build-service), deploys the infrastructure (PostgreSQL, MongoDB, Kafka), and starts all five services. The `--wait` flag ensures everything is running before you proceed.
+
+Verify the deployment:
+
+```console
+okteto endpoints
+```
+
+You see URLs for the frontend and API services. Open the frontend URL in your browser to confirm the app is running.
+
+## Step 3: Start a development session
+
+Start a development session for the API service:
+
+```console
+okteto up api
+```
+
+This activates [File Sync](/docs/development/containers/file-sync/) between your local `api/` directory and the Development Container running in Okteto. Code changes you or the agent make locally appear in the container within seconds.
+
+Keep this terminal open — `okteto up` runs in the foreground.
+
+## Step 4: Develop with the agent
+
+Open a new terminal in the `movies` directory and start Claude Code:
+
+```console
+claude
+```
+
+The Okteto plugin detects the `okteto.yaml` and loads context about the project's services, build targets, and test definitions automatically.
+
+Ask the agent to add a feature:
+
+```
+Add a /health endpoint to the api service that returns JSON with
+the server status, database connectivity, and server uptime.
+```
+
+The agent reads the API service code, writes the new endpoint and accompanying tests, and validates everything using `okteto exec` to run commands in the active Development Container:
+
+```console
+okteto exec -- go build ./...
+okteto exec -- go test ./...
+```
+
+Because `okteto up` is running, file changes sync to the container automatically. The agent builds, tests, and iterates without rebuilding container images.
+
+:::note
+The agent never runs `okteto up` — that's your job. In collaborative mode, you manage the dev session while the agent operates inside it with `okteto exec`. See [Collaborative Workflows](/docs/agentic/collaborative-workflows) for details.
+:::
+
+## Step 5: Verify the changes
+
+After the agent finishes, test the new endpoint. Get the API service URL:
+
+```console
+okteto endpoints
+```
+
+Verify the health endpoint responds:
+
+```console
+curl -s https://<your-api-endpoint>/health | jq .
+```
+
+Expected output:
+
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "uptime": "5m12s"
+}
+```
+
+The response comes from the live Development Container, hitting the real PostgreSQL database running in your Namespace.
+
+## Step 6: Run the tests
+
+With `okteto up` still running, ask the agent to run the tests it created:
+
+```
+Run the Go tests for the api service and verify the health endpoint works.
+```
+
+The agent runs the tests inside the Development Container:
+
+```console
+okteto exec -- go test -v ./...
+```
+
+The tests execute against the live environment — the same database, same network, same configuration your app uses in production.
+
+## Step 7: Clean up
+
+Stop the development session by pressing `Ctrl+C` in the terminal running `okteto up`.
+
+When you're done with the environment entirely, destroy it:
+
+```console
+okteto destroy
+```
+
+## Summary
+
+You deployed a multi-service application to Okteto, connected an AI agent to the live environment, and used it to develop and validate a feature against running infrastructure — databases, message queues, and dependent services.
+
+The key pattern: you manage the development session with `okteto up`, and the agent operates inside it with `okteto exec`. File Sync handles code changes, so there are no rebuilds between iterations.
+
+## Next steps
+
+- [Autonomous Workflows](/docs/agentic/autonomous-workflows) — let the agent handle the full lifecycle from ticket to pull request without `okteto up`
+- [Claude Code Plugin](/docs/agentic/claude-code-plugin) — plugin capabilities and auto-discovery
+- [Best Practices](/docs/agentic/best-practices) — common pitfalls when using agents with Okteto
+- [Preview Environments with GitHub Actions](/docs/previews/using-github-actions) — automatically create environments for every pull request
