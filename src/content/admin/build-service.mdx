@@ -9,8 +9,8 @@ import Image from "@theme/Image";
 
 # Build Service Management
 
-The Build Service admin view provides comprehensive monitoring for your BuildKit infrastructure.
-This interface allows administrators to track real-time performance metrics, configure resource thresholds, and ensure optimal build performance across your Okteto instance.
+The Build Service admin view provides monitoring for your BuildKit infrastructure.
+This interface allows administrators to track real-time performance metrics, configure resource thresholds, and review build performance across your Okteto instance.
 
 ## Overview
 
@@ -42,7 +42,7 @@ The Build Service dashboard displays key metrics for each BuildKit pod:
 
 - **CPU Pressure**: indicates how much any process is waiting for CPU in the last 10s. A value greater than 50% is a potential signal of build performance degradation.
 - **Memory Usage**: a percentage out of 100%. A value close to 70% increases your chances to face Out-Of-Memory kill events.
-- **IO Pressure**: indicates how much any process is waiting for IO in the last 10s. A value greater than 30% is a potential signal of build performance degradation.
+- **I/O Pressure**: indicates how much any process is waiting for I/O in the last 10s. A value greater than 30% is a potential signal of build performance degradation.
 - **Active Builds**: number of concurrent builds.
 
 ### Configurable Thresholds
@@ -54,17 +54,17 @@ You can configure the following thresholds from the admin UI:
 - **Description**: Maximum CPU pressure allowed before a BuildKit pod is marked as busy. CPU pressure is measured in 10-second intervals and indicates how much the pod is CPU-constrained.
 - **When to adjust**: Increase if builds are being queued unnecessarily when CPU usage is acceptable. Decrease if you notice build performance degradation at current levels.
 
-#### Memory Pressure Threshold
+#### Memory Usage Threshold
 - **Default**: 70%
 - **Description**: Maximum memory usage allowed before a BuildKit pod is marked as busy. Memory usage is reported as a percentage out of 100%.
 - **When to adjust**: Increase if you have sufficient memory headroom and want to maximize pod utilization. Decrease if memory pressure is causing OOM issues.
 
-#### IOPS Pressure Threshold
+#### I/O Pressure Threshold
 - **Default**: 30%
 - **Description**: Maximum I/O pressure allowed before a BuildKit pod is marked as busy. I/O pressure is measured in 10-second intervals and indicates disk I/O contention.
 - **When to adjust**: Increase if using high-performance SSDs with greater I/O capacity. Decrease if experiencing I/O-related build slowdowns.
 
-### Understanding Pod Status
+### Pod status
 
 Each BuildKit pod displays one of the following statuses:
 
@@ -78,21 +78,21 @@ Each BuildKit pod displays one of the following statuses:
 
 Administrators can restart individual BuildKit pods directly from the dashboard. This terminates the existing pod and creates a new one.
 
-#### When to Restart
+#### Restart conditions
 
 - **Stuck builds**: A build appears hung with no progress
 - **Repeated failures**: Builds are failing consistently on a specific pod
 - **Pod errors**: The pod shows an error status that hasn't self-resolved
 - **Performance degradation**: A pod is underperforming compared to others
 
-#### What Happens When You Restart
+#### Restart behavior
 
 - **Active builds are retried**: Builds running on that pod are automatically retried on another available pod, or on this pod once it's recreated
 - **Queued builds reroute**: If the build queue is enabled, waiting builds are routed to other available pods
 - **Cache is preserved**: The build cache is stored on a persistent volume and survives the restart
 - **Typical recovery time**: 30-60 seconds for the new pod to become ready
 
-#### How to Restart
+#### Restart steps
 
 1. Locate the pod you want to restart in the Build Service dashboard
 2. Click the **Restart** button (or the overflow menu → **Restart**)
@@ -102,12 +102,12 @@ Administrators can restart individual BuildKit pods directly from the dashboard.
 
 ### Threshold Configuration
 
-- **Start with defaults**: The default thresholds (50% CPU, 70% memory, 30% IOPS) work well for most workloads
+- **Start with defaults**: The default thresholds (50% CPU, 70% memory, 30% I/O) work well for most workloads
 - **Monitor and adjust**: Watch the metrics over time and adjust thresholds based on actual performance patterns
 - **Balance utilization and performance**: Higher thresholds maximize resource utilization but may impact build performance
 
 ## Related Documentation
 
-- [Build Service Overview](core/build-service.mdx) - Learn about how the Okteto Build service works
-- [BuildKit High Performance](self-hosted/manage/buildkit-high-performance.mdx) - Detailed guide on optimizing BuildKit performance at high scale
-- [BuildKit Helm Configuration](self-hosted/helm-configuration.mdx#buildkit) - Configure BuildKit settings in your Helm chart
+- [Build Service overview](core/build-service.mdx) - How the Okteto Build Service works
+- [BuildKit high performance](self-hosted/manage/buildkit-high-performance.mdx) - Optimizing BuildKit performance at high scale
+- [BuildKit Helm configuration](self-hosted/helm-configuration.mdx#buildkit) - BuildKit settings in your Helm chart
