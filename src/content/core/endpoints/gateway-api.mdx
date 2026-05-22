@@ -1,0 +1,151 @@
+---
+title: Gateway API endpoints
+description: Okteto automatically configures HTTPRoute resources with the dev gateway and generates HTTPS endpoints for Gateway API workloads.
+sidebar_label: Gateway API
+id: gateway-api
+---
+
+Okteto supports the Kubernetes Gateway API as an alternative to Ingress for exposing endpoints in Development Environments. When Gateway API is enabled on your cluster, Okteto automatically attaches HTTPRoute resources to the dev gateway and generates HTTPS hostnames.
+
+## Automatic gateway injection
+
+Okteto automatically attaches every HTTPRoute in a Development Environment to the dev gateway and assigns it a hostname. You can deploy standard HTTPRoute resources without referencing the dev gateway yourself:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: my-app
+spec:
+  rules:
+    - backendRefs:
+        - name: my-app
+          port: 8080
+```
+
+Okteto appends the dev gateway to the `parentRefs` list and generates a hostname in the format `<route-name>-<namespace>.<okteto-domain>`. Any `parentRefs` and hostnames you define remain unchanged.
+
+You can see the generated endpoint in the Okteto dashboard or by running `okteto endpoints`.
+
+## Auto-creating HTTPRoutes from services
+
+The `dev.okteto.com/auto-ingress` annotation works with Gateway API the same way it does with [Ingress-based endpoints](core/endpoints/automatic-ssl.mdx). When Gateway API is enabled, Okteto creates an HTTPRoute instead of an Ingress that routes traffic to an HTTP port of your service (preferring common HTTP ports like 80 or 8080):
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+  annotations:
+    dev.okteto.com/auto-ingress: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: my-app
+```
+
+`NodePort` and `LoadBalancer` services are handled as if they had this annotation.
+
+## Opting out of gateway injection
+
+Add the `dev.okteto.com/gateway: "false"` annotation to keep your own gateway and hostname configuration unchanged:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: my-app
+  annotations:
+    dev.okteto.com/gateway: "false"
+spec:
+  parentRefs:
+    - name: my-custom-gateway
+      namespace: my-gateway-namespace
+  hostnames:
+    - "custom.example.com"
+  rules:
+    - backendRefs:
+        - name: my-app
+          port: 8080
+```
+
+Okteto skips both gateway injection and hostname generation for routes with this annotation.
+
+### Suppressing hostname generation
+
+To use the Okteto dev gateway but keep your own hostnames, add the `dev.okteto.com/generate-host: "false"` annotation:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: my-app
+  annotations:
+    dev.okteto.com/generate-host: "false"
+spec:
+  hostnames:
+    - "custom.example.com"
+  rules:
+    - backendRefs:
+        - name: my-app
+          port: 8080
+```
+
+Okteto still injects the dev gateway into `parentRefs`, but does not modify the `hostnames` list.
+
+## Hostname generation options
+
+The `dev.okteto.com/generate-host` annotation controls how the hostname is generated:
+
+| Value | Generated hostname |
+|-------|-------------------|
+| `"true"` or not set | `<route-name>-<namespace>.<okteto-domain>` |
+| `"domain"` | `<namespace>.<okteto-domain>` |
+| `"false"` | No hostname generated |
+| Any other value | `<value>-<namespace>.<okteto-domain>` |
+
+## Private endpoints
+
+HTTPRoutes support [private endpoints](core/endpoints/private-endpoints.mdx) using the same annotation as Ingress resources. Add `dev.okteto.com/private: "true"` to restrict access to authenticated users:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: my-app
+  annotations:
+    dev.okteto.com/private: "true"
+spec:
+  rules:
+    - backendRefs:
+        - name: my-app
+          port: 8080
+```
+
+You can also create a private HTTPRoute directly from a Service by setting `dev.okteto.com/auto-ingress: "private"`.
+
+## Customizing endpoints in the dashboard
+
+The same dashboard customization annotations available for Ingress resources apply to HTTPRoutes:
+
+| Annotation | Effect |
+|-----------|--------|
+| `dev.okteto.com/hide-from-ui: "true"` | Hides the endpoint from the Okteto dashboard |
+| `dev.okteto.com/endpoints: "<url>"` | Replaces the default endpoint URL in the dashboard |
+
+The `dev.okteto.com/endpoints` annotation expands the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` variables for portability across Namespaces.
+
+## Annotation reference
+
+| Annotation | Values | Default |
+|-----------|--------|---------|
+| `dev.okteto.com/gateway` | `"false"` | Enabled. Set to `"false"` to opt out of gateway injection entirely. |
+| `dev.okteto.com/generate-host` | `"false"`, `"true"`, `"domain"`, or a custom name | Enabled. Controls hostname format or disables generation. |
+| `dev.okteto.com/auto-ingress` | `"true"`, `"private"` | Applied to Services. Creates an HTTPRoute automatically. |
+| `dev.okteto.com/private` | `"true"` | Disabled. Restricts the endpoint to authenticated users. |
+| `dev.okteto.com/hide-from-ui` | `"true"` | Disabled. Hides the endpoint from the Okteto dashboard. |
+| `dev.okteto.com/endpoints` | Comma-separated URLs | Not set. Replaces default endpoint URLs in the dashboard. |
