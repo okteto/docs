@@ -4,9 +4,7 @@ description: How developers and AI agents work together using okteto up and okte
 sidebar_label: Collaborative Workflows
 ---
 
-Agents are more useful when they can actually run and test code, not just suggest edits. In collaborative mode, you stay in control of the development session while the agent executes commands, runs tests, and debugs issues inside your live Okteto environment.
-
-You manage the dev session with `okteto up`. The agent runs commands in the active dev container using `okteto exec`. Code changes sync automatically, so when the agent edits a file, it's running in the container within seconds. No rebuilds between iterations.
+In collaborative mode, you stay in control of the development session while the agent runs commands, tests, and debugs issues inside your live Okteto environment. You manage the dev session with `okteto up`. The agent runs commands in the active Development Container using `okteto exec`. Code changes sync automatically, so when the agent edits a file, it's running in the container within seconds. No rebuilds between iterations.
 
 ## How it works
 
@@ -18,7 +16,7 @@ You manage the dev session with `okteto up`. The agent runs commands in the acti
 6. You iterate together until the task is complete
 
 :::warning
-`okteto up` is an interactive command that requires a human terminal. The agent must never run it, as it will hang indefinitely. In collaborative mode, you always start the dev session yourself.
+`okteto up` is interactive and hangs if an agent runs it. You always start the dev session yourself. See [Command rules](agentic/best-practices.mdx#command-rules).
 :::
 
 ## Workflow example: fixing a bug
@@ -50,28 +48,7 @@ okteto exec -- npm test
 
 Since file sync is active, the agent's code changes are immediately available in the running container. No rebuild needed.
 
-## CLI commands for agents
-
-These commands are safe for agents to use in collaborative mode:
-
-| Command | Purpose |
-|---------|---------|
-| `okteto deploy --wait` | Deploy all services in the environment |
-| `okteto exec -- <command>` | Run a command in the active dev container |
-| `okteto logs <service>` | View container logs |
-| `okteto logs <service> --since 5m` | View recent logs |
-| `okteto test <name>` | Run a test container defined in `okteto.yaml` |
-| `okteto endpoints` | List public URLs for the environment |
-| `okteto down` | Stop dev mode and restore the original deployment |
-
-For full flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
-
-### Commands agents must not run
-
-| Command | Why |
-|---------|-----|
-| `okteto up` | Interactive. Requires a human terminal and will hang if run by an agent. |
-| `okteto destroy` | Tears down the entire environment. Should only be run by the developer or with explicit policy. |
+The agent's day-to-day commands in this mode are `okteto exec`, `okteto logs`, and `okteto test`. The full list of commands agents may and may not run is in [Command rules](agentic/best-practices.mdx#command-rules). For flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
 
 ## File sync
 
@@ -79,12 +56,7 @@ When `okteto up` is running, Okteto syncs file changes between your local machin
 
 The agent makes a change, runs a test with `okteto exec`, sees the result, and iterates. No waiting on builds.
 
-## When to use collaborative mode
+## Next steps
 
-- You want to stay in control of the development session
-- You're pair-programming with the agent on a feature or bug fix
-- You need the fast feedback loop of file sync and hot-reload
-- You want to review changes as they happen, not after the fact
-- The task requires judgment calls that the agent should check with you
-
-For tasks where the agent can handle the full lifecycle without human input, see [Autonomous Workflows](agentic/autonomous-workflows.mdx).
+- [Autonomous Workflows](agentic/autonomous-workflows.mdx) — let the agent handle the full lifecycle without human input
+- [Best Practices](agentic/best-practices.mdx) — command rules and common pitfalls
