@@ -1,0 +1,164 @@
+---
+title: Registry Credentials
+description: Manage and configure your registry credentials
+sidebar_label: Registry Credentials
+---
+
+import Image from "@theme/Image";
+
+In the Admin Dashboard, you can set up private registry credentials for your Okteto instance. These credentials are automatically used by Okteto for various developer operations like building and deploying, so developers don't need direct credential access. Once set, all developers can access the registries through Okteto without additional steps.
+Additionally, you have the option to manage these credentials via [Kubernetes CRDs provided by Okteto](self-hosted/manage/crds.mdx#private-registries).
+
+## Why configure registry credentials?
+
+Some container registries, most notably Docker Hub, enforce pull rate limits for unauthenticated requests. Without registry credentials configured, image pulls can fail with errors like:
+
+```
+toomanyrequests: You have reached your unauthenticated pull rate limit.
+```
+
+This can affect two flows in Okteto:
+
+- **Image builds** — when Dockerfiles pull base images from public registries during dev environment builds
+- **Pod deployments** — when Kubelet pulls images for pods running in Okteto-managed namespaces
+
+Authenticated requests have significantly higher (or unlimited) rate limits, so configuring credentials avoids these failures across both flows.
+
+### Registries that enforce rate limits
+
+**Docker Hub** is the most common source of rate limit issues. Unauthenticated pulls are limited to 100 pulls per 6 hours (per IP), while authenticated users get 200 pulls per 6 hours, with higher limits on paid plans. Since many Dockerfiles use Docker Hub base images (e.g., `python:3`, `node:18`, `ruby:3-slim`), teams can hit this limit quickly.
+
+Other registries like **GitHub Container Registry (ghcr.io)** don't currently enforce pull rate limits for public images, but do throttle API requests (2,000/minute). Configuring credentials is still recommended where supported, as registry policies can change.
+
+:::tip
+Even if you only use public images, configuring Docker Hub credentials is recommended to avoid hitting rate limits as your team scales.
+:::
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/registry_credentials_view+1.32.png").default}
+    alt="Registry credentials admin view"
+    width="900"
+  />
+</p>
+
+Registry credentials are applied to the [Okteto Build service](core/build-service.mdx) to allow private base image in your Dockerfiles.
+
+:::note
+If you see a “Read-only” tag next to Registry Credentials in the interface, it means that these items were defined using Custom Resource Definitions (CRDs). Such items cannot be modified through the Admin Dashboard.
+To make changes, you will need to update the associated CRD directly. For more information, refer to the [Managing Private Registry Credentials using CRDs documentation](self-hosted/manage/crds.mdx#private-registries).
+:::
+
+## Add Registry Credentials
+
+Click in the **Add Credential** button on the top right corner of the Registry Credentials view.
+A dialog will let you choose the type of credentials, your registry hostname, and your username and password:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/registry_credentials_add.png").default}
+    alt="Registry credentials add"
+    width="500"
+  />
+</p>
+
+There are three types of registries that can be configured in Okteto:
+
+- **Static** - credentials use a username and password, ideal for platforms like DockerHub.
+- **AWS IAM User** - Provides credentials for Amazon Elastic Container Registry (ECR) using an Access Key and a Secret Key. Okteto will exchange an ECR temporary token with AWS using these credentials.
+- **AWS IAM Role** - Provides credentials for Amazon Elastic Container Registry (ECR) using a predefined AWS IAM Role. Okteto will exchange an ECR temporary token with AWS using [OIDC federation](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html)
+
+Follow our guides below to learn how to retrieve your registry credentials:
+
+- [Amazon ECR](admin/registry-credentials/amazon-ecr.mdx)
+- [Azure Container Registry](admin/registry-credentials/azure-acr.mdx)
+- [DockerHub](admin/registry-credentials/dockerhub.mdx)
+- [Google Artifact Registry](admin/registry-credentials/google-artifact-registry.mdx)
+
+For other registries, if the registry is exposed in a port other than the default http(s) 80/443, the port must be included in the `Hostname`, eg: `my-registry.com:5000`.
+
+Finally, click the **Add** button of the dialog. Your registry credentials might take a few minutes to propagate to all of the components in the cluster.
+
+## Edit Registry Credentials
+
+The Registry Credentials view enables you to rotate your registry credentials. Click on the **Edit** button on the right of every registry credential.
+For sensitive data you will only see the last few characters as a hint to verify the value:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/registry_credentials_edit+1.22.png").default}
+    alt="Registry credentials detail"
+    width="700"
+  />
+</p>
+
+Click the **Save** button in the dialog. Your registry credentials might take a few seconds to propagate to all of the components in the cluster.
+
+## Remove Registry Credentials
+
+The Registry Credentials view enables you to remove registry credentials if you don't need them anymore.
+Click on the **Remove** button on the right of every registry credential. A confirmation dialog will be shown:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/registry_credentials_remove+1.22.png").default}
+    alt="remove registry credentials confirmation dialog"
+    width="700"
+  />
+</p>
+
+Click **Continue** in the confirmation dialog and your registry credentials will be removed from the cluster.
+
+## Manage Registry Credentials using CRDs
+
+You can also manage your [Registry Credentials using CRDs](self-hosted/manage/crds.mdx#private-registries). 
+This is useful, for example, if you have your own mechanism to provision credentials/secrets in your cluster.
+
+To make sure Okteto is able to access your private registries, you can check if they are available from the [Admin dashboard](admin/dashboard.mdx#registry-credentials).
+If you add credentials using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+
+## Self-hosted: Node-level credentials
+
+If you are running Okteto in a self-hosted environment, you may already have registry credentials configured at the node level (e.g., through instance profiles, credential helpers, or pre-pulled secrets on each node). This is a valid alternative to configuring credentials through the Okteto UI.
+
+Keep in mind that node-level credentials are not visible to Okteto. This means:
+
+- The Okteto [Build Service](core/build-service.mdx) won't use them — node-level credentials only apply to Kubelet image pulls, not to image builds
+- Any installation task prompting you to configure registry credentials can be safely dismissed if your nodes already handle authentication
+
+If your builds also need authenticated access to private registries, configure credentials through the Okteto UI or [CRDs](self-hosted/manage/crds.mdx#private-registries) in addition to your node-level setup.
+
+## How it works
+
+Okteto runs a dedicated Kubernetes Controller to manage Registry Credentials. As part of this process, the Controller creates and manages a [Docker Config JSON](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets) secret in the Okteto namespace.
+This secret is called `okteto-dockerconfig-static` and is always up to date with your Registry Credentials, either through the UI or using CRDs.
+
+This docker config secret is used as a pull secret in installer jobs, in case your installer job image is private.
+
+The docker config secret is added in all namespaces and preview environments created by Okteto, with the name `okteto-regcred`.
+`okteto-regcred` is injected as a pull secret to all pods by the [Okteto Webhook](self-hosted/helm-configuration.mdx#webhook) to allow the deployment of private images.
+
+:::note
+By default, the `okteto-regcred` only contains credentials for the Okteto Registry
+:::
+
+To disable this behavior set the following configuration in your helm values:
+
+```yaml
+regcredsManager:
+  pullSecrets:
+    enabled: false
+```
+
+If this behavior is disabled, Okteto can write this secret on every node which allows Kubelet to pull private images at deployment time.
+To enable this behavior set the following configuration in your helm values:
+
+```yaml
+daemonset:
+  configurePrivateRegistriesInNodes:
+    enabled: true
+```
+
+:::note
+`daemonset.configurePrivateRegistriesInNodes.enabled` is deprecated and it will be removed in Chart 1.23
+:::

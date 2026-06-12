@@ -1,0 +1,419 @@
+---
+title: Istio Installation for Divert
+description: Install Istio to use the Istio driver for Divert routing in Okteto
+sidebar_label: Istio Installation
+---
+
+:::info Administrator Guide
+This guide is for **Okteto administrators** setting up Istio in the cluster. Developers do not need to install anything - once Istio is configured, Divert works transparently for all developers.
+:::
+
+This guide covers two things:
+
+1. **Inbound ingress** — routing external user traffic through Istio instead of the default `okteto-nginx` ingress controller
+2. **In-cluster divert routing** — using Istio VirtualServices and sidecars for header-based routing between namespaces
+
+The Istio driver uses Istio's VirtualService for header-based routing and is designed for environments that already use Istio or prefer Istio-native service mesh capabilities.
+
+:::warning For Istio Driver Only
+This installation is **only** required when using the **istio driver**. If you're using the default nginx driver, do not install Istio - see [Configure Divert](index.mdx) for the distinction between drivers.
+:::
+
+## Prerequisites
+
+- Kubernetes cluster with Okteto installed
+- `kubectl` configured with cluster admin access
+- `helm` v3.x installed
+- **Administrator/operator** access (this is a one-time cluster setup)
+
+## Understanding Okteto's Ingress Controllers
+
+Before configuring Istio, it helps to understand how Okteto's ingress controllers work:
+
+| Controller | Ingress Class | Service Type | Purpose |
+|------------|---------------|--------------|---------|
+| **`ingress-nginx`** | `okteto-controlplane-nginx` | LoadBalancer | The external-facing controller. Serves the Okteto control plane (API, Frontend, Buildkit, Registry) and forwards wildcard `*.subdomain` traffic to the user traffic controller |
+| **`okteto-nginx`** | `okteto-nginx` | ClusterIP | An internal controller dedicated to user/dev namespace ingress traffic |
+
+Okteto runs two separate nginx controllers to isolate user traffic from control plane traffic. This prevents developer app deployments from disrupting control plane access during reconfigurations and updates, and vice versa (this is an nginx limitation).
+
+When you enable Istio, you disable `okteto-nginx` so that Istio handles user ingress traffic instead. The `ingress-nginx` controller continues to serve the Okteto control plane and forwards wildcard user traffic to the Istio ingress gateway (via the ingress you create in Step 7).
+
+:::tip Disabling both ingress controllers
+If you want Istio (or another ingress controller) to handle **all** traffic including the Okteto control plane, see [Using your own ingress controller](#using-your-own-ingress-controller) below.
+:::
+
+## Configure Okteto for Istio
+
+Before installing Istio, update your Okteto Helm values to disable the built-in nginx ingress and enable Istio integration:
+
+```yaml
+# Disable the default okteto-nginx since we will enable Istio ingress mode
+okteto-nginx:
+  enabled: false
+
+# Enable VirtualService endpoints in the Okteto UI
+virtualServices:
+  enabled: true
+
+# Inject the Istio sidecar injection label on every namespace managed by Okteto
+namespace:
+  labels:
+    istio-injection: enabled
+```
+
+- **`okteto-nginx: enabled: false`** — Disables the built-in nginx ingress controller so Istio can handle ingress
+- **`virtualServices: enabled: true`** — Displays VirtualService endpoints in the Okteto UI
+- **`namespace: labels: istio-injection: enabled`** — Instructs Istio to inject sidecars into every pod in Okteto-managed namespaces, ensuring all traffic goes through the Istio mesh
+
+Apply the changes:
+
+```console
+helm upgrade okteto okteto/okteto -f values.yaml
+```
+
+## Install Istio
+
+:::tip Already have Istio installed?
+If your cluster already has Istio base CRDs, Istiod, and an ingress gateway running, you can skip Steps 1, 3, 4, 5, and 6. You only need to:
+- Set your domain variable (Step 2)
+- Configure the ingress to route wildcard traffic to your existing Istio ingress gateway service (Step 7) — update the `service.name` to match your existing gateway's service name
+- Verify the installation (Step 8)
+:::
+
+### Step 1: Add the Istio Helm Repository
+
+```console
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+```
+
+### Step 2: Set Your Domain
+
+Export the `OKTETO_DOMAIN` environment variable with the `subdomain` Helm value of your Okteto instance:
+
+```console
+export OKTETO_DOMAIN=okteto.example.com
+```
+
+### Step 3: Install Istio Base (CRDs)
+
+```console
+helm install --namespace istio-system --create-namespace istio-base istio/base --wait
+```
+
+### Step 4: Prepare the Istio Ingress Namespace
+
+```console
+kubectl create namespace istio-ingress
+kubectl label namespace istio-ingress istio-injection=enabled
+```
+
+### Step 5: Install Istiod (Control Plane)
+
+Create a `istiod-helm-values.yaml` file with the following configuration:
+
+```yaml
+meshConfig:
+  outboundTrafficPolicy:
+    mode: "ALLOW_ANY" # Dev configuration only — not recommended for production
+  enableTracing: false
+  defaultConfig:
+    holdApplicationUntilProxyStarts: true
+    terminationDrainDuration: 5s
+    proxyMetadata:
+      ISTIO_META_DNS_CAPTURE: "true"
+      EXIT_ON_ZERO_ACTIVE_CONNECTIONS: "true"
+pilot:
+  env:
+    PILOT_PUSH_THROTTLE: 20
+    PILOT_DEBOUNCE_AFTER: 500ms
+  autoscaleMin: 2
+  autoscaleMax: 4
+istio_cni:
+  enabled: false
+```
+
+Install istiod:
+
+```console
+helm install --namespace istio-system istiod istio/istiod --values istiod-helm-values.yaml --wait
+```
+
+### Step 6: Install the Istio Ingress Gateway
+
+Create a `istio-ingress-helm-values.yaml` file:
+
+```yaml
+service:
+  type: NodePort
+  ports:
+    - port: 15021
+      targetPort: 15021
+      name: status-port
+      protocol: TCP
+    - port: 80
+      targetPort: 8080
+      name: http2
+      protocol: TCP
+    - port: 15443
+      targetPort: 15443
+      name: tls
+      protocol: TCP
+
+autoscaling:
+  enabled: false
+```
+
+Install the gateway:
+
+```console
+helm install --namespace istio-ingress istio-ingress istio/gateway --values istio-ingress-helm-values.yaml --wait
+```
+
+### Step 7: Configure the Istio Ingress
+
+Create a `istio-ingress-config.yaml` file to route wildcard user traffic from Okteto's control plane nginx to the Istio ingress gateway:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: istio-ingress
+spec:
+  ingressClassName: okteto-controlplane-nginx
+  tls:
+  - hosts:
+      - '*.${OKTETO_DOMAIN}'
+  rules:
+  - host: '*.${OKTETO_DOMAIN}'
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            # This must match the Kubernetes Service name of your Istio
+            # ingress gateway. If you installed Istio using the steps above,
+            # this is "istio-ingress". If you're using an existing Istio
+            # installation, replace this with your gateway service name
+            # (e.g., "istio-ingressgateway").
+            name: istio-ingress
+            port:
+              number: 80
+```
+
+:::note
+The `backend.service.name` must point to the Kubernetes Service fronting your Istio ingress gateway pods. If you are using an existing Istio installation, this is typically `istio-ingressgateway` in the `istio-system` namespace. Adjust the service name and apply the ingress resource to the namespace where the service lives.
+:::
+
+Apply the configuration (using `envsubst` to substitute your domain):
+
+```console
+envsubst < istio-ingress-config.yaml | kubectl apply -n istio-ingress -f -
+```
+
+### Step 8: Verify Installation
+
+Check that all Istio components are running:
+
+```console
+kubectl get pods -n istio-system
+kubectl get pods -n istio-ingress
+```
+
+All pods should be in `Running` state before continuing.
+
+## How Istio Enables Divert
+
+Once configured by administrators, Istio works **transparently for all developers**. When a developer uses Divert with the Istio driver, Okteto:
+
+1. Creates or modifies VirtualServices to route traffic based on the `baggage: okteto-divert=<namespace>` header
+2. Clones the specified host VirtualServices to the developer's personal namespace for header injection
+3. The Istio sidecar propagates the baggage header through all downstream service calls
+
+Developers don't need to install anything or change their workflow.
+
+### Traffic Flow with Istio
+
+```
+Request (no header)
+         │
+         ▼
+    ┌─────────────┐
+    │   Okteto    │ ← nginx control plane
+    │   Ingress   │
+    └──────┬──────┘
+           │
+           ▼
+    ┌─────────────┐
+    │    Istio    │ ← Routes to Istio ingress gateway
+    │   Ingress   │
+    └──────┬──────┘
+           │ (baggage header injected by VirtualService)
+           ▼
+    ┌─────────────┐
+    │    Istio    │ ← Routes based on baggage header
+    │   Sidecar   │
+    └──────┬──────┘
+           │
+           ▼
+    ┌─────────────┐
+    │   Service   │ ← Your diverted service (personal namespace)
+    │  (personal) │
+    └──────┬──────┘
+           │ (header propagated automatically)
+           ▼
+    ┌─────────────┐
+    │    Istio    │ ← Routes downstream call
+    │   Sidecar   │
+    └──────┬──────┘
+           │
+           ▼
+    ┌─────────────┐
+    │   Service   │ ← Shared service in staging
+    │  (staging)  │
+    └─────────────┘
+```
+
+## Network Policies Compatibility
+
+If you have network policies enabled (`networkPolicies.enabled: true`), ensure your policies allow cross-namespace communication for Divert. Example configuration in your Okteto Helm values:
+
+```yaml
+networkPolicies:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com/okteto-managed: "true"
+```
+
+:::tip
+For complete network policy options, see the [Helm Configuration reference](../../helm-configuration.mdx#networkpolicies).
+:::
+
+## Troubleshooting
+
+### Sidecar Not Injected
+
+1. Verify the namespace has the Istio injection label:
+   ```console
+   kubectl get namespace <namespace> --show-labels
+   ```
+
+2. Restart deployments to inject sidecars:
+   ```console
+   kubectl rollout restart deployment -n <namespace>
+   ```
+
+3. Verify sidecar containers are present:
+   ```console
+   kubectl get pods -n <namespace> -o jsonpath='{.items[*].spec.containers[*].name}'
+   ```
+
+### VirtualServices Not Created
+
+1. Verify `virtualServices.enabled: true` in your Okteto Helm values
+2. Check that Istio CRDs are installed:
+   ```console
+   kubectl get crd | grep istio
+   ```
+3. Check Okteto logs for errors related to VirtualService creation
+
+### Traffic Not Routing Correctly
+
+1. Verify the baggage header format: `baggage: okteto-divert=<namespace>`
+2. Check that the developer's `okteto.yml` uses `driver: istio`
+3. Test direct service communication:
+   ```console
+   kubectl exec -it <pod> -- curl -H "baggage: okteto-divert=<ns>" http://service/path
+   ```
+4. Check Istio proxy logs:
+   ```console
+   kubectl logs <pod> -c istio-proxy -n <namespace>
+   ```
+
+### Ingress Not Working
+
+1. Verify the `istio-ingress-config.yaml` was applied correctly:
+   ```console
+   kubectl get ingress -n istio-ingress
+   ```
+2. Confirm `OKTETO_DOMAIN` was substituted correctly in the ingress manifest
+3. Check that `okteto-nginx` is disabled in your Okteto Helm values
+
+## Using Your Own Ingress Controller
+
+The configuration above only disables `okteto-nginx` (the user traffic ingress controller) in favor of Istio. The `ingress-nginx` controller still handles control plane traffic (API, Frontend, Buildkit, Registry).
+
+If you want to disable **both** nginx ingress controllers and use Istio (or another ingress controller) for all traffic, including the Okteto control plane:
+
+```yaml
+ingress-nginx:
+  enabled: false
+
+okteto-nginx:
+  enabled: false
+
+defaultBackend:
+  enabled: false
+```
+
+When disabling both controllers, you must also configure:
+
+- **`ingress.oktetoIngressClass`** — the ingress class to use for all ingresses created during the Okteto installation
+- **`ingress.class`** — the ingress class to use for all ingresses created by Okteto for developer namespaces
+- **`ingress.ip`** — the cluster IP of your ingress controller
+
+:::warning Feature limitations
+When disabling Okteto's nginx controllers, the following features are **not available**:
+- Autowake Namespaces
+- Error Pages
+- Private Endpoints
+:::
+
+## Uninstalling Istio
+
+If you need to remove Istio:
+
+```console
+# Remove ingress configuration
+kubectl delete ingress istio-ingress -n istio-ingress
+
+# Uninstall Helm releases
+helm uninstall istio-ingress -n istio-ingress
+helm uninstall istiod -n istio-system
+helm uninstall istio-base -n istio-system
+
+# Remove namespaces
+kubectl delete namespace istio-ingress
+kubectl delete namespace istio-system
+```
+
+Re-enable the nginx driver in your Okteto Helm values:
+
+```yaml
+okteto-nginx:
+  enabled: true
+
+virtualServices:
+  enabled: false
+
+namespace:
+  labels: {}
+```
+
+Then upgrade Okteto:
+
+```console
+helm upgrade okteto okteto/okteto -f values.yaml
+```
+
+## Next Steps
+
+- **[Configure Divert](index.mdx)** - Overview of Divert configuration
+- **[Using Divert](development/using-divert.mdx)** - Developer implementation guide
+- **[Divert with Istio Sample](https://github.com/okteto-community/movies-with-divert-istio)** - Full working example
+- **[Istio Documentation](https://istio.io/latest/docs/)** - Official Istio docs

@@ -13,8 +13,14 @@ module.exports = {
   favicon: 'img/favicon.ico',
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
-  onBrokenMarkdownLinks: 'throw',
   onDuplicateRoutes: 'warn',
+  markdown: {
+    mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
+  },
+  themes: ['@docusaurus/theme-mermaid'],
   customFields: {
     image: 'https://www.okteto.com/docs/okteto-meta-image.png',
   },
@@ -145,7 +151,7 @@ module.exports = {
         },
         {
           href: 'https://www.okteto.com/free-trial',
-          label: 'Get Free Trial',
+          label: 'Get Started',
           position: 'right',
           target: '_self',
           className: 'Button teal GetFreeTrialButton',
@@ -239,44 +245,44 @@ module.exports = {
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.29',
+          lastVersion: '1.45',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.30',
-              path: '1.30',
+              label: '1.46',
+              path: '1.46',
             },
-            1.29: {
+            '1.45': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.29',
+              label: '1.45',
               path: '/',
               banner: 'none',
             },
-            1.28: {
-              label: '1.28',
-              path: '1.28',
+            '1.44': {
+              label: '1.44',
+              path: '1.44',
               banner: 'unmaintained',
             },
-            1.27: {
-              label: '1.27',
-              path: '1.27',
+            '1.43': {
+              label: '1.43',
+              path: '1.43',
               banner: 'unmaintained',
             },
-            1.26: {
-              label: '1.26',
-              path: '1.26',
+            '1.42': {
+              label: '1.42',
+              path: '1.42',
               banner: 'unmaintained',
             },
-            1.25: {
-              label: '1.25',
-              path: '1.25',
+            '1.41': {
+              label: '1.41',
+              path: '1.41',
               banner: 'unmaintained',
             },
-            1.24: {
-              label: '1.24',
-              path: '1.24',
+            '1.40': {
+              label: '1.40',
+              path: '1.40',
               banner: 'unmaintained',
             },
           },
@@ -309,14 +315,6 @@ module.exports = {
     ],
     'docusaurus-plugin-sass',
     [
-      'docusaurus-plugin-copy',
-      {
-        include: ['**/*.{png,jpg,jpeg,svg,yaml,yml}'],
-        path: docsContentPath,
-        context: docsContentPath,
-      },
-    ],
-    [
       '@docusaurus/plugin-client-redirects',
       {
         fromExtensions: ['html'],
@@ -342,12 +340,6 @@ module.exports = {
     // Hubspot script
     {
       src: '//js.hs-scripts.com/5418301.js',
-      async: true,
-    },
-    // Scarf Tracking Pixel
-    {
-      src: 'https://static.scarf.sh/a.png?x-pxid=3d66f625-f39a-46bd-8d3c-82d5f7ca6f16',
-      referrerPolicy: 'no-referrer-when-downgrade',
       async: true,
     }
   ],

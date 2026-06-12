@@ -1,0 +1,101 @@
+---
+title: Okteto Registry
+description: The Okteto Registry allows every Okteto Namespace to have its own space to store its container images
+sidebar_label: Okteto Registry
+id: container-registry
+---
+
+The Okteto Registry allows every Okteto Namespace to have its own space to store its container images.
+
+## Push container images to the Okteto Registry
+
+The recommended way to use the Okteto Registry is by [installing and configuring the Okteto CLI](get-started/install-okteto-cli.mdx).
+
+The Okteto CLI is automatically configured to interact with the Okteto Registry. For example, if your have the following Okteto Manifest:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+```
+
+The command `okteto build` will build and push the **api** image to the Okteto Registry:
+
+```bash
+okteto build
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.example.com:443...
+ ...
+ ✓  Image 'registry.okteto.example.com/cindy/movies-with-helm-api:okteto' successfully pushed
+```
+
+The final image name depends on the Okteto Registry URL, your current namespace, the name of your development environment and the name of your image in the Okteto Manifest.
+But you don't need to remember the image names, you should access them using the following environment variables:
+
+- **api**: `OKTETO_BUILD_API_IMAGE`
+- **frontend**: `OKTETO_BUILD_FRONTEND_IMAGE`
+
+Read more about the available environment [variables to access your images here](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+## Pull container images from the Okteto Registry
+
+Any image pushed into the Okteto Registry is private. You'll need to authenticate with the registry before pulling an image.
+
+Namespaces in Okteto are automatically allowed to pull images that belong to their namespace automatically. If your application uses images from the Okteto Registry, it'll be able to pull container images without any extra configuration.
+
+## Push Helm chart to the Okteto Registry
+
+You can push Helm charts to the Okteto Registry, but this process isn't integrated with the Okteto CLI.
+The first step is to log in to the Okteto Registry where you want to push the Helm chart.
+For this you will need some credentials that you can obtain by executing the `okteto context show --include-token` command.
+This command will show you information about the current okteto context in use:
+
+```json
+{
+    "name": "https://okteto.example.com",
+    "id": "3cf4529c-1gbd-4364-99cf-3f4bbe499adb",
+    "username": "cindy",
+    "token": "i3kDEh4FKqrJzY7e7Qamd8CfTTrjkPOTN5ftHoKl",
+    "namespace": "cindy",
+    "builder": "tcp://buildkit.okteto.example.com:1234",
+    "registry": "registry.okteto.example.com",
+    "personalNamespace": "cindy",
+    "isOkteto": true
+}
+```
+
+You can retrieve your username, password (token), and the domain for your registry from the output.
+You can also use the environment variables `OKTETO_USERNAME`, `OKTETO_TOKEN`, `OKTETO_NAMESPACE` and `OKTETO_REGISTRY_URL` if your script is running as part of the `deploy` commands of your Okteto Manifest.
+For example:
+
+```yaml title="okteto.yaml"
+deploy:
+  - helm registry login ${OKTETO_REGISTRY_URL} -u ${OKTETO_USERNAME} -p ${OKTETO_TOKEN}
+```
+
+Once you are logged in you will need to package the chart.
+
+```yaml title="okteto.yaml"
+deploy:
+  - helm package ./chart
+```
+
+After that you can push the packaged Helm chart to the registry.
+
+```yaml title="okteto.yaml"
+deploy:
+  - helm push ./movies-api-0.1.0.tgz oci://${OKTETO_REGISTRY_URL}/${OKTETO_NAMESPACE}
+```
+
+## Pull Helm chart to the Okteto Registry
+
+Once the packaged chart has been pushed to the Okteto Registry, you can pull it by using the command below:
+
+```yaml title="okteto.yaml"
+deploy:
+  - helm registry login ${OKTETO_REGISTRY_URL} -u ${OKTETO_USERNAME} -p ${OKTETO_TOKEN}
+  - helm pull oci://${OKTETO_REGISTRY_URL}/${OKTETO_NAMESPACE}/movies-api --version 0.1.0
+```

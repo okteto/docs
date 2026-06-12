@@ -1,0 +1,189 @@
+---
+title: Google Kubernetes Engine (GKE)
+description: How to install Okteto onto Google Kubernetes Engine (GKE)
+sidebar_label: Google GKE
+id: google-gke
+pagination_prev: get-started/install/index
+pagination_next: get-started/deploy-your-app/index
+---
+
+import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
+
+This guide will walk you through the process of installing Okteto in Google Kubernetes Engine (GKE).
+
+## Installation Requirements
+
+Before you start, make sure you have the following CLIs installed in your machine:
+
+- `okteto` >= {variables.cliVersion} ([okteto installation guides](get-started/install-okteto-cli.mdx))
+- `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
+- `helm` >= 3.14 ([helm installation guides](https://helm.sh/docs/intro/install/))
+
+You'll also need the following:
+
+- An Okteto License
+- A Domain and the ability to create wildcard DNS records for it
+- A Kubernetes cluster
+
+## Getting your Okteto License
+
+A license is mandatory to use Okteto. You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+
+If you are interested in evaluating Okteto, [sign up for our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/). No credit card required.
+
+## A Domain and the ability to create wildcard DNS records for it
+
+You'll need sufficient access to a [subdomain](self-hosted/helm-configuration.mdx#subdomain) to add a wildcard DNS record, such as dev.example.com.
+By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
+
+This guide assumes your domain is registered in [Google Cloud DNS](https://cloud.google.com/dns) service.
+You can use any DNS service you prefer, but this guide focuses specifically on Google Cloud DNS.
+
+## Deploy a Kubernetes cluster
+
+We recommend that you follow Google's [GKE cluster creation guide](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster).
+
+Okteto supports Kubernetes versions {variables.kubernetesMinVersion} through {variables.kubernetesMaxVersion}.
+To get started with Okteto, we recommend that you create a Kubernetes cluster with the following configuration:
+
+- Kubernetes v{variables.kubernetesMaxVersion}
+- A pool with at least 3 `n2-standard-4` nodes
+- 250 GB per disk
+
+## Installing Okteto
+
+Okteto is installed using a Helm chart. Let's start the process:
+
+### Add the Okteto Helm repository
+
+You'll need to add the Okteto Helm repository to be able to install Okteto:
+
+```bash
+helm repo add okteto https://charts.okteto.com
+helm repo update
+```
+
+### Create the Helm configuration file
+
+In order to install Okteto you need to first create a `config.yaml` for the installation process.
+Replace `license` and `subdomain` with your own values, and initialize your Helm configuration file with these settings:
+
+```yaml title="config.yaml"
+// highlight-next-line
+license: "REPLACE ME WITH YOUR OKTETO LICENSE"
+// highlight-next-line
+subdomain: "REPLACE ME WITH YOUR OKTETO DOMAIN"
+
+registry:
+  storage:
+    filesystem:
+      persistence:
+        enabled: true
+```
+
+:::warning ARM Node Groups
+
+If you are using ARM-based node groups in your GKE cluster, you must add tolerations to your Helm configuration because GKE automatically applies taints to ARM nodes. Add the following tolerations to your `config.yaml`:
+
+```yaml
+globals:
+  tolerations:
+    okteto:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+    dev:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+ingress-nginx:
+  controller:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+okteto-nginx:
+  controller:
+    tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+reloader:
+  reloader:
+    deployment:
+      tolerations:
+        - key: "kubernetes.io/arch"
+          operator: "Equal"
+          value: "arm64"
+          effect: "NoSchedule"
+```
+
+:::
+
+_Note: This is the minimum configuration. Check our [Helm configuration](self-hosted/helm-configuration.mdx) docs to learn more_
+
+### Installing the Okteto Helm chart
+
+Install the latest version of Okteto by running:
+
+<CodeBlock language="bash">
+  {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
+</CodeBlock>
+
+After a few seconds, all the resources will be created. The output will look something like this:
+
+```bash
+Release "okteto" has been installed. Happy Helming!
+NAME: okteto
+LAST DEPLOYED: Thu Mar 26 18:07:55 2020
+NAMESPACE: okteto
+STATUS: deployed
+```
+
+### Retrieve the Ingress Controller IP address
+
+You can use `kubectl` to fetch the address that has been dynamically allocated by GKE to the NGINX Ingress we've just installed and configured as a part of Okteto:
+
+```bash
+kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
+```
+
+The output will look something like this:
+
+```bash
+NAME                              TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)                                     AGE
+okteto-ingress-nginx-controller   LoadBalancer   10.0.7.73    34.68.230.234   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
+```
+
+You'll need to take the `EXTERNAL-IP` address, and add it to your DNS for the domain you have chosen to use. In Google Cloud DNS, this is done by creating an `A` record with the name  `*`. We also suggest you set the TTL to 1 minute.
+
+### Sign in to your Okteto instance
+
+:::warning
+
+**Important**: The default installation is not recommended for production use. We highly advise configuring a [wildcard certificate](self-hosted/install/certificates/index.mdx) and [Okteto Registry storage with Google Cloud Storage](self-hosted/install/okteto-registry-storage/google-cloud-storage.mdx) after finishing your evaluation and giving your team access to your Okteto instance.
+
+:::
+
+After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+
+### Configure the Okteto CLI
+
+[Install the Okteto CLI](get-started/install-okteto-cli.mdx) if you haven't done it yet and set the Okteto CLI context with your Okteto instance.
+To do this, run the command below replacing `SUBDOMAIN`:
+
+```bash
+okteto context use https://okteto.SUBDOMAIN
+```
+
+Once your Okteto instance is up and running and your Okteto CLI properly configured, you are going to [deploy your first app](get-started/deploy-your-app/index.mdx) to Okteto 😎
+
+## Optional: Configure access to your Google Artifact Registry
+
+Optionally, you can configure Okteto to have [access to your Google Artifact Registry](admin/registry-credentials/google-artifact-registry.mdx).
+This will allow you to use your private images in your Dockerfiles and avoid using pull secrets everywhere to deploy your applications.

@@ -6,6 +6,8 @@ id: okteto-manifest
 ---
 
 import useBaseUrl from '@docusaurus/useBaseUrl';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 `okteto.yaml` is a manifest format for describing development environments.
 
@@ -37,7 +39,7 @@ dev:
       - frontend:/usr/src/app
 test:
   unit:
-    image: okteto/golang:1
+    image: ghcr.io/okteto/golang:1
     commands:
       - "go test ."
 ```
@@ -45,7 +47,7 @@ test:
 
 ## Validating and Autocompleting the Okteto Manifest in your IDE
 
-Okteto provides a JSON Schema for the Okteto Manifest to enhance your development experience by enabling autocompletion, real-time validation, and improved error detection within your IDE.
+Okteto provides a JSON Schema for the Okteto Manifest that enables autocompletion, real-time validation, and error detection in your IDE.
 
 To configure this in **Visual Studio Code**, install the [YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) and add the following to your workspace or user settings.json:
 
@@ -54,7 +56,7 @@ To configure this in **Visual Studio Code**, install the [YAML extension](https:
     "yaml.schemas": {
         "https://raw.githubusercontent.com/okteto/okteto/master/schema.json": [
             "okteto.yml",
-            "okteto.yaml",
+            "okteto.yaml"
         ]
     }
 }
@@ -88,6 +90,10 @@ build:
       SOURCE_IMAGE: ${OKTETO_BUILD_BASE_IMAGE}
     secrets:
       npmrc: .npmrc
+      server_cert:
+        file: certs/server.cert
+      npm_token:
+        env: NPM_TOKEN
 ```
 
 Each image supports the following fields:
@@ -95,20 +101,58 @@ Each image supports the following fields:
 - `args`: add build arguments, which are environment variables accessible only during the build process. Build arguments with a value containing a `$` sign are resolved to the environment variable value on the machine Okteto is running on.
 - `context`: the build context. Relative paths are relative to the location of the Okteto Manifest (default: `.`)
 - `depends_on`: list of images that need to be built first.
-- `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`)
+- `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`).
 - `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](core/container-registry.mdx) is used).
-- `secrets`: list of secrets exposed to the build. The value of each secret refers to a file. Okteto will resolve references containing a `$` sign in this file to environment variables on the machine Okteto is running on.
+- `secrets`: list of secrets exposed to the build. Each secret can be defined in one of three forms:
+
+  **Shorthand (file path):**
+  ```yaml
+  secrets:
+    my_secret: /path/to/secret/file
+  ```
+
+  **Explicit file key:**
+  ```yaml
+  secrets:
+    my_secret:
+      file: /path/to/secret/file
+  ```
+
+  **Environment variable:**
+  ```yaml
+  secrets:
+    my_secret:
+      env: MY_ENV_VAR
+  ```
+
+  The shorthand and `file` forms are equivalent. Okteto resolves references containing a `$` sign in secret files to environment variables on the machine Okteto is running on. The `env` form reads the secret value directly from an environment variable. A secret cannot specify both `file` and `env`.
+
+  To consume a secret during the build, use the `--mount=type=secret` flag in your Dockerfile:
+
+  ```dockerfile
+  RUN --mount=type=secret,id=npm_token \
+      cat /run/secrets/npm_token
+  ```
+
+  The `id` in the Dockerfile mount must match the secret name defined in `okteto.yaml`.
+
 - `target`: build the specified stage as defined inside the Dockerfile. See the [multi-stage official docs](https://docs.docker.com/develop/develop-images/multistage-build/) for details.
 
 You can build all these images by running `okteto build`, or `okteto build xxx` to build a single one.
 
-Follow this document for a list of [environment variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) available in your deploy commands to refer to the images built in the `build` section of your Okteto Manifest.
+:::tip
+If you use multiple Dockerfiles, you can use different ignore-files for each Dockerfile. You do so using a special naming convention for the ignore-files. Place your ignore-file in the same directory as the Dockerfile, and prefix the ignore-file with the name of the Dockerfile, as shown in the following example. e.g. `dev.Dockerfile` and `dev.Dockerfile.dockerignore`
+:::
+
+For a list of [environment variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) available in your deploy commands to refer to images built in the `build` section, see the variables reference.
 
 > Okteto will automatically add all the build environment variables from all previous images in the dependency chain as build arguments. To refer to them, remember to add the `ARG` instruction on your Dockerfile.
 
 ### dependencies ([string], optional)
 
 A list of repositories you want to deploy as part of your development environment.
+
+Dev environments with declared dependencies will surface additional options during redeploy and destroy actions in the Okteto UI
 
 ```yaml
 dependencies:
@@ -134,7 +178,14 @@ dependencies:
     timeout: 15m
 ```
 
-When specifying the manifest path, the dependency deployment will use this path as the location of the Okteto Manifest in the Git repository.
+Each dependency supports the following fields:
+
+- `repository`: the URL of the git repository containing the dependency
+- `manifest`: the path to the Okteto Manifest within the repository. Defaults to `okteto.yaml` in the root of the repository
+- `branch`: the branch or tag to deploy. If not specified, it uses the default branch of the repository
+- `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands
+- `wait`: if `true`, Okteto waits for the dependency deployment to complete before continuing with the main deployment. If `false`, the dependency deploys asynchronously (default: `false`)
+- `timeout`: maximum time to wait for the dependency deployment to complete when `wait` is `true`. Uses duration format like `5m`, `1h`, etc. (default: `5m`)
 
 ### deploy ([string], optional)
 
@@ -169,7 +220,7 @@ deploy:
     command: echo "$OKTETO_FOLDER" # Prints /app
 ```
 
-Follow this document for a list of [environment variables](core/okteto-variables.mdx#default-environment-variables) available in your deploy commands.
+See the [environment variables](core/okteto-variables.mdx#runtime-environment-variables-injected-into-pods) available in your deploy commands.
 
 #### Deploy remotely (recommended) {#deploy-remotely}
 
@@ -177,7 +228,7 @@ If you define an image in your `deploy` section, `okteto deploy` will run in rem
 
 ```yaml
 deploy:
-  image: okteto/pipeline-runner:1.0.0
+  image: ghcr.io/okteto/pipeline-runner:1.0.0
   context: .
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
@@ -194,7 +245,7 @@ deploy:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-Follow our docs to know more about [remote execution and how it works](core/remote-execution.mdx).
+See [Remote Execution](core/remote-execution.mdx) for details on how remote mode works.
 
 #### Deploy with Compose
 
@@ -252,10 +303,101 @@ Your deploy commands will be executed before deploying your Docker Compose files
 
 #### Divert
 
-Divert is useful when you have many services and you only want to deploy a subset of them in your development environment, while connecting these services with a shared environment that runs all your microservices.
+Divert allows you to create lightweight development environments that include only the services you are actively working on while leveraging an existing shared environment for all other microservices.
+This reduces infrastructure costs and complexity in large microservices architectures.
 
-When divert is enabled, Okteto adds the header `baggage.okteto-divert` to every request coming from the developer namespace.
-If the request reaches the shared namespace and matches a diverted virtual service, Okteto redirects the request back to the developer namespace.
+Okteto supports two different drivers: `nginx` (default) and `istio`.
+
+<Tabs
+  defaultValue="nginx"
+  values={[
+    { label: 'Nginx', value: 'nginx', },
+    { label: 'Istio', value: 'istio', },
+  ]}
+>
+<TabItem value="nginx">
+
+Use the `nginx` driver if your applications rely on Okteto-generated endpoints for service-to-service communication.
+
+To deploy a `diverted` development environment, add the `divert.namespace` key under the `deploy` section of your Okteto Manifest.
+This configuration tells Okteto where to redirect requests for services not deployed in your current development environment.
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  divert:
+    driver: nginx
+    namespace: staging
+```
+
+- `driver`: Specifies the backend to divert requests. Use `nginx` (or leave this field unspecified) to use the default Nginx driver.
+- `namespace`: The namespace that holds the full shareable environment. When a request is directed to a service that wasn't created by the `deploy` command, Okteto will automatically direct it to the environment running on this namespace.
+
+**Environment Variable Support:**
+
+The `namespace` field supports environment variable substitution:
+
+```yaml
+divert:
+  namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
+```
+
+**Behavior:**
+
+When you run `okteto deploy` with a `divert` configuration:
+
+1. **Deployment**: Only resources defined in your `deploy.commands` are created in your namespace
+2. **Header Injection**: Okteto injects the key `okteto-divert` within the header [`baggage`](https://www.w3.org/TR/baggage/) into every request that passes through your development ingress
+3. **Traffic Routing**: Requests with your baggage header route to your namespace; missing services fall back to the shared namespace
+4. **DNS Resolution**: Services resolve to the shared namespace when not deployed locally
+
+This header allows Okteto to route requests between services running in your personal Namespace and services running in a shared environment.
+
+:::tip
+To maintain request routing across service boundaries, we recommend propagating the `baggage` (with the key `okteto-divert`) header to all downstream service calls.
+Beyond request routing, this header can also be used to:
+- Route messages to different queues or topics
+- Redirect requests to services in other namespaces
+- Dynamically select the correct database instance for read/write operations
+
+Check out [Using Divert](../development/using-divert.mdx#header-propagation) for language-specific examples of header propagation.
+:::
+
+**Additional Examples:**
+
+With local database:
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install mongodb bitnami/mongodb
+    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+  divert:
+    namespace: staging
+```
+
+Using dependencies with divert:
+```yaml
+dependencies:
+  mongodb:
+    repository: https://github.com/okteto/mongodb
+    wait: true
+
+deploy:
+  commands:
+    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+  divert:
+    namespace: staging
+```
+
+</TabItem>
+
+<TabItem value="istio">
+
+Use the `istio` driver if your development environments use Istio for managing service-to-service communication.
+
+When divert is enabled, Okteto injects the key `okteto-divert` within the header [`baggage`](https://www.w3.org/TR/baggage/) to every request coming from the developer Namespace.
+If a request reaches the shared Namespace and matches a diverted virtual service, Okteto automatically redirects the request back to the developer Namespace.
 
 To divert a virtual service as part of your development environment, use the following notation:
 
@@ -276,9 +418,18 @@ deploy:
         namespace: staging
 ```
 
-- `driver`: the backend for divert. Currently, the only supported driver is `istio`.
-- `virtualServices`: a list of virtual services to divert. Each virtual service is defined with it's name, namespace, and an optional list of routes to be diverted. By default, all routes are diverted.
-- `hosts`: the list of hosts you want to divert in the developer namespace. Requests to these virtual services will have the header `baggage.okteto-divert` injected.
+- `driver`: Specifies the backend to divert requests. Use `istio` to use the Istio driver.
+- `virtualServices`: A list of Istio VirtualService resources in the shared namespace to modify for traffic diversion. Okteto adds header-based routing logic to these virtual services so that requests with the baggage header are sent to the developer's namespace. Each entry is defined by its name, namespace, and an optional list of routes to be diverted.
+- `hosts` (optional): A list of virtual services to copy into the developer namespace with a dedicated host (e.g., `https://service-a-<dev-namespace>.<subdomain>`). Requests reaching this host automatically have the `okteto-divert` key injected as part of the `baggage` header. The copied virtual service internally points to the original in the shared namespace, so the rest of the request flow passes through the shared environment with divert headers applied. Use this for services you are **not** deploying in your development environment — it provides a dedicated URL to reach your version of the app without manually adding the baggage header to requests against the staging endpoint. Services you deploy in your own namespace already have their own endpoints.
+</TabItem>
+</Tabs>
+
+**Related Documentation:**
+
+- **[Divert Core Concepts](../core/divert.mdx)** - Understanding Divert architecture and traffic routing
+- **[Using Divert](../development/using-divert.mdx)** - Implementation guide with header propagation examples
+- **[Divert Tutorial](/docs/tutorials/divert)** - Step-by-step getting started guide
+- **[Self-Hosted Configuration](../self-hosted/install/divert/index.mdx)** - Admin setup for Divert drivers
 
 ### destroy ([string], optional)
 
@@ -293,7 +444,15 @@ destroy:
   - helm uninstall movies
 ```
 
-Follow this document for a [list of variables](core/okteto-variables.mdx#default-environment-variables) available in your destroy commands.
+You can name your commands with the following syntax:
+
+```yaml
+destroy:
+  - name: Uninstall Movies App
+    command: helm uninstall movies
+```
+
+See the [environment variables](core/okteto-variables.mdx#runtime-environment-variables-injected-into-pods) available in your destroy commands.
 
 #### Destroy remotely (recommended) {#destroy-remotely}
 
@@ -301,7 +460,7 @@ If you define an image in your `destroy` section, `okteto destroy` will run in r
 
 ```yaml
 destroy:
-  image: okteto/tfenv-ci:1.4
+  image: ghcr.io/okteto/tfenv-ci:1.4
   context: .
   commands:
     - terraform destroy --auto-approve
@@ -318,7 +477,7 @@ destroy:
     - helm uninstall movies
 ```
 
-Follow our docs to know more about [remote execution and how it works](core/remote-execution.mdx).
+See [Remote Execution](core/remote-execution.mdx) for details on how remote mode works.
 
 ### dev (object, optional)
 
@@ -347,7 +506,7 @@ Each development container supports the following fields:
 #### affinity (Affinity, optional)
 
 Affinity allows you to constrain which nodes your development container is eligible to be scheduled on, based on labels on the node.
-More information about Kubernetes affinities is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity).
+See the Kubernetes documentation on [affinity and anti-affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for details.
 
 
 ```yaml
@@ -479,7 +638,7 @@ Allows you to override the okteto init container configuration of your developme
 
 ```yaml
 initContainer:
-  image: okteto/bin:1.2.22
+  image: ghcr.io/okteto/okteto:3.14.0
   resources:
     requests:
       cpu: 30m
@@ -501,15 +660,15 @@ interface: 0.0.0.0
 
 Sets the docker image of your development container. Defaults to the image specified in your deployment.
 
-> More information on development images [here](development/images.mdx)
+> See the [development images](development/images.mdx) documentation for more details.
 
 You can use an environment variable to replace the image, or any part of it:
 
 ```yaml
-image: okteto/dev:$USER
+image: ghcr.io/okteto/dev:$USER
 ```
 
-> More information on how to use private images for your development container [is available here](reference/faqs.mdx#how-to-use-private-images).
+> See [how to use private images](reference/faqs.mdx#how-to-use-private-images) for your Development Container.
 
 #### imagePullPolicy (string, optional)
 
@@ -568,12 +727,12 @@ The development mode used for a development environment. There are two options a
 - `sync`: the standard and default mode. This mode will synchronize your code with the remote development container
 - `hybrid`: use this mode if you want to run your service locally but run the rest of your application components in the cluster
 
-More information about development modes is [available here](development/containers/index.mdx).
+See [development modes](development/containers/index.mdx) for details.
 
 #### nodeSelector (map[string]string, optional)
 
 List of labels that the node must have to include the development container on it.
-More information about Kubernetes node selectors is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
+See the Kubernetes documentation on [node selectors](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for details.
 
 ```yaml
 nodeSelector:
@@ -621,7 +780,7 @@ This value will also apply to the `priorityClassName` of the pods defined in you
 #### probes (boolean, optional)
 
 If set to true, liveness, readiness, and start probes are enabled when running `okteto up` (default: `false`).
-More information about Kubernetes probes is [available here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
+See the Kubernetes documentation on [liveness, readiness, and startup probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) for details.
 
 Use the extended notation below to have more control over which probes to enable/disable:
 
@@ -697,7 +856,7 @@ secrets:
 
 Allows you to override the pod security context of your development container.
 
-Okteto supports overriding the `fsGroup`, `runAsUser`, `runAsGroup`, `runAsNonRoot`, `allowPrivilegeEscalation` and `capabilities` values.
+Okteto supports overriding the `fsGroup`, `runAsUser`, `runAsGroup`, `runAsNonRoot`, `allowPrivilegeEscalation`, `readOnlyRootFilesystem` and `capabilities` values.
 They're not set by default, and they follow the [same syntax used in Kubernetes](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
 
 ```yaml
@@ -707,6 +866,7 @@ securityContext:
   fsGroup: 3000
   runAsNonRoot: false
   allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
   capabilities:
     add:
       - SYS_PTRACE
@@ -738,7 +898,7 @@ serviceAccount: default
 #### services ([object], optional)
 
 A list of services that you want to put on developer mode along your development container.
-The services work just like the development container, with one exception: they won't be able to start an interactive session.
+Services work the same as the development container, with one exception: they cannot start an interactive session.
 
 For example, imagine that you have a python-based application with an API and a Worker service. If you define the manifest as shown below, running `okteto up` would give you a remote terminal into the web development container, while synchronizing your changes with both web and worker.
 
@@ -797,7 +957,7 @@ sync:
   - $HOME/.ssh:/root/.ssh
 ```
 
-> Use the `.stignore` file on each local folder to avoid synchronizing build artifacts, dependencies, or git metadata. [More information is available here](reference/file-synchronization.mdx)
+> Use the `.stignore` file on each local folder to avoid synchronizing build artifacts, dependencies, or git metadata. See the [file synchronization reference](reference/file-synchronization.mdx) for details.
 
 File sync can only update files that can be modified by your development container User ID.
 If you are using Okteto with persistent volumes, remember to set the field [securityContext.runAsUser](#securitycontext-object-optional) if your development container User ID is not `root`.
@@ -839,7 +999,7 @@ timeout:
 #### tolerations ([object], optional)
 
 A list of tolerations that will be injected into your development container.
-More information about Kubernetes tolerations is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
+See the Kubernetes documentation on [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for details.
 
 
 ```yaml
@@ -873,7 +1033,7 @@ Sets the working directory of your development container.
 
 ### external (object, optional)
 
-A list of external resources that are part of your development environment.  Use this section for resources that are deployed outside of the Okteto cluster, like Cloud resources or dashboards.
+A list of external resources that are part of your development environment. Use this section for resources that are deployed outside of the Okteto cluster, like Cloud resources or dashboards.
 
 ```yaml
 external:
@@ -928,95 +1088,107 @@ If the url value is declared in both places, the one declared in the deploy sect
 
 #### icon (string, optional)
 
- Sets the icon that will be shown in the Okteto UI. The supported values for icons are listed below. If empty, it will default to `default`.
+Sets the icon that will be shown in the Okteto UI. The supported values for icons are listed below. If empty, it will default to `default`.
 
  <div style={{ display: 'flex', alignItem: 'center', justifyContent: 'center' }}>
   <table>
-    <tr>
+    <tr style={{ backgroundColor: 'var(--ifm-menu-color-background-active)' }}>
       <td align="center">
         <code>aws</code><br/>
         <img
-          src={useBaseUrl('/img/icons/aws.png')}
+          src={useBaseUrl('/img/icons/aws.svg')}
           alt="AWS icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>container</code><br/>
         <img
-          src={useBaseUrl('/img/icons/container.png')}
+          src={useBaseUrl('/img/icons/container.svg')}
           alt="container icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>dashboard</code><br/>
         <img
-          src={useBaseUrl('/img/icons/dashboard.png')}
+          src={useBaseUrl('/img/icons/dashboard.svg')}
           alt="dashboard icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>database</code><br/>
         <img
-          src={useBaseUrl('/img/icons/database.png')}
+          src={useBaseUrl('/img/icons/database.svg')}
           alt="database icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>default</code><br/>
         <img
-          src={useBaseUrl('/img/icons/default.png')}
+          src={useBaseUrl('/img/icons/default.svg')}
           alt="default icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>function</code><br/>
         <img
-          src={useBaseUrl('/img/icons/function.png')}
+          src={useBaseUrl('/img/icons/function.svg')}
           alt="function icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
     </tr>
-    <tr>
+    <tr style={{ backgroundColor: 'var(--ifm-menu-color-background-active)' }}>
       <td align="center">
         <code>gcp</code><br/>
         <img
-          src={useBaseUrl('/img/icons/gcp.png')}
+          src={useBaseUrl('/img/icons/gcp.svg')}
           alt="gcp icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>graph</code><br/>
         <img
-          src={useBaseUrl('/img/icons/graph.png')}
+          src={useBaseUrl('/img/icons/graph.svg')}
           alt="graph icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>launchdarkly</code><br/>
         <img
-          src={useBaseUrl('/img/icons/launchdarkly.png')}
+          src={useBaseUrl('/img/icons/launchdarkly.svg')}
           alt="launchdarkly icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>mongodb</code><br/>
         <img
-          src={useBaseUrl('/img/icons/mongodb.png')}
+          src={useBaseUrl('/img/icons/mongodb.svg')}
           alt="mongodb icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>okteto</code><br/>
         <img
-          src={useBaseUrl('/img/icons/okteto.png')}
+          src={useBaseUrl('/img/icons/okteto.svg')}
           alt="okteto icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
       <td align="center">
         <code>storage</code><br/>
         <img
-          src={useBaseUrl('/img/icons/storage.png')}
+          src={useBaseUrl('/img/icons/storage.svg')}
           alt="storage icon"
+          style={{ marginTop: '4px', width: '36px', height: '36px' }}
         />
       </td>
     </tr>
@@ -1077,7 +1249,7 @@ A dictionary of Test Containers to run tests using [Remote Execution](core/remot
 ```yaml
 test:
   unit:
-    image: okteto/golang:1
+    image: ghcr.io/okteto/golang:1
     artifacts:
       - coverage.out
     caches:
@@ -1089,7 +1261,7 @@ test:
   integration:
     depends_on:
       - unit
-    image: okteto/golang:1
+    image: ghcr.io/okteto/golang:1
     context: integration
     commands:
       - make tests

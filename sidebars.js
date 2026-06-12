@@ -50,7 +50,8 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Core concepts',
+      label: 'Core Concepts',
+      link: { type: 'doc', id: 'core/index' },
       items: [
         {
           type: 'category',
@@ -67,6 +68,7 @@ module.exports = {
           items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
         },
         'core/namespaces',
+        'core/divert',
         'core/build-service',
         'core/okteto-insights-dashboards',
         'core/okteto-manifest',
@@ -83,6 +85,7 @@ module.exports = {
       link: { type: 'doc', id: 'development/index' },
       items: [
         'development/using-okteto-cli',
+        'development/using-divert',
         {
           type: 'category',
           label: 'Development Containers',
@@ -141,13 +144,37 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'Okteto AI',
+      link: { type: 'doc', id: 'okteto-ai/index' },
+      items: [
+        'okteto-ai/index',
+        'okteto-ai/ai-getting-started',
+        'okteto-ai/okteto-ai-admin-config'
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Agentic Workflows',
+      link: { type: 'doc', id: 'agentic/index' },
+      items: [
+        'agentic/claude-code-plugin',
+        'agentic/collaborative-workflows',
+        'agentic/autonomous-workflows',
+        'agentic/best-practices',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Administration',
       link: { type: 'doc', id: 'admin/index' },
       items: [
         'admin/dashboard',
+        'admin/billing',
         'admin/catalog',
+        'admin/build-service',
         'admin/custom-installer-image',
         'admin/cleanup',
+        'admin/ssh-known-hosts',
         {
           type: 'category',
           label: 'Integrations',
@@ -178,6 +205,7 @@ module.exports = {
         },
         'admin/okteto-api',
         'admin/okteto-insights',
+        'admin/previews',
         {
           type: 'category',
           label: 'Private Repositories',
@@ -185,6 +213,15 @@ module.exports = {
         },
         'admin/resource-manager',
       ],
+    },
+    {
+      type: 'category',
+      label: 'Okteto BYOC',
+      link: { type: 'doc', id: 'byoc/index' },
+      items: [
+        'byoc/aws/index',
+        'byoc/gcp/index'
+      ]
     },
     {
       type: 'category',
@@ -230,6 +267,15 @@ module.exports = {
                 'self-hosted/install/auth/okta',
                 'self-hosted/install/auth/openid-connect',
                 'self-hosted/install/auth/token',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Configure Divert',
+              link: { type: 'doc', id: 'self-hosted/install/divert/index' },
+              items: [
+                'self-hosted/install/divert/linkerd-installation',
+                'self-hosted/install/divert/istio-installation',
               ],
             },
             'self-hosted/install/github-integration',

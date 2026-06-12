@@ -1,0 +1,248 @@
+---
+title: Custom Resource Definitions
+description: Custom resource definitions (CRDs) installed by Okteto
+sidebar_label: Custom Resource Definitions (CRDs)
+id: custom-resource-definitions
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+As part of Okteto's installation, several Custom Resource Definitions (CRDs) are installed in your cluster. These CRDs primarily store different types of information necessary for Okteto's functionality. You can view the list of Okteto's CRDs by exploring the `crds` folder in the templates of the [Okteto Helm Chart](https://artifacthub.io/packages/helm/okteto/okteto) or by running the following command:
+
+```console
+kubectl get crd | grep okteto.com
+```
+
+You can let Okteto install these CRDs or you can choose to install them manually, but be aware they are needed for Okteto to work properly. You can use the [following configuration setting](self-hosted/helm-configuration.mdx#crds) to let Okteto know if it should install them or not. By default, Okteto will install them.
+
+## Private Registries
+
+Private registry configurations can be managed either through the [Admin dashboard](admin/dashboard.mdx#registry-credentials) or by using one of Okteto’s installed CRDs: `admin.okteto.com`. This last case is useful, for example, if you have your own mechanism to provision credentials/secrets in your cluster.
+
+There are 3 types of registries you can configure: Static credentials, AWS IAM User, and AWS IAM Role.
+
+### Static Credentials
+
+To define your private registries with static credentials using CRDs, you must first create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) containing the necessary data to access your private registry.
+This secret should include both the username and password for accessing the registry.
+
+Once the secret is created, you will need to create a resource with the `apiVersion`: `admin.okteto.com/v1` and `Registry` kind, which is one of the CRDs installed by Okteto, referring to the secret which contains the credentials.
+
+The name of this new resource should be the hostname of the registry (e.g. `index.docker.io`).
+For example, if you want to add a configuration for Docker's registry, you will need to create a resource like this:
+
+:::note
+Defining the port through `spec.static.port` is optional and only available for static registries. It should only be used if the registry listens on a port other than the default http(s) 80/443
+:::
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: Registry
+metadata:
+  name: index.docker.io # hostname of the registry to be configured
+  namespace: okteto
+spec:
+  static:
+    port: 5000 # optional
+    passwordSecretRef:
+      key: <field in referenced secret> # key of the secret which contains the password
+      name: <secret-name> # name of the secret where the password is stored
+    userSecretRef:
+      key: <field in referenced secret> # key of the secret which contains the username
+      name: <secret-name> # name of the secret where the username is stored
+```
+
+### AWS IAM User
+
+In the case of AWS IAM User, where you have to specify the Access Key and Access Secret, the process is similar to the static credentials CRD.
+For AWS IAM User credentials (Access Key and Secret Access Key), the process is similar to configuring static credentials.
+First, create a secret containing the Access Key and Secret Access Key values. Then, create a CRD like this (the name of the resource has to be the hostname of the registry to be configured and it has to end with `.amazonaws.com`, e.g. `111122223333.dkr.ecr.eu-central-1.amazonaws.com`):
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: Registry
+metadata:
+  name: 111122223333.dkr.ecr.eu-central-1.amazonaws.com # hostname of the registry to be configured
+  namespace: okteto
+spec:
+  awsIamUser:
+    accessKeyIDSecretRef:
+      key: <field in referenced secret> # key of the secret which contains the access key
+      name: <secret-name> # name of the secret where the access key is stored
+    secretAccessKeySecretRef:
+      key: <field in referenced secret> # key of the secret which contains the access secret key
+      name: <secret-name> # name of the secret where the access secret is stored
+```
+
+You can find more information [here](admin/registry-credentials/amazon-ecr.mdx#using-iam-user-credentials) about how to obtain the values to use.
+
+### AWS IAM Role
+
+In this case, the process is a bit simpler. It doesn't require a secret, as it doesn't store sensitive information. So, you will only need to
+create a CRD like the following one specifying the registry hostname as the resource name (it has to end with `.amazonaws.com`, e.g. `111122223333.dkr.ecr.eu-central-1.amazonaws.com`):
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: Registry
+metadata:
+  name: 111122223333.dkr.ecr.eu-central-1.amazonaws.com # hostname of the registry to be configured
+  namespace: okteto
+spec:
+  awsIamRole:
+    audience: okteto.example.com/us-east-2 # Audience used to exchange token to access the registry
+    roleARN: arn:aws:iam::112233445566:role/my-private-registry # ARN role with the permissions needed to access to the registry
+```
+
+You can find more information [here](admin/registry-credentials/amazon-ecr.mdx#using-iam-roles-via-openid-connect-oidc-federation) about how to obtain the values to use.
+
+## Catalog Items
+
+Catalog items are typically managed via the [Admin dashboard](admin/catalog.mdx), but can also be managed via one of the CRDs installed by Okteto: `catalogitems.git.okteto.com`.
+This approach is useful if you want to add catalog items manually with kubectl commands or manage your catalog using GitOps.
+
+:::note
+If you add Catalog items using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+:::
+
+To configure a catalog item, create a resource like this:
+
+- `metadata.name`: name of the `CatalogItem` resource to be created
+- `spec.branch`: default branch for the CatalogItem. (optional)
+- `spec.manifestPath`: path to the manifest file in the repository (optional)
+- `spec.name`: Display name in the Catalog UI list
+- `spec.repositoryUrl`: URL of the repository
+- `spec.variables`: list of variables suggested to the user at deployment time. Each variable can be defined by name only, or by name and value (optional)
+
+```yaml title="my-catalog-item.yaml"
+apiVersion: git.okteto.com/v1
+kind: CatalogItem
+metadata:
+  name: my-catalog-item
+  namespace: okteto
+spec:
+  branch: ""
+  manifestPath: ""
+  name: my-catalog-item
+  repositoryUrl: https://github.com/okteto/movies-with-helm
+  variables:
+    - name: VARIABLE_WITH_VALUE
+      value: my-value
+    - name: VARIABLE_WITHOUT_VALUE
+```
+
+To apply the changes manually, run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
+
+
+## Cloud Credentials
+
+Cloud Credentials are mainly managed via the [Admin dashboard](admin/dashboard.mdx#cloud-credentials), but can also be managed via one of the CRDs installed by Okteto: `dynamicconfigs.admin.okteto.com`.
+Using CRDs can be useful if you would like to add Cloud Credentials manually with a simple `kubectl` command or manage your Cloud Credentials using GitOps.
+
+:::note
+If you add credentials using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+:::
+
+For example, if you want to add a configuration for **GCP Cloud Credential**, you will need to create a resource like this:
+
+- `metadata.name`: `gcp-credentials-config`
+- `spec.audience`: This is the intended audience for the credential. It is typically a URL or a string that identifies the target service or application that will use the credential.
+- `spec.projectNumber`: This is the unique identifier for your Google Cloud project. It is a numeric value that is assigned to your project when you create it in the Google Cloud Console.
+- `spec.providerId`: his is the identifier for the identity provider. It is used to specify which identity provider will be used to authenticate the credentials.
+- `spec.workloadIdentityPoolId`: This is the identifier for the Workload Identity Pool. It is used to specify the pool of identities that can be used to authenticate the credentials.
+
+```yaml title="gcp-cloud-credential.yaml"
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: gcp-credentials-config
+  namespace: okteto
+ spec:
+  audience: <audience>
+  projectNumber: <project-number>
+  providerId: <provider-id>
+  workloadIdentityPoolId: <workload-identity-pool-id>
+```
+
+Alternatively, if you would like to add a configuration for **AWS Cloud Credentials**, you will need to create a resource like this:
+
+- `metadata.name`: `aws-credentials-config`
+- `spec.audience`: This is the intended audience for the credential. It is typically a URL or a string that identifies the target service or application that will use the credential.
+- `spec.region`: This specifies the AWS region where the credentials will be used. It is a string that identifies the geographic area where AWS resources are located.
+- `spec.roleARN`: This is the Amazon Resource Name (ARN) of the IAM role that will be assumed. It uniquely identifies the role within AWS and is used to specify which role will be used to authenticate the credentials.
+
+```yaml title="aws-cloud-credential.yaml"
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: aws-credentials-config
+  namespace: okteto
+spec:
+  audience: <audience>
+  region: <region>
+  roleARN: <roleARN>
+```
+
+To apply the changes manually, run the command `kubectl apply -f aws-cloud-credential.yaml` from your terminal to add the catalog item to the your Cloud Credential to the cluster.
+
+:::note
+Each cloud provider credential configuration in Okteto must use a specific name: gcp-credentials-config for Google Cloud Platform and aws-credentials-config for Amazon Web Services.
+Only one credential configuration is allowed per provider, meaning you can define one for GCP and one for AWS, but no more than one for each.
+:::
+
+## Okta User De-provisioning
+Okta user de-provisioning can be managed through the [Admin dashboard](admin/integrations/okta-user-deprovisioning.mdx), or via one of the CRDs installed by Okteto.
+This allows administrators to define deprovisioning policies declaratively, ensuring that users who are removed from Okta are also deactivated in Okteto automatically.
+
+### 1. Create the Event Hook Token in Okta
+To start, **follow Step 1** in the [Okta User De-provisioning documentation](admin/integrations/okta-user-deprovisioning.mdx) to configure the event hook in Okta. When finished with Step 1, return here.
+
+### 2. Create the Required Secret
+Next, you must create an [Opaque **Kubernetes secret**](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) that contains the necessary configuration for Okta user de-provisioning.
+
+That secret should contain 2 keys with the information:
+- `eventsEnabled`: A boolean (`true` or `false`, base64-encoded) indicating whether Okta user de-provisioning is enabled
+  - "true" → `dHJ1ZQ==`
+  - "false" → `ZmFsc2U=`
+- `eventsAuthSecret`: The webhook authorization secret specified when configuring the event hook in Okta
+
+
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: okta-deprovisioning-secret
+  namespace: okteto
+type: Opaque
+data:
+  eventsAuthSecret: <base64-encoded-webhook-secret>
+  eventsEnabled: <base64-encoded-true-or-false>
+```
+
+### 3. Create the CRD Configuration
+
+Once the secret is created, define the Okta user de-provisioning CRD referencing the secret:
+
+```yaml
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: okta-config
+  namespace: okteto
+secretRef: okta-deprovisioning-secret
+```
+- `secretRef` is the secret name created in the previous step
+
+### 4. Apply the Configuration
+To apply the configuration run
+```sh
+kubectl apply -f okta-deprovisioning-secret.yaml
+kubectl apply -f okta-deprovisioning-crd.yaml
+```
+
+### 5. Verify Okta Event Hook Integration
+
+Once the CRD and secret are configured, go back to the **Okta admin console** and verify the webhook. After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically de-provisioning users from the system.
+
+Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.

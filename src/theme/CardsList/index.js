@@ -24,7 +24,7 @@ function CardsList() {
               <Card
                 title={tutorial.label}
                 url={tutorial.href}
-                logos={findKeywordsInString(tutorial.label)}
+                logo={findKeywordInString(tutorial.label)}
                 key={tutorial.docId}
               >
                 {frontmatter.description}
@@ -37,13 +37,14 @@ function CardsList() {
   );
 }
 
-function findKeywordsInString(string) {
-  const keywords = ['aws', 'docker', 'webpack', 'launchdarkly'];
-  const foundKeywords = keywords.filter((keyword) =>
+function findKeywordInString(string) {
+  const keywords = ['aws', 'docker', 'webpack', 'launchdarkly', 'okteto'];
+
+  const foundKeyword = keywords.find((keyword) =>
     string.toLowerCase().includes(keyword.toLowerCase())
   );
 
-  return foundKeywords.map((keyword) => useBaseUrl(`/img/logos/${keyword}.svg`));
+  return foundKeyword ? useBaseUrl(`/img/logos/${foundKeyword}.svg`) : null;
 }
 
 export default CardsList;

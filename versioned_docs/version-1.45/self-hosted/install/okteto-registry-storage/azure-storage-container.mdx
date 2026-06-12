@@ -1,0 +1,32 @@
+---
+title: Okteto Registry with Azure Storage Container
+description: Configure the Okteto Registry with Azure Storage Container
+sidebar_label: Azure Storage Container
+id: azure-storage-container
+---
+
+This guide will walk you through the process of setting up the Okteto Registry with Azure Storage Container to store your container images.
+
+In this guide, `<<storage-account-access-key>>` refers to a storage account access key with read/write permissions to the storage container you want to use for the Okteto Registry.
+
+Create a secret with the value of `<<storage-account-access-key>>` using the command below:
+
+```bash
+kubectl create secret generic okteto-registry-secret --namespace=okteto --from-literal=secretKey=<<storage-account-access-key>>
+```
+
+Then, add the following configuration to your Okteto Helm configuration file:
+
+```yaml title="config.yaml"
+registry:
+  storage:
+    provider:
+      azure:
+        enabled: true
+        storage:
+          container: <<your-storage-container-name>>
+          accountName: <<your-service-account-name>>
+```
+
+Finally, [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
+We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.

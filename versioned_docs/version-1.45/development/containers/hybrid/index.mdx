@@ -1,0 +1,45 @@
+---
+title: Hybrid Development Mode
+description: In this section, you'll see how you can use using hybrid mode to develop on Okteto
+---
+
+import Image from "@theme/Image";
+
+There are situations when running a service locally is faster than synchronizing code with a remote Development Container.
+For example, when doing frontend-only development or when working in an IDE-heavy context (e.g. Java/Spring) where the IDE may be pre-configured to run tests, start services, and connect debuggers.
+
+Hybrid development mode enables you to run the service in development locally while keeping the rest of your application components on Okteto.
+
+:::note
+Using hybrid development mode might increase latency when accessing the rest of the services in the cluster.
+:::
+
+To allow communication to and from the cluster and your local machine, an SSH server is deployed in the remote Development Container.
+You can expose the local service to the services running in the cluster using the [`reverse`](reference/okteto-manifest.mdx#reverse-string-optional) configuration for the Development Container.
+If you want to forward a service running in the cluster to your local machine you can use the [`forward`](reference/okteto-manifest.mdx#forward-string-optional) configuration.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/hybrid-development-arch.png").default}
+    alt="Hybrid development architecture"
+    width="850"
+  />
+</p>
+
+When using Hybrid development mode the [command](reference/okteto-manifest.mdx#command-string-optional) in your Okteto Manifest runs locally with the same environment variables as the original service running in the cluster.
+To achieve this, the following environment variables are added to the local process. This list is ordered from highest to lowest prevalence:
+
+- Environment variables defined in the [environment](reference/okteto-manifest.mdx#environment-string-optional) of the development container
+- Environment variables defined in the original [container spec](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
+- Environment variables coming from [configmaps](https://kubernetes.io/es/docs/concepts/configuration/configmap/#configmaps-y-pods) defined in the original container spec
+- Environment variables coming from [secrets](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data) defined in the original container spec
+- Environment variables defined in the [container image](https://kubernetes.io/docs/concepts/containers/#container-images)
+
+To enable `hybrid` mode you need to configure the necessary ports to expose the local service to the cluster network.
+This allows the components running in the cluster to communicate with the local service as if it was running directly in the cluster.
+To do this you can make use of the [reverse](reference/okteto-manifest.mdx#reverse-string-optional) field in your Okteto Manifest, which will expose the configured port of your local machine to the desired port on the Development Container.
+
+We have getting started guides for the following use cases:
+
+- [Frontend development](frontend.mdx)
+- [Java development](java.mdx)
