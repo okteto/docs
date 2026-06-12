@@ -6,28 +6,13 @@ id: agentic-development
 
 Okteto [Agentic Workflows](/docs/agentic/) let AI agents interact with your Development Environments using the same CLI commands developers use. In collaborative mode, you and an AI agent work in the same Development Environment — you control the dev session while the agent runs commands, edits code, and verifies changes alongside you.
 
-## What you'll build
+## Overview
 
 You and Claude Code will:
 1. Deploy the Movies app to an Okteto Development Environment
 2. Start a dev session on the API service
 3. Use the agent to explore the codebase, make a code change, and run tests
 4. Verify the change through File Sync and Okteto Test
-
-```mermaid
-sequenceDiagram
-    participant Dev as You
-    participant Agent as Claude Code
-    participant Env as Okteto Environment
-
-    Dev->>Env: okteto deploy --wait
-    Dev->>Env: okteto up api
-    Dev->>Agent: Describe the task
-    Agent->>Env: okteto exec -- go test ./...
-    Agent-->>Dev: Edits code (synced via File Sync)
-    Dev->>Env: Verify at endpoint URL
-    Agent->>Env: okteto test e2e
-```
 
 ## Prerequisites
 
@@ -123,7 +108,19 @@ okteto up api
 okteto>
 ```
 
-This activates [File Sync](/docs/reference/file-synchronization) and replaces the running API container with a [Development Container](/docs/development/containers/) where you and the agent iterate on code. Leave this terminal open.
+This activates [File Sync](/docs/reference/file-synchronization) and replaces the running API container with a [Development Container](/docs/development/containers/) where you and the agent iterate on code.
+
+The Development Container starts a shell instead of the API server. At the `okteto>` prompt, build and start the server:
+
+```console
+make build && make start
+```
+
+```console
+Running server on port 8080...
+```
+
+Leave this terminal open.
 
 :::warning
 `okteto up` is an interactive command that requires a human terminal. The agent must never run this command — it hangs indefinitely. You always start the dev session yourself.
@@ -142,10 +139,26 @@ The agent works through the task using Okteto CLI commands:
 
 1. **Explores the codebase** — reads `okteto.yaml` to discover the API service structure, then reads the Go source files in `api/`
 2. **Edits the code** — adds the `/healthz` handler to the API
-3. **Changes sync automatically** — File Sync propagates edits to the Development Container in seconds, with no rebuild required
-4. **Runs tests in the container** — executes `okteto exec -- go test ./...` to verify the change compiles and passes
+3. **Changes sync automatically** — File Sync propagates edits to the Development Container in seconds
+4. **Runs tests in the container** — executes `okteto exec -- go test ./...` to verify the change compiles and existing tests still pass
 
-You see the agent's actions in real time. Intervene at any point to steer the approach — this is the collaborative pattern.
+You see the agent's actions in real time. Intervene at any point to steer the approach — this is the collaborative pattern:
+
+```mermaid
+sequenceDiagram
+    participant Dev as You
+    participant Agent as Claude Code
+    participant Env as Development Container
+
+    Dev->>Agent: Describe the task
+    loop Until tests pass
+        Agent->>Agent: Edit code
+        Agent-->>Env: File Sync applies the change
+        Agent->>Env: okteto exec -- go test ./...
+        Env-->>Agent: Results
+    end
+    Agent->>Dev: Reports the change
+```
 
 ### CLI commands the agent uses
 
@@ -163,7 +176,13 @@ The agent never runs `okteto up` (interactive, human-only) or `okteto destroy` (
 
 ## Step 5: Verify the change
 
-Confirm the new endpoint works. In the `okteto up` terminal, or ask the agent to run:
+The API is a compiled Go service, so the running server picks up the agent's change after a rebuild. In the `okteto up` terminal, stop the server with `Ctrl+C`, then build and start it again:
+
+```console
+make build && make start
+```
+
+Ask the agent to confirm the new endpoint works, or run the check yourself from another terminal in the `movies` directory:
 
 ```console
 okteto exec -- curl -s localhost:8080/healthz
@@ -196,7 +215,7 @@ okteto test e2e
 ```
 
 ```console
- i  Running test 'e2e'
+ i  Executing test container 'e2e'
  ✓  Test container 'e2e' passed
     Artifacts available at: test-results, playwright-report
 ```
