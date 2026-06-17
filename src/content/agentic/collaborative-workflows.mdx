@@ -12,7 +12,7 @@ In collaborative mode, you stay in control of the development session while the 
 2. You run `okteto up <service>` in your terminal to start the dev session
 3. The agent uses `okteto exec -- <command>` to run commands in the dev container
 4. Code changes sync to the container automatically via [file sync](development/containers/file-sync/index.mdx)
-5. The agent checks results with `okteto logs` and `okteto test`
+5. The agent checks results with `okteto exec` and `okteto test`
 6. You iterate together until the task is complete
 
 :::warning
@@ -34,10 +34,7 @@ Can you investigate and fix it?
 
 The agent investigates:
 ```bash
-# Check recent logs for the error
-okteto logs api --since 10m
-
-# Run the failing test to reproduce
+# Reproduce the failure by running the test that covers it
 okteto exec -- npm test -- --grep "empty cart"
 
 # After reading the code and making a fix...
@@ -46,9 +43,11 @@ okteto exec -- npm test -- --grep "empty cart"
 okteto exec -- npm test
 ```
 
+Because `api` is in dev mode, its live output appears in the `okteto up api` terminal you control, not in `okteto logs`. The agent reproduces and verifies the fix by running commands in the dev container with `okteto exec`.
+
 Since file sync is active, the agent's code changes are immediately available in the running container. No rebuild needed.
 
-The agent's day-to-day commands in this mode are `okteto exec`, `okteto logs`, and `okteto test`. The full list of commands agents may and may not run is in [Command rules](agentic/best-practices.mdx#command-rules). For flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
+The agent's day-to-day commands in this mode are `okteto exec` and `okteto test`. Output from the service in dev mode appears in your `okteto up` terminal, not in `okteto logs`; the agent uses `okteto logs <service>` for the other services in the environment. The full list of commands agents may and may not run is in [Command rules](agentic/best-practices.mdx#command-rules). For flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
 
 ## File sync
 
