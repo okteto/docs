@@ -6,6 +6,24 @@ sidebar_label: Best Practices
 
 Agents work best with Okteto when they follow the same patterns human developers use: deploy through the CLI, build with the Okteto Build Service, read `okteto.yaml` for service discovery. Most issues come from agents bypassing these patterns.
 
+## Command rules
+
+This is the full list of which commands agents may run. The collaborative and autonomous workflow pages link here.
+
+| Command | Agent may run? | Notes |
+|---------|----------------|-------|
+| `okteto deploy --wait` | Yes | Builds images and deploys all services. Always pass `--wait`. |
+| `okteto build <service>` | Yes | Builds a single image through the Okteto Build Service. |
+| `okteto test <name>` | Yes | Runs a test container defined in `okteto.yaml`. |
+| `okteto logs <service>` | Yes | Views container logs. |
+| `okteto endpoints` | Yes | Lists public URLs for the environment. |
+| `okteto exec -- <command>` | Collaborative only | Runs a command in the active Development Container. |
+| `okteto up <service>` | Never | Interactive, hangs if an agent runs it. The human runs it in collaborative mode. |
+| `okteto destroy` | Only with authorization | Tears down all resources. Needs explicit policy or human approval. |
+| `kubectl` / `helm` directly | No | Bypasses Okteto's resource tracking. Use `okteto deploy` instead. |
+
+The sections below explain the reasoning behind the rules that matter most.
+
 ## Best practices
 
 ### Read `okteto.yaml` for service discovery
@@ -74,7 +92,7 @@ okteto deploy
 
 ### Agent hangs and becomes unresponsive
 
-The most common cause is the agent running `okteto up`, which is interactive and sits waiting for terminal input. Stop the agent, and switch to `okteto exec` (collaborative) or `okteto deploy` + `okteto build` (autonomous). The [Claude Code Plugin](agentic/claude-code-plugin.mdx) teaches agents to avoid this automatically.
+The most common cause is the agent running `okteto up`, which is interactive and sits waiting for terminal input. Stop the agent. In collaborative mode, you keep an `okteto up` session running in your own terminal and the agent works against it with `okteto exec`. In autonomous mode, the agent uses `okteto deploy` + `okteto build` instead. The [Okteto plugin for Claude Code](agentic/index.mdx#installing-the-plugin) teaches agents to avoid this automatically.
 
 ### Build fails
 
@@ -88,7 +106,7 @@ First, make sure you're using `okteto deploy --wait` so all pods are running bef
 
 ### Agent uses wrong service names
 
-The agent is probably not reading `okteto.yaml`. Make sure the [Claude Code Plugin](agentic/claude-code-plugin.mdx) is installed, which teaches the agent to auto-discover services from the manifest.
+The agent is probably not reading `okteto.yaml`. Make sure the [Okteto plugin for Claude Code](agentic/index.mdx#installing-the-plugin) is installed, which teaches the agent to auto-discover services from the manifest.
 
 ### Environment endpoints not accessible
 
