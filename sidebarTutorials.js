@@ -29,6 +29,7 @@ module.exports = {
         'webpack',
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
         'divert',
+        'hybrid-development',
         'optimize-your-development-environment',
         'create-and-use-volume-snapshots',
       ],
