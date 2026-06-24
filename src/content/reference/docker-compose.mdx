@@ -200,10 +200,12 @@ The combination of restart condition, `max_attempts`, and volume mounts determin
 
 | Restart condition | `max_attempts` | Resulting Kubernetes object |
 |-------------------|----------------|---------------------------|
-| `always` / `unless-stopped` / `any` (default) | — | Deployment |
-| `on-failure` | 0 or unset | Deployment |
+| `always` / `unless-stopped` / `any` (default) | — | Deployment (StatefulSet if the service defines a named volume) |
+| `on-failure` | 0 or unset | Deployment (StatefulSet if the service defines a named volume) |
 | `on-failure` | > 0 | Job |
 | `none` / `never` / `no` | — | Job |
+
+A service that resolves to a Deployment becomes a StatefulSet when it defines a named volume. Services that resolve to a Job are unaffected.
 
 Use `deploy.restart_policy` with `condition: on-failure` and a `max_attempts` value greater than zero for one-shot tasks (such as database migrations or seed scripts) that should retry on transient failures.
 
