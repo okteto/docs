@@ -31,33 +31,19 @@ Set-ItemProperty HKCU:\Console VirtualTerminalLevel -Type DWORD 1
 
 This [stackoverflow answer](https://stackoverflow.com/questions/51680709/colored-text-output-in-powershell-console-using-ansi-vt100-codes) has more information on this topic.
 
-## `okteto up` fails to pull the development image with an `EOF` error
+## Pulling the development image fails with an `EOF` error
 
-When you run `okteto up`, activation can fail while the development image is pulled, with an error like this one:
+The image pull runs on the Kubernetes node, not on your machine. When the node can't finish downloading the image from Docker Hub, `okteto up` relays the node's error and exits:
 
 ```console
 couldn't activate your development container
     Failed to pull image "node:25-alpine3.22": failed to pull and unpack image "docker.io/library/node:25-alpine3.22": failed to copy: httpReadSeeker: failed open: failed to do request: Get "https://production.cloudfront.docker.com/...": EOF
 ```
 
-The image pull runs on the Kubernetes node, not on your machine. When you start a Development Container, Okteto creates a pod and the node's kubelet pulls the image. The `EOF` means the connection to Docker Hub's CDN (`production.cloudfront.docker.com`) closed before the image layer finished downloading. The Okteto CLI relays the node's event message and exits without retrying this class of failure.
-
-This is almost always a transient or environment-level problem between your cluster and Docker Hub, not an issue with your Okteto Manifest. Common causes include:
-
-- A dropped or throttled connection between the node and Docker Hub's CDN.
-- Docker Hub anonymous pull rate limits, which apply per source IP and can interrupt unauthenticated pulls.
-- A proxy, firewall, or TLS-inspecting gateway in front of the cluster that terminates long-running downloads.
+The `EOF` means the connection to the host in the error closed before the image layer finished downloading. The usual cause is an egress policy on the cluster — a firewall, proxy, or domain allowlist — that doesn't permit that host. Pulling from Docker Hub is a two-stage flow: the node authenticates against `auth.docker.io` and reads the manifest from `registry-1.docker.io`, then follows a redirect to a CDN host to download each layer. Docker changes its CDN domains over time — it added `production.cloudfront.docker.com` in May 2026 — so an allowlist that only covers the registry and an older CDN starts failing on layer downloads while the manifest still resolves.
 
 To resolve it:
 
-1. Run `okteto up` again. The kubelet retries failed pulls with backoff, so a transient `EOF` often clears on the next attempt.
-2. Inspect the pod events to confirm the failure is a pull error and to see the runtime's retry status:
-
-   ```console
-   $ kubectl get events -n <namespace> --sort-by=.lastTimestamp
-   ```
-
-   A `Failed`, `ErrImagePull`, or `ImagePullBackOff` event for your Development Container confirms a node-side pull problem.
-3. Configure Docker Hub credentials with the [Registry Credentials](/admin/registry-credentials/index.mdx) feature in the Admin Dashboard. Authenticated pulls have higher Docker Hub rate limits, which prevents throttling-related interruptions.
-4. If your cluster routes egress through a proxy or firewall, confirm it allows sustained connections to `registry-1.docker.io` and `production.cloudfront.docker.com`. TLS inspection that buffers or truncates large responses can also cause the `EOF`.
-5. To avoid Docker Hub entirely, push the image to the [Okteto Registry](core/container-registry.mdx) or another registry your cluster can reach, and reference it with the [`image`](reference/okteto-manifest.mdx#image-string-optional) field in your Okteto Manifest.
+1. Allow egress from your cluster to Docker Hub over HTTPS. Because the CDN domains change, allow the wildcards `*.docker.io` and `*.docker.com` where your firewall supports them, rather than pinning individual hosts. Docker's [allowlist reference](https://docs.docker.com/desktop/setup/allow-list/) lists the current hosts, including `registry-1.docker.io`, `auth.docker.io`, and `production.cloudfront.docker.com`.
+2. If a TLS-inspecting proxy sits in front of the cluster, trust the certificate authority for the CDN host. The CloudFront CDN uses Amazon Trust Services, so its certificates fail validation when your trust store only includes a previous CA.
+3. To stop depending on Docker Hub's CDN, mirror the image in the [Okteto Registry](core/container-registry.mdx) or another registry your cluster can reach, and reference it with the [`image`](reference/okteto-manifest.mdx#image-string-optional) field in your Okteto Manifest.
