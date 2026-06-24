@@ -33,17 +33,19 @@ This [stackoverflow answer](https://stackoverflow.com/questions/51680709/colored
 
 ## Pulling an image fails with an `EOF` error
 
-The image pull runs on the Kubernetes node, not on your machine. When the node can't finish downloading the image from Docker Hub, `okteto up` relays the node's error and exits:
+Image pulls run on the Kubernetes node, not on your machine, so a pull can fail for any pod the cluster schedules. During `okteto up`, the failure surfaces as a Development Container that won't activate:
 
 ```console
 couldn't activate your development container
     Failed to pull image "node:25-alpine3.22": failed to pull and unpack image "docker.io/library/node:25-alpine3.22": failed to copy: httpReadSeeker: failed open: failed to do request: Get "https://production.cloudfront.docker.com/...": EOF
 ```
 
-The `EOF` means the connection to the host in the error closed before the image layer finished downloading. The usual cause is an egress policy on the cluster — a firewall, proxy, or domain allowlist — that doesn't permit that host. Pulling from Docker Hub is a two-stage flow: the node authenticates against `auth.docker.io` and reads the manifest from `registry-1.docker.io`, then follows a redirect to a CDN host to download each layer. Docker changes its CDN domains over time — it added `production.cloudfront.docker.com` in May 2026 — so an allowlist that only covers the registry and an older CDN starts failing on layer downloads while the manifest still resolves.
+The `EOF` means the connection to the host in the error closed before the image layer finished downloading. The usual cause is an egress policy on the cluster — a firewall, proxy, or domain allowlist — that doesn't permit that host. Registries commonly serve manifests from one host and redirect layer downloads to a separate CDN or storage host, and those hosts change over time, so an allowlist scoped to the registry alone starts failing on layer downloads while the manifest still resolves.
+
+Docker Hub is the most common case. It serves manifests from `registry-1.docker.io` (after authenticating against `auth.docker.io`) and redirects layers to a CDN host. Docker added the CDN domain `production.cloudfront.docker.com` in May 2026, so allowlists that only covered the registry and an older CDN began failing with this error.
 
 To resolve it:
 
-1. Allow egress from your cluster to Docker Hub over HTTPS. Because the CDN domains change, allow the wildcards `*.docker.io` and `*.docker.com` where your firewall supports them, rather than pinning individual hosts. Docker's [allowlist reference](https://docs.docker.com/desktop/setup/allow-list/) lists the current hosts, including `registry-1.docker.io`, `auth.docker.io`, and `production.cloudfront.docker.com`.
-2. If a TLS-inspecting proxy sits in front of the cluster, trust the certificate authority for the CDN host. The CloudFront CDN uses Amazon Trust Services, so its certificates fail validation when your trust store only includes a previous CA.
-3. To stop depending on Docker Hub's CDN, mirror the image in the [Okteto Registry](core/container-registry.mdx) or another registry your cluster can reach, and reference it with the [`image`](reference/okteto-manifest.mdx#image-string-optional) field in your Okteto Manifest.
+1. Allow egress from your cluster to your registry's hosts over HTTPS, including the CDN or storage host it redirects layer downloads to. Because these hosts can change, prefer wildcards where your firewall supports them. For Docker Hub, allow `*.docker.io` and `*.docker.com`; Docker's [allowlist reference](https://docs.docker.com/desktop/setup/allow-list/) lists the current hosts, including `registry-1.docker.io`, `auth.docker.io`, and `production.cloudfront.docker.com`.
+2. If a TLS-inspecting proxy sits in front of the cluster, trust the certificate authority that signs the registry and CDN hosts. Docker Hub's CloudFront CDN uses Amazon Trust Services, for example, so its certificates fail validation when your trust store only includes a previous CA.
+3. Mirror the image in the [Okteto Registry](core/container-registry.mdx) or another registry your cluster can reach, and reference it with the [`image`](reference/okteto-manifest.mdx#image-string-optional) field in your Okteto Manifest.
