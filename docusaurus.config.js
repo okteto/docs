@@ -2,6 +2,25 @@ const path = require('path');
 
 const docsContentPath = 'src/content';
 
+// Strip Docusaurus heading-anchor links (class "hash-link") from the Markdown
+// twins generated for AI agents. They render as noisy `[​](#... "Direct link
+// to ...")` fragments that carry no content. Dependency-free hast walk so it
+// works in this CommonJS config without an ESM import.
+function rehypeStripHashLinks() {
+  const isHashLink = (node) =>
+    node.tagName === 'a' &&
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('hash-link');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isHashLink(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
@@ -314,6 +333,18 @@ module.exports = {
       },
     ],
     'docusaurus-plugin-sass',
+    [
+      '@signalwire/docusaurus-plugin-llms-txt',
+      {
+        siteTitle: 'Okteto Documentation',
+        content: {
+          includeVersionedDocs: false,
+          enableMarkdownFiles: true,
+          enableLlmsFullTxt: true,
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks],
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
