@@ -157,7 +157,6 @@ module.exports = {
       label: 'Agentic Workflows',
       link: { type: 'doc', id: 'agentic/index' },
       items: [
-        'agentic/claude-code-plugin',
         'agentic/collaborative-workflows',
         'agentic/autonomous-workflows',
         'agentic/best-practices',

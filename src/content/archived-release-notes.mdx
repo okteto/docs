@@ -7,6 +7,74 @@ id: archived-release-notes
 
 Here you can find the release notes for archived versions of Okteto.
 
+## 1.33.1
+
+19 June 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.33 is designed to work with [Okteto CLI 3.8.x](https://github.com/okteto/okteto/releases/tag/3.8.0)
+
+### Bug Fixes
+
+- Fixed a glitch in the breadcrumb within the preview detail view when the monitor used has a big resolution <!-- 9474 -->
+
+## 1.33.0
+
+13 June 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.33 is designed to work with [Okteto CLI 3.8.x](https://github.com/okteto/okteto/releases/tag/3.8.0)
+
+### New Features {#new-features-1.33}
+
+- Introduced support for dependency-aware redeploy and destroy operations in multi-service environments
+  - [Okteto CLI 3.8.0](https://github.com/okteto/okteto/releases/tag/3.8.0): New `--dependencies` flag for `okteto pipeline deploy`, `okteto preview deploy`, and `okteto pipeline destroy` commands to include direct dependencies (defaults follow admin-level configuration)
+  - New environment variable format `OKTETO_DEPENDENCY_${DEPENDENCY_NAME}_BUILD_${BUILD_SVC}_${BUILD_ENVVAR}` for accessing dependency-specific build variables
+  - ⚠️ Note: The `--dependencies` flag only applies to direct dependencies and does not recurse further to avoid impacting cyclic relationships
+- New [**Deployments** admin panel](admin/dashboard.mdx#deployments) allowing configuration of default behavior for:
+  - Redeploying all direct dependencies by default
+  - Destroying all direct dependencies by default
+- Added a checkbox option in both the redeploy and destroy dialogs to optionally include direct dependencies when present
+
+### Improvements {#improvements-1.33}
+
+- Enforced GitHub App ID type as int64 for configmap rendering consistency to avoid fatal errors in the API components when the field was specified without quotes in the helm values  <!-- 9329 -->
+- Added breadcrumbs to the Preview Environment details page to make navigation easier
+- [Okteto CLI 3.8.0](https://github.com/okteto/okteto/releases/tag/3.8.0): `okteto namespace list` now supports an `output` option to specify `json` or `yaml` formats as `okteto preview list`
+
+### Bug Fixes {#bug-fixes-1.33}
+
+- Fixed text overflow issue in Resource Manager UI for small screens  <!-- 9289 -->
+- Hid sidebar redeploy button on smaller screens to avoid UI clutter  <!-- 9303 -->
+- Fixed "back to catalog" link navigation  <!-- 9310 -->
+- Fixed ellipsis rendering issues in previews  <!-- 9410 -->
+
+## 1.32.0
+
+8 May 2025
+
+This version is compatible with Kubernetes versions 1.30 to 1.32 \
+Okteto Chart release 1.32 is designed to work with [Okteto CLI 3.7.x](https://github.com/okteto/okteto/releases/tag/3.7.0)
+
+### New Features {#new-features-1.32}
+
+- Added support for waking up development environments without dependencies in parallel. This behavior is disabled by default and can be enabled via the [feature flag](reference/feature-flags.mdx) `OKTETO_PARALLEL_WAKE_UPS_FOR_DEVENVS`. When dependencies exist, their defined startup order is still respected <!-- 9219 -->
+
+### Improvements {#improvements-1.32}
+
+- Refreshed the Okteto Dashboard UI to improve the visual design and lay the groundwork for features coming later this year. The changes are purely visual; everything is still in the same place
+- Included changes to prevent an empty stage `Deploy <<dev environment name>>` log entries in the UI when deployments are triggered via `okteto deploy` from the CLI  <!-- 9225 -->
+- Upgraded our BuildKit client to [0.21.1](https://github.com/moby/buildkit/releases/tag/v0.21.1) for improved performance and stability
+- Enhanced privacy and security by removing sensitive repository information when Development Environments are deployed using the GitHub App integration <!-- 9256 -->
+- All pods deployed within a diverted Namespace now have 2 environment variables automatically injected that can be used at runtime. `OKTETO_SHARED_ENVIRONMENT` contains the name of the shared Namespace where all the services are deployed, and `OKTETO_DIVERTED_ENVIRONMENT` contains the routing key used to route the traffic to the proper version of the service (its value is the name of the Namespace where diverted services are deployed)
+- Endpoints in namespaces that include diverted services are now correctly displayed in the UI when using the `nginx` driver
+
+### Bug Fixes {#bug-fixes-1.32}
+
+- [Okteto CLI 3.7.0](https://github.com/okteto/okteto/releases/tag/3.7.0): Fixed a bug in the [Smart Builds](core/build-service.mdx#smart-builds) hash calculation process that caused indefinite hangs when hundreds of untracked files existed in the local Git repository
+- Unified the HTTP header used in [Divert](reference/okteto-manifest.mdx#divert) to propagate the routing key for both drivers `nginx` and `istio`. `istio` driver was using `baggage` header with the key `okteto-divert`, but `nginx` driver was using the header `baggage.okteto-divert`. Now, both drivers use the same standard [`baggage`](https://www.w3.org/TR/baggage/) header as `baggage: okteto-divert=<routing-key>`. For the `nginx` driver, the header `baggage.okteto-divert` is still being injected automatically for backward compatibility, but **it will be removed in the future**
+- Fixed an issue when using both [Divert](reference/okteto-manifest.mdx#divert) and [`endpoints`](/docs/reference/okteto-manifest#endpoints-object-required) to deploy a Development Environment. Endpoints for the diverted namespaces were not working as expected, as the HTTP header with the routing key was not being injected into the request
+
 ## 1.31.0
 
 4 April 2025
@@ -708,7 +776,7 @@ This version is compatible with Kubernetes versions 1.25 to 1.29
 - Allow `okteto-bot` to use GitHub integration when deploying repositories  <!-- 7892 -->
 - Fix a wrong redirect when a preview doesn't exist  <!-- 7942 -->
 - Make docker config static a pull secret  <!-- 7908 -->
-- Translate compose annotations into Kubernetes labels. We had been translating compose labels into k8s annotations but not viceversa <!-- 4199, 4204 -->
+- Translate compose annotations into Kubernetes labels. We had been translating compose labels into k8s annotations but not vice versa <!-- 4199, 4204 -->
 
 ## 1.18.2
 
@@ -1318,7 +1386,7 @@ In some cases, there is a race condition recreating the controller pods in which
 
 ### Bugfixes
 
-- When injecting host alises to go through internal network to buildkit, registry and api, don't duplicate entries for same IP. Instead, pass the list of hostnames for the IP
+- When injecting host aliases to go through internal network to buildkit, registry and api, don't duplicate entries for same IP. Instead, pass the list of hostnames for the IP
 - Remove non-existent External Resources status that caused Deployments to show as "Deployed" with a red error badge
 - "Get Started" button is not active while running a "destroy all" job
 - Fix namespace wake up when endpoint requests is sent to paths other than root.
@@ -1601,7 +1669,7 @@ May 19, 2022
 - Decouple computing overloaded nodes from the autoscaler
 - Allow users to type in custom branch name for Github repository in the deploy modal
 - Add delete button to preview list
-- Fix inaccesible modal elements on small screens
+- Fix inaccessible modal elements on small screens
 - Upgrade to Okteto CLI 2.2.2
 - Upgrade ingress-nginx helm chart to 4.1.0
 

@@ -7,6 +7,22 @@ id: release-notes
 
 import Image from '@theme/Image';
 
+## 1.45.0
+
+5 June 2026
+
+This version is compatible with Kubernetes versions 1.33 to 1.35 \
+Okteto Chart release 1.45 is designed to work with [Okteto CLI 3.20.x](https://github.com/okteto/okteto/releases/tag/3.20.0)
+
+### Improvements {#improvements-1.45}
+
+- **Filter resources by status in the Namespace view**: The resource list in a Namespace can now be filtered by status, such as **Deployed** or **Error**, making it faster to find a specific service in Namespaces that run many of them <!-- PROD-288, 10165 -->
+- Upgraded the bundled ingress-nginx to address [CVE-2026-9256](https://github.com/okteto/app/pull/10182), a high-severity vulnerability in the ingress-nginx controller <!-- PLAT-1462, 10182 -->
+
+### Bug Fixes {#bug-fixes-1.45}
+
+- Fixed the GitHub branch selector in the Deploy dialog showing stale results from a previous search after a branch was unselected <!-- DEV-329, 10168 -->
+
 ## 1.44.0
 
 8 May 2026
@@ -476,75 +492,3 @@ Okteto Chart release 1.34 is designed to work with [Okteto CLI 3.9.x](https://gi
 - Fixed breadcrumb layout regressions across several updates  <!-- 9472, 9474, 9478 -->
 - Prevented UI overflow of the redeploy button in the resources sidebar  <!-- 9486 -->
 - Fixed an error when running `okteto test` with defined artifacts but no output files; the `/okteto/artifacts` directory is now created by default to prevent execution failures <!-- 4735 -->
-
-
-## 1.33.1
-
-19 June 2025
-
-This version is compatible with Kubernetes versions 1.30 to 1.32 \
-Okteto Chart release 1.33 is designed to work with [Okteto CLI 3.8.x](https://github.com/okteto/okteto/releases/tag/3.8.0)
-
-### Bug Fixes
-
-- Fixed a glitch in the breadcrumb within the preview detail view when the monitor used has a big resolution <!-- 9474 -->
-
-## 1.33.0
-
-13 June 2025
-
-This version is compatible with Kubernetes versions 1.30 to 1.32 \
-Okteto Chart release 1.33 is designed to work with [Okteto CLI 3.8.x](https://github.com/okteto/okteto/releases/tag/3.8.0)
-
-### New Features {#new-features-1.33}
-
-- Introduced support for dependency-aware redeploy and destroy operations in multi-service environments
-  - [Okteto CLI 3.8.0](https://github.com/okteto/okteto/releases/tag/3.8.0): New `--dependencies` flag for `okteto pipeline deploy`, `okteto preview deploy`, and `okteto pipeline destroy` commands to include direct dependencies (defaults follow admin-level configuration)
-  - New environment variable format `OKTETO_DEPENDENCY_${DEPENDENCY_NAME}_BUILD_${BUILD_SVC}_${BUILD_ENVVAR}` for accessing dependency-specific build variables
-  - ⚠️ Note: The `--dependencies` flag only applies to direct dependencies and does not recurse further to avoid impacting cyclic relationships
-- New [**Deployments** admin panel](admin/dashboard.mdx#deployments) allowing configuration of default behavior for:
-  - Redeploying all direct dependencies by default
-  - Destroying all direct dependencies by default
-- Added a checkbox option in both the redeploy and destroy dialogs to optionally include direct dependencies when present
-
-### Improvements {#improvements-1.33}
-
-- Enforced GitHub App ID type as int64 for configmap rendering consistency to avoid fatal errors in the API components when the field was specified without quotes in the helm values  <!-- 9329 -->
-- Added breadcrumbs to the Preview Environment details page to make navigation easier
-- [Okteto CLI 3.8.0](https://github.com/okteto/okteto/releases/tag/3.8.0): `okteto namespace list` now supports an `output` option to specify `json` or `yaml` formats as `okteto preview list`
-
-### Bug Fixes {#bug-fixes-1.33}
-
-- Fixed text overflow issue in Resource Manager UI for small screens  <!-- 9289 -->
-- Hid sidebar redeploy button on smaller screens to avoid UI clutter  <!-- 9303 -->
-- Fixed "back to catalog" link navigation  <!-- 9310 -->
-- Fixed ellipsis rendering issues in previews  <!-- 9410 -->
-
-
-## 1.32.0
-
-8 May 2025
-
-This version is compatible with Kubernetes versions 1.30 to 1.32 \
-Okteto Chart release 1.32 is designed to work with [Okteto CLI 3.7.x](https://github.com/okteto/okteto/releases/tag/3.7.0)
-
-### New Features {#new-features-1.32}
-
-- Added support for waking up development environments without dependencies in parallel. This behavior is disabled by default and can be enabled via the [feature flag](reference/feature-flags.mdx) `OKTETO_PARALLEL_WAKE_UPS_FOR_DEVENVS`. When dependencies exist, their defined startup order is still respected <!-- 9219 -->
-
-### Improvements {#improvements-1.32}
-
-- Refreshed the Okteto Dashboard UI to improve the visual design and lay the groundwork for features coming later this year. The changes are purely visual; everything is still in the same place
-- Included changes to prevent an empty stage `Deploy <<dev environment name>>` log entries in the UI when deployments are triggered via `okteto deploy` from the CLI  <!-- 9225 -->
-- Upgraded our BuildKit client to [0.21.1](https://github.com/moby/buildkit/releases/tag/v0.21.1) for improved performance and stability
-- Enhanced privacy and security by removing sensitive repository information when Development Environments are deployed using the GitHub App integration <!-- 9256 -->
-- All pods deployed within a diverted Namespace now have 2 environment variables automatically injected that can be used at runtime. `OKTETO_SHARED_ENVIRONMENT` contains the name of the shared Namespace where all the services are deployed, and `OKTETO_DIVERTED_ENVIRONMENT` contains the routing key used to route the traffic to the proper version of the service (its value is the name of the Namespace where diverted services are deployed)
-- Endpoints in namespaces that include diverted services are now correctly displayed in the UI when using the `nginx` driver
-
-### Bug Fixes {#bug-fixes-1.32}
-
-- [Okteto CLI 3.7.0](https://github.com/okteto/okteto/releases/tag/3.7.0): Fixed a bug in the [Smart Builds](core/build-service.mdx#smart-builds) hash calculation process that caused indefinite hangs when hundreds of untracked files existed in the local Git repository
-- Unified the HTTP header used in [Divert](reference/okteto-manifest.mdx#divert) to propagate the routing key for both drivers `nginx` and `istio`. `istio` driver was using `baggage` header with the key `okteto-divert`, but `nginx` driver was using the header `baggage.okteto-divert`. Now, both drivers use the same standard [`baggage`](https://www.w3.org/TR/baggage/) header as `baggage: okteto-divert=<routing-key>`. For the `nginx` driver, the header `baggage.okteto-divert` is still being injected automatically for backward compatibility, but **it will be removed in the future**
-- Fixed an issue when using both [Divert](reference/okteto-manifest.mdx#divert) and [`endpoints`](/docs/reference/okteto-manifest#endpoints-object-required) to deploy a Development Environment. Endpoints for the diverted namespaces were not working as expected, as the HTTP header with the routing key was not being injected into the request
-
-
