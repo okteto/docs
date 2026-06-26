@@ -466,6 +466,73 @@ x-node-selector:
 
 More information about Kubernetes node selectors is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
+#### x-okteto-identity-token (object, optional)
+
+Project an audience-scoped Kubernetes ServiceAccount token into the service container, so the application can authenticate to cloud providers through OIDC or AWS STS web-identity federation without static credentials. Okteto creates a [projected `serviceAccountToken` volume](https://kubernetes.io/docs/concepts/storage/projected-volumes/#serviceaccounttoken) and mounts it read-only at the configured path. The kubelet refreshes the token before it expires.
+
+```yaml
+x-okteto-identity-token:
+  audience: sts.amazonaws.com
+  mount_path: /var/run/secrets/tokens/aws
+  expiration_seconds: 3600
+```
+
+The directive accepts the following fields:
+
+- `audience` (string, required): Intended audience of the token. Set it to the identity provider you federate with, such as `sts.amazonaws.com` for AWS.
+- `mount_path` (string, required): Absolute path where the token is mounted. Okteto writes the token to a file named `token` inside this directory (for example, `/var/run/secrets/tokens/aws/token`).
+- `expiration_seconds` (int, optional): Requested token lifetime in seconds. Must be at least `600`, the kubelet minimum. Defaults to `3600` when unset.
+
+Okteto injects no environment variables for this directive. Set the variables your provider expects yourself, and point them at the `token` file inside `mount_path`. Services that don't declare `x-okteto-identity-token` are unaffected.
+
+:::note
+Federation also requires your cloud provider to trust the cluster's OIDC issuer for the configured `audience`. That trust setup is configured on the provider, outside the Okteto Manifest.
+
+Compose services run under each namespace's `default` ServiceAccount, so the projected token's subject is `system:serviceaccount:<namespace>:default`. Because the `default` ServiceAccount exists in every Namespace, scope the provider's trust to that subject across all Namespaces with a wildcard: `system:serviceaccount:*:default`.
+:::
+
+For AWS, set the AWS environment variables on the service and point `AWS_WEB_IDENTITY_TOKEN_FILE` at the `token` file inside `mount_path`:
+
+```yaml
+services:
+  api:
+    image: my-api:latest
+    environment:
+      - AWS_ROLE_ARN=arn:aws:iam::<account>:role/api
+      - AWS_REGION=us-east-1
+      - AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/tokens/aws/token
+    x-okteto-identity-token:
+      audience: sts.amazonaws.com
+      mount_path: /var/run/secrets/tokens/aws
+```
+
+The IAM role referenced by `AWS_ROLE_ARN` needs a trust policy that allows `sts:AssumeRoleWithWebIdentity` for the cluster's OIDC issuer, scoped to the configured `audience` and the `default` ServiceAccount. The `sub` claim uses a wildcard to match the `default` ServiceAccount in any Namespace, so it must go under `StringLike` rather than `StringEquals`:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<account>:oidc-provider/<oidc-issuer>"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "<oidc-issuer>:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "<oidc-issuer>:sub": "system:serviceaccount:*:default"
+        }
+      }
+    }
+  ]
+}
+```
+
+Replace `<oidc-issuer>` with the cluster's issuer URL without the `https://` prefix and `<account>` with your AWS account ID. Keep the `aud` value in sync with the `audience` field in the directive. To restrict the role to a single Namespace, replace the wildcard with `system:serviceaccount:<namespace>:default` and move that condition under `StringEquals`.
+
 ### volumes ([object], optional)
 
 List of volumes created by the Docker Compose file.
@@ -840,6 +907,7 @@ uts
 | --- | --- |
 | public: true | Auto-generate a Kubernetes Ingress |
 | x-node-selector | Pod scheduling hint |
+| x-okteto-identity-token | Project a ServiceAccount token for keyless cloud federation |
 | resources | Set CPU / Memory |
 | scale | Compose-style replica shorthand (alias for deploy.replicas) |
 
