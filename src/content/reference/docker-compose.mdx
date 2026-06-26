@@ -156,6 +156,59 @@ depends_on:
 💡 To enforce `depends_on` ordering during environment wake-up, enable the [`OKTETO_COMPOSE_DEPENDS_ON_ENABLED` feature flag](reference/feature-flags.mdx).
 :::
 
+#### deploy (object, optional)
+
+The `deploy` key configures how Okteto translates a Compose service into Kubernetes. Supported subkeys:
+
+- `deploy.resources` — CPU and memory requests and limits. See [resources](#resources-object-optional).
+- `deploy.restart_policy` — restart behavior and retry limits (see below).
+- `deploy.replicas` — number of container replicas (alias for [`scale`](#scale-int-optional)).
+- `deploy.endpoint_mode` — endpoint mode for the service. See [endpoint_mode](#endpoint_mode-string-optional).
+
+##### `restart_policy`
+
+`deploy.restart_policy` controls restart behavior for a service and determines whether Okteto creates a Kubernetes Job. When both [`restart`](#restart-string-optional) and `deploy.restart_policy.condition` are set, `deploy.restart_policy.condition` takes precedence.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `condition` | string | Restart condition. Accepts the same values as [`restart`](#restart-string-optional): `none`, `never`, `no`, `always`, `unless-stopped`, `any`, `on-failure`. |
+| `max_attempts` | int | Maximum retry attempts before the Job is marked as failed. Maps to the Kubernetes Job `backoffLimit`. |
+
+:::note
+`deploy.restart_policy.delay` and `deploy.restart_policy.window` are recognized but unsupported. Okteto displays a warning if either is set.
+:::
+
+```yaml
+services:
+  init:
+    image: okteto/movies-with-compose:api
+    command: yarn load
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
+    depends_on:
+      mongodb:
+        condition: service_healthy
+```
+
+This configuration creates a Kubernetes Job that retries up to five times if the container exits with a non-zero code. Okteto maps `max_attempts` to the Kubernetes Job `backoffLimit` field.
+
+##### Kubernetes object mapping
+
+The combination of restart condition, `max_attempts`, and volume mounts determines the Kubernetes object type:
+
+| Restart condition | `max_attempts` | Resulting Kubernetes object |
+|-------------------|----------------|---------------------------|
+| `always` / `unless-stopped` / `any` (default) | — | Deployment (StatefulSet if the service defines a named volume) |
+| `on-failure` | 0 or unset | Deployment (StatefulSet if the service defines a named volume) |
+| `on-failure` | > 0 | Job |
+| `none` / `never` / `no` | — | Job |
+
+A service that resolves to a Deployment becomes a StatefulSet when it defines a named volume. Services that resolve to a Job are unaffected.
+
+Use `deploy.restart_policy` with `condition: on-failure` and a `max_attempts` value greater than zero for one-shot tasks (such as database migrations or seed scripts) that should retry on transient failures.
+
 #### endpoint_mode (string, optional)
 
 Specify the endpoint mode for the service. 
@@ -231,7 +284,7 @@ service are "healthy".
 either a string or a list. If it's a list, the first item must be either `NONE`, `CMD` or `CMD-SHELL`.
 If it's a string, it's equivalent to specifying `CMD-SHELL` followed by that string.
 - `http` (object): Defines the path and port that has to be tested on the container to set
- the healthcheck as successful
+ the healthcheck as successful. This key is an Okteto extension not part of the standard Compose spec.
 - `x-okteto-readiness` (bool): Defines if the probe should be a readiness probe (default: `true`).
 - `x-okteto-liveness` (bool): Defines if the probe should be a liveness probe (default: `false`).
 
@@ -355,7 +408,7 @@ If you need make these ports public, you can use [endpoints](reference/docker-co
 
 #### resources (object, optional)
 
-Configure resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits).
+Configure resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits). This top-level key is an Okteto extension — the standard Compose spec places resources under `deploy.resources`.
 
 ```yaml
 resources:
@@ -382,20 +435,21 @@ deploy:
 
 #### restart (string, optional)
 
-Defines the policy that the platform will apply on container termination.
+Defines the policy that the platform applies on container termination.
 
-- `always/unless-stopped/any`: The default restart policy. The policy always restarts the container until its removal.
-- `none/never/no`: The policy does not restart a container under any circumstances.
-- `on-failure`: The policy restarts a container if the exit code indicates an error.
+- `always` / `unless-stopped` / `any`: The default. The container always restarts until removal. Okteto creates a Deployment (or StatefulSet if the service mounts volumes).
+- `none` / `never` / `no`: The container does not restart. Okteto creates a Job.
+- `on-failure`: The container restarts only when the exit code indicates an error. Okteto creates a Job if [`deploy.restart_policy.max_attempts`](#deploy-object-optional) is greater than zero; otherwise it creates a Deployment or StatefulSet.
 
 ```yaml
-deploy:
-  restart_policy:
-    condition: on-failure
-    max_attempts: 3
+restart: on-failure
 ```
 
-If the restart policy is other than always, the service will be translated to a Kubernetes Job.
+:::note
+`never` is an Okteto-specific alias for `none` / `no`. Standard Docker Compose does not accept `never` as a restart value.
+:::
+
+If both `restart` and [`deploy.restart_policy.condition`](#deploy-object-optional) are set, `deploy.restart_policy.condition` takes precedence. See [Kubernetes object mapping](#kubernetes-object-mapping) for the full translation rules.
 
 #### scale (int, optional)
 
@@ -791,7 +845,7 @@ Okteto supports a large subset of the Docker Compose specification and introduce
 | version *(obsolete)* | yes | ✅ | Kept for back-compatibility |
 | profiles | yes | ⛔️ | Ignored |
 | x-* extension keys | yes | ⛔️ | Ignored but we ignore them consciously |
-| endpoints | — | 🆕 | Okteto-specific syntax |
+| endpoints | — | 🆕 | Okteto extension for defining HTTPS routes |
 
 ### Service Spec
 
@@ -804,6 +858,7 @@ command
 depends_on
 deploy.replicas
 deploy.resources.{limits|reservations}
+deploy.restart_policy.condition
 deploy.restart_policy.max_attempts
 deploy.endpoint_mode
 entrypoint
@@ -839,6 +894,8 @@ cpu_rt_runtime
 cpu_shares
 cpuset
 credential_spec
+deploy.restart_policy.delay
+deploy.restart_policy.window
 device_cgroup_rules
 devices
 dns
@@ -905,11 +962,13 @@ uts
 
 | **Key** | **Purpose** |
 | --- | --- |
+| endpoints | Define HTTPS routes for services |
 | public: true | Auto-generate a Kubernetes Ingress |
 | x-node-selector | Pod scheduling hint |
 | x-okteto-identity-token | Project a ServiceAccount token for keyless cloud federation |
-| resources | Set CPU / Memory |
-| scale | Compose-style replica shorthand (alias for deploy.replicas) |
+| resources | Top-level CPU / memory requests and limits (shorthand for `deploy.resources`) |
+| healthcheck.http | HTTP path and port healthcheck probe |
+| scale | Compose-style replica shorthand (alias for `deploy.replicas`) |
 
 ---
 
