@@ -40,6 +40,7 @@ module.exports = {
         {
           type: 'category',
           label: 'For Developers',
+          link: { type: 'doc', id: 'get-started/for-developers' },
           items: [
             'get-started/dev-quickstart',
             'get-started/using-okteto-cli-and-dashboard',
