@@ -1,0 +1,94 @@
+---
+title: Agentic Workflows
+description: Install the Okteto plugin for Claude Code to give AI agents the knowledge to deploy, test, and debug code in Okteto environments
+---
+
+AI agents are most effective when they can deploy code, run tests, and get feedback from real environments, not just read and write files locally. Okteto gives agents isolated, live environments driven by the same Okteto CLI and `okteto.yaml` that human developers use. The [Okteto plugin for Claude Code](https://github.com/okteto/okteto-claude-plugins) packages that knowledge as agent skills: install it once, and in any project your agent knows which commands to run, which to never run, and how to discover your services.
+
+:::note
+Agentic Workflows are about bringing your own agent tooling to Okteto environments. To launch and manage agents from the Okteto Dashboard instead, see [Okteto AI](okteto-ai/index.mdx).
+:::
+
+## Installing the plugin
+
+Run these commands in Claude Code:
+
+```bash
+/plugin marketplace add okteto/okteto-claude-plugins
+/plugin install okteto
+```
+
+The plugin needs the [Okteto CLI installed and configured](get-started/install-okteto-cli.mdx) with your Okteto instance. Your project doesn't need an `okteto.yaml` yet. If it's missing, the onboarding skill creates one.
+
+## Updating the plugin
+
+Claude Code doesn't update third-party plugins automatically by default. To get the latest version of the plugin, run:
+
+```bash
+/plugin marketplace update okteto-plugins
+```
+
+To apply updates automatically at startup instead, run `/plugin`, go to the **Marketplaces** tab, select `okteto-plugins`, and choose **Enable auto-update**.
+
+Platform teams can enable updates for an entire organization by adding the marketplace to Claude Code's [managed settings](https://code.claude.com/docs/en/settings#extraknownmarketplaces) with auto-update turned on:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "okteto-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "okteto/okteto-claude-plugins"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "okteto@okteto-plugins": true
+  }
+}
+```
+
+This pre-installs the marketplace and the plugin for every developer and keeps both current without anyone running update commands.
+
+## Skills and commands
+
+The plugin installs two skills and one slash command:
+
+| | What it does | When it activates |
+|---|---|---|
+| `okteto` skill | Teaches the agent the Okteto CLI: deploying with `okteto deploy`, building with `okteto build`, running tests with `okteto test`, reading services from `okteto.yaml`, and the commands it must never run (like `okteto up`). | The project has an `okteto.yaml`, or you mention Okteto. |
+| `okteto-onboarding` skill | Discovers your services from Docker Compose files, Helm charts, Kubernetes manifests, or Dockerfiles; drafts an `okteto.yaml`; and validates it with `okteto validate`, `okteto build`, and `okteto deploy`. | The project has no `okteto.yaml` and you ask to set it up for Okteto. |
+| `/dev-setup` command | Validates the manifest, runs `okteto deploy --wait`, prints the environment URLs, and guides you into a dev session on the service you pick. | You run it. |
+
+## Example prompts
+
+What you say to the agent determines what happens:
+
+| Prompt | What the agent does |
+|---|---|
+| "Set this repo up for Okteto." | Creates and validates an `okteto.yaml` (onboarding skill) |
+| "I have `okteto up` running for the api service. Check the logs for errors and run the test suite." | Works inside your dev session with `okteto exec` (collaborative) |
+| "The `/api/orders` endpoint returns a 500 on an empty cart. Investigate and fix it." | Debugs against your live environment (collaborative) |
+| "Deploy the environment, add a `/health` endpoint to the api service, run the tests, and open a PR." | Handles deploy, code, test, and PR end to end (autonomous) |
+| "Pick up PROJ-123, implement it against a live environment, and open a PR when the tests pass." | Handles the full ticket lifecycle (autonomous) |
+
+## Collaborative and autonomous modes
+
+Agents work in one of two modes. Pick based on whether you want to stay in the loop.
+
+| | [Collaborative](agentic/collaborative-workflows.mdx) | [Autonomous](agentic/autonomous-workflows.mdx) |
+|---|---|---|
+| **Who drives** | You and the agent, together | The agent, end to end |
+| **Triggered by** | You, in your IDE or terminal | A ticket, webhook, or CI pipeline |
+| **Environment** | You run `okteto up`; the agent runs `okteto exec` inside it | The agent runs `okteto deploy` + `okteto build` directly |
+| **Feedback loop** | File sync and hot-reload, instant | Deploy, test, and fix until tests pass |
+| **Best for** | Pair-programming, interactive debugging | Ticket-to-PR automation, batch tasks |
+
+In both modes the agent follows the same [command rules](agentic/best-practices.mdx#command-rules). The one to know up front: `okteto up` is interactive and hangs if an agent runs it, so agents never run it. In collaborative mode you start it yourself, and in autonomous mode it isn't part of the workflow.
+
+## Next steps
+
+- [Collaborative Workflows](agentic/collaborative-workflows.mdx) — work alongside your agent
+- [Autonomous Workflows](agentic/autonomous-workflows.mdx) — let the agent handle it end to end
+- [Best Practices](agentic/best-practices.mdx) — command rules, common pitfalls, and troubleshooting
