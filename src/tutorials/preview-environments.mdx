@@ -6,26 +6,22 @@ id: preview-environments
 
 import Image from "@theme/Image";
 
-Preview Environments give every pull request its own fully deployed instance of your application. Reviewers can interact with the changes live, without cloning the branch or running anything locally. When the pull request is merged or closed, the environment is automatically destroyed.
+[Preview Environments](/docs/previews/) give every pull request its own fully deployed instance of your application. Reviewers can interact with the changes live, without cloning the branch or running anything locally. When the pull request is merged or closed, the environment is automatically destroyed.
 
 In this tutorial, you will configure two GitHub Actions workflows for the [Movies](https://github.com/okteto/movies) sample application: one that deploys a preview environment when a pull request is opened, and one that cleans it up when the pull request is closed. You will also add end-to-end tests that run automatically against each preview.
 
-:::tip
-Learn more about how Preview Environments work in the [Preview Environments overview](/docs/previews/).
-:::
-
 ## Prerequisites
 
-- Access to an Okteto instance
-- [Okteto CLI](/docs/get-started/install-okteto-cli/) installed and configured
+- Admin access to an Okteto instance, so you can create an [Admin Access Token](/docs/admin/dashboard/#admin-access-tokens)
 - A [GitHub](https://github.com) account
-- A fork of the [Movies](https://github.com/okteto/movies) sample application
 
 ## Step 1: Fork the sample application
 
-Fork the [Movies](https://github.com/okteto/movies) repository to your own GitHub account. This microservices application includes a React frontend, a Node.js catalog service, a Java rent service, Go API and worker services, and supporting infrastructure (PostgreSQL, Kafka, MongoDB).
+Fork the [Movies](https://github.com/okteto/movies) repository to your own GitHub account and clone the fork to your machine. This microservices application includes a React frontend, a Node.js catalog service, a Java rent service, Go API and worker services, and supporting infrastructure (PostgreSQL, Kafka, MongoDB).
 
-The repository already has an Okteto manifest (`okteto.yaml`) that defines how to build and deploy all services, and a `test` section for end-to-end tests using Playwright.
+The repository already has an Okteto Manifest (`okteto.yaml`) that defines how to build and deploy all services, and a `test` section for end-to-end tests using Playwright. It also ships with working preview workflows in `.github/workflows/` that Okteto uses for its own CI — you can keep them as a reference. In this tutorial you rebuild both workflows step by step, wired to your own Okteto instance.
+
+GitHub disables workflows on forks by default. Open the **Actions** tab of your fork and click **I understand my workflows, go ahead and enable them** so the preview workflows can run.
 
 ## Step 2: Configure your GitHub secrets
 
@@ -42,7 +38,7 @@ The workflow also uses `GITHUB_TOKEN`, which GitHub populates automatically. You
 
 ## Step 3: Create the deploy workflow
 
-Create the file `.github/workflows/preview.yaml` in your fork. This workflow triggers whenever a pull request targets the `main` branch:
+Your fork already contains a `.github/workflows/preview.yaml` from the sample repository. Replace its contents with the workflow below, which triggers whenever a pull request targets the `main` branch:
 
 ```yaml
 # file: .github/workflows/preview.yaml
@@ -50,6 +46,10 @@ on:
   pull_request:
     branches:
       - main
+
+permissions:
+  contents: read
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -71,17 +71,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: pr-${{ github.event.number }}
-          scope: global
           timeout: 15m
 ```
+
+:::note
+The workflow shipped with the sample repository uses an `OKTETO_URL` secret and a preview name tied to Okteto's own CI. The version above uses the secrets you created in Step 2.
+:::
 
 The workflow does three things:
 
 - **Authenticates** with your Okteto instance using `okteto/context`
-- **Deploys** a preview environment named `pr-<number>` using `okteto/deploy-preview`, which builds all container images and runs the `deploy` commands from your Okteto manifest
-- **Posts a comment** on the pull request with the URL of the preview environment (this requires the `GITHUB_TOKEN`)
+- **Deploys** a preview environment named `pr-<number>` using `okteto/deploy-preview`, which builds all container images and runs the `deploy` commands from your Okteto Manifest
+- **Posts a comment** on the pull request with the URL of the preview environment
 
-Setting `scope: global` makes the preview visible to all members of your Okteto instance. This is required when using Admin Access Tokens.
+The `permissions` block grants the workflow's `GITHUB_TOKEN` write access to pull requests so `okteto/deploy-preview` can post that comment. Without it, repositories with restricted default workflow permissions reject the comment.
+
+Preview Environments are created with [global scope](/docs/previews/#understanding-preview-scope) by default, which makes them accessible to all members of your Okteto instance. Set `scope: personal` on the `okteto/deploy-preview` step if you need private access.
 
 :::warning
 Always set `cancel-in-progress: false` for preview environment workflows. Setting it to `true` cancels in-progress deployments, which can leave your preview environment in an inconsistent state or cause resource leaks.
@@ -121,6 +126,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -141,7 +150,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: pr-${{ github.event.number }}
-          scope: global
           timeout: 15m
 
       - name: Checkout code
@@ -164,7 +172,7 @@ jobs:
 
 ## Step 5: Create the cleanup workflow
 
-Create a second workflow at `.github/workflows/preview-closed.yaml` that destroys the preview environment when the pull request is closed or merged:
+Your fork also contains a second workflow, `.github/workflows/preview-closed.yaml`, that destroys the preview environment when the pull request is closed or merged. Replace its contents with:
 
 ```yaml
 # file: .github/workflows/preview-closed.yaml
@@ -193,16 +201,16 @@ This triggers on the `closed` event type, which fires for both merged and unmerg
 
 ## Step 6: Open a pull request
 
-Commit both workflow files to a new branch and open a pull request against `main`:
+Commit both workflow files to a new branch and push it to your fork:
 
 ```console
 git checkout -b add-preview-workflows
 git add .github/workflows/preview.yaml .github/workflows/preview-closed.yaml
-git commit -m "Add preview environment workflows"
+git commit -m "Update preview environment workflows"
 git push origin add-preview-workflows
 ```
 
-Open a pull request from this branch in your GitHub repository.
+Open a pull request from this branch. **Make sure the base repository is your fork** (`<your-username>/movies`), not `okteto/movies` — GitHub preselects the upstream repository by default, and your secrets only exist in your fork.
 
 ## Step 7: Verify the preview environment
 
@@ -244,8 +252,8 @@ Congratulations! You deployed your first preview environment with automated test
 
 Every pull request in your repository now gets its own live environment, complete with end-to-end test results. Reviewers can interact with changes directly instead of reading diffs.
 
-- Learn more about [Preview Environments](/docs/previews/) and how they work
+- The [Preview Environments overview](/docs/previews/) covers scope, sharing, and managing previews from the dashboard
 - Explore [Okteto Test](/docs/testing/getting-started-test/) for more testing patterns
-- Configure [garbage collection](/docs/admin/cleanup/) to automatically clean up idle preview environments
+- Configure the [Garbage Collector](/docs/admin/cleanup/) to automatically clean up idle preview environments
 - Set up preview environments with [GitLab CI/CD](/docs/previews/using-gitlab-cicd/) if your team uses GitLab
 - See the full list of [supported GitHub Actions](/docs/reference/supported-github-actions/) for additional workflow options
