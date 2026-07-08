@@ -17,9 +17,21 @@ Reporting issues is a great way to help us improve the documentation! This isn't
 When adding new documentation, it'll be helpful to keep the following things in mind:
 
 - Communicating your changes before you start working
+- Following the [Documentation Style Guide](STYLE_GUIDE.md) for voice, tone, formatting, and terminology
 - [Signing off](#commit-and-push-your-changes) on all your git commits by running `git commit -s'
 
 Discussing your changes with the maintainers before you start writing is one of the most important steps, as this sets you in the right direction before you begin. The best way to communicate this is through a detailed GitHub issue. Another way to discuss changes with maintainers is using the [#okteto](https://kubernetes.slack.com/messages/CM1QMQGS0/) channel on the Kubernetes slack.
+
+#### Style and terminology
+
+All contributions — human or agent-authored — must follow the [Documentation Style Guide](STYLE_GUIDE.md). It covers:
+
+- Voice and tone (direct, factual, concise — no marketing language)
+- Page structure and frontmatter conventions
+- Capitalization for Okteto product names, environments, roles, and deployment models
+- Formatting for links, CLI commands, admonitions, and images
+
+Agents and automated tools working in this repository should also read [`CLAUDE.md`](CLAUDE.md) (also exposed as [`AGENTS.md`](AGENTS.md) for tools that follow that convention), which contains a quick-reference subset of the style guide and the pre-submit checklist.
 
 :::note
 

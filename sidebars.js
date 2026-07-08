@@ -40,8 +40,8 @@ module.exports = {
         {
           type: 'category',
           label: 'For Developers',
+          link: { type: 'doc', id: 'get-started/dev-quickstart' },
           items: [
-            'get-started/dev-quickstart',
             'get-started/using-okteto-cli-and-dashboard',
             'get-started/advanced-commands-and-concepts',
           ],
@@ -50,7 +50,8 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Core concepts',
+      label: 'Core Concepts',
+      link: { type: 'doc', id: 'core/index' },
       items: [
         {
           type: 'category',
@@ -156,7 +157,6 @@ module.exports = {
       label: 'Agentic Workflows',
       link: { type: 'doc', id: 'agentic/index' },
       items: [
-        'agentic/claude-code-plugin',
         'agentic/collaborative-workflows',
         'agentic/autonomous-workflows',
         'agentic/best-practices',
@@ -168,6 +168,7 @@ module.exports = {
       link: { type: 'doc', id: 'admin/index' },
       items: [
         'admin/dashboard',
+        'admin/billing',
         'admin/catalog',
         'admin/build-service',
         'admin/custom-installer-image',
