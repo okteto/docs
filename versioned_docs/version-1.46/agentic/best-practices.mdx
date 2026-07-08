@@ -15,12 +15,20 @@ This is the full list of which commands agents may run. The collaborative and au
 | `okteto deploy --wait` | Yes | Builds images and deploys all services. Always pass `--wait`. |
 | `okteto build <service>` | Yes | Builds a single image through the Okteto Build Service. |
 | `okteto test <name>` | Yes | Runs a test container defined in `okteto.yaml`. |
+| `okteto validate` | Yes | Checks `okteto.yaml` for syntax and schema errors. |
 | `okteto logs <service>` | Yes | Views container logs. |
 | `okteto endpoints` | Yes | Lists public URLs for the environment. |
+| `okteto doctor` | Yes | Generates a diagnostic bundle for troubleshooting. |
 | `okteto exec -- <command>` | Collaborative only | Runs a command in the active Development Container. |
+| `okteto status` | Collaborative only | Checks file sync progress during a dev session. |
+| `okteto down` | Yes | Exits dev mode for a service. Restores the deployment without destroying the environment. |
 | `okteto up <service>` | Never | Interactive, hangs if an agent runs it. The human runs it in collaborative mode. |
-| `okteto destroy` | Only with authorization | Tears down all resources. Needs explicit policy or human approval. |
+| `okteto namespace create <ns>` | Yes | Creates an isolated Namespace for a worktree. See [Worktree isolation](#worktree-isolation). |
+| `okteto namespace delete <ns>` | Only one it created | Deletes a Namespace. Safe only for one the agent created for a worktree, never a shared or pre-existing Namespace. |
+| `okteto destroy` | Only with authorization | Tears down all resources. Needs explicit policy or human approval. See [Cleanup and teardown](#cleanup-and-teardown). |
 | `kubectl` / `helm` directly | No | Bypasses Okteto's resource tracking. Use `okteto deploy` instead. |
+
+Every command that targets an environment accepts a `-n <ns>` flag to run against a specific Namespace without changing the active context. Agents use it to isolate git worktrees. See [Worktree isolation](#worktree-isolation).
 
 The sections below explain the reasoning behind the rules that matter most.
 
@@ -86,6 +94,52 @@ okteto deploy --wait
 
 # Risky — services might not be ready yet
 okteto deploy
+```
+
+## Worktree isolation
+
+A Namespace is the unit of isolation for everything `okteto deploy` creates. The active Namespace comes from the Okteto context, which is global to the machine, not per-directory. That matters the moment an agent works in more than one checkout at once.
+
+A single primary checkout can use its context's default Namespace with no extra flags. Reach for a dedicated Namespace when parallel checkouts or git worktrees would otherwise collide. Two worktrees deploying into the same Namespace overwrite each other's environments, return the wrong data from `okteto endpoints` and `okteto logs`, and an `okteto destroy` in one tears down the other.
+
+Give each worktree its own Namespace. The agent creates it once:
+
+```bash
+okteto namespace create <ns>
+```
+
+Then it passes `-n <ns>` on every command for the rest of the session:
+
+```bash
+okteto deploy --wait -n <ns>
+okteto build <service> -n <ns>
+okteto endpoints -n <ns>
+okteto test <name> -n <ns>
+```
+
+Agents derive the Namespace name from the branch or worktree directory. Okteto Namespace names are lowercase alphanumeric plus `-`, and start and end with an alphanumeric character.
+
+Agents use the per-command `-n <ns>` flag, not `okteto namespace use <ns>`. The `use` command switches the active Namespace in the shared global context, which races with any other worktree or agent on the same machine. The `-n` flag is per-invocation and never mutates shared state, so it's safe under concurrency.
+
+## Cleanup and teardown
+
+Tearing an environment down matters as much as standing one up. Pick the right command, and get the authorization right.
+
+| Command | What it does | When to use |
+|---------|--------------|-------------|
+| `okteto down` | Exits dev mode for one service and restores the original deployment. Does not destroy the environment. | The developer has finished iterating on a service but wants the environment running. |
+| `okteto destroy` | Tears down every resource `okteto deploy` created in the Namespace. Destructive. | The environment is no longer needed and teardown is authorized. |
+| `okteto namespace delete <name>` | Deletes an entire Namespace and everything in it. Very destructive. | Only for a Namespace the agent created for an isolated worktree, or with explicit user instruction. |
+
+Reaching for `okteto destroy` when the developer only wanted to exit dev mode is a common mistake. When in doubt, `okteto down` is the safe choice.
+
+In [collaborative mode](agentic/collaborative-workflows.mdx), the agent surfaces `okteto destroy` as a suggestion and lets the developer run it. In [autonomous mode](agentic/autonomous-workflows.mdx), the agent runs `okteto destroy` only when the task authorizes cleanup, a cleanup policy is documented in the repo's `CLAUDE.md` or the ticket, or the environment is ephemeral and owned by the pipeline. Otherwise it leaves the environment running and reports the command the caller would use to tear it down.
+
+A Namespace the agent created itself for an isolated worktree is the one case where it may run `okteto namespace delete` without a separate instruction, since it owns that Namespace's teardown:
+
+```bash
+okteto destroy -n <ns>           # remove the deployed resources
+okteto namespace delete <ns>     # then remove the now-empty Namespace
 ```
 
 ## Troubleshooting
