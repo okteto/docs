@@ -81,6 +81,39 @@ module.exports = {
     },
     {
       type: 'category',
+      label: 'AI Agent Environments',
+      link: {
+        type: 'generated-index',
+        title: 'AI Agent Environments',
+        description:
+          'Give AI agents isolated, production-like environments to build, test, and verify their changes against real services and data. Launch managed agents from the Okteto Dashboard with Okteto AI, or connect your own agent tooling with Agentic Workflows.',
+        slug: '/ai-agent-environments',
+      },
+      items: [
+        {
+          type: 'category',
+          label: 'Okteto AI',
+          link: { type: 'doc', id: 'okteto-ai/index' },
+          items: [
+            'okteto-ai/index',
+            'okteto-ai/ai-getting-started',
+            'okteto-ai/okteto-ai-admin-config',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Agentic Workflows',
+          link: { type: 'doc', id: 'agentic/index' },
+          items: [
+            'agentic/collaborative-workflows',
+            'agentic/autonomous-workflows',
+            'agentic/best-practices',
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Development Environments',
       link: { type: 'doc', id: 'development/index' },
       items: [
@@ -132,35 +165,15 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Okteto Test',
-      link: { type: 'doc', id: 'testing/index' },
-      items: ['testing/getting-started-test'],
-    },
-    {
-      type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
       items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
     },
     {
       type: 'category',
-      label: 'Okteto AI',
-      link: { type: 'doc', id: 'okteto-ai/index' },
-      items: [
-        'okteto-ai/index',
-        'okteto-ai/ai-getting-started',
-        'okteto-ai/okteto-ai-admin-config'
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Agentic Workflows',
-      link: { type: 'doc', id: 'agentic/index' },
-      items: [
-        'agentic/collaborative-workflows',
-        'agentic/autonomous-workflows',
-        'agentic/best-practices',
-      ],
+      label: 'Okteto Test',
+      link: { type: 'doc', id: 'testing/index' },
+      items: ['testing/getting-started-test'],
     },
     {
       type: 'category',
