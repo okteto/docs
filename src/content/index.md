@@ -31,7 +31,7 @@ Utilize the [Okteto Manifest](core/okteto-manifest.mdx) to define and configure 
 ## Key features
 
 ### AI Agent Environments
-[Okteto AI](okteto-ai/index.mdx) launches coding agents from the Okteto Dashboard, each in its own isolated environment to write code, run tests, and open a pull request. To connect your own agent tooling, such as Claude Code or agents triggered from CI, [Agentic Workflows](agentic/index.mdx) drive the same environments through the Okteto CLI.
+Okteto works with the agents you already use, such as Claude Code, Cursor, Codex, and Copilot. Install the Okteto plugin in one command and your agent gets an isolated, production-like environment, driven by the same Okteto CLI and `okteto.yaml` your developers use. Now the agent can deploy code, run tests, and verify its changes against real services and data instead of only reading and writing files locally, so its work is proven before you review it. [Agentic Workflows](agentic/index.mdx) covers the setup and example prompts.
 
 ### Development Environments
 Okteto's [Development Environments](development/index.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](development/using-okteto-cli.mdx) or click of a button. Write code locally on your machine and view your changes live, deployed in the cloud **as soon as you hit save**! You don't have to spend time configuring anything to do this.
