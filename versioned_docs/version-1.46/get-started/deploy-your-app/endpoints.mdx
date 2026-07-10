@@ -1,0 +1,134 @@
+---
+title: Expose your application on a public endpoint
+description: In this section, we'll see how to expose your app on public endpoints
+sidebar_label: Endpoints
+id: endpoints
+---
+
+import Image from "@theme/Image";
+
+In this step you will learn how to expose your application using Okteto Endpoints.
+
+In order to create endpoints for your application, you need to add the following annotation to your [Ingress](https://github.com/okteto/getting-started/blob/main/chart/templates/ingress.yaml) resource:
+
+```yaml title="ingress.yaml"
+annotations:
+  dev.okteto.com/generate-host: "true"
+```
+
+The Ingress object, located in the file `chart/templates/ingress.yaml`, will look like this after this change:
+
+```yaml title="ingress.yaml"
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+This instructs Okteto to create an endpoint in the [Okteto Subdomain](self-hosted/helm-configuration.mdx#subdomain).
+For example, if your Ingress name is `movies` in the `cindy` namespace, your app will be accessible at https://movies-cindy.okteto.example.com if your Okteto domain is okteto.example.com.
+
+Deploy the Movies app to apply the changes:
+
+```bash
+okteto deploy
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Deploying dependency  'mongodb'
+ ✓  Skipping repository 'mongodb' because it's already deployed 
+ i  Running 'Helm Install'
+Release "movies" does not exist. Installing it now.
+NAME: movies
+LAST DEPLOYED: Fri Jan 19 23:54:00 2024
+NAMESPACE: cindy
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Success! Your application will be available shortly.
+ i  Endpoints available:
+  - https://movies-cindy.okteto.example.com
+  - https://movies-cindy.okteto.example.com/api
+ ✓  Development environment 'movies' successfully deployed
+```
+
+Notice how the endpoints are now shown by the Okteto CLI. You can also see the endpoints within the Okteto UI. Endpoints will only be present when a service reaches the "running" stage.
+
+<Image
+  src={require("@site/static/img/movies-endpoints-ui+1.32.png").default}
+  alt="Movies Onboard Endpoints"
+  width="850"
+/>
+
+:::note
+Learn more about [how to configure Okteto Endpoints](core/endpoints/automatic-ssl.mdx)
+:::
+
+Finally, you can access the endpoint of the Movies app to see something like this:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/next-ui-movies.png").default}
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+## Using Endpoints with Docker Compose
+
+If you're using Docker Compose instead of Kubernetes manifests, you can expose your application using the `endpoints` section directly in your `docker-compose.yml` file:
+
+```yaml title="docker-compose.yml"
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - 3000:3000
+  
+  api:
+    build: ./api
+    ports:
+      - 8080:8080
+
+endpoints:
+  - path: /
+    service: frontend
+    port: 3000
+  - path: /api
+    service: api
+    port: 8080
+```
+
+When you run `okteto deploy`, your application will be accessible at URLs like `https://movies-cindy.okteto.example.com`.
+
+:::note
+Learn more about [configuring endpoints with Docker Compose](reference/docker-compose.mdx#endpoints-object-optional)
+:::
+
+## Next Steps
+
+The Movies app is using pre-built images to deploy your Development Environment...
+
+This is not ideal since you won't be able to deploy your local changes, let's [build the images of the Movies app](build.mdx) in next step of this guide 😎

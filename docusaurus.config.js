@@ -2,6 +2,25 @@ const path = require('path');
 
 const docsContentPath = 'src/content';
 
+// Strip Docusaurus heading-anchor links (class "hash-link") from the Markdown
+// twins generated for AI agents. They render as noisy `[​](#... "Direct link
+// to ...")` fragments that carry no content. Dependency-free hast walk so it
+// works in this CommonJS config without an ESM import.
+function rehypeStripHashLinks() {
+  const isHashLink = (node) =>
+    node.tagName === 'a' &&
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('hash-link');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isHashLink(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
@@ -245,20 +264,30 @@ module.exports = {
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.44',
+          lastVersion: '1.46',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.45',
-              path: '1.45',
+              label: '1.47',
+              path: '1.47',
             },
-            '1.44': {
+            '1.46': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.44',
+              label: '1.46',
               path: '/',
               banner: 'none',
+            },
+            '1.45': {
+              label: '1.45',
+              path: '1.45',
+              banner: 'unmaintained',
+            },
+            '1.44': {
+              label: '1.44',
+              path: '1.44',
+              banner: 'unmaintained',
             },
             '1.43': {
               label: '1.43',
@@ -273,16 +302,6 @@ module.exports = {
             '1.41': {
               label: '1.41',
               path: '1.41',
-              banner: 'unmaintained',
-            },
-            '1.40': {
-              label: '1.40',
-              path: '1.40',
-              banner: 'unmaintained',
-            },
-            '1.39': {
-              label: '1.39',
-              path: '1.39',
               banner: 'unmaintained',
             },
           },
@@ -314,6 +333,18 @@ module.exports = {
       },
     ],
     'docusaurus-plugin-sass',
+    [
+      '@signalwire/docusaurus-plugin-llms-txt',
+      {
+        siteTitle: 'Okteto Documentation',
+        content: {
+          includeVersionedDocs: false,
+          enableMarkdownFiles: true,
+          enableLlmsFullTxt: true,
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks],
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
