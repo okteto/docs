@@ -1,0 +1,32 @@
+diff --git a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/generation/index-builder.js b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/generation/index-builder.js
+index e538c73..8934ed3 100644
+--- a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/generation/index-builder.js
++++ b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/generation/index-builder.js
+@@ -20,7 +20,9 @@ export function buildLlmsTxtContent(docs, config, siteConfig) {
+         DEFAULT_SITE_TITLE;
+     const enableDescriptions = config.enableDescriptions !== false;
+     const contentConfig = getContentConfig(config);
+-    const useRelativePaths = contentConfig.relativePaths;
++    // llms.txt links are consumed standalone, so always emit absolute,
++    // baseUrl-aware URLs regardless of the in-page relativePaths setting.
++    const useRelativePaths = false;
+     const siteUrl = siteConfig.url + (siteConfig.baseUrl !== '/' ? siteConfig.baseUrl : '');
+     // Build content sections
+     let content = `# ${documentTitle}\n\n`;
+diff --git a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js
+index 0c3168c..20fc8f5 100644
+--- a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js
++++ b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js
+@@ -64,8 +64,10 @@ export function formatUrl(routePath, options, baseUrl = '') {
+         targetPath = ensureLeadingSlash(markdownFile);
+     }
+     else if (enableMarkdownFiles) {
+-        // Add .md extension to route path
+-        targetPath = targetPath === '/' ? INDEX_MD : `${targetPath}.md`;
++        // Add .md extension to route path. Strip any trailing slash first so
++        // that trailingSlash:true routes (e.g. "/foo/") don't yield "/foo/.md".
++        const cleaned = targetPath.replace(/\/+$/, '');
++        targetPath = cleaned === '' ? INDEX_MD : `${cleaned}.md`;
+     }
+     // Handle absolute vs relative paths
+     if (relativePaths === false && baseUrl) {
