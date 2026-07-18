@@ -21,6 +21,45 @@ function rehypeStripHashLinks() {
   return (tree) => walk(tree);
 }
 
+// Absolute URL of the machine-readable documentation index.
+const LLMS_TXT_URL = 'https://www.okteto.com/docs/llms.txt';
+
+// Prepend a pointer to llms.txt at the top of every generated Markdown page so
+// that coding agents which fetch a page as Markdown can discover the full
+// documentation index. Linking the index (rather than crawling blindly) sharply
+// reduces an agent's wasted fetches and tokens.
+function remarkLlmsIndexPointer() {
+  return (tree) => {
+    tree.children.unshift({
+      type: 'blockquote',
+      children: [
+        {
+          type: 'paragraph',
+          children: [
+            {
+              type: 'strong',
+              children: [{ type: 'text', value: 'Documentation Index' }],
+            },
+            {
+              type: 'text',
+              value: ': fetch the complete list of pages as Markdown at ',
+            },
+            {
+              type: 'link',
+              url: LLMS_TXT_URL,
+              children: [{ type: 'text', value: LLMS_TXT_URL }],
+            },
+            {
+              type: 'text',
+              value: ' to find the right page before exploring further.',
+            },
+          ],
+        },
+      ],
+    });
+  };
+}
+
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
@@ -97,6 +136,16 @@ module.exports = {
       attributes: {
         name: 'theme-color',
         content: '#fff',
+      },
+    },
+    {
+      // Machine-readable pointer so agents crawling the HTML can find the index.
+      tagName: 'link',
+      attributes: {
+        rel: 'alternate',
+        type: 'text/plain',
+        title: 'llms.txt',
+        href: LLMS_TXT_URL,
       },
     },
   ],
@@ -231,6 +280,11 @@ module.exports = {
               href: 'https://www.okteto.com/pricing',
               target: '_self',
             },
+            {
+              label: 'llms.txt',
+              href: LLMS_TXT_URL,
+              target: '_self',
+            },
           ],
         },
         {
@@ -342,6 +396,7 @@ module.exports = {
           enableMarkdownFiles: true,
           enableLlmsFullTxt: true,
           beforeDefaultRehypePlugins: [rehypeStripHashLinks],
+          remarkPlugins: [remarkLlmsIndexPointer],
         },
       },
     ],
