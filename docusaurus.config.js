@@ -21,8 +21,14 @@ function rehypeStripHashLinks() {
   return (tree) => walk(tree);
 }
 
-// Absolute URL of the machine-readable documentation index.
-const LLMS_TXT_URL = 'https://www.okteto.com/docs/llms.txt';
+// Single source of truth for the docs origin and base path (see module.exports
+// below), so the llms.txt URL stays correct if either ever changes.
+const SITE_URL = 'https://www.okteto.com';
+const BASE_URL = '/docs/';
+
+// Absolute URL of the machine-readable documentation index, derived from the
+// site URL and base path rather than hardcoded.
+const LLMS_TXT_URL = `${SITE_URL}${BASE_URL.replace(/\/$/, '')}/llms.txt`;
 
 // Prepend a pointer to llms.txt at the top of every generated Markdown page so
 // that coding agents which fetch a page as Markdown can discover the full
@@ -63,8 +69,8 @@ function remarkLlmsIndexPointer() {
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
-  url: 'https://www.okteto.com',
-  baseUrl: '/docs/',
+  url: SITE_URL,
+  baseUrl: BASE_URL,
   trailingSlash: true,
   organizationName: 'okteto', // Usually your GitHub org/user name.
   projectName: 'okteto', // Usually your repo name.
