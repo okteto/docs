@@ -43,6 +43,22 @@ okteto context use https://okteto.example.com --token $OKTETO_TOKEN
 
 Store the token as a secret in your CI system (e.g., a GitHub Actions secret or GitLab CI variable). The agent then has the same CLI access as the token's owner.
 
+## Repository instructions
+
+The [plugin](agentic/index.mdx#installing-the-plugin) teaches the agent how to run this workflow, but the agent still decides when to reach for it by matching skill descriptions against the prompt (see [Skill activation](agentic/index.mdx#skill-activation)). A ticket that says "add a `/health` endpoint" carries no signal that the project deploys to Okteto, so the agent may implement the change and validate it locally without deploying anything.
+
+Add the expectation to the repository's agent instructions file (`CLAUDE.md` for Claude Code, `AGENTS.md` for most other agents), and the agent runs the deploy-test loop on every task:
+
+```markdown
+## Verifying changes
+
+This project deploys to Okteto. After implementing any change, verify it in an
+Okteto environment: deploy with `okteto deploy --wait` and run the test
+containers defined in `okteto.yaml` with `okteto test`.
+```
+
+For one-off runs, the prompt works too: "implement PROJ-123 and test the change in Okteto" activates the skill directly. The instructions file is what removes the need to say it every time.
+
 ## Workflow example: ticket to PR
 
 A CI pipeline or webhook triggers the agent with a ticket:

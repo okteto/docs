@@ -73,6 +73,23 @@ The plugin installs two skills and one slash command:
 | `okteto-onboarding` skill | Discovers your services from Docker Compose files, Helm charts, Kubernetes manifests, or Dockerfiles; drafts an `okteto.yaml`; and validates it with `okteto validate`, `okteto build`, and `okteto deploy`. | The project has no `okteto.yaml` and you ask to set it up for Okteto. |
 | `/dev-setup` command | Validates the manifest, runs `okteto deploy --wait`, prints the environment URLs, and guides you into a dev session on the service you pick. | You run it. |
 
+## Skill activation
+
+Skills load on demand: the agent matches each skill's description against your prompt and against what it has already seen of the project. A prompt that mentions Okteto, or a session where the agent has already read `okteto.yaml`, activates the `okteto` skill. A generic prompt like "implement this feature" gives the agent no signal to look for Okteto, so it may write the code and validate it locally without ever deploying.
+
+To make Okteto verification part of every task instead of only Okteto-specific ones, add the expectation to your repository's agent instructions file — `CLAUDE.md` for Claude Code, `AGENTS.md` for most other agents:
+
+```markdown
+## Verifying changes
+
+This project deploys to Okteto. After implementing any change, verify it in an
+Okteto environment: deploy with `okteto deploy --wait` and run the test
+containers defined in `okteto.yaml` with `okteto test`. Use the okteto skill
+for all environment work.
+```
+
+The instructions file loads on every session, so the agent treats Okteto verification as part of the definition of done even when the prompt never mentions Okteto.
+
 ## Example prompts
 
 What you say to the agent determines what happens:
