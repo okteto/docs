@@ -536,6 +536,56 @@ The jobs that deploy your [development environments from Git](development/deploy
 `}
 </CodeBlock>
 
+### installerChecker
+
+The CronJob that reconciles Development Environment deploys and destroys stuck in a running state. See [Okteto Jobs](self-hosted/manage/okteto-jobs.mdx#installerchecker) for what it does and how to inspect it.
+
+- `enabled`: Whether to run the installer checker. Defaults to `true`.
+- `schedule`: The cron schedule for the checker. Defaults to `*/5 * * * *` (every 5 minutes).
+- `priorityClassName`: The priority class for the installer checker pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+
+```yaml
+installerChecker:
+  enabled: true
+  schedule: "*/5 * * * *"
+```
+
+### migration
+
+The Helm hook Job that applies the data and resource migrations required by the Okteto version you are installing. It runs on every install and upgrade. See [Okteto Jobs](self-hosted/manage/okteto-jobs.mdx#migration) for what it does and how to inspect it.
+
+- `enabled`: Whether to run the migration job. Defaults to `true`.
+- `annotations`: Annotations to add to the migration job pods.
+- `labels`: Labels to add to the migration job pods.
+- `resources`: The resources for the migration job pods.
+- `priorityClassName`: The priority class for the migration job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+
+```yaml
+migration:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 100Mi
+```
+
+### namespaceDestroyAll
+
+The Job that destroys every resource in a Namespace, plus the CronJob that recovers Namespaces whose destroy-all Job did not finish. See [Okteto Jobs](self-hosted/manage/okteto-jobs.mdx#namespacedestroyall) for what they do and how to inspect them.
+
+- `priorityClassName`: The priority class for the per-Namespace destroy-all job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `checker`: Configures the CronJob that recovers stuck Namespaces.
+  - `schedule`: The cron schedule for the checker. Defaults to `*/3 * * * *` (every 3 minutes).
+  - `timeoutInSeconds`: Maximum duration of each checker run in seconds. Defaults to `120`.
+  - `priorityClassName`: The priority class for the checker pods, following the same precedence rules as above.
+
+```yaml
+namespaceDestroyAll:
+  checker:
+    schedule: "*/3 * * * *"
+    timeoutInSeconds: 120
+```
+
 ### oktetoAI
 
 The Okteto AI section configures the [Okteto AI](okteto-ai/index.mdx) feature in your cluster:

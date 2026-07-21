@@ -1,0 +1,92 @@
+---
+title: Okteto Jobs
+description: Reference and troubleshooting for the migration, installerChecker, and namespaceDestroyAll jobs Okteto runs in the okteto namespace.
+sidebar_label: Okteto Jobs
+id: okteto-jobs
+---
+
+Okteto runs several Kubernetes Jobs and CronJobs in the `okteto` namespace to apply upgrades, recover stuck operations, and clean up Namespaces. This page covers the three an Admin is most likely to inspect: `migration`, `installerChecker`, and `namespaceDestroyAll`. For each one it describes what it does, when it runs, the resources it acts on, and how to inspect it. You configure all three through the [Helm Configuration](self-hosted/helm-configuration.mdx).
+
+Every one of these jobs runs in the `okteto` namespace and carries the `app.kubernetes.io/part-of=okteto` label plus a distinct `app.kubernetes.io/component` label. Use the component label to find a specific job:
+
+| Job | Kind | `app.kubernetes.io/component` | Default name |
+|-----|------|-------------------------------|--------------|
+| `migration` | Job (Helm hook) | `migration` | `okteto-migration` |
+| `installerChecker` | CronJob | `installer-checker` | `okteto-installer-checker` |
+| `namespaceDestroyAll` (per Namespace) | Job (created on demand) | `namespace-destroy-all` | `namespace-destroy-all-<namespace>-<timestamp>` |
+| `namespaceDestroyAll` (checker) | CronJob | `namespace-destroy-all` | `okteto-destroy-all-checker` |
+
+:::note
+The default names assume the release name `okteto`. If you set a custom [`fullnameOverride`](self-hosted/helm-configuration.mdx#fullnameoverride), the prefix changes, but the `app.kubernetes.io/component` labels stay the same. Prefer the label selectors below over hardcoded names.
+:::
+
+## migration
+
+The `migration` job applies the data and resource migrations required by the Okteto version you are installing. It runs the Okteto backend `migrate` command and waits for the Okteto Webhook to be ready before making any changes.
+
+**When it runs.** The migration job is a Helm `post-install` and `post-upgrade` hook, so Okteto runs it once on every install and every [upgrade](self-hosted/manage/upgrade.mdx) of the chart. It is enabled by default and controlled by the [`migration.enabled`](self-hosted/helm-configuration.mdx#migration) value. Because the hook uses a `hook-succeeded` delete policy, the job is removed automatically when it completes successfully and recreated on the next upgrade. A failed migration job is left in place so you can inspect it.
+
+**What it acts on.** The migration job updates existing Okteto-managed resources so they match the schema of the new version. It does not install Custom Resource Definitions: CRDs are managed separately by the [`crds`](self-hosted/helm-configuration.mdx#crds) value. In a single run it migrates the `okteto` namespace gateway label, the dynamic configuration, users, Namespaces, ingresses, Personal Access Tokens, Preview Environment labels, and Okteto Catalog items. It also removes obsolete Git-deploy service accounts and role bindings and updates custom service accounts. Each step is logged, for example `migrating ingresses...`.
+
+**Troubleshooting.** If a `helm upgrade` hangs or fails on the migration hook, inspect the job and its pod logs:
+
+```bash
+kubectl get jobs -l app.kubernetes.io/component=migration --namespace=okteto
+kubectl logs -l app.kubernetes.io/component=migration --namespace=okteto
+```
+
+The logs report the step that was running when the migration failed. A common cause is the migration starting before the Okteto Webhook is ready, which the job waits for on its own before proceeding.
+
+## installerChecker
+
+The `installerChecker` job reconciles Development Environment deploys and destroys that are stuck in a running state. It runs the Okteto backend `installer-checker` command and is what eventually clears a Development Environment that would otherwise stay in `progressing` in the UI.
+
+**When it runs.** `installerChecker` is a CronJob that runs on the schedule set by [`installerChecker.schedule`](self-hosted/helm-configuration.mdx#installerchecker), every 5 minutes by default. Its concurrency policy is `Forbid`, so a run is skipped if the previous one is still running.
+
+**What it acts on.** Okteto tracks each Git and Docker Compose deploy with a status ConfigMap in the Developer's Namespace and an installer Job in the `okteto` namespace. On each run, `installerChecker` looks at every deploy still marked as running. If the deploy is no longer progressing, or its installer Job has disappeared and the status has not changed in 5 minutes, or the installer Job failed, exceeded its deadline, or its pod cannot be scheduled, the checker marks the status ConfigMap as `error`, deletes the stuck installer Job, and finishes the pipeline so any queued action can proceed. It does not create long-lived resources.
+
+**Troubleshooting.** If a Development Environment stays in `progressing`, confirm the CronJob is scheduling and read the most recent run's logs:
+
+```bash
+kubectl get cronjob -l app.kubernetes.io/component=installer-checker --namespace=okteto
+kubectl logs -l app.kubernetes.io/component=installer-checker --namespace=okteto
+```
+
+To inspect the underlying installer Job for a specific pipeline, see [Deployment pipelines stay in "progressing" forever](self-hosted/manage/troubleshooting.mdx#deployment-pipelines-stay-in-progressing-forever).
+
+## namespaceDestroyAll
+
+`namespaceDestroyAll` covers two components: the destroy-all Job that runs when a Developer destroys everything in a Namespace, and the destroy-all checker CronJob that recovers Namespaces whose destroy-all Job did not finish.
+
+### Destroy-all job
+
+The destroy-all Job removes every resource in a Namespace. It runs the Okteto backend `namespace-destroy-all` command.
+
+**When it runs.** Okteto creates one destroy-all Job on demand each time a Developer destroys everything in a Namespace, either with `okteto destroy --all` from the [Okteto CLI](reference/okteto-cli.mdx#destroy) or with the **Destroy All** action in the Okteto UI.
+
+**Where it runs.** The Job is created in the `okteto` namespace even though it acts on a Developer's Namespace. It is named `namespace-destroy-all-<namespace>-<timestamp>` and labeled `app.kubernetes.io/component=namespace-destroy-all` and `dev.okteto.com/namespace=<namespace>`.
+
+**What it acts on.** The Job gracefully destroys the Development Environments in the Namespace that declare a `destroy` section or an Istio [Divert](core/divert.mdx) driver by running `okteto pipeline destroy` for each one, uninstalls any Helm releases found in the Namespace, then destroys the remaining resources. It optionally deletes persistent volumes and the Namespace itself when those options are selected. On success it sets the Namespace status back to `Active`; on failure it sets `DestroyAllFailed`. The Job uses `backoffLimit: 3` and an `activeDeadlineSeconds` of 7200 (2 hours), and an init container copies the Okteto CLI and Helm binaries into the pod before the destroy runs.
+
+**Troubleshooting.** The Job logs are the source of truth and are also streamed to the CLI and UI while the destroy runs. To read them for a specific Namespace:
+
+```bash
+kubectl get jobs -l app.kubernetes.io/component=namespace-destroy-all -l dev.okteto.com/namespace=<namespace> --namespace=okteto
+kubectl logs -l app.kubernetes.io/component=namespace-destroy-all -l dev.okteto.com/namespace=<namespace> --namespace=okteto
+```
+
+:::note
+Destroying resources depends on Kubernetes [finalizers](https://kubernetes.io/blog/2021/05/14/using-finalizers-to-control-deletion/) succeeding. If a destroy-all Job hangs, a resource with a blocked finalizer is the most likely cause.
+:::
+
+### Destroy-all checker
+
+The destroy-all checker recovers Namespaces whose destroy-all Job failed to schedule or crashed before it could reset the Namespace status. It runs the Okteto backend `check-namespace-destroy-all` command.
+
+**When it runs.** The checker is a CronJob that runs on the schedule set by [`namespaceDestroyAll.checker.schedule`](self-hosted/helm-configuration.mdx#namespacedestroyall), every 3 minutes by default.
+
+**What it acts on.** On each run it lists Namespaces stuck in `DestroyingAll` or `DestroyAllFailed`. If a Namespace has been in that state longer than the destroy-all deadline (2 hours), the checker resets its status to `Active` so the Developer can retry the operation.
+
+:::info
+Both the per-Namespace destroy-all Job and the checker CronJob share the `app.kubernetes.io/component=namespace-destroy-all` label. The per-Namespace Jobs additionally carry the `dev.okteto.com/namespace` label, so filter on it when you want a specific Namespace's Job rather than the checker.
+:::
