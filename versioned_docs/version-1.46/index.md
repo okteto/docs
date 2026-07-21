@@ -1,10 +1,13 @@
 ---
-title: "Welcome to Okteto: the developer platform for human and AI teams"
-description: Okteto is the developer platform for engineering teams. Cloud dev environments, preview environments per PR, integrated testing, and AI-native workflows — self-hosted or BYOC.
+title: "Okteto: the environment platform for agentic development"
+description: Okteto gives every AI agent task and developer an isolated, production-like environment on your own infrastructure to build, test, and verify against real services and data.
 ---
 
-## Build modern development experiences with Okteto
-Okteto transforms the way developers code, test, and deploy applications by offering a seamless, cloud-native development experience. Say goodbye to the complexities of setting up local environments and the discrepancies between development and production. With Okteto, you get **ephemeral cloud-based environments**, **instant code sync**, **remote debugging**, and **built-in automations** all designed to improve developer productivity and platform team efficiency.
+## The environment platform for agentic development
+
+Okteto gives every task, whether it's run by an AI agent or a developer, an isolated, production-like environment on your own infrastructure. Agents and developers build, run, and test their changes against real services and data, so the work is verified before a human reviews it. Platform teams stay in control with resource limits, governance, and observability across every environment.
+
+These docs explain how to install Okteto, run agent and development environments, add Preview Environments to your pull requests, test inside those environments, and operate the platform on BYOC or Self-Hosted infrastructure.
 
 [Start with our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
 
@@ -15,17 +18,20 @@ Enable your developers to easily access secure and reproducible ephemeral enviro
 
 ![Platform team using Okteto diagram](../../static/img/platform-team-diagram.jpg)
 
-### Create a seamless development experience
-With Okteto, your development environment is a one-click experience for everyone on the team. Featuring instantaneous Code Sync and Live Updates, experience the magic of seeing your code changes reflected instantly in your cloud environment. This allows for rapid testing and iteration without the need for rebuilds or redeployments, ensuring that your applications run just as smoothly in development as they do in production.
+### Real environments for agents and developers
+With Okteto, every development environment is a one-click experience for everyone on the team, human or agent. Code Sync and Live Updates reflect your code changes in your cloud environment as soon as you save, so you test and iterate without rebuilds or redeployments. Agents get the same isolated, production-like environments through the Okteto CLI, so what runs for an agent runs the same for a developer and in production.
 
 ![Developing with Okteto Example](../../static/img/dev-environment-example.jpg)
 
 ### Okteto Manifest simplifies environment automation
-Utilize the [Okteto Manifest](core/okteto-manifest.mdx) to define and configure your development environments declaratively. This powerful feature ensures consistent and reproducible environments across your team, tailored to your projects' needs. Use the [Okteto Catalog](development/deploy/deploy-from-catalog.mdx) to create a collection of ready-to-use development environments for your development team.
+Utilize the [Okteto Manifest](core/okteto-manifest.mdx) to define and configure your development environments declaratively. This ensures consistent, reproducible environments across your team, tailored to your projects' needs. Use the [Okteto Catalog](development/deploy/deploy-from-catalog.mdx) to create a collection of ready-to-use development environments for your development team.
 
 ![Platform team using Okteto diagram](../../static/img/manifest.jpg)
 
 ## Key features
+
+### AI Agent Environments
+Okteto works with the agents you already use, such as Claude Code, Cursor, Codex, and Copilot. Install the Okteto plugin in one command and your agent gets an isolated, production-like environment, driven by the same Okteto CLI and `okteto.yaml` your developers use. Now the agent can deploy code, run tests, and verify its changes against real services and data instead of only reading and writing files locally, so its work is proven before you review it. [Agentic Workflows](agentic/index.mdx) covers the setup and example prompts.
 
 ### Development Environments
 Okteto's [Development Environments](development/index.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](development/using-okteto-cli.mdx) or click of a button. Write code locally on your machine and view your changes live, deployed in the cloud **as soon as you hit save**! You don't have to spend time configuring anything to do this.
