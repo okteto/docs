@@ -520,6 +520,16 @@ x-node-selector:
 
 More information about Kubernetes node selectors is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
+#### x-enable-service-links (boolean, optional)
+
+Controls whether Kubernetes injects [service link environment variables](https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#environment-variables) into the service containers. By default, Kubernetes adds variables such as `<SERVICE>_SERVICE_HOST`, `<SERVICE>_SERVICE_PORT`, and `<SERVICE>_PORT` for every service in the namespace, with port values formatted as URIs (for example, `tcp://10.0.0.1:8125`). Set this field to `false` to stop the injection for a service whose application reads those variable names for its own configuration.
+
+```yaml
+x-enable-service-links: false
+```
+
+When unset, Okteto preserves the default Kubernetes behavior and injects the variables. This field is opt-in and only affects the service that declares it.
+
 #### x-okteto-identity-token (object, optional)
 
 Project an audience-scoped Kubernetes ServiceAccount token into the service container, so the application can authenticate to cloud providers through OIDC or AWS STS web-identity federation without static credentials. Okteto creates a [projected `serviceAccountToken` volume](https://kubernetes.io/docs/concepts/storage/projected-volumes/#serviceaccounttoken) and mounts it read-only at the configured path. The kubelet refreshes the token before it expires.
@@ -965,6 +975,7 @@ uts
 | endpoints | Define HTTPS routes for services |
 | public: true | Auto-generate a Kubernetes Ingress |
 | x-node-selector | Pod scheduling hint |
+| x-enable-service-links | Toggle Kubernetes service link environment variable injection per service |
 | x-okteto-identity-token | Project a ServiceAccount token for keyless cloud federation |
 | resources | Top-level CPU / memory requests and limits (shorthand for `deploy.resources`) |
 | healthcheck.http | HTTP path and port healthcheck probe |
