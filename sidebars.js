@@ -147,6 +147,7 @@ module.exports = {
                 'development/containers/hybrid/hybrid-java',
               ],
             },
+            'development/containers/connect-your-ide',
           ],
         },
         'development/images',
