@@ -62,9 +62,10 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 
 ---
 
-## Get Started Today
+## Getting started
 
-- 🚀 [Follow the installation guide](get-started/install/index.mdx)
+- 👩‍💻 [Deploy your first Development Environment](get-started/dev-quickstart.mdx) — start here if your platform team already runs Okteto.
+- 🚀 [Follow the installation guide](get-started/install/index.mdx) — install the Okteto Platform in your own Kubernetes cluster.
 - 🗓️ [Book a demo with our team](https://okteto.com/schedule/)
 - 🎁 [Sign up for our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
 
