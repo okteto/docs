@@ -7,6 +7,29 @@ id: release-notes
 
 import Image from '@theme/Image';
 
+## 1.47.0
+
+August 2026 <!-- TODO: set the exact release date at cut -->
+
+This version is compatible with Kubernetes versions 1.33 to 1.35 \
+Okteto Chart release 1.47 is designed to work with [Okteto CLI 3.22.x](https://github.com/okteto/okteto/releases/tag/3.22.0)
+
+### Important Notes {#important-notes-1.47}
+
+- **OCI media types enabled by default in builds**: The BuildKit bundled with Okteto was upgraded from 0.29 to 0.31, which includes several upstream CVE fixes. With this upgrade, images built with `okteto build` are pushed to the registry using OCI media types by default. This changes only how pushed images are stored; pulling images is unaffected. Major registries have supported OCI media types for years ([registry support matrix](https://github.com/moby/buildkit/issues/6171)), and the Okteto Registry supports them. If you push images to a registry that doesn't support OCI media types, set the [`OKTETO_BUILD_OCI_MEDIATYPES`](reference/feature-flags.mdx) feature flag to `false` as an [Admin Variable](admin/dashboard.mdx#admin-variables) to fall back to legacy Docker media types <!-- DEV-1427, okteto/okteto#5067 -->
+
+### New Features {#new-features-1.47}
+
+- **Disabling Kubernetes service links in Docker Compose**: Docker Compose services now support a per-service [`x-enable-service-links`](reference/docker-compose.mdx) field. <!-- TODO: link the #x-enable-service-links-boolean-optional anchor once okteto/docs#1312 merges --> Set it to `false` to stop Kubernetes from injecting service link environment variables such as `<SERVICE>_SERVICE_HOST` and `<SERVICE>_PORT` into the service's containers, which can break applications that expect a plain port number — or no value — under those names. This brings Docker Compose deployments to parity with `enableServiceLinks: false` in Kubernetes manifests. The field is opt-in and requires Okteto CLI 3.22.0 or later <!-- PROD-495, DEV-1449, okteto/okteto#5093, okteto/okteto#5097 -->
+
+### Improvements {#improvements-1.47}
+
+- **Okteto skill setup from the Namespace view**: The Namespace view now includes a shortcut to set up the Okteto skill, making [Agentic Workflows](agentic/index.mdx) easier to discover <!-- DEV-1434 · TODO: confirm final UI copy with Frontend before release -->
+
+### Bug Fixes {#bug-fixes-1.47}
+
+- [Okteto CLI 3.22.0](https://github.com/okteto/okteto/releases/tag/3.22.0): Fixed the CLI hanging without output — or crashing with a goroutine deadlock error — when the connection to BuildKit through the port-forward failed. The CLI now reports the connection error <!-- DEV-1441, okteto/okteto#5083 -->
+
 ## 1.46.0
 
 3 July 2026
@@ -27,7 +50,7 @@ Okteto Chart release 1.46 is designed to work with [Okteto CLI 3.21.x](https://g
 
 ### Bug Fixes {#bug-fixes-1.46}
 
-- [Okteto CLI 3.21.0](https://github.com/okteto/okteto/releases/tag/3.21.0): Fixed `okteto destroy --all` hanging until it timed out, and reporting a false error, when run against a Sleeping Namespace. The command now completes and leaves the Namespace in its previous status <!-- okteto/okteto#5072 -->
+- [Okteto CLI 3.21.0](https://github.com/okteto/okteto/releases/tag/3.21.0): Fixed `okteto destroy --all` hanging until it timed out, and reporting a false error, when run against a Sleeping Namespace. The command now completes and leaves the Namespace in its previous status <!-- okteto/okteto#5072, backported to 3.21.0 via okteto/okteto#5073 -->
 
 ## 1.45.0
 
