@@ -86,20 +86,10 @@ module.exports = {
         type: 'generated-index',
         title: 'AI Agent Environments',
         description:
-          'Give AI agents isolated, production-like environments to build, test, and verify their changes against real services and data. Launch managed agents from the Okteto Dashboard with Okteto AI, or connect your own agent tooling with Agentic Workflows.',
+          'Give AI agents isolated, production-like environments to build, test, and verify their changes against real services and data. Connect your own agent tooling to Okteto environments with Agentic Workflows.',
         slug: '/ai-agent-environments',
       },
       items: [
-        {
-          type: 'category',
-          label: 'Okteto AI',
-          link: { type: 'doc', id: 'okteto-ai/index' },
-          items: [
-            'okteto-ai/index',
-            'okteto-ai/ai-getting-started',
-            'okteto-ai/okteto-ai-admin-config',
-          ],
-        },
         {
           type: 'category',
           label: 'Agentic Workflows',
