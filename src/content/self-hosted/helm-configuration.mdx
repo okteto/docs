@@ -536,6 +536,37 @@ The jobs that deploy your [development environments from Git](development/deploy
 `}
 </CodeBlock>
 
+### installerChecker
+
+The CronJob that reconciles Development Environment deploys and destroys stuck in a running state.
+
+- `enabled`: Whether to run the installer checker. Defaults to `true`.
+- `schedule`: The cron schedule for the checker. Defaults to `*/5 * * * *` (every 5 minutes).
+- `priorityClassName`: The priority class for the installer checker pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+
+```yaml
+installerChecker:
+  enabled: true
+  schedule: "*/5 * * * *"
+```
+
+### namespaceDestroyAll
+
+The Job that destroys every resource in a Namespace, plus the CronJob that recovers Namespaces whose destroy-all Job did not finish.
+
+- `priorityClassName`: The priority class for the per-Namespace destroy-all job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `checker`: Configures the CronJob that recovers stuck Namespaces.
+  - `schedule`: The cron schedule for the checker. Defaults to `*/3 * * * *` (every 3 minutes).
+  - `timeoutInSeconds`: Maximum duration of each checker run in seconds. Defaults to `120`.
+  - `priorityClassName`: The priority class for the checker pods, following the same precedence rules as above.
+
+```yaml
+namespaceDestroyAll:
+  checker:
+    schedule: "*/3 * * * *"
+    timeoutInSeconds: 120
+```
+
 ### privateEndpoints
 
 When [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) is set, Okteto Self Hosted deploys an additional component for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx) feature, which is responsible for authenticating and authorizing requests sent to Okteto Endpoints set to private mode.
