@@ -10,7 +10,8 @@ import AgentActions from '../../AgentActions';
  the synthetic title. Re-check against upstream on Docusaurus major upgrades.
 
  The synthetic title renders when the page uses a frontmatter `title` and the
- markdown body has no top-level h1 — true for every page in this repo.
+ markdown body has no top-level h1. Pages whose body starts with its
+ own `# h1` get a bare actions row above the content instead.
 */
 function useSyntheticTitle() {
   const { metadata, frontMatter, contentTitle } = useDoc();
@@ -34,6 +35,11 @@ export default function DocItemContent({ children }) {
           <Heading as="h1">{syntheticTitle}</Heading>
           {isLast && <AgentActions />}
         </header>
+      )}
+      {!syntheticTitle && isLast && (
+        <div className="docTitleRow docTitleRow--bare">
+          <AgentActions />
+        </div>
       )}
       <MDXContent>{children}</MDXContent>
     </div>
