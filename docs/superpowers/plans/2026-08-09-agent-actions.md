@@ -49,11 +49,11 @@
 
 - [ ] **Step 1: Generate the four icon components from simple-icons**
 
-simple-icons SVGs are CC0-licensed, single-path, 24×24. This script downloads each one, extracts the path data, and writes the component files:
+simple-icons SVGs are CC0-licensed, single-path, 24×24. **Note:** simple-icons has removed the `openai` and `chatgpt` icons (brand takedown — verified 404 on the CDN), so `OpenAIIcon.js` is hand-authored as a neutral chat-bubble glyph instead (Step 1b). This script downloads the other three, extracts the path data, and writes the component files:
 
 ```bash
 mkdir -p src/icons/agent
-for pair in "markdown MarkdownIcon" "claude ClaudeIcon" "openai OpenAIIcon" "githubcopilot CopilotIcon"; do
+for pair in "markdown MarkdownIcon" "claude ClaudeIcon" "githubcopilot CopilotIcon"; do
   set -- $pair
   d=$(curl -fsSL "https://cdn.simpleicons.org/$1" | sed -n 's/.*<path d="\([^"]*\)".*/\1/p')
   if [ -z "$d" ]; then echo "FAILED to extract path for $1" && exit 1; fi
@@ -85,6 +85,22 @@ src/icons/agent/OpenAIIcon.js:1
 ```
 
 If any reports `0`, the CDN response changed shape; open the downloaded SVG manually and paste its `d` attribute into the template above.
+
+- [ ] **Step 1b: Hand-author `src/icons/agent/OpenAIIcon.js`**
+
+The filename stays `OpenAIIcon.js` because Task 2 imports that path; the glyph is a neutral chat bubble since the brand icon is unavailable:
+
+```js
+import React from 'react';
+
+const OpenAIIcon = (props) => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" {...props}>
+    <path d="M12 4c-4.97 0-9 3.13-9 7 0 2.22 1.33 4.2 3.4 5.48-.12.9-.53 2.06-1.4 3.02 1.85-.14 3.32-.86 4.28-1.55.86.22 1.77.34 2.72.34 4.97 0 9-3.13 9-7s-4.03-7-9-7z" />
+  </svg>
+);
+
+export default OpenAIIcon;
+```
 
 - [ ] **Step 3: Commit**
 
