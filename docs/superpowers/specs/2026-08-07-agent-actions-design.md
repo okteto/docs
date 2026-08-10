@@ -7,17 +7,20 @@
 
 Surface the Markdown twins that already ship with every docs build (via
 `@signalwire/docusaurus-plugin-llms-txt`, PRs #1276 and #1298) as a visible,
-one-click control on every current-version docs page, so readers can copy a
+one-click control on every latest-version docs page, so readers can copy a
 page as Markdown or hand it directly to a coding agent.
 
 ## Background
 
-- Every current-version page (including the tutorials instance) gets a `.md`
-  twin at the page URL with `.md` appended (e.g. `/docs/testing.md`).
+- Every page of the latest released version — the one served at the docs
+  root (`lastVersion`, currently 1.47) — plus the unversioned tutorials
+  instance gets a `.md` twin at the page URL with `.md` appended
+  (e.g. `/docs/testing.md`).
 - Twins are generated at build time (`postBuild`), so they do not exist under
   `yarn start` dev mode. Testing requires `yarn build && yarn serve`.
-- Versioned pages (`/docs/1.46/...`) have no twins
-  (`includeVersionedDocs: false`).
+- No other version has twins (`includeVersionedDocs: false`): neither old
+  versions (`/docs/1.46/...`) nor the unreleased "current" version, which
+  serves at `/docs/1.48/`.
 - Each twin already embeds a pointer to `llms.txt`, so an agent that fetches
   one page discovers the full docs index.
 
@@ -49,9 +52,11 @@ publicly.
   flex row with `<AgentActions />`. All docs pages use frontmatter titles, so
   the H1 always renders here. Matches existing repo practice (DocPaginator is
   already ejected).
-- Render the control only when `useDoc().metadata.version` is `'current'`
-  (covers the main docs instance and the unversioned tutorials instance).
-  Versioned pages get no control.
+- Render the control only when `useDocsVersion().isLast` is true (from
+  `@docusaurus/plugin-content-docs/client`). This is exactly the set of pages
+  with `.md` twins: the latest released version at the docs root and the
+  unversioned tutorials instance. Old versions (`/docs/1.46/...`) and the
+  unreleased version (`/docs/1.48/...`) get no control.
 - Path derivation: `useLocation().pathname`, strip trailing slash, append
   `.md`. Special case: the docs root `/docs/` maps to `/docs/index.md`.
 
@@ -77,9 +82,10 @@ One PostHog event per interaction, guarded with `window.posthog?.capture`
 
 `yarn build && yarn serve`, then verify:
 
-1. Control present and copy works on a current-version page and a tutorial
+1. Control present and copy works on a latest-version page and a tutorial
    page.
-2. Control absent on a versioned page (e.g. `/docs/1.46/...`).
+2. Control absent on old-version pages (e.g. `/docs/1.46/...`) and on the
+   unreleased version (`/docs/1.48/...`).
 3. Each deep link opens the target product with the prompt prefilled.
 4. Dropdown keyboard behavior (Escape closes, focus returns to trigger).
 5. Dark mode and mobile-width rendering.
