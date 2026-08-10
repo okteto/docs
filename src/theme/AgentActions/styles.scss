@@ -1,27 +1,31 @@
 .docTitleRow {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   column-gap: 1rem;
-  flex-wrap: wrap;
+
+  > h1 {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
+// No h1 style restoration is needed for the bare row: Docusaurus wraps a
+// kept body `# h1` in a <header> element, so `.markdown h1:first-child`
+// keeps matching regardless of siblings inserted before the <header>.
 .docTitleRow--bare {
   justify-content: flex-end;
 }
 
-// A body `# h1` stops matching `.markdown h1:first-child` once the bare
-// actions row precedes it; restore the styles that rule provided
-// (Infima's font size + this site's margins from src/styles/main.scss).
-.markdown .docTitleRow--bare + h1 {
-  --ifm-h1-font-size: 3rem;
-  margin-top: 1rem;
-  margin-bottom: 2.8rem;
-}
-
 @media (max-width: 576px) {
-  .markdown .docTitleRow--bare + h1 {
-    --ifm-h1-font-size: 2rem;
+  .docTitleRow:not(.docTitleRow--bare) {
+    flex-direction: column;
+
+    .AgentActions {
+      order: -1;
+      align-self: flex-end;
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+    }
   }
 }
 
@@ -68,7 +72,7 @@
     top: calc(100% + 4px);
     right: 0;
     z-index: var(--ifm-z-index-dropdown);
-    min-width: 230px;
+    min-width: min(230px, calc(100vw - 2rem));
     margin: 0;
     padding: 0.3rem;
     list-style: none;
