@@ -49,9 +49,15 @@ publicly.
 
 - Eject `DocItem/Content` into `src/theme/DocItem/Content/index.js` (copied
   from `@docusaurus/theme-classic` 3.10) and wrap the synthetic-title H1 in a
-  flex row with `<AgentActions />`. All docs pages use frontmatter titles, so
-  the H1 always renders here. Matches existing repo practice (DocPaginator is
+  flex row with `<AgentActions />`. Most pages use frontmatter titles, so the
+  synthetic H1 renders here; pages whose markdown body carries its own `# h1`
+  (~15% of 1.47, e.g. `admin/index.mdx`) get a bare right-aligned actions row
+  above the content instead. Matches existing repo practice (DocPaginator is
   already ejected).
+- A rehype plugin (`rehypeStripAgentActions` in `docusaurus.config.js`,
+  registered next to the existing `rehypeStripHashLinks`) strips the control
+  from the generated Markdown twins so its "Copy page" label never leaks
+  into agent-facing content.
 - Render the control only when `useDocsVersion().isLast` is true (from
   `@docusaurus/plugin-content-docs/client`). This is exactly the set of pages
   with `.md` twins: the latest released version at the docs root and the

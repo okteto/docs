@@ -32,6 +32,7 @@
 - `src/theme/AgentActions/index.js` — split button + dropdown, copy logic, deep links, analytics (new)
 - `src/theme/AgentActions/styles.scss` — component styles, Infima variables for dark mode (new)
 - `src/theme/DocItem/Content/index.js` — ejected from theme-classic, adds title row + gating (new)
+- `docusaurus.config.js` — adds `rehypeStripAgentActions` so the control's "Copy page" label doesn't leak into the generated Markdown twins (modified; registered in the llms-txt plugin's `beforeDefaultRehypePlugins` alongside `rehypeStripHashLinks`)
 
 ---
 
@@ -279,9 +280,32 @@ Uses Infima CSS variables throughout so dark mode needs no `[data-theme='dark']`
 .docTitleRow {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   column-gap: 1rem;
-  flex-wrap: wrap;
+
+  > h1 {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// No h1 style restoration is needed for the bare row: Docusaurus wraps a
+// kept body `# h1` in a <header> element, so `.markdown h1:first-child`
+// keeps matching regardless of siblings inserted before the <header>.
+.docTitleRow--bare {
+  justify-content: flex-end;
+}
+
+@media (max-width: 576px) {
+  .docTitleRow:not(.docTitleRow--bare) {
+    flex-direction: column;
+
+    .AgentActions {
+      order: -1;
+      align-self: flex-end;
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+    }
+  }
 }
 
 .AgentActions {
@@ -327,7 +351,7 @@ Uses Infima CSS variables throughout so dark mode needs no `[data-theme='dark']`
     top: calc(100% + 4px);
     right: 0;
     z-index: var(--ifm-z-index-dropdown);
-    min-width: 230px;
+    min-width: min(230px, calc(100vw - 2rem));
     margin: 0;
     padding: 0.3rem;
     list-style: none;
@@ -377,7 +401,8 @@ import AgentActions from '../../AgentActions';
  the synthetic title. Re-check against upstream on Docusaurus major upgrades.
 
  The synthetic title renders when the page uses a frontmatter `title` and the
- markdown body has no top-level h1 — true for every page in this repo.
+ markdown body has no top-level h1. Pages whose body starts with its
+ own `# h1` get a bare actions row above the content instead.
 */
 function useSyntheticTitle() {
   const { metadata, frontMatter, contentTitle } = useDoc();
@@ -402,11 +427,18 @@ export default function DocItemContent({ children }) {
           {isLast && <AgentActions />}
         </header>
       )}
+      {!syntheticTitle && isLast && (
+        <div className="docTitleRow docTitleRow--bare">
+          <AgentActions />
+        </div>
+      )}
       <MDXContent>{children}</MDXContent>
     </div>
   );
 }
 ```
+
+Note: ~15% of latest-version pages (21 of 141 in 1.47, e.g. `admin/index.mdx`, `testing/index.mdx`) start their body with a markdown `# h1`, so `contentTitle` is set and no synthetic title renders. Those pages get the bare right-aligned actions row instead — without it the control silently disappears there.
 
 - [ ] **Step 4: Build**
 
@@ -419,9 +451,13 @@ Expected: exits 0. This compiles the new components (they are now imported), cat
 ```bash
 grep -c 'AgentActions' build/docs/index.html
 grep -c 'AgentActions' build/docs/tutorials/compose-getting-started/index.html
+grep -c 'AgentActions' build/docs/admin/index.html
+grep -c 'docTitleRow--bare' build/docs/admin/index.html
 grep -c 'AgentActions' build/docs/1.46/index.html || echo "absent-1.46"
 grep -c 'AgentActions' build/docs/1.48/index.html || echo "absent-1.48"
 ```
+
+The `admin` page is one of the body-h1 pages — it must show the control via the bare actions row.
 
 Expected: the first two print a number ≥ 1 (control server-rendered on latest-version and tutorial pages); the last two print `0` then `absent-1.46` / `absent-1.48` (grep exits nonzero — control absent on old and unreleased versions).
 

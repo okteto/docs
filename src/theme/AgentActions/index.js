@@ -27,6 +27,7 @@ const AgentActions = () => {
   const [copyState, setCopyState] = useState('idle'); // 'idle' | 'copied' | 'error'
   const rootRef = useRef(null);
   const toggleRef = useRef(null);
+  const copyResetTimer = useRef(null);
 
   // Markdown twins live at the page path with `.md` appended; the docs root
   // (`/docs/`) is the one exception, served as `index.md`.
@@ -68,6 +69,8 @@ const AgentActions = () => {
     };
   }, [open]);
 
+  useEffect(() => () => clearTimeout(copyResetTimer.current), []);
+
   const handleCopy = async () => {
     try {
       const res = await fetch(mdPath);
@@ -83,7 +86,8 @@ const AgentActions = () => {
       // mode (or offline). Show the error state briefly; nothing to log.
       setCopyState('error');
     }
-    setTimeout(() => setCopyState('idle'), COPY_RESET_MS);
+    clearTimeout(copyResetTimer.current);
+    copyResetTimer.current = setTimeout(() => setCopyState('idle'), COPY_RESET_MS);
   };
 
   const copyLabel =
