@@ -17,6 +17,27 @@ The Okteto community maintains guides on using cert-manager with different cloud
 - [Google Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-google-cloud-dns/274/2)
 - [Azure Cloud DNS](https://community.okteto.com/t/how-do-i-configure-okteto-with-cert-manager-and-azure-cloud-dns/275/2)
 
+## Configure Okteto to use your certificate
+
+Each guide creates a cert-manager `Certificate` that stores the issued certificate in a secret named `okteto-letsencrypt`. Once cert-manager has issued it, add the following to your Helm configuration file to tell Okteto and NGINX to use your certificate:
+
+```yaml title="config.yaml"
+wildcardCertificate:
+  create: false
+  name: okteto-letsencrypt
+
+ingress-nginx:
+  controller:
+    extraArgs:
+      default-ssl-certificate: $(POD_NAMESPACE)/okteto-letsencrypt
+```
+
+:::warning
+Both settings are required. `wildcardCertificate.create: false` stops Okteto from generating its self-signed certificate, but the `ingress-nginx` ingress controller keeps serving whichever certificate `default-ssl-certificate` points at. If you don't update it as well, cert-manager will report your certificate as `Ready` while browsers still show a certificate warning.
+:::
+
+Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation for the new configuration to be applied.
+
 This video tutorial walks through configuring certificates for Okteto using cert-manager and Let's Encrypt:
 
 <figure class="video_container">
