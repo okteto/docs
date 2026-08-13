@@ -355,8 +355,16 @@ The daemonset performs the following tasks on each node:
 You can restrict the nodes where the daemonset is deployed using `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
 
 ```yaml
-tolerations:
-  devPool: dev
+globals:
+  nodeSelectors:
+    dev:
+      okteto-node-pool: dev
+  tolerations:
+    dev:
+      - key: okteto-node-pool
+        operator: Equal
+        value: dev
+        effect: NoSchedule
 ```
 
 ### defaultBackend
@@ -387,11 +395,6 @@ The defaultBackend provides the following features:
 
 - **Autowake namespaces**: When a user accesses an endpoint from a sleeping namespace, the defaultBackend will issue a wake command.
 - **Custom error pages**: When users access endpoints that encounter errors, the defaultBackend serves custom error pages with contextual hints on how to resolve the issue. This provides a better user experience by offering clear explanations and actionable steps instead of generic error messages. Common scenarios include accessing sleeping namespaces, or service unavailability. These error pages work automatically and require no additional configuration.
-
-```yaml
-tolerations:
-  devPool: dev
-```
 
 ### frontend
 
@@ -847,7 +850,7 @@ globals:
 Specifies the node selectors to be applied to pods, categorized under `okteto` or `dev`:
 
 - `okteto`: Node selectors applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
-- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. These node selectors are only applied when a corresponding `tolerations.devPool` is defined. It also applies to the [Okteto Daemonset](#daemonset). This is a legacy behavior and may change in future releases.
+- `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. It also applies to the [Okteto Daemonset](#daemonset).
 
 ```yaml
 globals:
@@ -860,7 +863,7 @@ globals:
 ```
 
 :::note
-Node selectors defined in `globals.nodeSelectors.dev` will not be applied to user workloads unless a `tolerations.devPool` value is also set. This coupling is due to a legacy implementation and may be revised in future updates.
+If the nodes you select are tainted, you must also define a matching toleration in [`globals.tolerations.dev`](#tolerations). A node selector on its own will place user workloads on nodes they cannot tolerate, and they will stay `Pending`.
 :::
 
 #### priorityClassName
@@ -887,7 +890,7 @@ globals:
 Specifies the tolerations to be applied to pods, categorized under `okteto` or `dev`:
 
 - `okteto`: Tolerations applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
-- `dev`: Tolerations applied to pods created by user applications, which run in namespaces managed by Okteto. Required for `globals.nodeSelectors.dev` to take effect. This also applies to the [Okteto Daemonset](#daemonset).
+- `dev`: Tolerations applied to pods created by user applications, which run in namespaces managed by Okteto. This also applies to the [Okteto Daemonset](#daemonset).
 
 ```yaml
 globals:
@@ -904,8 +907,12 @@ globals:
       effect: "NoSchedule"
 ```
 
+:::warning
+The older `tolerations.oktetoPool`, `tolerations.buildPool` and `tolerations.devPool` values are deprecated and will be removed in Okteto Chart 2.0. Installing the chart while they are set prints a deprecation warning. Use `globals.tolerations` and [`globals.nodeSelectors`](#nodeselectors) instead, together with [`buildkit.tolerations` and `buildkit.nodeSelectors`](#buildkit) for BuildKit. See the [migration guide](https://community.okteto.com/t/important-update-migrating-to-new-implementation-of-okteto-pod-tolerations-and-node-selectors/1281) for the full mapping.
+:::
+
 :::note
-To apply node selectors for user workloads, you must define a `devPool` entry in `globals.tolerations`. See the [nodeSelectors](#nodeselectors) section for more details.
+If the nodes selected by [`globals.nodeSelectors.dev`](#nodeselectors) are tainted, define a matching toleration under `dev` above so that user workloads can schedule onto them.
 :::
 
 ### ingress
