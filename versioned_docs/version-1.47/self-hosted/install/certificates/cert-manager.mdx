@@ -33,7 +33,7 @@ ingress-nginx:
 ```
 
 :::warning
-Both settings are required. `wildcardCertificate.create: false` stops Okteto from generating its self-signed certificate, but the `ingress-nginx` ingress controller keeps serving whichever certificate `default-ssl-certificate` points at. If you don't update it as well, cert-manager will report your certificate as `Ready` while browsers still show a certificate warning.
+Both settings are required. `wildcardCertificate.create: false` stops Okteto from generating its self-signed certificate, which also removes the secret that `default-ssl-certificate` points at. If you don't update that argument as well, the ingress controller falls back to its own built-in fake certificate. This fails quietly: cert-manager reports your certificate as `Ready`, and the hosts Okteto creates ingresses for still serve it over SNI, but any request that doesn't match one of those hosts shows a certificate warning.
 :::
 
 Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation for the new configuration to be applied.
