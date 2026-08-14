@@ -864,6 +864,8 @@ globals:
 
 :::note
 If the nodes you select are tainted, you must also define a matching toleration in [`globals.tolerations.dev`](#tolerations). A node selector on its own will place user workloads on nodes they cannot tolerate, and they will stay `Pending`.
+
+These node selectors do not apply to the ingress controllers or Reloader. See [Node selectors and tolerations](#node-selectors-and-tolerations).
 :::
 
 #### priorityClassName
@@ -913,6 +915,8 @@ The older `tolerations.oktetoPool`, `tolerations.buildPool` and `tolerations.dev
 
 :::note
 If the nodes selected by [`globals.nodeSelectors.dev`](#nodeselectors) are tainted, define a matching toleration under `dev` above so that user workloads can schedule onto them.
+
+These tolerations do not apply to the ingress controllers or Reloader. See [Node selectors and tolerations](#node-selectors-and-tolerations).
 :::
 
 ### ingress
@@ -1399,6 +1403,64 @@ ingress-nginx:
 ```
 
 The full list of values is [available here](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml).
+
+#### Node selectors and tolerations
+
+[`globals.nodeSelectors`](#nodeselectors) and [`globals.tolerations`](#tolerations) apply to Okteto's own components. They do **not** reach the two ingress controllers or [Reloader](#reloader), which are separate charts and read their own values instead.
+
+If you run Okteto on dedicated node pools, or on any node pool that carries a taint, configure all of them:
+
+```yaml
+globals:
+  nodeSelectors:
+    okteto:
+      okteto-node-pool: okteto
+  tolerations:
+    okteto:
+      - key: okteto-node-pool
+        operator: Equal
+        value: okteto
+        effect: NoSchedule
+
+ingress-nginx:
+  controller:
+    nodeSelector:
+      okteto-node-pool: okteto
+    tolerations:
+      - key: okteto-node-pool
+        operator: Equal
+        value: okteto
+        effect: NoSchedule
+
+okteto-nginx:
+  controller:
+    nodeSelector:
+      okteto-node-pool: okteto
+    tolerations:
+      - key: okteto-node-pool
+        operator: Equal
+        value: okteto
+        effect: NoSchedule
+
+reloader:
+  reloader:
+    deployment:
+      nodeSelector:
+        okteto-node-pool: okteto
+      tolerations:
+        - key: okteto-node-pool
+          operator: Equal
+          value: okteto
+          effect: NoSchedule
+```
+
+:::warning
+Leaving these out fails silently. The chart installs successfully, and the ingress controllers and Reloader schedule onto whichever nodes accept them, which on a cluster with dedicated pools is usually the untainted default pool. If every pool in the cluster is tainted, they stay `Pending` instead.
+:::
+
+These charts also accept `affinity`, `topologySpreadConstraints` and `priorityClassName` under the same keys. They are maintained upstream, so check their own value references for the authoritative list: [ingress-nginx](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml), used by both the `ingress-nginx` and `okteto-nginx` keys, and [Reloader](https://github.com/stakater/Reloader#parameters).
+
+For a worked example on ARM node pools, which are tainted by the cloud provider, see [ARM Support](self-hosted/manage/arm-support.mdx).
 
 #### ingress-nginx & okteto-nginx default values
 
