@@ -21,7 +21,7 @@ Second, start a port-forward to the ingress service by running the command below
 kubectl port-forward service/do-ingress-nginx-controller 8443:443 --namespace okteto
 ```
 
-Third, open your browser and go to [https://localhost:8443/#admin](https://localhost:8443/#admin) to load the admin screen.
+Third, open your browser and go to [https://localhost:8443/admin](https://localhost:8443/admin) to load the admin screen.
 
 Use the admin token you retrieved on the first step to log in to the admin screen.
 
