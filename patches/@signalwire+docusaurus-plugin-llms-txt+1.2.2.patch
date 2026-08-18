@@ -1,0 +1,40 @@
+diff --git a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js
+index 0c3168c..a9d91a0 100644
+--- a/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js
++++ b/node_modules/@signalwire/docusaurus-plugin-llms-txt/lib/utils/url.js
+@@ -64,13 +64,33 @@ export function formatUrl(routePath, options, baseUrl = '') {
+         targetPath = ensureLeadingSlash(markdownFile);
+     }
+     else if (enableMarkdownFiles) {
+-        // Add .md extension to route path
+-        targetPath = targetPath === '/' ? INDEX_MD : `${targetPath}.md`;
++        // Add .md extension to route path. Strip any trailing slash first so
++        // that trailingSlash:true routes (e.g. "/foo/") don't yield "/foo/.md".
++        const cleaned = targetPath.replace(/\/+$/, '');
++        targetPath = cleaned === '' ? INDEX_MD : `${cleaned}.md`;
+     }
+     // Handle absolute vs relative paths
+     if (relativePaths === false && baseUrl) {
+         return normalizeUrl([baseUrl, targetPath]);
+     }
++    // For relative paths under a non-root baseUrl, keep the base path so the
++    // link still resolves (route paths are baseUrl-stripped upstream). Using a
++    // root-relative link means it resolves against whatever origin serves the
++    // page (production, a deploy preview, or localhost).
++    if (relativePaths === true && baseUrl) {
++        let basePathname = baseUrl;
++        try {
++            basePathname = new URL(baseUrl).pathname;
++        }
++        catch {
++            // baseUrl is already a path, not a full URL; use it as-is.
++        }
++        basePathname = normalizeUrl([basePathname]);
++        const baseForComparison = basePathname.replace(/\/$/, '');
++        if (baseForComparison !== '/' && !targetPath.startsWith(baseForComparison)) {
++            return normalizeUrl([basePathname, targetPath]);
++        }
++    }
+     // For relative paths, ensure we preserve the leading slash
+     // normalizeUrl can sometimes remove it, so we handle it explicitly
+     return targetPath;

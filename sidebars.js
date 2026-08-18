@@ -40,8 +40,8 @@ module.exports = {
         {
           type: 'category',
           label: 'For Developers',
+          link: { type: 'doc', id: 'get-started/dev-quickstart' },
           items: [
-            'get-started/dev-quickstart',
             'get-started/using-okteto-cli-and-dashboard',
             'get-started/advanced-commands-and-concepts',
           ],
@@ -50,7 +50,8 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Core concepts',
+      label: 'Core Concepts',
+      link: { type: 'doc', id: 'core/index' },
       items: [
         {
           type: 'category',
@@ -76,6 +77,29 @@ module.exports = {
         'core/remote-execution',
         'core/user-roles-and-permissions',
         'core/use-volume-snapshots',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'AI Agent Environments',
+      link: {
+        type: 'generated-index',
+        title: 'AI Agent Environments',
+        description:
+          'Give AI agents isolated, production-like environments to build, test, and verify their changes against real services and data. Connect your own agent tooling to Okteto environments with Agentic Workflows.',
+        slug: '/ai-agent-environments',
+      },
+      items: [
+        {
+          type: 'category',
+          label: 'Agentic Workflows',
+          link: { type: 'doc', id: 'agentic/index' },
+          items: [
+            'agentic/collaborative-workflows',
+            'agentic/autonomous-workflows',
+            'agentic/best-practices',
+          ],
+        },
       ],
     },
     {
@@ -131,25 +155,15 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Okteto Test',
-      link: { type: 'doc', id: 'testing/index' },
-      items: ['testing/getting-started-test'],
-    },
-    {
-      type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
       items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
     },
     {
       type: 'category',
-      label: 'Okteto AI',
-      link: { type: 'doc', id: 'okteto-ai/index' },
-      items: [
-        'okteto-ai/index',
-        'okteto-ai/ai-getting-started',
-        'okteto-ai/okteto-ai-admin-config'
-      ],
+      label: 'Okteto Test',
+      link: { type: 'doc', id: 'testing/index' },
+      items: ['testing/getting-started-test'],
     },
     {
       type: 'category',
@@ -157,6 +171,7 @@ module.exports = {
       link: { type: 'doc', id: 'admin/index' },
       items: [
         'admin/dashboard',
+        'admin/billing',
         'admin/catalog',
         'admin/build-service',
         'admin/custom-installer-image',
@@ -261,6 +276,7 @@ module.exports = {
               link: { type: 'doc', id: 'self-hosted/install/divert/index' },
               items: [
                 'self-hosted/install/divert/linkerd-installation',
+                'self-hosted/install/divert/istio-installation',
               ],
             },
             'self-hosted/install/github-integration',

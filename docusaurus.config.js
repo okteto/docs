@@ -2,11 +2,82 @@ const path = require('path');
 
 const docsContentPath = 'src/content';
 
+// Strip Docusaurus heading-anchor links (class "hash-link") from the Markdown
+// twins generated for AI agents. They render as noisy `[​](#... "Direct link
+// to ...")` fragments that carry no content. Dependency-free hast walk so it
+// works in this CommonJS config without an ESM import.
+function rehypeStripHashLinks() {
+  const isHashLink = (node) =>
+    node.tagName === 'a' &&
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('hash-link');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isHashLink(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
+// Docs origin and base path (also used for url/baseUrl in module.exports below).
+const SITE_URL = 'https://www.okteto.com';
+const BASE_URL = '/docs/';
+
+// Origin for the llms.txt pointer. On Netlify deploy previews / branch deploys
+// use the deploy's own URL (injected as DEPLOY_PRIME_URL) so the pointer
+// resolves to the preview instead of production; fall back to the production
+// origin for prod builds and local development. Building an absolute URL also
+// keeps Docusaurus's onBrokenLinks check from treating it as an internal route
+// (llms.txt is generated in postBuild, so no route exists for it at check time).
+const LLMS_ORIGIN =
+  process.env.CONTEXT && process.env.CONTEXT !== 'production'
+    ? process.env.DEPLOY_PRIME_URL || SITE_URL
+    : SITE_URL;
+const LLMS_TXT_URL = `${LLMS_ORIGIN}${BASE_URL.replace(/\/$/, '')}/llms.txt`;
+
+// Prepend a pointer to llms.txt at the top of every generated Markdown page so
+// that coding agents which fetch a page as Markdown can discover the full
+// documentation index. Linking the index (rather than crawling blindly) sharply
+// reduces an agent's wasted fetches and tokens.
+function remarkLlmsIndexPointer() {
+  return (tree) => {
+    tree.children.unshift({
+      type: 'blockquote',
+      children: [
+        {
+          type: 'paragraph',
+          children: [
+            {
+              type: 'strong',
+              children: [{ type: 'text', value: 'Documentation Index' }],
+            },
+            {
+              type: 'text',
+              value: ': fetch the complete list of pages as Markdown at ',
+            },
+            {
+              type: 'link',
+              url: LLMS_TXT_URL,
+              children: [{ type: 'text', value: LLMS_TXT_URL }],
+            },
+            {
+              type: 'text',
+              value: ' to find the right page before exploring further.',
+            },
+          ],
+        },
+      ],
+    });
+  };
+}
+
 module.exports = {
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
-  url: 'https://www.okteto.com',
-  baseUrl: '/docs/',
+  url: SITE_URL,
+  baseUrl: BASE_URL,
   trailingSlash: true,
   organizationName: 'okteto', // Usually your GitHub org/user name.
   projectName: 'okteto', // Usually your repo name.
@@ -78,6 +149,16 @@ module.exports = {
       attributes: {
         name: 'theme-color',
         content: '#fff',
+      },
+    },
+    {
+      // Machine-readable pointer so agents crawling the HTML can find the index.
+      tagName: 'link',
+      attributes: {
+        rel: 'alternate',
+        type: 'text/plain',
+        title: 'llms.txt',
+        href: LLMS_TXT_URL,
       },
     },
   ],
@@ -212,6 +293,11 @@ module.exports = {
               href: 'https://www.okteto.com/pricing',
               target: '_self',
             },
+            {
+              label: 'llms.txt',
+              href: LLMS_TXT_URL,
+              target: '_self',
+            },
           ],
         },
         {
@@ -245,46 +331,46 @@ module.exports = {
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.40',
+          lastVersion: '1.47',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.41',
-              path: '1.41',
+              label: '1.48',
+              path: '1.48',
             },
-            '1.40': {
+            '1.47': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.40',
+              label: '1.47',
               path: '/',
               banner: 'none',
             },
-            '1.39': {
-              label: '1.39',
-              path: '1.39',
+            '1.46': {
+              label: '1.46',
+              path: '1.46',
               banner: 'unmaintained',
             },
-            '1.38': {
-              label: '1.38',
-              path: '1.38',
+            '1.45': {
+              label: '1.45',
+              path: '1.45',
               banner: 'unmaintained',
             },
-            '1.37': {
-              label: '1.37',
-              path: '1.37',
+            '1.44': {
+              label: '1.44',
+              path: '1.44',
               banner: 'unmaintained',
             },
-            '1.36': {
-              label: '1.36',
-              path: '1.36',
+            '1.43': {
+              label: '1.43',
+              path: '1.43',
               banner: 'unmaintained',
             },
-            '1.35': {
-              label: '1.35',
-              path: '1.35',
+            '1.42': {
+              label: '1.42',
+              path: '1.42',
               banner: 'unmaintained',
-            }
+            },
           },
           include: ['**/*.md', '**/*.mdx'],
         },
@@ -314,6 +400,19 @@ module.exports = {
       },
     ],
     'docusaurus-plugin-sass',
+    [
+      '@signalwire/docusaurus-plugin-llms-txt',
+      {
+        siteTitle: 'Okteto Documentation',
+        content: {
+          includeVersionedDocs: false,
+          enableMarkdownFiles: true,
+          enableLlmsFullTxt: true,
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks],
+          remarkPlugins: [remarkLlmsIndexPointer],
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
