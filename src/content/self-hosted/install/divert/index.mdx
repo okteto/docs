@@ -18,9 +18,9 @@ Okteto supports two drivers for Divert routing:
 :::info Important Distinction
 **Istio and Linkerd serve different purposes:**
 - **Istio** is a **divert driver** - an alternative to the nginx driver for environments already using Istio
-- **Linkerd** is **required for the nginx driver** - it provides service mesh capabilities for service-to-service routing
+- **Linkerd** is an **optional add-on** for the **nginx driver** - it extends header-based routing to service-to-service calls
 - You **cannot** use both Istio driver and Linkerd together
-- Choose one: nginx driver (requires Linkerd) **OR** istio driver
+- Choose one: nginx driver (with optional Linkerd) **OR** istio driver
 :::
 
 ## Okteto's Ingress Controllers
@@ -41,27 +41,27 @@ The nginx driver is enabled by default in Okteto installations. It uses the `okt
 ### Requirements
 
 - Standard Okteto installation (no additional configuration needed)
-- **Required**: [Linkerd service mesh](linkerd-installation.mdx) for service-to-service routing
+- Optional: [Linkerd service mesh](linkerd-installation.mdx) to extend routing to service-to-service calls
 
 ### How It Works
 
 1. When a developer deploys with `divert` configuration, Okteto creates ingress rules that inject the baggage header
 2. Requests through the developer's endpoint automatically include `baggage: okteto-divert=<namespace>`
 3. The nginx ingress controller routes requests to the appropriate namespace based on this header
-4. Linkerd's service mesh handles service-to-service routing based on the propagated baggage header
-5. Applications must propagate the baggage header for routing to work across service boundaries
+4. Applications must propagate the baggage header for routing to work across service boundaries
+5. With Linkerd installed, the service mesh also routes service-to-service calls based on the propagated baggage header
 
-### Linkerd Integration (Required)
+### Linkerd Integration (Optional)
 
-For service-to-service routing with the nginx driver, Linkerd must be installed. Linkerd provides:
+You can install Linkerd to extend the nginx driver's routing. Linkerd provides:
 
-- Header-based routing at the service mesh level for inter-service communication
+- Header-based routing at the service mesh level for service-to-service calls
 - Automatic mTLS between services
-- Advanced traffic management and observability
-- Improved reliability with retries and circuit breaking
+- Traffic management and observability
+- Retries and circuit breaking
 
-:::warning Required Component
-While ingress-level routing works without Linkerd, **service-to-service routing requires Linkerd** to be installed. Without Linkerd, only external ingress traffic can be diverted, not internal service-to-service calls.
+:::info
+Without Linkerd, the nginx driver routes traffic at the ingress level. Installing Linkerd extends header-based routing to service-to-service calls inside the cluster.
 :::
 
 See [Linkerd Installation](linkerd-installation.mdx) for setup instructions.
@@ -211,7 +211,7 @@ kubectl get pods -n istio-system -l app=istio-ingressgateway
 kubectl logs -n istio-system deployment/istio-ingressgateway -f
 ```
 
-### Verify Linkerd Deployment (nginx driver)
+### Verify Linkerd Deployment (nginx driver with Linkerd)
 
 **Check Linkerd control plane health:**
 ```bash
@@ -355,7 +355,7 @@ kubectl exec -it test-client -n dev -- \
 
 ### Common Configuration Issues
 
-1. **Linkerd not installed**: Required for nginx driver
+1. **Linkerd expected but not installed**: If you rely on service-to-service routing with the nginx driver, verify Linkerd is present
    ```bash
    linkerd version
    # Should show both client and server versions
@@ -389,25 +389,19 @@ For persistent issues:
    ```bash
    kubectl logs -n okteto deployment/okteto-api > okteto-api.log
    kubectl logs -n okteto deployment/okteto-nginx > okteto-nginx.log
-   linkerd check > linkerd-check.log  # If using nginx driver
+   linkerd check > linkerd-check.log  # If using Linkerd
    kubectl get all --all-namespaces > cluster-state.txt
    ```
 
-2. **Enable debug logging** in Okteto Helm values:
-   ```yaml
-   api:
-     logLevel: debug
-   ```
-
-3. **Consult related documentation**:
+2. **Consult related documentation**:
    - [Linkerd Installation](linkerd-installation.mdx#troubleshooting) - Linkerd-specific issues
    - [Using Divert](../../../development/using-divert.mdx#troubleshooting) - Developer-side troubleshooting
-   - [Divert Core Concepts](../../../core/divert.mdx#troubleshooting) - Architecture and flow troubleshooting
+   - [Divert Core Concepts](../../../core/divert.mdx#how-divert-works) - Architecture and routing flow
 
 ## Next Steps
 
 - **[Linkerd Installation](linkerd-installation.mdx)** - Enhanced routing with Linkerd (nginx driver only)
 - **[Istio Installation](istio-installation.mdx)** - Full Istio setup guide (istio driver)
-- **[Using Divert](development/using-divert.mdx)** - Developer implementation guide
+- **[Using Divert](../../../development/using-divert.mdx)** - Developer implementation guide
 - **[Divert Tutorial](/docs/tutorials/divert)** - Getting started guide for developers
-- **[Core Concepts](core/divert.mdx)** - Understanding Divert architecture
+- **[Core Concepts](../../../core/divert.mdx)** - Understanding Divert architecture
