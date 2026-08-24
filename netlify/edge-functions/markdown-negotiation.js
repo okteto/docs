@@ -67,8 +67,7 @@ export function getMarkdownPath(pathname) {
 
   const segments = pathname.split("/").filter(Boolean);
   const lastSegment = segments.at(-1) ?? "";
-  const isVersionPath = /^\d+\.\d+$/.test(lastSegment);
-  if (lastSegment.includes(".") && !isVersionPath) {
+  if (lastSegment.includes(".")) {
     return null;
   }
 
@@ -118,11 +117,13 @@ export default async (request, context) => {
 
   if (acceptsMarkdown(request.headers.get("Accept"))) {
     try {
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.delete("Accept-Encoding");
       const markdownResponse = await fetch(
         new URL(markdownPath, request.url),
         {
           method: request.method,
-          headers: request.headers,
+          headers: requestHeaders,
           redirect: "manual",
         },
       );
@@ -131,6 +132,9 @@ export default async (request, context) => {
         const body =
           request.method === "GET" ? await markdownResponse.text() : null;
         const headers = new Headers(markdownResponse.headers);
+        headers.delete("Content-Length");
+        headers.delete("Content-Encoding");
+        headers.delete("Transfer-Encoding");
         headers.set("Content-Type", "text/markdown; charset=utf-8");
         addVaryAccept(headers);
 
@@ -155,7 +159,7 @@ export default async (request, context) => {
 export const config = {
   path: [DOCS_ROOT, `${DOCS_ROOT}/*`],
   excludedPattern: [
-    "^/docs/assets(?:/|$)",
-    "^/docs/(?!\\d+\\.\\d+(?:/|$)).*\\.[^/]+/?$",
+    "^/docs/assets(/.*)?$",
+    "^/docs/.*\\.[^/]+/?$",
   ],
 };
