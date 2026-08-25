@@ -21,6 +21,26 @@ function rehypeStripHashLinks() {
   return (tree) => walk(tree);
 }
 
+// Strip tier badges (the TiersList component, rendered as
+// `<div class="TiersList"><span class="Tier">…</span></div>`) from the
+// Markdown twins. They sit inside heading HTML, so without this the badge
+// labels concatenate into the heading text (e.g.
+// `# CatalogScaleEnterpriseSelf-Hosted`).
+function rehypeStripTierBadges() {
+  const isTierBadge = (node) =>
+    node.tagName === 'div' &&
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('TiersList');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isTierBadge(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
 // Docs origin and base path (also used for url/baseUrl in module.exports below).
 const SITE_URL = 'https://www.okteto.com';
 const BASE_URL = '/docs/';
@@ -408,7 +428,7 @@ module.exports = {
           includeVersionedDocs: false,
           enableMarkdownFiles: true,
           enableLlmsFullTxt: true,
-          beforeDefaultRehypePlugins: [rehypeStripHashLinks],
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripTierBadges],
           remarkPlugins: [remarkLlmsIndexPointer],
         },
       },
