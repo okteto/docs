@@ -21,6 +21,26 @@ function rehypeStripHashLinks() {
   return (tree) => walk(tree);
 }
 
+// Strip tier badges (the TiersList component, rendered as
+// `<div class="TiersList"><span class="Tier">…</span></div>`) from the
+// Markdown twins. They sit inside heading HTML, so without this the badge
+// labels concatenate into the heading text (e.g.
+// `# CatalogScaleEnterpriseSelf-Hosted`).
+function rehypeStripTierBadges() {
+  const isTierBadge = (node) =>
+    node.tagName === 'div' &&
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('TiersList');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isTierBadge(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
 // Strip the AgentActions control (the "Copy page / Open in agent" split
 // button) from the Markdown twins — it's page chrome, not content. Same
 // dependency-free hast walk as rehypeStripHashLinks above.
@@ -425,7 +445,7 @@ module.exports = {
           includeVersionedDocs: false,
           enableMarkdownFiles: true,
           enableLlmsFullTxt: true,
-          beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripAgentActions],
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripTierBadges, rehypeStripAgentActions],
           remarkPlugins: [remarkLlmsIndexPointer],
         },
       },
