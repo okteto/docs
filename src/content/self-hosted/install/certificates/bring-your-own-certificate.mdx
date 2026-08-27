@@ -69,3 +69,20 @@ ingress-nginx:
 
 Finally, [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
 We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+
+## Injecting the CA into cluster nodes
+
+When you enable `privateCA`, the [Okteto daemonset](self-hosted/helm-configuration.mdx#daemonset) injects the CA into each node's trust store by default, so the kubelet can pull images from Okteto Registry. For `containerd` to trust the newly injected CA, the daemonset restarts it on the node, which interrupts any ongoing image pulls and any containers already running there, causing transient errors or restarts in those operations.
+
+To avoid these interruptions, set [`daemonset.injectCA.enabled`](self-hosted/helm-configuration.mdx#daemonset) to `false` so the daemonset no longer touches the nodes' trust store. With injection disabled, you are responsible for adding the CA to every node's trust store yourself. If a node doesn't trust the CA, pulls from Okteto Registry fail with a certificate verification error.
+
+Each cloud provider offers its own mechanism to inject a CA into node trust stores:
+
+- **Google Kubernetes Engine (GKE)**: [Access private registries with private CA certificates](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/access-private-registries-private-certificates).
+- **Azure Kubernetes Service (AKS)**: [Custom certificate authority](https://learn.microsoft.com/en-us/azure/aks/custom-certificate-authority).
+- **Amazon Elastic Kubernetes Service (EKS)**, depending on how you manage nodes:
+  - With Karpenter, through the node class [`spec.userData`](https://karpenter.sh/docs/concepts/nodeclasses/#specuserdata).
+  - With a managed cluster configuration, following [Use private certificates to enable a container repository in Amazon EKS](https://aws.amazon.com/blogs/containers/use-private-certificates-to-enable-a-container-repository-in-amazon-eks/).
+  - On Bottlerocket nodes, through the [PKI settings](https://bottlerocket.dev/en/os/1.64.x/api/settings/pki/).
+
+Alternatively, on any provider you can configure `containerd` to trust the CA for a specific registry with a [`hosts.toml` file](https://github.com/containerd/containerd/blob/main/docs/hosts.md) under `/etc/containerd/certs.d/`, instead of adding the CA to the node's system trust store. In this case you still place the CA certificate on the node, at the path the `hosts.toml` `ca` field references.
