@@ -76,12 +76,12 @@ When you enable `privateCA`, the [Okteto daemonset](self-hosted/helm-configurati
 
 To avoid these interruptions, set [`daemonset.injectCA.enabled`](self-hosted/helm-configuration.mdx#daemonset) to `false` so the daemonset no longer touches the nodes' trust store. With injection disabled, you are responsible for adding the CA to every node's trust store yourself. If a node doesn't trust the CA, pulls from Okteto Registry fail with a certificate verification error.
 
-Each cloud provider offers its own mechanism to inject a CA into node trust stores:
+Each cloud provider offers its own mechanism to place a CA in the nodes' trust store. Whichever you use, the CA must be installed on every node and `containerd` restarted so it picks up the new CA:
 
 - **Google Kubernetes Engine (GKE)**: [Access private registries with private CA certificates](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/access-private-registries-private-certificates).
 - **Azure Kubernetes Service (AKS)**: [Custom certificate authority](https://learn.microsoft.com/en-us/azure/aks/custom-certificate-authority).
 - **Amazon Elastic Kubernetes Service (EKS)**, depending on how you manage nodes:
-  - With Karpenter, through the node class [`spec.userData`](https://karpenter.sh/docs/concepts/nodeclasses/#specuserdata).
+  - With Karpenter, by supplying a node bootstrap script through [`spec.userData`](https://karpenter.sh/docs/concepts/nodeclasses/#specuserdata) that installs the CA and restarts `containerd`.
   - With a managed cluster configuration, following [Use private certificates to enable a container repository in Amazon EKS](https://aws.amazon.com/blogs/containers/use-private-certificates-to-enable-a-container-repository-in-amazon-eks/).
   - On Bottlerocket nodes, through the [PKI settings](https://bottlerocket.dev/en/os/1.64.x/api/settings/pki/).
 
