@@ -85,4 +85,6 @@ Each cloud provider offers its own mechanism to place a CA in the nodes' trust s
   - With a managed cluster configuration, following [Use private certificates to enable a container repository in Amazon EKS](https://aws.amazon.com/blogs/containers/use-private-certificates-to-enable-a-container-repository-in-amazon-eks/).
   - On Bottlerocket nodes, through the [PKI settings](https://bottlerocket.dev/en/os/1.64.x/api/settings/pki/).
 
+Because these mechanisms inject the CA as the node is provisioned, the `containerd` restart happens before the node is ready and before any pod runs on it. This avoids the interruptions the daemonset causes when it restarts `containerd` on nodes that already run workloads.
+
 Alternatively, on any provider you can configure `containerd` to trust the CA for a specific registry with a [`hosts.toml` file](https://github.com/containerd/containerd/blob/main/docs/hosts.md) under `/etc/containerd/certs.d/`, instead of adding the CA to the node's system trust store. In this case you still place the CA certificate on the node, at the path the `hosts.toml` `ca` field references.
