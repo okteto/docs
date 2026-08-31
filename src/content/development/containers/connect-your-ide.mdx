@@ -1,0 +1,93 @@
+---
+title: Connect your local IDE to a Development Container
+description: Open a running Okteto Development Container in VS Code or a JetBrains IDE over the SSH connection that okteto up creates.
+sidebar_label: Connect your IDE
+id: connect-your-ide
+---
+
+`okteto up` starts an SSH server inside your Development Container and forwards a local port to it, so you can open the remote container directly in a local IDE such as VS Code or a JetBrains IDE. Your editor runs against the code, runtime, and dependencies inside the container, while the interface stays on your machine.
+
+This differs from [File Sync](development/containers/file-sync/index.mdx), where you edit files locally and Okteto synchronizes them to the container. When you connect your IDE over SSH, the editor reads and writes files inside the container, and the language tooling — autocomplete, go-to-definition, integrated terminal, and debugger — runs against the container's environment.
+
+## Prerequisites
+
+- The [Okteto CLI installed and configured](get-started/install-okteto-cli.mdx) with your Okteto instance.
+- An [Okteto Manifest](reference/okteto-manifest.mdx) with a [`dev` section](reference/okteto-manifest.mdx#dev-object-optional). If you don't have one yet, follow the [getting started guide](/docs/tutorials/getting-started-with-okteto).
+- One of the following editors:
+  - VS Code with the [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh).
+  - A JetBrains IDE with [JetBrains Gateway](https://www.jetbrains.com/remote-development/gateway/).
+
+## Starting the Development Container
+
+Activate your Development Container from the root of your repository:
+
+```bash
+$ okteto up
+```
+
+When the container is ready, `okteto up` configures the SSH connection for you:
+
+- It injects an SSH server into your Development Container.
+- It forwards a local port to port `22` of the container.
+- It adds a host entry to your local `~/.ssh/config` file, named after your Development Container:
+
+```
+Host my-dev-container.okteto
+  HostName localhost
+  Port 22100
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+```
+
+Okteto generates an SSH key pair at `$HOME/.okteto/id_rsa_okteto` the first time you run `okteto up` and configures the SSH server to use it for authentication, so you don't need to manage credentials yourself.
+
+Confirm the connection works before opening your IDE:
+
+```bash
+$ ssh my-dev-container.okteto
+```
+
+Replace `my-dev-container` with the name of your Development Container. Keep `okteto up` running while you develop — the SSH connection is only available while the Development Container is active.
+
+:::note
+Okteto assigns the local SSH port at random by default. To pin it to a fixed value, set the [`remote` field](reference/okteto-manifest.mdx#remote-integer-optional) in your Okteto Manifest or run `okteto up --remote=2222`. A fixed port keeps the `~/.ssh/config` entry stable across sessions.
+:::
+
+## Connecting VS Code
+
+1. Open the Command Palette with `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Linux and Windows).
+2. Select **Remote-SSH: Connect to Host**.
+3. Select the `my-dev-container.okteto` host from the list. VS Code reads it from your `~/.ssh/config`.
+4. Wait for VS Code to install its remote server inside the container. When the green indicator in the bottom-left corner shows **SSH: my-dev-container.okteto**, you're connected.
+5. Select **File → Open Folder** and open your application's working directory inside the container, for example `/usr/src/app`.
+
+The integrated terminal, extensions, and debugger now run inside the Development Container.
+
+## Connecting JetBrains IDEs
+
+1. Open **JetBrains Gateway**.
+2. Select **Connect via SSH**.
+3. Create a new connection using the values from your `~/.ssh/config` entry: host `localhost`, the forwarded port (for example `22100`), and your username. Point the key to `$HOME/.okteto/id_rsa_okteto`.
+4. Select the IDE to install on the remote host and the project directory inside the container.
+5. Select **Download and Start IDE**. Gateway installs the backend in the container and opens a local client connected to it.
+
+## Verifying the connection
+
+Open a terminal inside your IDE and confirm it runs in the container:
+
+```bash
+$ hostname
+my-dev-container-okteto-0
+```
+
+The hostname matches your Development Container rather than your local machine. Files you edit and commands you run now execute inside the container.
+
+## Troubleshooting
+
+**The host doesn't appear in your IDE.** The `~/.ssh/config` entry exists only while `okteto up` is running. Confirm the Development Container is active and rerun `okteto up` if the session ended.
+
+**The forwarded port changed.** Okteto assigns a random port unless you pin it. Set the [`remote` field](reference/okteto-manifest.mdx#remote-integer-optional) in your Okteto Manifest to keep the port and the `~/.ssh/config` entry stable.
+
+**Authentication fails.** Delete the `$HOME/.okteto/id_rsa_okteto` and `$HOME/.okteto/id_rsa_okteto.pub` files and rerun `okteto up` to regenerate the key pair.
+
+For details on how the connection works, see the [SSH Server reference](reference/ssh-server.mdx).
