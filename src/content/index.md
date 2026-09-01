@@ -64,6 +64,7 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 
 ## Getting started
 
+- 🤖 [Set up environments for AI agents](agentic/index.mdx) — install the Okteto plugin so your coding agent can deploy, test, and debug against real services.
 - 👩‍💻 [Deploy your first Development Environment](get-started/dev-quickstart.mdx) — start here if your platform team already runs Okteto.
 - 🚀 [Follow the installation guide](get-started/install/index.mdx) — install the Okteto Platform in your own Kubernetes cluster.
 - 🗓️ [Book a demo with our team](https://okteto.com/schedule/)
