@@ -16,7 +16,7 @@ These docs explain how to install Okteto, run agent and development environments
 ### Control, Governance, and Self-service access
 Enable your developers to easily access secure and reproducible ephemeral environments. Okteto abstracts the complexity of Kubernetes, providing developers with a straightforward path from code to deployment, all within the cloud. This means no more wrestling with local setup or inconsistencies between environments.
 
-![Platform team using Okteto diagram](../../static/img/platform-team-diagram.jpg)
+![Diagram showing developers reaching self-service ephemeral environments in Okteto, while the platform team retains control over the underlying Kubernetes infrastructure](../../static/img/platform-team-diagram.jpg)
 
 ### Real environments for agents and developers
 With Okteto, every development environment is a one-click experience for everyone on the team, human or agent. Code Sync and Live Updates reflect your code changes in your cloud environment as soon as you save, so you test and iterate without rebuilds or redeployments. Agents get the same isolated, production-like environments through the Okteto CLI, so what runs for an agent runs the same for a developer and in production.
@@ -26,7 +26,7 @@ With Okteto, every development environment is a one-click experience for everyon
 ### Okteto Manifest simplifies environment automation
 Utilize the [Okteto Manifest](core/okteto-manifest.mdx) to define and configure your development environments declaratively. This ensures consistent, reproducible environments across your team, tailored to your projects' needs. Use the [Okteto Catalog](development/deploy/deploy-from-catalog.mdx) to create a collection of ready-to-use development environments for your development team.
 
-![Platform team using Okteto diagram](../../static/img/manifest.jpg)
+![Diagram showing the Okteto Manifest's build, deploy, dev, and test sections generating ephemeral environments for the Dev, Preview, Test, and QA stages](../../static/img/manifest.jpg)
 
 ## Key features
 
