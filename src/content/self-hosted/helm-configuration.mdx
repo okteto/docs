@@ -346,6 +346,7 @@ The daemonset automatically configures every node of your cluster to work better
 - `extraEnv`: Environment variables to be set on the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
 - `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `false`. It's disabled if `regcredsManager.pullSecrets.enabled=true`.
+- `injectCA.enabled`: Controls whether the daemonset installs the CA into each node's trust store, so the kubelet can pull images from the Okteto Registry when you use a private CA or a self-signed certificate. It defaults to `true`. Set it to `false` only if you add the CA to your nodes' trust store through your own mechanism; otherwise, image pulls from the Okteto Registry fail with a certificate verification error. Disabling it only affects the daemonset: the other daemonset tasks still run, and the Okteto components keep mounting the CA. This setting has no effect when neither `wildcardCertificate.privateCA.enabled` nor `wildcardCertificate.create` is set.
 - `priorityClassName`: The priority class to be used by the daemonset pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 
 The daemonset performs the following tasks on each node:
@@ -353,8 +354,8 @@ The daemonset performs the following tasks on each node:
 - [Overrides](self-hosted/helm-configuration.mdx#overrideregistryresolution) the Okteto Registry hostname resolution to use internal IPs.
 - [Overrides](self-hosted/helm-configuration.mdx#overridefilewatchers) the default kernel values for file watchers on every node.
 - Configures the kubelet with registry credentials for [private registries](self-hosted/helm-configuration.mdx#daemonset) (if `configurePrivateRegistriesInNodes.enabled=true` and `regcredsManager.pullSecrets.enabled=false`).
-- Installs your CA if `wildcardCertificate.privateCA` is enabled.
-- Installs a CA if using self-signed certificates (`wildcardCertificate.create: true`).
+- Installs your private CA into each node's trust store if provided (`wildcardCertificate.privateCA: true`). Setting `injectCA.enabled: false` disables this task.
+- Installs the Okteto-generated CA into each node's trust store when using self-signed certificates (`wildcardCertificate.create: true`). Setting `injectCA.enabled: false` disables this task.
 
 You can restrict the nodes where the daemonset is deployed using `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
 
