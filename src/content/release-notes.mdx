@@ -19,14 +19,10 @@ Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://g
 - **Legacy tolerations settings deprecated**: The `tolerations.oktetoPool`, `tolerations.devPool`, and `tolerations.buildPool` Helm settings are deprecated and will be removed in Okteto Chart 2.0. The chart has printed a warning when they are set since 1.21; the deprecation is now also documented in `values.yaml` and in the [Helm configuration reference](self-hosted/helm-configuration.mdx#tolerations). Use `globals.tolerations` and `globals.nodeSelectors` for the Okteto and dev pools, and `buildkit.tolerations` and `buildkit.nodeSelectors` for the build pool, following the [migration guide](https://community.okteto.com/t/important-update-migrating-to-new-implementation-of-okteto-pod-tolerations-and-node-selectors/1281) <!-- app#10367, docs#1329 -->
 - **Removed chart settings**: The `oktetoAI` and `prepullImages.includeAgent` settings have been removed from the Okteto Chart and are ignored if still present in your values. You can safely delete them <!-- DEV-1451, DEV-1450, app#10325, app#10352 · deliberately minimal: not announced elsewhere -->
 
-### New Features {#new-features-1.48}
-
-- **Opt out of private CA injection into cluster nodes**: The new [`daemonset.injectCA.enabled`](self-hosted/helm-configuration.mdx#daemonset) Helm setting (default `true`) controls whether the Okteto daemon writes your private CA into each node's trust store so the kubelet can pull images from a registry signed by it. Set it to `false` if you manage node trust yourself and want to drop the daemon's writable `hostPath` mount of `/etc` on every node. The rest of the daemon's tasks, and CA trust in the other Okteto components, are unaffected <!-- app#10368, docs#1337 (open; switch to the section anchor once it merges) · TODO: confirm with Nacho that this ships as a supported setting — the PR is labeled release/internal -->
-
 ### Improvements {#improvements-1.48}
 
 - **PKCS#8 private keys for the wildcard certificate**: The Okteto API and the registry garbage-collection job now accept PKCS#8 private keys (`BEGIN PRIVATE KEY`) for the [wildcard certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx), in addition to PKCS#1 RSA and SEC1 EC keys. Previously, a PKCS#8 key, the format most modern tooling emits, made the API fail at startup with `couldn't find a valid cert`, even though every other component accepted it <!-- app#10381, backported to release-1.48 via app#10387 -->
-- Upgraded the bundled ingress-nginx to address [CVE-2026-42533](https://github.com/okteto/app/pull/10364), a heap buffer overflow in the NGINX map/regex script engine, and [CVE-2026-52747](https://github.com/okteto/app/pull/10371) in ModSecurity <!-- PLAT-1570, 10364, 10371 -->
+- Upgraded the bundled ingress-nginx to address [CVE-2026-42533](https://github.com/okteto/app/pull/10364), a high-severity heap buffer overflow in the NGINX controller <!-- PLAT-1570, 10364, 10371 -->
 
 ### Bug Fixes {#bug-fixes-1.48}
 
@@ -34,7 +30,6 @@ Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://g
 - Fixed the **Redeploy** button in the resources sidebar being enabled for resources that can't be redeployed, such as resources being destroyed or requiring a force destroy. The sidebar now hides the button in those states, matching the resource details view <!-- DEV-1452, 10365 -->
 - Fixed long repository URLs not truncating in the Redeploy dialog, which broke the dialog layout <!-- DEV-1453, 10362 -->
 - [Okteto CLI 3.23.0](https://github.com/okteto/okteto/releases/tag/3.23.0): Fixed `okteto up` failing to establish the local SSH tunnel on macOS, most often with a VPN connected, with `ssh: handshake failed ... write: broken pipe`. The CLI dialed an empty-host address (`:PORT`), which macOS routed unreliably. Both sync and hybrid modes were affected <!-- okteto/okteto#5114, okteto/okteto#5115 -->
-- [Okteto CLI 3.23.0](https://github.com/okteto/okteto/releases/tag/3.23.0): Fixed [`x-enable-service-links`](reference/docker-compose.mdx#x-enable-service-links-boolean-optional) being dropped when the same service is defined across multiple Docker Compose files. The field set in an override file is now preserved when the files are merged <!-- DEV-1449, okteto/okteto#5097 · merged 2026-07-27 but NOT in the 3.22.0 tag (no backport twin found), so the 1.47 notes' source comment cites it early — TODO: confirm with Nacho before publishing -->
 
 ## 1.47.0
 
