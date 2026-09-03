@@ -68,7 +68,7 @@ namespace:
 
 Apply the changes:
 
-```console
+```bash
 helm upgrade okteto okteto/okteto -f values.yaml
 ```
 
@@ -83,7 +83,7 @@ If your cluster already has Istio base CRDs, Istiod, and an ingress gateway runn
 
 ### Step 1: Add the Istio Helm Repository
 
-```console
+```bash
 helm repo add istio https://istio-release.storage.googleapis.com/charts
 helm repo update
 ```
@@ -92,19 +92,19 @@ helm repo update
 
 Export the `OKTETO_DOMAIN` environment variable with the `subdomain` Helm value of your Okteto instance:
 
-```console
+```bash
 export OKTETO_DOMAIN=okteto.example.com
 ```
 
 ### Step 3: Install Istio Base (CRDs)
 
-```console
+```bash
 helm install --namespace istio-system --create-namespace istio-base istio/base --wait
 ```
 
 ### Step 4: Prepare the Istio Ingress Namespace
 
-```console
+```bash
 kubectl create namespace istio-ingress
 kubectl label namespace istio-ingress istio-injection=enabled
 ```
@@ -136,7 +136,7 @@ istio_cni:
 
 Install istiod:
 
-```console
+```bash
 helm install --namespace istio-system istiod istio/istiod --values istiod-helm-values.yaml --wait
 ```
 
@@ -167,7 +167,7 @@ autoscaling:
 
 Install the gateway:
 
-```console
+```bash
 helm install --namespace istio-ingress istio-ingress istio/gateway --values istio-ingress-helm-values.yaml --wait
 ```
 
@@ -209,7 +209,7 @@ The `backend.service.name` must point to the Kubernetes Service fronting your Is
 
 Apply the configuration (using `envsubst` to substitute your domain):
 
-```console
+```bash
 envsubst < istio-ingress-config.yaml | kubectl apply -n istio-ingress -f -
 ```
 
@@ -217,7 +217,7 @@ envsubst < istio-ingress-config.yaml | kubectl apply -n istio-ingress -f -
 
 Check that all Istio components are running:
 
-```console
+```bash
 kubectl get pods -n istio-system
 kubectl get pods -n istio-ingress
 ```
@@ -299,27 +299,27 @@ For complete network policy options, see the [Helm Configuration reference](../.
 ### Sidecar Not Injected
 
 1. Verify the namespace has the Istio injection label:
-   ```console
+```bash
    kubectl get namespace <namespace> --show-labels
-   ```
+```
 
 2. Restart deployments to inject sidecars:
-   ```console
+```bash
    kubectl rollout restart deployment -n <namespace>
-   ```
+```
 
 3. Verify sidecar containers are present:
-   ```console
+```bash
    kubectl get pods -n <namespace> -o jsonpath='{.items[*].spec.containers[*].name}'
-   ```
+```
 
 ### VirtualServices Not Created
 
 1. Verify `virtualServices.enabled: true` in your Okteto Helm values
 2. Check that Istio CRDs are installed:
-   ```console
+```bash
    kubectl get crd | grep istio
-   ```
+```
 3. Check Okteto logs for errors related to VirtualService creation
 
 ### Traffic Not Routing Correctly
@@ -327,20 +327,20 @@ For complete network policy options, see the [Helm Configuration reference](../.
 1. Verify the baggage header format: `baggage: okteto-divert=<namespace>`
 2. Check that the developer's `okteto.yml` uses `driver: istio`
 3. Test direct service communication:
-   ```console
+```bash
    kubectl exec -it <pod> -- curl -H "baggage: okteto-divert=<ns>" http://service/path
-   ```
+```
 4. Check Istio proxy logs:
-   ```console
+```bash
    kubectl logs <pod> -c istio-proxy -n <namespace>
-   ```
+```
 
 ### Ingress Not Working
 
 1. Verify the `istio-ingress-config.yaml` was applied correctly:
-   ```console
+```bash
    kubectl get ingress -n istio-ingress
-   ```
+```
 2. Confirm `OKTETO_DOMAIN` was substituted correctly in the ingress manifest
 3. Check that `okteto-nginx` is disabled in your Okteto Helm values
 
@@ -378,7 +378,7 @@ When disabling Okteto's nginx controllers, the following features are **not avai
 
 If you need to remove Istio:
 
-```console
+```bash
 # Remove ingress configuration
 kubectl delete ingress istio-ingress -n istio-ingress
 
@@ -407,7 +407,7 @@ namespace:
 
 Then upgrade Okteto:
 
-```console
+```bash
 helm upgrade okteto okteto/okteto -f values.yaml
 ```
 
