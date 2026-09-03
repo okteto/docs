@@ -49,7 +49,7 @@ This pre-installs the marketplace and the plugin for every developer and keeps b
 
 ## Installing in other agents
 
-The skills are built on the open [Agent Skills](https://agentskills.io) format, so the same `okteto` and `okteto-onboarding` skills run in Cursor, OpenAI Codex, GitHub Copilot, Gemini CLI, and other compatible agents. Install them with the [`skills` CLI](https://github.com/vercel-labs/skills), which detects your agent and installs into it:
+The skills use the open [Agent Skills](https://agentskills.io) format, so the same `okteto`, `okteto-onboarding`, `okteto-debugging`, and `okteto-preview` skills run in Cursor, OpenAI Codex, GitHub Copilot, Gemini CLI, and other compatible agents. Install them with the [`skills` CLI](https://github.com/vercel-labs/skills), which detects your agent and installs into it:
 
 ```bash
 npx skills add okteto/okteto-agent-skills
@@ -57,17 +57,20 @@ npx skills add okteto/okteto-agent-skills
 
 Agents that read a plain instruction file can use the tool-neutral `AGENTS.md` (or, for GitHub Copilot, `.github/copilot-instructions.md`) from the [plugin repository](https://github.com/okteto/okteto-agent-skills) instead. These load the full guidance on every turn rather than on demand.
 
-The `/dev-setup` command ships only with the Claude Code plugin. Every other method carries the two skills.
+The `/dev-setup` and `/debug-env` commands ship only with the Claude Code plugin. Every other method carries the four skills.
 
 ## Skills and commands
 
-The plugin installs two skills and one slash command:
+The plugin installs four skills and two slash commands:
 
 | | What it does | When it activates |
 |---|---|---|
 | `okteto` skill | Teaches the agent the Okteto CLI: deploying with `okteto deploy`, building with `okteto build`, running tests with `okteto test`, reading services from `okteto.yaml`, and the commands it must never run (like `okteto up`). | The project has an `okteto.yaml`, or you mention Okteto. |
 | `okteto-onboarding` skill | Discovers your services from Docker Compose files, Helm charts, Kubernetes manifests, or Dockerfiles; drafts an `okteto.yaml`; and validates it with `okteto validate`, `okteto build`, and `okteto deploy`. | The project has no `okteto.yaml` and you ask to set it up for Okteto. |
+| `okteto-debugging` skill | Triages a broken environment with a playbook per failure mode: `CrashLoopBackOff`, `OOMKilled`, `ImagePullBackOff`, `Pending`, runtime errors, deploy failures, and file sync issues. Diagnostics are read-only. | You describe an unhealthy service, or paste output showing one. |
+| `okteto-preview` skill | Deploys a Preview Environment for a branch or pull request with `okteto preview deploy`, captures its endpoints, and posts the URL back. Also covers wiring previews into GitHub Actions or GitLab CI/CD. | You ask for a shareable environment or URL for a branch or pull request. |
 | `/dev-setup` command | Validates the manifest, runs `okteto deploy --wait`, prints the environment URLs, and guides you into a dev session on the service you pick. | You run it. |
+| `/debug-env` command | Runs a read-only health sweep of the environment and reports a root cause and fix for each unhealthy service. Pass a service name to scope it to one. | You run it. |
 
 ## Skill activation
 
@@ -114,6 +117,7 @@ In both modes the agent follows the same [command rules](agentic/best-practices.
 
 ## Next steps
 
+- [Getting started with AI coding agents](/docs/tutorials/ai-coding-agents) — a hands-on walkthrough on the Movies sample application
 - [Collaborative Workflows](agentic/collaborative-workflows.mdx) — work alongside your agent
 - [Autonomous Workflows](agentic/autonomous-workflows.mdx) — let the agent handle it end to end
 - [Best Practices](agentic/best-practices.mdx) — command rules, common pitfalls, and troubleshooting
