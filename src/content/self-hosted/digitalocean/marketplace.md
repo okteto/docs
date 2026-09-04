@@ -11,13 +11,13 @@ After you have downloaded your `kubeconfig` file and can successfully connect to
 
 The first step is to get your admin token. Run the following command in a terminal shell to retrieve it:
 
-```console
+```bash
 kubectl get sa -n=okteto do-okteto -ojsonpath='{.metadata.labels.dev\.okteto\.com/token}'
 ```
 
 Second, start a port-forward to the ingress service by running the command below:
 
-```console
+```bash
 kubectl port-forward service/do-ingress-nginx-controller 8443:443 --namespace okteto
 ```
 
@@ -42,7 +42,7 @@ Your Okteto instance is now fully configured. It will be available via https://o
 
 Run the following command in a terminal shell to get the External IP address of the Load Balancer.
 
-```console
+```bash
 kubectl get svc -n=okteto -l="app=nginx-ingress,component=controller"
 ```
 
