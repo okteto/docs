@@ -152,6 +152,17 @@ depends_on:
   - initialization-svc
 ```
 
+Okteto checks these conditions every second while `okteto deploy` runs, and it doesn't create the dependent service until all of them are met. The wait is bounded by the deploy timeout, which defaults to 5 minutes. You can change it with the `--timeout` flag of [`okteto deploy`](reference/okteto-cli.mdx#deploy) or the `OKTETO_TIMEOUT` environment variable. This wait applies even if you don't pass `--wait`.
+
+:::info
+If a dependency never meets its condition, the deploy fails instead of waiting forever:
+
+- **Timeout**: when the timeout expires, `okteto deploy` exits with `compose '<name>' didn't finish after 5m0s`.
+- **Failed job**: if a `service_completed_successfully` dependency runs out of retries and its Job is marked as failed, the deploy fails immediately with `service '<service>' dependency '<dependency>' failed`.
+- **Failed healthcheck**: if a `service_healthy` dependency fails a liveness probe (`x-okteto-liveness: true`), the deploy fails immediately with `service '<service>' cannot be deployed because dependent service '<dependency>' is failing its healthcheck probes`. A failing readiness probe only prints a warning, and Okteto keeps waiting until the timeout.
+- **Crash loop**: if a dependency's container restarts 3 times during the deploy (or the number set in `deploy.restart_policy.max_attempts`), the deploy fails with `service '<dependency>' has been restarted N times within this deploy`.
+:::
+
 :::info
 💡 To enforce `depends_on` ordering during environment wake-up, enable the [`OKTETO_COMPOSE_DEPENDS_ON_ENABLED` feature flag](reference/feature-flags.mdx).
 :::
