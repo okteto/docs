@@ -7,6 +7,31 @@ id: release-notes
 
 import Image from '@theme/Image';
 
+## 1.48.0
+
+4 September 2026 <!-- TODO: confirm the exact release date at cut (Notion target: 2026-09-04) -->
+
+This version is compatible with Kubernetes versions 1.33 to 1.35 \
+Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://github.com/okteto/okteto/releases/tag/3.23.0) <!-- TODO: 3.23.0 final is not tagged yet (latest is 3.23.0-beta.1, 2026-08-28); re-run relo against the final tag before publishing -->
+
+### Important Notes {#important-notes-1.48}
+
+- **Legacy tolerations settings deprecated**: The `tolerations.oktetoPool`, `tolerations.devPool`, and `tolerations.buildPool` Helm settings are deprecated and will be removed in Okteto Chart 2.0. The chart has printed a warning when they are set since 1.21; the deprecation is now also documented in `values.yaml` and in the [Helm configuration reference](self-hosted/helm-configuration.mdx#tolerations). Use `globals.tolerations` and `globals.nodeSelectors` for the Okteto and dev pools, and `buildkit.tolerations` and `buildkit.nodeSelectors` for the build pool, following the [migration guide](https://community.okteto.com/t/important-update-migrating-to-new-implementation-of-okteto-pod-tolerations-and-node-selectors/1281) <!-- app#10367, docs#1329 -->
+- **Removed chart settings**: The `oktetoAI` and `prepullImages.includeAgent` settings have been removed from the Okteto Chart and are ignored if still present in your values. You can safely delete them <!-- DEV-1451, DEV-1450, app#10325, app#10352 · deliberately minimal: not announced elsewhere -->
+
+### Improvements {#improvements-1.48}
+
+- **PKCS#8 private keys for the wildcard certificate**: The Okteto API and the registry garbage-collection job now accept PKCS#8 private keys (`BEGIN PRIVATE KEY`) for the [wildcard certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx), in addition to PKCS#1 RSA and SEC1 EC keys. Previously, a PKCS#8 key, the format most modern tooling emits, made the API fail at startup with `couldn't find a valid cert`, even though every other component accepted it <!-- app#10381, backported to release-1.48 via app#10387 -->
+- Upgraded the bundled ingress-nginx to address [CVE-2026-42533](https://github.com/okteto/app/pull/10364), a high-severity heap buffer overflow in the NGINX controller <!-- PLAT-1570, 10364, 10371 -->
+
+### Bug Fixes {#bug-fixes-1.48}
+
+- Fixed BuildKit pods being marked ready while still loading their build cache, which could route builds to an instance that couldn't serve them yet. The readiness probe now waits until the daemon accepts builds; its thresholds can be tuned under [`buildkit.readinessProbe`](self-hosted/helm-configuration.mdx#buildkit) <!-- DEV-1466, 10389, backported to release-1.48 via 10390 (chart/1.48.0-rc.4) -->
+- Fixed the resource list in the Namespace view hanging indefinitely when the Okteto Registry accepted connections but never responded. The image ownership check that enriches pull-error messages is now time-bounded and is skipped for images hosted outside the Okteto Registry <!-- 10370 -->
+- Fixed the **Redeploy** button in the resources sidebar being enabled for resources that can't be redeployed, such as resources being destroyed or requiring a force destroy. The sidebar now hides the button in those states, matching the resource details view <!-- DEV-1452, 10365 -->
+- Fixed long repository URLs not truncating in the Redeploy dialog, which broke the dialog layout <!-- DEV-1453, 10362 -->
+- [Okteto CLI 3.23.0](https://github.com/okteto/okteto/releases/tag/3.23.0): Fixed `okteto up` failing to establish the local SSH tunnel on macOS, most often with a VPN connected, with `ssh: handshake failed ... write: broken pipe`. The CLI dialed an empty-host address (`:PORT`), which macOS routed unreliably. Both sync and hybrid modes were affected <!-- okteto/okteto#5114, okteto/okteto#5115 -->
+
 ## 1.47.0
 
 6 August 2026
