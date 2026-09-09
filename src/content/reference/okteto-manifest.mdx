@@ -635,6 +635,7 @@ If Okteto can't forward a port (typically because they are already taken), the `
 #### initContainer (object, optional)
 
 Allows you to override the okteto init container configuration of your development container.
+The security context of the init containers is configured with the [securityContext](#securitycontext-object-optional) field.
 
 ```yaml
 initContainer:
@@ -860,6 +861,8 @@ Allows you to override the pod security context of your development container.
 
 Okteto supports overriding the `fsGroup`, `runAsUser`, `runAsGroup`, `runAsNonRoot`, `allowPrivilegeEscalation`, `readOnlyRootFilesystem` and `capabilities` values.
 They're not set by default, and they follow the [same syntax used in Kubernetes](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+
+The container-level values (`runAsUser`, `runAsGroup`, `runAsNonRoot`, `allowPrivilegeEscalation`, `readOnlyRootFilesystem` and `capabilities`) are also applied to the init containers that `okteto up` adds to your pod (`okteto-bin` and `okteto-init-volume`). These init containers don't inherit the security context of the containers in your original Kubernetes manifest, so if your cluster enforces a pod security policy (for example, with Kyverno or Pod Security Admission), set the values the policy requires in this section. Setting `seccompProfile` is not supported.
 
 ```yaml
 securityContext:
