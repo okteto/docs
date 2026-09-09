@@ -1,0 +1,148 @@
+---
+title: Preview environments using GitLab CI/CD
+description: Configure GitLab CI/CD to automatically create Preview Environments for your application using Okteto.
+sidebar_label: Using GitLab CI/CD
+id: using-gitlab-cicd
+---
+
+import Image from "@theme/Image";
+
+Okteto integrates with GitLab review apps to automatically create a Preview Environment for your applications on every merge request.
+
+## Prerequisites
+
+- An Okteto account
+- A [GitLab account](https://gitlab.com)
+
+This tutorial uses the sample [movies rental application](https://gitlab.com/okteto/preview-environments). If you are using your own application, make sure your [Okteto Manifest](reference/okteto-manifest.mdx) is configured.
+
+## Step 1: Configure your Okteto API token
+
+To deploy a Preview Environment with Okteto, you need to define the following environment variables:
+
+1. `OKTETO_TOKEN`: an Okteto [access token](admin/dashboard.mdx#admin-access-tokens)
+1. `OKTETO_CONTEXT`: specify the URL of your Okteto instance (e.g., https://okteto.example.com)
+
+To add the environment variables:
+
+1. Navigate to your GitLab repository.
+1. Go to the **Settings** menu on the left, and click on the **CI/CD** entry:
+   <p align="center">
+     <Image
+       src={require("@site/static/img/gitlab-settings-cicd.jpg").default}
+       alt="GitLab settings, CI/CD"
+     />
+   </p>
+1. Expand the **Variables** section, and click on the **Add Variable** button under the "Project variables" section.
+    :::note
+    The "Protect variable" flag is checked by default, meaning only protected branches can access the variable's value. Uncheck this flag if you want to use the variable across all branches.
+    :::
+
+1. Add `OKTETO_TOKEN` as the key and your access token as the value, then click the **Add Variable** button:
+   <p align="center">
+     <Image
+       src={
+         require("@site/static/img/gitlab-settings-cicd-add-variables-okteto-token.png")
+           .default
+       }
+       alt="update variable with Okteto Token"
+     />
+   </p>
+
+1. Repeat the same process to add the `OKTETO_CONTEXT` variable (optional):
+   <p align="center">
+     <Image
+       src={
+         require("@site/static/img/gitlab-settings-cicd-add-variables-added.png")
+           .default
+       }
+       alt="environment variables added"
+     />
+   </p>
+
+## Step 2: Configure the Preview Environment on the repository
+
+To configure GitLab to deploy your Preview Environment, create a [`.gitlab-ci.yml`](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html) file at the root of the repository.
+
+This file defines two jobs: `review` creates a Preview Environment for every branch, and `stop-review` destroys it when merging or deleting the branch.
+
+The flow to create a Preview Environment looks like this:
+
+1. Create a dedicated Namespace for the Preview Environment
+1. Build and deploy the application using the [Okteto preview](previews/index.mdx) defined in the repository.
+1. Add the URL of the Preview Environment to the Merge Request.
+
+The flow to delete a Preview Environment looks like this:
+
+1. Destroy the application deployed with [Okteto preview](previews/index.mdx)
+
+The `.gitlab-ci.yml` looks like this:
+
+```yaml
+# file: .gitlab-ci.yml
+image: ghcr.io/okteto/okteto:latest
+
+stages:
+  - review
+
+review:
+  stage: review
+  variables:
+    APP: review-$CI_COMMIT_REF_SLUG
+  script:
+    - okteto preview deploy review-$CI_COMMIT_REF_SLUG --branch $CI_COMMIT_REF_NAME --repository $CI_PROJECT_URL
+
+
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://movies-review-$CI_COMMIT_REF_SLUG.okteto.example.com
+    on_stop: stop-review
+  only:
+    - branches
+  except:
+    - master
+
+stop-review:
+  stage: review
+  when: manual
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  script:
+    - okteto preview destroy review-$CI_COMMIT_REF_SLUG
+  variables:
+    GIT_STRATEGY: none
+  only:
+    - branches
+  except:
+    - master
+```
+
+A few recommendations when creating your Preview Environment:
+
+- Create one Preview Environment per branch or merge request to keep things isolated. The example uses `$CI_COMMIT_REF_SLUG` in the name to ensure the Namespace is unique and that only one Preview Environment exists per branch.
+- Pass the URL of your Preview Environment using the `environment.url` key so reviewers can go directly to the Preview Environment from GitLab.
+- Delete both the Preview Environment and the Namespace when the branch is deleted to avoid manual cleanup.
+
+:::tip
+
+See the [Okteto CLI reference](reference/okteto-cli.mdx) for the full list of available commands and flags.
+
+:::
+
+## Step 3: Create a merge request
+
+Once your changes are in your repository, make a small code change and create a new merge request.
+
+After a few seconds, the workflow updates the merge request with the URL of your Preview Environment. Click the **View App** button to access it and see your changes running.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/gitlab-merge-request.png").default}
+    alt="GitLab merge request"
+  />
+</p>
+
+## Step 4: Cleanup
+
+Merging the merge request or deleting the branch automatically triggers the `stop-review` job defined in the `.gitlab-ci.yml` file. The `stop-review` job destroys the Preview Environment automatically.

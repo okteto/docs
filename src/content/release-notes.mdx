@@ -7,6 +7,31 @@ id: release-notes
 
 import Image from '@theme/Image';
 
+## 1.48.0
+
+4 September 2026
+
+This version is compatible with Kubernetes versions 1.33 to 1.35 \
+Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://github.com/okteto/okteto/releases/tag/3.23.0)
+
+### Important Notes {#important-notes-1.48}
+
+- **Legacy tolerations settings deprecated**: The `tolerations.oktetoPool`, `tolerations.devPool`, and `tolerations.buildPool` Helm settings are deprecated and will be removed in Okteto Chart 2.0. The chart has printed a warning when they are set since 1.21; the deprecation is now also documented in `values.yaml` and in the [Helm configuration reference](self-hosted/helm-configuration.mdx#tolerations). Use `globals.tolerations` and `globals.nodeSelectors` for the Okteto and dev pools, and `buildkit.tolerations` and `buildkit.nodeSelectors` for the build pool, following the [migration guide](https://community.okteto.com/t/important-update-migrating-to-new-implementation-of-okteto-pod-tolerations-and-node-selectors/1281) <!-- app#10367, docs#1329 -->
+- **Removed chart settings**: The `oktetoAI` and `prepullImages.includeAgent` settings have been removed from the Okteto Chart and are ignored if still present in your values. You can safely delete them <!-- DEV-1451, DEV-1450, app#10325, app#10352 · deliberately minimal: not announced elsewhere -->
+
+### Improvements {#improvements-1.48}
+
+- **PKCS#8 private keys for the wildcard certificate**: The Okteto API and the registry garbage-collection job now accept PKCS#8 private keys (`BEGIN PRIVATE KEY`) for the [wildcard certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx), in addition to PKCS#1 RSA and SEC1 EC keys. Previously, a PKCS#8 key, the format most modern tooling emits, made the API fail at startup with `couldn't find a valid cert`, even though every other component accepted it <!-- app#10381, backported to release-1.48 via app#10387 -->
+- Upgraded the bundled ingress-nginx to address [CVE-2026-42533](https://github.com/okteto/app/pull/10364), a high-severity heap buffer overflow in the NGINX controller <!-- PLAT-1570, 10364, 10371 -->
+
+### Bug Fixes {#bug-fixes-1.48}
+
+- Fixed BuildKit pods being marked ready while still loading their build cache, which could route builds to an instance that couldn't serve them yet. The readiness probe now waits until the daemon accepts builds; its thresholds can be tuned under [`buildkit.readinessProbe`](self-hosted/helm-configuration.mdx#buildkit) <!-- DEV-1466, 10389, backported to release-1.48 via 10390 (chart/1.48.0-rc.4) -->
+- Fixed the resource list in the Namespace view hanging indefinitely when the Okteto Registry accepted connections but never responded. The image ownership check that enriches pull-error messages is now time-bounded and is skipped for images hosted outside the Okteto Registry <!-- 10370 -->
+- Fixed the **Redeploy** button in the resources sidebar being enabled for resources that can't be redeployed, such as resources being destroyed or requiring a force destroy. The sidebar now hides the button in those states, matching the resource details view <!-- DEV-1452, 10365 -->
+- Fixed long repository URLs not truncating in the Redeploy dialog, which broke the dialog layout <!-- DEV-1453, 10362 -->
+- [Okteto CLI 3.23.0](https://github.com/okteto/okteto/releases/tag/3.23.0): Fixed `okteto up` failing to establish the local SSH tunnel on macOS, most often with a VPN connected, with `ssh: handshake failed ... write: broken pipe`. The CLI dialed an empty-host address (`:PORT`), which macOS routed unreliably. Both sync and hybrid modes were affected <!-- okteto/okteto#5114, okteto/okteto#5115 -->
+
 ## 1.47.0
 
 6 August 2026
@@ -403,72 +428,3 @@ Okteto Chart release 1.37 is designed to work with [Okteto CLI 3.12.x](https://g
 - Fixed an "unable to load agent" error when returning focus to the window <!-- 9703 -->
 - Fixed autoscroll behavior when sending a new prompt in the Agent UI <!-- 9705 -->
 - [Okteto CLI 3.12.0](https://github.com/okteto/okteto/pull/4760): Improved CLI stability by waiting for SSE when streaming logs for pipeline, preview, deploy, and destroy operations
-
-## 1.36.2
-
-12 September 2025
-
-This version is compatible with Kubernetes versions 1.31 to 1.33 \
-Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
-
-### Improvements
-
-- Improve Okteto UI UX by showing "Pulling" status when encountering transient pull QPS exceeded errors
-
-### Bug Fixes
-
-- Fixed an issue with Kubernetes credential configuration in the delete agent job
-- Fixed a UI issue where the list of endpoints in the agent view was not scrollable
-
-## 1.36.1
-
-9 September 2025
-
-This version is compatible with Kubernetes versions 1.31 to 1.33 \
-Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
-
-### Bug Fixes
-- Fixed an issue with streaming Okteto Agent installation logs that was preventing the agent chat from loading
-
-## 1.36.0
-
-5 September 2025
-
-This version is compatible with Kubernetes versions 1.31 to 1.33 \
-Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
-
-### Okteto AI Now Available (Beta)
-Okteto AI brings the power of AI directly into your development workflow, powered by Claude Code from Anthropic. Each agent operates independently in its own Kubernetes namespace with full isolation, giving you the safety and control you need for AI-assisted development.
-
-#### Key Capabilities
-
-- **Intelligent Repository Onboarding**: Agents can quickly understand and work with existing codebases, analyzing project structure, dependencies, and patterns to get up to speed faster than ever
-- **Application Scaffolding**: Generate new services, APIs, and applications from natural language descriptions, complete with best practices and proper project structure
-- **Task Automation**: Automate common development tasks like adding endpoints, refactoring code, updating dependencies, or implementing new features
-- **Real Containerized Environments**: All agents run in production-like Kubernetes environments with access to the same runtime, secrets, and configurations as your actual development setup
-- **Parallel Execution**: Launch multiple agents simultaneously to work on different features or experiments independently
-
-#### For Administrators
-Organization administrators have full control over Okteto AI deployment:
-- Enable the feature for your organization through the Admin Dashboard under Admin > Okteto AI
-- Toggle access per user to control who can launch AI agents in your organization
-- Configure LLM keys - Provide your own Anthropic API key (directly from Anthropic or via Amazon Bedrock)
-
-We're continuously improving Okteto AI based on your feedback. Try it today and let us know how it transforms your development workflow!
-
-### New Features {#new-features-1.36}
-
-- Added a [new Public API endpoint to delete users](admin/okteto-api.mdx)  <!-- 9572 -->
-- Added support for [configuring custom init containers](self-hosted/helm-configuration.mdx#installer) in the installer job  <!-- 9598 -->
-- Pre-pull Okteto images used by jobs to accelerate job start times. This deploys a new [DaemonSet in the cluster that pre-pulls images](self-hosted/helm-configuration.mdx#prepullimages ) onto nodes.  <!-- 9601 -->
-
-### Improvements {#improvements-1.36}
-
-- Installer now retries transient connection issues  <!-- 9608 -->
-- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Added support for overriding the [`readOnlyRootFilesystem`](reference/okteto-manifest.mdx#securitycontext-object-optional) property in the `securityContext` of dev containers defined in the Okteto Manifest
-
-### Bug Fixes {#bug-fixes-1.36}
-
-- Fixed previews layout issue that could hide logs when breadcrumb is visible  <!-- 9588 -->
-- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Fixed a panic when deploying an Okteto manifest with Divert using `okteto up` or `okteto test`
-- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Fixed an issue with the `--wait` flag in `okteto deploy` when deploying a subset of services from a Compose file. The command no longer hangs until timeout
