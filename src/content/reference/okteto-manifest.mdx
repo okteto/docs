@@ -635,6 +635,7 @@ If Okteto can't forward a port (typically because they are already taken), the `
 #### initContainer (object, optional)
 
 Allows you to override the okteto init container configuration of your development container.
+The security context of the init containers is configured with the [securityContext](#securitycontext-object-optional) field.
 
 ```yaml
 initContainer:
@@ -861,6 +862,8 @@ Allows you to override the pod security context of your development container.
 Okteto supports overriding the `fsGroup`, `runAsUser`, `runAsGroup`, `runAsNonRoot`, `allowPrivilegeEscalation`, `readOnlyRootFilesystem` and `capabilities` values.
 They're not set by default, and they follow the [same syntax used in Kubernetes](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
 
+The container-level values (`runAsUser`, `runAsGroup`, `runAsNonRoot`, `allowPrivilegeEscalation`, `readOnlyRootFilesystem` and `capabilities`) are also applied to the init containers that `okteto up` adds to your pod (`okteto-bin` and `okteto-init-volume`). These init containers don't inherit the security context of the containers in your original Kubernetes manifest, so if your cluster enforces a pod security policy (for example, with Kyverno or Pod Security Admission), set the values the policy requires in this section. Setting `seccompProfile` is not supported.
+
 ```yaml
 securityContext:
   runAsUser: 1000
@@ -964,7 +967,7 @@ sync:
 File sync can only update files that can be modified by your development container User ID.
 If you are using Okteto with persistent volumes, remember to set the field [securityContext.runAsUser](#securitycontext-object-optional) if your development container User ID is not `root`.
 
-> You can use [secrets](reference/okteto-manifest.mdx#secrets-string-optional) to synchronize a single file instead of a folder
+> `sync` works on folders. To inject a single file, use [secrets](reference/okteto-manifest.mdx#secrets-string-optional) instead, but note that a secret is only copied when the development container is created and is not kept synchronized afterwards.
 
 There is also an extended `sync` notation to fine tune the file synchronization service:
 
@@ -1022,12 +1025,9 @@ volumes:
   - /root/.cache/go-build/
 ```
 
-You can also mount a relative subpath of your local folder:
-
-```yaml
-volumes:
-  - data:/var/lib/mysql
-```
+:::warning
+The `local:remote` syntax in the `volumes` field is deprecated. Okteto converts these entries into `sync` folders and logs a warning. Use the [`sync`](#sync-string-required) field instead.
+:::
 
 #### workdir (string, optional)
 

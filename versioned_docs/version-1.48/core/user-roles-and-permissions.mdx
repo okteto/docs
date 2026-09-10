@@ -1,0 +1,172 @@
+---
+title: User Roles and Permissions in Okteto
+description: Understand User Roles and Permissions in the Okteto Platform
+sidebar_label: User Roles and Permissions
+id: user-roles-and-permissions
+---
+
+
+The Okteto platform offers a robust Role-Based Access Control (RBAC) system to manage and control access to different environments within the platform.
+This page outlines the roles, permissions, and key features available to Admins and Developers in Okteto.
+
+## User Roles
+
+In Okteto, there are two primary roles: **Admins** and **Developers**.
+
+### Admins
+
+Admins have extensive control and oversight capabilities across the Okteto platform. Key features include:
+
+#### Admin Access to Any Environment
+Admins can perform all operations on any Namespace or Preview Environment, including:
+- Deleting, sharing, waking, sleeping, and marking Namespaces or Preview Environments as persistent
+- Deploying or deleting applications using both Okteto and `kubectl`
+- Accessing all resources and sub-resources within any Development Environment
+- [Transferring Namespace ownership](core/namespaces.mdx#transfer-namespace-ownership) between developers
+- Fine tuning Developer access to Namespaces and Preview Environments by configuring [the `serviceAccounts` section within the Okteto Helm configuration](self-hosted/helm-configuration.mdx#serviceaccounts).
+
+
+**Benefits**: This level of access allows admins to manage and troubleshoot environments, even if the original owner is unavailable.
+
+#### Access to the Okteto Admin Dashboard
+Admins can manage their instance through the [Okteto Admin Dashboard](admin/dashboard.mdx), including:
+- [Managing all users](admin/dashboard.mdx#users) within their Okteto instance
+- Having an overview of [Kubernetes Node utilization](admin/dashboard.mdx#nodes)
+- Seeing and managing all [Namespaces and Preview Environments](admin/dashboard.mdx#namespaces) within their Okteto instance
+- Setting cluster-wide variables in the [Admin Variables section](admin/dashboard.mdx#admin-variables)
+- Configuring [Admin Access Tokens](admin/dashboard.mdx#admin-access-tokens) for shared automations
+- Creating a library of ready-to-use Environments in the [Catalog](admin/catalog.mdx)
+
+
+### Developers
+
+Developers have permissions primarily focused on creating and managing their own environments. Key features include:
+
+#### Creating and Managing Environments
+Developers can:
+- Create Namespaces and Personal/Global Preview Environments
+- Delete Namespaces and Preview Environments they own
+- Share Namespaces and Preview Environments they own
+- Deploy applications using both Okteto and `kubectl` within their own or shared Namespaces and Previews Environments
+- Wake and sleep Namespaces and Preview Environments they own or have access to
+
+#### Access to Global Preview Environments
+Developers have read access to Global Preview Environments, enabling them to troubleshoot issues effectively using `kubectl`.
+
+**Benefits**: This feature allows developers to monitor and debug shared environments without requiring elevated permissions.
+
+## Permission Model
+
+### Namespace Operations
+
+| Action | Admin | Developer-Owner | Developer-Member | Developer without direct access |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | ✅ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ |
+| Share | ✅ | ✅ | ❌ | ❌ |
+| Deploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Redeploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy all | ✅ | ✅ | ✅ | ❌ |
+| Wake | ✅ | ✅ | ✅ | ❌ |
+| Sleep | ✅ | ✅ | ✅ | ❌ |
+| Transfer Ownership | ✅ | ❌ | ❌ | ❌ |
+| Make Persistent | ✅ | ❌ | ❌ | ❌ |
+| Undo Make Persistent | ✅ | ❌ | ❌ | ❌ |
+| Start Development over sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Restart sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Destroy sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Stop development over sub-resource | ✅ | ✅ | ✅ | ❌ |
+| Access private endpoints | ✅ | ✅ | ✅ | ❌ |
+- ✅ The role has permission to perform this action
+- ❌ The role does not have permission to perform this action
+- **-** This action is not applicable to the role or context
+
+### Operations within Previews
+
+#### Personal Previews
+
+| Action | Admin | Developer-Owner | Developer-Member | Developer without direct access |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | ✅ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ |
+| Share | ✅ | ✅ | ❌ | ❌ |
+| Deploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Redeploy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy dev environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy all | - | - | - | - |
+| Wake | ✅ | ✅ | ✅ | ❌ |
+| Sleep | ✅ | ✅ | ✅ | ❌ |
+| Transfer Ownership | - | - | - | - |
+| Make Persistent | ✅ | ❌ | ❌ | ❌ |
+| Undo Make Persistent | ✅ | ❌ | ❌ | ❌ |
+| Start Development over sub-resource | - | - | - | - |
+| Restart sub-resource | - | - | - | - |
+| Destroy sub-resource | - | - | - | - |
+| Stop development over sub-resource | - | - | - | - |
+| Access private endpoints | ✅ | ✅ | ✅ | ❌ |
+- ✅ The role has permission to perform this action
+- ❌ The role does not have permission to perform this action
+- **-** This action is not applicable to the role or context
+
+#### Global Previews
+
+| Action | Admin | Developer-Owner | Developer-Member | Developer without direct access |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | - | ✅ |
+| Delete | ✅ | ✅ | - | ❌ |
+| Share | - | - | - | - |
+| Deploy dev environment | ✅ | ✅ | - | ❌ |
+| Redeploy dev environment | ✅ | ✅ | - | ❌ |
+| Destroy dev environment | ✅ | ✅ | - | ❌ |
+| Destroy all | - | - | - | - |
+| Wake | ✅ | ✅ | - | ❌ |
+| Sleep | ✅ | ✅ | - | ❌ |
+| Transfer Ownership | - | - | - | - |
+| Make Persistent | ✅ | ❌ | - | ❌ |
+| Undo Make Persistent | ✅ | ❌ | - | ❌ |
+| Start Development over sub-resource | - | - | - | - |
+| Restart sub-resource | - | - | - | - |
+| Destroy sub-resource | - | - | - | - |
+| Stop development over sub-resource | - | - | - | - |
+| Access private endpoints | ✅ | ✅ | - | ✅ |
+- ✅ The role has permission to perform this action
+- ❌ The role does not have permission to perform this action
+- **-** This action is not applicable to the role or context
+
+## Kubernetes RBAC Model
+
+In addition to the Okteto platform roles described above, Okteto configures Kubernetes RBAC resources in each namespace it manages. This section explains how those permissions work at the Kubernetes level.
+
+### Namespace-scoped RoleBindings
+
+Okteto creates a **RoleBinding** in each developer namespace that grants the `cluster-admin` [ClusterRole](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles) to every admin, owner, and member of that namespace. Although the ClusterRole is named `cluster-admin`, the RoleBinding is **namespace-scoped** — it only grants permissions within that specific namespace, not across the entire cluster.
+
+You can think of this as: **every developer is an admin of their own namespaces**. Users cannot access or modify resources outside the namespaces they own or have been granted access to.
+
+### Default ServiceAccount binding
+
+By default, Okteto also binds the `default` ServiceAccount in each namespace to the same ClusterRole through a separate namespace-scoped RoleBinding. This is controlled by the [`namespace.autoRoleBinding.enabled`](self-hosted/helm-configuration.mdx#namespace) setting (defaults to `true`).
+
+This means pods that don't specify a custom ServiceAccount will have Kubernetes API access scoped to their own namespace. If your security policy requires restricting pod-level API access, you can disable this by setting `namespace.autoRoleBinding.enabled` to `false` in your [Helm configuration](self-hosted/helm-configuration.mdx#namespace).
+
+### Okteto control plane ServiceAccount
+
+The ServiceAccount in the `okteto` namespace is used by the Okteto control plane itself. This account has cluster-wide permissions because the control plane needs to create and manage namespaces, service accounts, role bindings, and other cluster-level resources on behalf of users. This is separate from the namespace-scoped permissions granted to developer namespaces.
+
+### Customizing namespace roles
+
+You can change the ClusterRole assigned in developer namespaces through the [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts) Helm configuration value. For example, to use a more restrictive role:
+
+```yaml
+serviceAccounts:
+  roleBindings:
+    namespaces: my-custom-role
+```
+
+The ClusterRole you specify must already exist in the cluster — Okteto does not create it. If you need to combine multiple ClusterRoles, use [ClusterRole aggregation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles).
+
+For global preview environments, the role is configured separately via [`serviceAccounts.roleBindings.previews`](self-hosted/helm-configuration.mdx#serviceaccounts) (defaults to `view`).
