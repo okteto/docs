@@ -19,6 +19,18 @@ Okteto Chart release 1.49 is designed to work with [Okteto CLI 3.24.x](https://g
 
 - **`safe-to-evict` annotation now defaults to `false`**: Okteto marks the pods it creates in development Namespaces as not safe to evict, so the Kubernetes cluster autoscaler no longer scales down nodes that run active development sessions. Previously these pods were marked safe to evict, which could restart development services during scale-down. To restore the previous behavior, set [`addSafeToEvictAnnotation.value`](self-hosted/helm-configuration.mdx#addsafetoevictannotation) to `true` <!-- DEV-1467, app#10402 -->
 
+## 1.48.1
+
+10 September 2026
+
+This version is compatible with Kubernetes versions 1.33 to 1.35 \
+Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://github.com/okteto/okteto/releases/tag/3.23.0)
+
+### Bug Fixes
+
+- Fixed an issue where git repository URLs containing embedded credentials could be exposed in plain text across the app <!-- DEV-1474, okteto/app#10396 -->
+- [Okteto CLI 3.23.1](https://github.com/okteto/okteto/releases/tag/3.23.1): Fixed `okteto pipeline deploy` and `okteto preview deploy` failing when run from a repository that uses git worktrees <!-- okteto/okteto#5141, okteto/okteto#5143 -->
+
 ## 1.48.0
 
 4 September 2026
@@ -30,6 +42,10 @@ Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://g
 
 - **Legacy tolerations settings deprecated**: The `tolerations.oktetoPool`, `tolerations.devPool`, and `tolerations.buildPool` Helm settings are deprecated and will be removed in Okteto Chart 2.0. The chart has printed a warning when they are set since 1.21; the deprecation is now also documented in `values.yaml` and in the [Helm configuration reference](self-hosted/helm-configuration.mdx#tolerations). Use `globals.tolerations` and `globals.nodeSelectors` for the Okteto and dev pools, and `buildkit.tolerations` and `buildkit.nodeSelectors` for the build pool, following the [migration guide](https://community.okteto.com/t/important-update-migrating-to-new-implementation-of-okteto-pod-tolerations-and-node-selectors/1281) <!-- app#10367, docs#1329 -->
 - **Removed chart settings**: The `oktetoAI` and `prepullImages.includeAgent` settings have been removed from the Okteto Chart and are ignored if still present in your values. You can safely delete them <!-- DEV-1451, DEV-1450, app#10325, app#10352 · deliberately minimal: not announced elsewhere -->
+
+### New Features {#new-features-1.48}
+
+- **Opt out of node CA injection**: New `daemonset.injectCA.enabled` Helm setting, which defaults to `true`. When you use a private CA or the chart's self-signed certificate, the Okteto daemonset installs the CA into each node's trust store and restarts `containerd` once per node. On newly provisioned nodes, most visibly with autoscalers such as Karpenter, that restart interrupts image pulls in progress and can leave workloads scheduled on the node marked as failed until they retry. Set it to `false` to disable only that task and [trust the CA at the node level](self-hosted/install/certificates/bring-your-own-certificate.mdx#injecting-the-ca-into-cluster-nodes) through your cloud provider instead. The other daemonset tasks and CA trust in the Okteto components are unaffected <!-- app#10368, docs#1337 -->
 
 ### Improvements {#improvements-1.48}
 
