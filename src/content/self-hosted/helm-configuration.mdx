@@ -826,6 +826,29 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 ## Advanced Configuration
 
+### addSafeToEvictAnnotation
+
+Controls the [`cluster-autoscaler.kubernetes.io/safe-to-evict`](https://kubernetes.io/docs/reference/labels-annotations-taints/#cluster-autoscaler-kubernetes-io-safe-to-evict) annotation that Okteto adds to the pods it creates in development Namespaces.
+
+- `enabled`: Whether Okteto adds the annotation. Enabled by default. If a pod already carries the annotation, Okteto keeps the existing value.
+- `value`: The value Okteto sets for the annotation, `true` or `false`. Defaults to `false`.
+
+```yaml
+addSafeToEvictAnnotation:
+  enabled: true
+  value: false
+```
+
+The annotation controls whether the Kubernetes cluster autoscaler may evict a pod when it scales down the node running it:
+
+- `enabled: true`, `value: false` (default): marks Okteto pods as not safe to evict. The autoscaler will not scale down a node that runs one of these pods, regardless of the pod's shape. This keeps active development sessions stable, at the cost of slower node scale-down and potentially higher infrastructure cost. We recommend keeping this default. Development clusters already scale down aggressively outside working hours and over the weekend, so the stability of active development sessions matters more than aggressive scale-down during the working day.
+- `enabled: true`, `value: true`: marks Okteto pods as safe to evict, even when the autoscaler would otherwise protect them (for example, pods with local storage). This favors aggressive scale-down and cost savings, at the cost of development sessions restarting during scale-down.
+- `enabled: false`: Okteto does not add the annotation. Pods that already carry it keep their value; for the rest, the autoscaler falls back to its own default heuristics. This does not reliably prevent eviction — for many pod shapes it behaves like `value: true` — so it is not equivalent to `value: false`. Use it when you want the cluster to decide.
+
+:::note
+Before Okteto Chart 1.49, this annotation defaulted to `value: true`. To keep that behavior after upgrading, set `addSafeToEvictAnnotation.value` to `true`.
+:::
+
 ### affinity
 
 Apply default affinities to pods deployed in namespaces created by Okteto.
