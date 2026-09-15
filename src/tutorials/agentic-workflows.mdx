@@ -1,0 +1,232 @@
+---
+title: Getting started with Agentic Workflows
+description: Run an AI coding agent against a live Okteto environment using the Movies sample app
+id: agentic-workflows
+sidebar_custom_props: { logo: "okteto" }
+---
+
+Okteto gives AI coding agents the same live environments your team develops in. The agent deploys with `okteto deploy`, runs tests with `okteto test`, and reads results from real services instead of reasoning about files on disk.
+
+You'll deploy the Movies sample app, hand an agent a regression to find while you keep a dev session open, then let it take a task end to end — code, deploy, test, and verify — on its own.
+
+:::tip
+For the concepts behind the two modes this tutorial uses, see [Agentic Workflows](/docs/agentic/).
+:::
+
+## Prerequisites
+
+- Access to an Okteto instance
+- [Okteto CLI](/docs/get-started/install-okteto-cli/) installed and configured
+- Claude Code, or another agent that supports the [Agent Skills](https://agentskills.io) format
+- `git` and a terminal
+
+## Sample application
+
+The [Movies app](https://github.com/okteto/movies) consists of five microservices:
+
+| Service | Technology | Purpose |
+|---------|------------|---------|
+| `frontend` | React | User interface |
+| `catalog` | Node.js | Serves the movie catalog from MongoDB |
+| `rent` | Java | Handles rent requests, publishes to Kafka |
+| `worker` | Go | Consumes Kafka messages, writes to PostgreSQL |
+| `api` | Go | Reads rental records from PostgreSQL |
+
+It also runs MongoDB, Kafka, and PostgreSQL, and defines an `e2e` Test Container that runs Playwright against the deployed environment.
+
+Clone it and open your agent in the repository root:
+
+```bash
+git clone https://github.com/okteto/movies
+cd movies
+```
+
+## Step 1: Installing the Okteto plugin
+
+The [Okteto plugin](https://github.com/okteto/okteto-agent-skills) teaches your agent the Okteto CLI: which commands to run, which to never run, and how to discover services from `okteto.yaml`.
+
+Run these commands in Claude Code:
+
+```bash
+/plugin marketplace add okteto/okteto-agent-skills
+/plugin install okteto
+```
+
+For Cursor, OpenAI Codex, GitHub Copilot, Gemini CLI, or another compatible agent, install the same skills with the [`skills` CLI](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills add okteto/okteto-agent-skills
+```
+
+To confirm the skill loaded, ask your agent:
+
+```
+Which services does this project define in okteto.yaml?
+```
+
+The agent reads the Okteto Manifest and lists the five application services, alongside the `tests` build target. If it guesses or asks you for the service names instead, the skill didn't activate — see [Skill activation](/docs/agentic/#skill-activation).
+
+## Step 2: Deploying the environment with your agent
+
+Ask the agent to stand up the environment:
+
+```
+Deploy this project to Okteto and show me the endpoints.
+```
+
+The agent runs `okteto deploy --wait` to build every image and deploy all five services plus the infrastructure, then `okteto endpoints` to read the public URLs. The `--wait` flag matters: without it the agent moves on before the pods are ready and tests fail for reasons that have nothing to do with your code.
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Development environment 'movies' successfully deployed
+ i  Endpoints available:
+  - https://movies-cindy.okteto.example.com/
+  - https://movies-cindy.okteto.example.com/catalog
+  - https://movies-cindy.okteto.example.com/rent
+  - https://movies-cindy.okteto.example.com/rentals
+  - https://movies-cindy.okteto.example.com/users
+```
+
+All five services share one host and are routed by path, so `okteto endpoints` prints one URL per ingress path.
+
+Open the first URL in your browser. The Movies app loads with six movies in the catalog.
+
+:::note
+This repository ships a `CLAUDE.md` and a `/dev-setup` slash command, so an agent working here already knows the service layout and dev commands. Your own repositories get the same behavior from the plugin's `okteto` skill.
+:::
+
+## Step 3: Fixing a regression alongside your agent
+
+In collaborative mode you own the dev session and the agent works inside it. Start a session on the `catalog` service:
+
+```bash
+okteto up catalog
+```
+
+The `catalog` service runs `nodemon`, so it reloads whenever a synced file changes. Leave this terminal open — the service's output appears here rather than in `okteto logs`.
+
+Now introduce a regression for the agent to find. In `catalog/server.js`, change the catalog query to return only five movies:
+
+```javascript title="catalog/server.js"
+const results = await db.collection('catalog').find().limit(5).toArray();
+```
+
+[File Sync](/docs/development/containers/file-sync/) pushes the edit to the container within seconds and `nodemon` restarts the service, so the change is already live. Ask the agent to investigate:
+
+```
+The catalog endpoint is returning the wrong number of movies.
+Run the e2e tests, find the cause, and fix it.
+```
+
+The agent runs the Test Container against the live environment:
+
+```bash
+okteto test e2e
+```
+
+The `catalog has entries` test fails, because it asserts the catalog returns six movies:
+
+```console
+  ✓  1 [chromium] › main.spec.js:3:1 › environment variables are set (18ms)
+  ✓  2 [chromium] › main.spec.js:11:1 › movies has title (1.2s)
+  ✘  3 [chromium] › main.spec.js:18:1 › catalog has entries (871ms)
+
+  1) [chromium] › main.spec.js:18:1 › catalog has entries
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 6
+    Received: 5
+```
+
+The agent reads `catalog/server.js`, removes `.limit(5)`, and reruns `okteto test e2e`. All three tests pass.
+
+Notice what didn't happen: no rebuild and no redeploy. The fix reached the running service through file sync, which is why the agent's iterations take seconds rather than minutes.
+
+:::warning
+`okteto up` is interactive and hangs if an agent runs it, so you always start the dev session yourself. The agent works inside it with `okteto exec` and `okteto test`. See [Command rules](/docs/agentic/best-practices/#command-rules).
+:::
+
+## Step 4: Handing the agent a task end to end
+
+In autonomous mode the agent drives the whole loop, so there's no dev session to work inside. Exit dev mode and restore the deployed service:
+
+```bash
+okteto down catalog
+```
+
+Give the agent a task with a verifiable outcome:
+
+```
+Add a /catalog/count endpoint to the catalog service that returns the number
+of movies. Deploy it, verify it against the live environment, and confirm the
+e2e tests still pass.
+```
+
+The agent writes the handler, then runs the deploy-test loop:
+
+```bash
+okteto deploy --wait                                        # build and roll out the change
+okteto endpoints                                            # read the environment URL
+curl -s https://movies-cindy.okteto.example.com/catalog/count
+okteto test e2e                                             # confirm nothing else broke
+```
+
+If a step fails, the agent reads the error, fixes the code, and redeploys. Each iteration gives it real feedback from running services, which is what lets it correct itself without you in the loop.
+
+The new path needs no chart change: the `catalog` ingress routes the `/catalog` prefix, so `/catalog/count` is reachable as soon as the service handles it.
+
+To confirm the work yourself, request the endpoint and rerun the tests:
+
+```bash
+curl -s https://movies-cindy.okteto.example.com/catalog/count
+okteto test e2e
+```
+
+The endpoint returns `6` and all three `e2e` tests pass.
+
+## Step 5: Making verification the default
+
+Your agent chose to deploy in the last two steps because you asked it to. A ticket that says "add a `/health` endpoint" carries no signal that the project deploys to Okteto, so the agent may write the code and validate it locally instead.
+
+Add the expectation to `CLAUDE.md` (or `AGENTS.md` for most other agents):
+
+```markdown title="CLAUDE.md"
+## Verifying changes
+
+This project deploys to Okteto. After implementing any change, verify it in an
+Okteto environment: deploy with `okteto deploy --wait` and run the test
+containers defined in `okteto.yaml` with `okteto test`. Use the okteto skill
+for all environment work.
+```
+
+The instructions file loads on every session, so the agent treats environment verification as part of the definition of done even when your prompt never mentions Okteto.
+
+## Cleaning up
+
+If a dev session is still running, exit it:
+
+```bash
+okteto down catalog
+```
+
+Then remove the environment:
+
+```bash
+okteto destroy
+```
+
+:::caution
+`okteto destroy` tears down every resource `okteto deploy` created in the Namespace and can't be undone. Agents run it only with explicit authorization — see [Cleanup and teardown](/docs/agentic/best-practices/#cleanup-and-teardown).
+:::
+
+## Summary
+
+You ran an AI agent against live Okteto environments in both modes. In collaborative mode you held the dev session and the agent iterated through file sync, catching a regression with `okteto test` in seconds. In autonomous mode the agent ran the deploy-test loop itself and verified its own work against real services. The difference between the two is who runs `okteto up` — the environment, manifest, and commands are the same ones you use by hand.
+
+## Next steps
+
+- [Collaborative Workflows](/docs/agentic/collaborative-workflows/) — the `okteto up` and `okteto exec` pairing in depth
+- [Autonomous Workflows](/docs/agentic/autonomous-workflows/) — ticket-to-PR automation, agent authentication, and parallel run isolation
+- [Best Practices](/docs/agentic/best-practices/) — command rules, worktree isolation, and troubleshooting
+- [Okteto Test](/docs/testing/getting-started-test/) — Test Container configuration for your own services
