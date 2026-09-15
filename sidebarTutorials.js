@@ -24,6 +24,7 @@ module.exports = {
       items: [
         'getting-started-with-okteto',
         'preview-environments',
+        'ai-coding-agents',
         'aws-lambda',
         'compose-getting-started',
         'external-resources',

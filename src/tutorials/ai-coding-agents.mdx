@@ -1,0 +1,184 @@
+---
+title: Getting started with AI coding agents
+description: Install the Okteto plugin for AI agents and use an agent to deploy, change, and test the Movies app
+id: ai-coding-agents
+sidebar_custom_props: { logo: "claude" }
+---
+
+AI coding agents produce better results when they can deploy code and run tests against real services instead of reasoning about files on your laptop. The [Okteto plugin for AI agents](https://github.com/okteto/okteto-agent-skills) teaches your agent the Okteto CLI: which commands to run, which it must never run, and how to discover your services from the Okteto Manifest.
+
+In this tutorial, you install the plugin, bring up a Development Environment for the [Movies](https://github.com/okteto/movies) sample application, and work through one change with the agent: it adds an endpoint to a service, verifies it inside the running container, and runs the end-to-end test suite against the live environment. You then give a second agent run its own Namespace so parallel work never collides.
+
+## Prerequisites
+
+- Access to an Okteto instance. If you don't have one, follow the [installation guide](/docs/get-started/install/).
+- The [Okteto CLI installed and configured](/docs/get-started/install-okteto-cli/) with your Okteto instance.
+- [Claude Code](https://claude.com/product/claude-code) installed. Steps 2 through 6 use its plugin, which carries the slash commands. Step 7 works with any agent.
+- A [GitHub](https://github.com) account.
+
+## Step 1: Fork and clone the Movies app
+
+Fork the [Movies](https://github.com/okteto/movies) repository to your own GitHub account, then clone your fork:
+
+```console
+git clone https://github.com/<your-username>/movies.git
+cd movies
+```
+
+This microservices application has a React frontend, a Node.js `catalog` service, a Java `rent` service, Go `api` and `worker` services, and supporting infrastructure (MongoDB, Kafka, PostgreSQL).
+
+The repository already contains an `okteto.yaml` that defines how to build, deploy, develop, and test every service. It also ships a `CLAUDE.md` describing the architecture and the per-service dev commands. The plugin you install next supplies the Okteto knowledge; `CLAUDE.md` supplies the project-specific knowledge.
+
+## Step 2: Install the Okteto plugin
+
+Run these two commands inside Claude Code:
+
+```
+/plugin marketplace add okteto/okteto-agent-skills
+/plugin install okteto
+```
+
+The first command registers the repository as a plugin source. The second installs the plugin, which adds four skills and two slash commands:
+
+| | What it does |
+|---|---|
+| `okteto` skill | Teaches the Okteto CLI: deploying, building, running tests, reading services from `okteto.yaml`, isolating worktrees, and the commands agents must never run. |
+| `okteto-onboarding` skill | Drafts and validates an `okteto.yaml` for a project that has none. The Movies app already has one, so this skill stays idle. |
+| `okteto-debugging` skill | Triages unhealthy environments, with a playbook per failure mode (`CrashLoopBackOff`, `OOMKilled`, `ImagePullBackOff`, `Pending`, sync issues). |
+| `okteto-preview` skill | Deploys Preview Environments for a branch or pull request and posts the URL back. |
+| `/dev-setup` command | Checks prerequisites, deploys the environment, prints the endpoints, and guides you into a dev session. |
+| `/debug-env` command | Runs a read-only health sweep and reports a root cause and fix per unhealthy service. |
+
+The plugin also installs guardrail hooks that enforce its two hardest rules mechanically rather than relying on the model to remember them. The hooks block `okteto up` outright, because it is interactive and hangs an agent's shell, and they require your confirmation before `okteto destroy`, `okteto preview destroy`, or `okteto namespace delete` runs.
+
+:::note
+The skills use the open [Agent Skills](https://agentskills.io) format, so `npx skills add okteto/okteto-agent-skills` installs the same four skills into Cursor, OpenAI Codex, GitHub Copilot, and other compatible agents. The slash commands and the guardrail hooks ship only with the Claude Code plugin.
+:::
+
+## Step 3: Deploy the environment
+
+From the `movies` directory, ask Claude Code to bring up the environment:
+
+```
+/dev-setup
+```
+
+The agent confirms your CLI is installed and pointed at your Okteto instance, runs `okteto deploy --wait` to build every image and deploy every service, and then runs `okteto endpoints` to print the public URLs.
+
+The first deployment builds six images, so expect it to take several minutes. When it finishes, the agent reports the endpoints and asks which service you want to work on.
+
+Open the `movies` endpoint in your browser. You should see the Movies catalog with six films.
+
+## Step 4: Add an endpoint with the agent
+
+The agent cannot start a development session for you — `okteto up` is interactive, and the plugin's hooks deny it. Start it yourself, in your own terminal, from the `movies` directory:
+
+```console
+okteto up catalog
+```
+
+This puts the `catalog` service into development mode: Okteto syncs your local files into the Development Container and runs `yarn start`, which starts the service under `nodemon`. Leave this terminal running.
+
+Now ask the agent for a change:
+
+```
+Add a GET /catalog/count endpoint to the catalog service that returns the
+number of movies as JSON. Verify it inside the dev container with okteto exec.
+```
+
+The agent edits `catalog/server.js`. File sync copies the change into the Development Container within seconds, `nodemon` restarts the service, and the agent verifies the result without a rebuild:
+
+```console
+okteto exec -- curl -s localhost:8080/catalog/count
+```
+
+:::info
+Run `okteto exec` from the same directory where you ran `okteto up`. It targets the Development Container for that directory's manifest, and fails when no development session is active.
+:::
+
+Because `catalog` is in development mode, its log output appears in your `okteto up catalog` terminal rather than in `okteto logs catalog`. This is the collaborative pattern: you own the session, the agent runs commands inside it with `okteto exec`, and neither of you waits on a build between iterations.
+
+Verify the change yourself against the public endpoint. Get the URL from `okteto endpoints`, then request the new path:
+
+```console
+curl -s https://movies-<your-namespace>.<your-okteto-domain>/catalog/count
+```
+
+## Step 5: Run the end-to-end tests
+
+The `okteto.yaml` defines an `e2e` test container that runs a Playwright suite against the live environment. Ask the agent to run it:
+
+```
+Run the e2e tests and tell me whether my change broke anything.
+```
+
+The agent runs the test container in the cluster:
+
+```console
+okteto test e2e
+```
+
+The suite checks that the frontend serves its title and that `/catalog` returns the six expected films. Your new endpoint adds a path rather than changing `/catalog`, so all tests should still pass. Test artifacts land in `tests/test-results` and `tests/playwright-report`.
+
+This is the loop that makes agents useful on Okteto: change code, verify it in the running container, and run the real test suite against real services — with no local Kubernetes and no CI round trip.
+
+## Step 6: Check environment health
+
+Ask the agent for a read-only sweep of the environment:
+
+```
+/debug-env
+```
+
+The command reads `okteto.yaml` for the canonical service list, inspects pod state in your Namespace, and reports a root cause, the supporting evidence, and a proposed fix for each unhealthy service. It performs no writes: it never deploys, builds, or destroys anything, so it is safe to run against an environment you care about.
+
+With a healthy environment it reports that every service is running. Scope it to one service by passing a name, as in `/debug-env catalog`.
+
+## Step 7: Isolate a parallel agent run
+
+Your active Namespace comes from the Okteto context, which is global to your machine rather than per-directory. Two agents working in two checkouts of the same repository deploy into the same Namespace and overwrite each other's environments, so `okteto endpoints` and `okteto logs` return the wrong data and one agent's teardown destroys the other's work.
+
+Give each parallel run its own Namespace. Create it once:
+
+```console
+okteto namespace create movies-agent-2
+```
+
+Then pass `-n` on every command for that run:
+
+```console
+okteto deploy --wait -n movies-agent-2
+okteto test e2e -n movies-agent-2
+okteto endpoints -n movies-agent-2
+```
+
+Agents use the per-command `-n` flag rather than `okteto namespace use`, which switches the active Namespace in the shared global context and races with every other run on the machine. Namespace names are lowercase alphanumeric plus `-`, and start and end with an alphanumeric character.
+
+## Step 8: Clean up
+
+Exit development mode for `catalog` and restore its original deployment:
+
+```console
+okteto down catalog
+```
+
+Your environment keeps running, so you can pick up where you left off. When you no longer need it, tear it down:
+
+```console
+okteto destroy
+okteto namespace delete movies-agent-2
+```
+
+:::warning
+The plugin's hooks pause and ask for your confirmation before an agent runs either of these commands. Pipelines that own their own environments can pre-authorize teardown by setting `OKTETO_ALLOW_AGENT_DESTROY=1`.
+:::
+
+## Next steps
+
+You installed the Okteto plugin, deployed a Development Environment through an agent, changed a service and verified it inside the running container, ran the end-to-end suite against live services, and isolated a parallel run in its own Namespace 🚀
+
+- [Collaborative Workflows](/docs/agentic/collaborative-workflows/) goes deeper on the `okteto up` plus `okteto exec` pattern you used in Step 4
+- [Autonomous Workflows](/docs/agentic/autonomous-workflows/) covers the ticket-to-pull-request loop, where the agent deploys, tests, and opens the pull request without you in the loop
+- [Best Practices and Troubleshooting](/docs/agentic/best-practices/) lists every command an agent may and may not run, plus the reasoning behind each rule
+- [Okteto Test](/docs/testing/getting-started-test/) explains how to define test containers for your own application
+- [Getting started with Preview Environments](/docs/tutorials/preview-environments) wires the same test suite into a per-pull-request environment
