@@ -1,0 +1,196 @@
+---
+title: Developing with an AI agent
+description: Give an AI coding agent an Okteto Development Environment to build, test, and verify changes in.
+id: develop-with-ai-agents
+sidebar_custom_props: { logo: "okteto" }
+---
+
+Okteto gives an AI coding agent a live, production-like [Development Environment](/docs/development/using-okteto-cli) in Kubernetes, driven by the same Okteto CLI and `okteto.yaml` a developer uses. The agent builds, deploys, and tests against real services instead of inferring behavior from local files.
+
+In this tutorial, you deploy the Movies sample application to Okteto, install the [Okteto plugin for Claude Code](https://github.com/okteto/okteto-agent-skills), and work through a change with the agent in collaborative mode, where you run the development session and the agent runs commands inside it. You finish by handing the agent the autonomous deploy-test loop.
+
+## Prerequisites
+
+- Access to an Okteto instance
+- [Okteto CLI](/docs/get-started/install-okteto-cli/) installed and configured
+- Claude Code installed and authenticated
+- A GitHub account, to fork the sample repository
+
+## Sample application
+
+You use the [Movies](https://github.com/okteto/movies) sample application, a microservices app deployed with Helm charts:
+
+| Service | Technology | Purpose |
+|---------|------------|---------|
+| frontend | React | User interface |
+| catalog | Node.js | Serves the movie catalog from MongoDB |
+| rent | Java | Handles rent requests and publishes to Kafka |
+| worker | Go | Processes Kafka messages into PostgreSQL |
+| api | Go | Retrieves rentals from PostgreSQL |
+
+The application also runs MongoDB, Kafka, and PostgreSQL. The repository ships a `CLAUDE.md` file that tells the agent which Okteto commands to run and which to avoid, so the agent follows the same patterns a developer does.
+
+## Step 1: Deploy the Movies application
+
+Fork the [Movies](https://github.com/okteto/movies) repository to your own GitHub account, then clone your fork and move into it:
+
+```console
+git clone https://github.com/<your-account>/movies
+cd movies
+```
+
+Configure the Okteto CLI to point at your instance:
+
+```console
+okteto context use https://okteto.example.com
+```
+
+```console
+ ✓  Using context cindy @ okteto.example.com
+```
+
+Deploy the application and wait for every service to be ready:
+
+```console
+okteto deploy --wait
+```
+
+Always pass `--wait` so the environment is fully running before anyone, or any agent, works against it.
+
+List the public URLs for your environment:
+
+```console
+okteto endpoints
+```
+
+Open the frontend URL in your browser. The Movies application loads, which confirms the Development Environment is running.
+
+## Step 2: Install the Okteto plugin for Claude Code
+
+The plugin packages Okteto knowledge as agent skills. Once installed, the agent knows which commands to run in any project, which commands to never run, and how to discover your services from `okteto.yaml`.
+
+Start Claude Code in the `movies` directory and run:
+
+```
+/plugin marketplace add okteto/okteto-agent-skills
+/plugin install okteto
+```
+
+Ask the agent to confirm it can reach your environment:
+
+```
+Which Okteto services are defined in this project, and is the environment deployed?
+```
+
+The agent reads `okteto.yaml`, lists the five services, and reports the deployed environment. The plugin is active.
+
+## Step 3: Start a development session
+
+Collaborative mode keeps you in control of the development session while the agent runs commands inside it. You start the session; the agent works against it.
+
+Start a session on the `worker` service in your terminal:
+
+```console
+okteto up worker
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+
+Welcome to your development container. Happy coding!
+cindy:worker app>
+```
+
+You now have a shell inside the Development Container, with [File Sync](/docs/development/containers/file-sync/) mirroring your local `worker/` folder into the container.
+
+:::warning
+`okteto up` is interactive and hangs if an agent runs it. You always start the development session yourself. The agent runs commands against it with `okteto exec`. See the [command rules](/docs/agentic/best-practices#command-rules).
+:::
+
+## Step 4: Work with the agent in collaborative mode
+
+Keep the `okteto up worker` session running in its terminal. In Claude Code, ask the agent to inspect the service and run its tests:
+
+```
+Run the worker service's tests, then explain what the worker does when it
+receives a rental message.
+```
+
+The agent runs commands in the active Development Container with `okteto exec`:
+
+```console
+okteto exec -- make build
+okteto exec -- go test ./...
+```
+
+Because the `worker` service is in development mode, its live output appears in your `okteto up worker` terminal, not in `okteto logs`. The agent reads the synced source, runs the tests, and summarizes the behavior.
+
+Now ask the agent to make a change:
+
+```
+Add a log line that records each rental the worker processes, then verify
+the change.
+```
+
+The agent edits the local source. File Sync applies the change in the running container within seconds, with no rebuild. The agent then confirms the change didn't break the application by running the [Okteto Test](/docs/testing/) suite defined in `okteto.yaml`:
+
+```console
+okteto test e2e
+```
+
+When the `e2e` tests pass, the change is validated against the live environment. Throughout this loop you decide what to build; the agent runs the builds, tests, and diagnostics for you.
+
+## Step 5: Hand off the autonomous loop
+
+Autonomous mode lets the agent own the full deploy-test loop without a development session. Use it when you want the agent to take a task from start to a pull request while you review the result.
+
+Exit development mode so the `worker` service returns to its deployed state:
+
+```console
+okteto down worker
+```
+
+In Claude Code, give the agent a complete task:
+
+```
+Add a /health endpoint to the api service, verify it in Okteto, and open a
+pull request.
+```
+
+The agent now drives the environment itself:
+
+```console
+# Build changed images and roll out the updated services
+okteto deploy --wait
+
+# Run the test suite against the live environment
+okteto test e2e
+
+# Check for runtime errors
+okteto logs api --since 5m
+```
+
+If a test fails, the agent reads the error, fixes the code, redeploys, and re-tests. Once everything passes, it commits and opens the pull request:
+
+```console
+git add . && git commit -m "Add /health endpoint to api"
+gh pr create --title "Add health endpoint" --body "..."
+```
+
+:::warning
+`okteto up` is never part of autonomous mode. The agent uses `okteto deploy` and `okteto build` instead. See the [command rules](/docs/agentic/best-practices#command-rules).
+:::
+
+To trigger this loop from CI or a webhook, the agent authenticates with a [Personal Access Token](/docs/core/credentials/personal-access-tokens) instead of an interactive login.
+
+## Summary
+
+You deployed a microservices application to an Okteto Development Environment, installed the Okteto plugin for Claude Code, iterated on a change with the agent in collaborative mode, and handed the agent the autonomous deploy-test loop. In both modes, the agent worked against real services through the Okteto CLI, so its changes were built, deployed, and tested in a production-like environment.
+
+## Next steps
+
+- [Collaborative Workflows](/docs/agentic/collaborative-workflows) for the full command set in a development session
+- [Autonomous Workflows](/docs/agentic/autonomous-workflows) for CI-triggered, ticket-to-pull-request runs
+- [Best Practices](/docs/agentic/best-practices) for the rules on which commands an agent may run

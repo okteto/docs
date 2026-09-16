@@ -23,6 +23,7 @@ module.exports = {
       },
       items: [
         'getting-started-with-okteto',
+        'develop-with-ai-agents',
         'preview-environments',
         'aws-lambda',
         'compose-getting-started',
