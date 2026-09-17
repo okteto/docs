@@ -30,8 +30,10 @@ deploy:
 When you run `okteto deploy`, Okteto automatically:
 
 1. Deploys only the services defined in your manifest
-2. Configures routing to redirect requests for missing services to the shared namespace
-3. Injects the `baggage: okteto-divert=<your-namespace>` header into requests through your endpoints
+2. Creates, in your namespace, a copy of every public endpoint of the shared namespace that you did not deploy. Those endpoints point back to the shared services, so the whole application is reachable under your namespace's URLs, not only the services you deployed
+3. Injects the `baggage: okteto-divert=<your-namespace>` header into every request that enters through an endpoint in your namespace. You don't need to add the header yourself when you use your own URLs
+4. Configures the DNS of your pods so that a service name that doesn't exist in your namespace resolves to the shared namespace
+5. Injects the `OKTETO_DIVERTED_ENVIRONMENT` (your namespace) and `OKTETO_SHARED_ENVIRONMENT` (the shared namespace) environment variables into your pods
 
 ### Istio Driver Configuration
 
@@ -113,7 +115,9 @@ okteto deploy -f okteto.frontend.yaml
 
 ## Header Propagation
 
-For Divert to work across your service mesh, implement header propagation in your services. The `baggage` header must be extracted from incoming requests and included in all outgoing requests.
+For Divert to work across your service mesh, your services must propagate the `baggage` header: extract it from incoming requests and include it in all outgoing requests.
+
+`baggage` is the [W3C standard header](https://www.w3.org/TR/baggage/) for propagating context between services, so you may not need to write this code yourself. [OpenTelemetry](https://opentelemetry.io/docs/concepts/context-propagation/) instrumentation and most tracing libraries propagate it automatically across HTTP clients and servers. Check your language's instrumentation before implementing the examples below by hand.
 
 ### JavaScript/Node.js (Express)
 
@@ -239,73 +243,83 @@ env:
 
 For queue-based systems, you can route messages based on the baggage header to ensure proper service isolation.
 
+Okteto injects the `OKTETO_DIVERTED_ENVIRONMENT` environment variable into every pod deployed in a diverted namespace. Its value is your namespace name, the same value carried in the `baggage` header. In the shared namespace the variable is not set. Consumers use it to decide which messages belong to them.
+
 ### SQS Queue Routing
 
-When publishing messages, include the namespace in the message attributes:
+When publishing messages, forward the `baggage` header value as a message attribute:
 
 ```javascript
-// Producer: Include routing info in message
+// Producer: forward the baggage header with the message
 const baggage = req.headers['baggage'] || '';
-const namespace = extractNamespace(baggage);  // Extract from "okteto-divert=namespace"
 
 await sqs.sendMessage({
   QueueUrl: QUEUE_URL,
   MessageBody: JSON.stringify(orderData),
-  MessageAttributes: {
-    'okteto-namespace': {
-      DataType: 'String',
-      StringValue: namespace || 'shared'
-    }
-  }
+  MessageAttributes: baggage
+    ? { baggage: { DataType: 'String', StringValue: baggage } }
+    : {}
 });
 ```
 
-Consumer filters messages by namespace:
+The consumer compares the routing key in the message with its own environment:
 
 ```javascript
-// Consumer: Filter messages by namespace
+// Consumer: only process messages meant for this environment
+const myEnvironment = process.env.OKTETO_DIVERTED_ENVIRONMENT || '';  // empty in the shared namespace
+
+function divertKey(baggage) {
+  const match = /okteto-divert=([^,;]+)/.exec(baggage || '');
+  return match ? match[1] : '';
+}
+
 const messages = await sqs.receiveMessage({
   QueueUrl: QUEUE_URL,
-  MessageAttributeNames: ['okteto-namespace']
+  MessageAttributeNames: ['baggage']
 });
 
 for (const message of messages.Messages) {
-  const targetNamespace = message.MessageAttributes?.['okteto-namespace']?.StringValue;
+  const target = divertKey(message.MessageAttributes?.baggage?.StringValue);
 
-  if (targetNamespace === CURRENT_NAMESPACE || targetNamespace === 'shared') {
-    // Process this message
+  if (target === myEnvironment) {
     await processOrder(JSON.parse(message.Body));
+    await sqs.deleteMessage({ QueueUrl: QUEUE_URL, ReceiptHandle: message.ReceiptHandle });
   }
+  // Otherwise leave the message in the queue for the environment it belongs to
 }
 ```
 
 ### Kafka Topic Routing
 
-Use message headers for Kafka routing:
+Use message headers for Kafka routing. This pattern only works if your consumers use **consumer groups** with a group ID that includes the namespace. Each environment then gets its own copy of every message and its own committed offsets. If the shared consumer and your diverted consumer share a group ID, Kafka delivers each message to only one of them, and messages are lost for the other environment.
 
 ```javascript
-// Producer
+// Producer: forward the baggage header with the message
 await producer.send({
   topic: 'orders',
   messages: [{
     value: JSON.stringify(order),
-    headers: {
-      'okteto-namespace': namespace
-    }
+    headers: baggage ? { baggage } : {}
   }]
 });
 
-// Consumer
+// Consumer: one consumer group per environment
+const myEnvironment = process.env.OKTETO_DIVERTED_ENVIRONMENT || '';  // empty in the shared namespace
+const consumer = kafka.consumer({ groupId: `orders-worker-${myEnvironment || 'shared'}` });
+
 await consumer.run({
   eachMessage: async ({ message }) => {
-    const targetNamespace = message.headers['okteto-namespace']?.toString();
+    const target = divertKey(message.headers.baggage?.toString());  // same helper as the SQS example
 
-    if (targetNamespace === CURRENT_NAMESPACE || !targetNamespace) {
+    if (target === myEnvironment) {
       await processOrder(JSON.parse(message.value));
     }
+    // Messages for other environments are skipped; their own consumer group processes them
   }
 });
 ```
+
+The [Movies with Divert](https://github.com/okteto-community/movies-with-divert) sample implements this pattern in its `worker` service.
 
 ## Testing Your Diverted Environment
 
@@ -373,25 +387,15 @@ Others can access your diverted environment using:
 
 This section covers common issues developers encounter when using Divert. For admin-level troubleshooting, see [Configure Divert](../self-hosted/install/divert/index.mdx#troubleshooting).
 
-### Verify Sidecar Injection (nginx driver with Linkerd)
+### Verify Sidecar Injection in the Shared Namespace (nginx driver)
 
-These checks apply only if your Admin installed Linkerd. If your cluster runs the nginx driver without Linkerd, skip this section.
+With the nginx driver, Linkerd sidecars run in the **shared namespace**, not in yours. Your pods don't get a sidecar, and that is expected. If service-to-service calls from the shared environment never reach your diverted service, check the shared namespace:
 
-**Check if Linkerd sidecar is running:**
 ```bash
-kubectl get pods -n <your-namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
+kubectl get pods -n <shared-namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
 ```
 
-Should show both your application container and `linkerd-proxy`.
-
-**If sidecar is missing:**
-```bash
-# Check namespace annotation
-kubectl get namespace <your-namespace> -o jsonpath='{.metadata.annotations}'
-
-# Restart deployment to trigger injection
-kubectl rollout restart deployment/<your-deployment> -n <your-namespace>
-```
+Each pod should show both the application container and `linkerd-proxy`. If they don't, ask your Admin to check the namespace annotation (see the [Linkerd installation guide](../self-hosted/install/divert/linkerd-installation.mdx#sidecar-not-injected-in-the-shared-environment)).
 
 ### Check Ingress Controller
 
@@ -407,21 +411,16 @@ Should show your service ingress with divert annotations.
 kubectl logs -n okteto deployment/okteto-nginx -f | grep <your-namespace>
 ```
 
-### Verify Linkerd Deployment (nginx driver with Linkerd)
+### Verify Divert Routes (nginx driver)
 
-**Check Linkerd control plane:**
+Okteto creates a Divert resource for each service you deploy, and the Divert controller turns it into an `HTTPRoute` in the shared namespace:
+
 ```bash
-# Quick health check
-linkerd check
-
-# Or manually verify deployments
-kubectl get deployments -n linkerd
+kubectl get diverts -n <your-namespace>
+kubectl get httproute -n <shared-namespace>
 ```
 
-**Watch traffic flow:**
-```bash
-linkerd viz tap deployment/<your-deployment> --namespace <your-namespace>
-```
+Each of your diverted services should have a route named `okteto-<service>` in the shared namespace. If the Divert resources exist but the routes don't, ask your Admin to check the Divert controller.
 
 ### Header Propagation Issues
 
@@ -521,7 +520,7 @@ kubectl exec -it deployment/<your-service> -n <your-namespace> -- \
 
 Run through this checklist when troubleshooting:
 
-- [ ] Linkerd sidecars are running in your pods (only if your cluster uses Linkerd)
+- [ ] Linkerd sidecars are running in the shared namespace pods (nginx driver)
 - [ ] Ingress is created with correct annotations
 - [ ] Shared namespace exists and all services are Running
 - [ ] Header format is correct: `baggage: okteto-divert=<namespace>`

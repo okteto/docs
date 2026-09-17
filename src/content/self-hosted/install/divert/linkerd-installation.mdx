@@ -1,40 +1,36 @@
 ---
 title: Linkerd Installation for Divert
-description: Install Linkerd to enable Divert service-to-service routing with the nginx driver
+description: Install and configure Linkerd, which the Divert nginx driver requires for service-to-service routing
 sidebar_label: Linkerd Installation
 ---
 
 :::info Administrator Guide
-This guide is for **Okteto administrators** setting up Linkerd in the cluster. Developers do not need to install anything - once Linkerd is configured in the cluster, Divert works transparently for all developers.
+This guide is for **Okteto administrators** setting up Linkerd in the cluster. Developers do not need to install anything. Once Linkerd is configured, Divert works transparently for all developers.
 :::
 
-This guide covers installing Linkerd to enable Divert's service-to-service routing when using the nginx driver. Linkerd provides the service mesh functionality that enables traffic routing based on HTTP headers between services.
+The Divert nginx driver requires Linkerd. Okteto's ingress controller injects the `baggage` routing header into requests that arrive through public endpoints, and Linkerd is the service mesh that routes service-to-service calls inside the shared environment based on that header. Without Linkerd, a request that reaches the shared environment and then calls another service stays in the shared environment, even when a diverted version of that service exists.
 
 :::warning For nginx Driver Only
-Linkerd is **only** for use with the **nginx driver**. If you're using the istio driver, do not install Linkerd - Istio already provides service mesh capabilities. See [Configure Divert](index.mdx) for the distinction between drivers.
-:::
-
-:::info
-Linkerd is **optional** for the nginx driver. Without Linkerd, Divert routes traffic at the ingress level. Installing Linkerd extends header-based routing to service-to-service calls inside the cluster.
+Linkerd is only used with the **nginx driver**. If you're using the istio driver, do not install Linkerd. Istio already provides the service mesh. See [Configure Divert](index.mdx) for the distinction between drivers.
 :::
 
 ## Prerequisites
 
-- Kubernetes cluster with Okteto installed using the **nginx driver** (default)
+- Okteto Self-Hosted 1.37 or later, using the default nginx ingress configuration
+- Okteto CLI 3.12 or later on developer machines
 - `kubectl` configured with cluster admin access
 - `helm` v3.x installed
-- Okteto using the default nginx driver (not istio)
-- **Administrator/operator** access (this is a one-time cluster setup)
+- [Gateway API](https://gateway-api.sigs.k8s.io/) CRDs (`v1`) installed in the cluster. Okteto's Divert controller creates `HTTPRoute` resources that Linkerd uses for routing. Depending on the Linkerd version, `linkerd install --crds` may install them for you. Verify with `kubectl get crds | grep gateway.networking.k8s.io` and [install them separately](https://gateway-api.sigs.k8s.io/guides/#installing-gateway-api) if they are missing.
 
 ## Installation Steps
 
 :::tip For Administrators Only
-These steps are performed once by the Okteto administrator. Developers do not need to install the Linkerd CLI or perform any of these steps. Once Linkerd is installed in the cluster, it works transparently for all developers using Divert.
+These steps are performed once by the Okteto administrator. Developers do not need to install the Linkerd CLI or perform any of these steps.
 :::
 
-### Step 1: Install the Linkerd CLI (Administrator Only)
+### Step 1: Install the Linkerd CLI
 
-Install the Linkerd CLI on your **local machine** (as an administrator) to manage the Linkerd installation:
+Install the Linkerd CLI on your **local machine** to manage the Linkerd installation:
 
 ```console
 # macOS/Linux
@@ -46,8 +42,6 @@ export PATH=$PATH:$HOME/.linkerd2/bin
 # Verify installation
 linkerd version
 ```
-
-**Note**: Developers do not need this CLI. It's only for cluster administrators to install and manage Linkerd.
 
 ### Step 2: Validate Cluster Compatibility
 
@@ -69,6 +63,8 @@ linkerd install --crds | kubectl apply -f -
 linkerd install | kubectl apply -f -
 ```
 
+Okteto does not need any special Linkerd configuration. If you customize the Linkerd installation, contact Okteto support to confirm the configuration does not affect Divert.
+
 ### Step 5: Verify Installation
 
 ```console
@@ -77,27 +73,19 @@ linkerd check
 
 All checks should pass before continuing.
 
-### Step 6: Install Linkerd Viz (Optional)
-
-For observability dashboards:
-
-```console
-linkerd viz install | kubectl apply -f -
-linkerd viz check
-```
-
 ## Configure Okteto for Linkerd
 
-Once Linkerd is installed in the cluster, configure Okteto to automatically inject Linkerd sidecars into all developer namespaces. This is a one-time configuration by the administrator.
-
-### Enable Sidecar Injection
-
-Add the Linkerd annotation to Okteto-managed namespaces by updating your Okteto Helm values:
+Two changes to your Okteto Helm values are required. The first injects the Linkerd proxy into the `okteto-nginx` ingress controller pods, which handle traffic to developer endpoints. The second enables the Divert controller and CRDs in the Okteto control plane.
 
 ```yaml
-namespace:
-  annotations:
-    linkerd.io/inject: enabled
+okteto-nginx:
+  controller:
+    podAnnotations:
+      linkerd.io/inject: ingress
+
+unsupported:
+  linkerdDivert:
+    enabled: true
 ```
 
 Upgrade your Okteto installation:
@@ -106,188 +94,159 @@ Upgrade your Okteto installation:
 helm upgrade okteto okteto/okteto -f values.yaml
 ```
 
-### Existing Namespaces
-
-For existing namespaces, add the annotation:
+Verify the configuration:
 
 ```console
-kubectl annotate namespace <namespace> linkerd.io/inject=enabled
+# okteto-nginx pods should include a linkerd-proxy container
+kubectl get pods -n okteto -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}' | grep okteto-nginx
+
+# The Divert controller should be running
+kubectl get pods -n okteto -l app.kubernetes.io/component=divert-controller
+
+# The Divert CRDs should be installed
+kubectl get crds | grep divert
 ```
 
-Then restart deployments to inject sidecars:
-
-```console
-kubectl rollout restart deployment -n <namespace>
-```
-
-## How Linkerd Enhances Divert
-
-Once configured by administrators, Linkerd works **transparently for all developers**. Developers don't need to install anything or change their workflow. When they use Divert, they automatically benefit from:
-
-1. **Header-based routing**: Linkerd routes requests based on the `baggage` header at the service mesh level
-2. **Automatic retries**: Failed requests are automatically retried to the correct service
-3. **Load balancing**: Latency-aware load balancing across service instances
-4. **mTLS**: Automatic mutual TLS between services for enhanced security
-5. **Observability**: Detailed metrics and tracing for diverted traffic (visible to administrators)
-
-**For developers**: Divert "just works" - no CLI installation or special configuration needed.
-
-### Traffic Flow with Linkerd
-
-```
-Request with baggage header
-         │
-         ▼
-    ┌─────────────┐
-    │   Ingress   │
-    │   (nginx)   │
-    └──────┬──────┘
-           │ (header injected)
-           ▼
-    ┌─────────────┐
-    │   Linkerd   │ ← Routes based on baggage header
-    │   Sidecar   │
-    └──────┬──────┘
-           │
-           ▼
-    ┌─────────────┐
-    │   Service   │ ← Your diverted service
-    │   (local)   │
-    └──────┬──────┘
-           │ (header propagated)
-           ▼
-    ┌─────────────┐
-    │   Linkerd   │ ← Routes downstream call
-    │   Sidecar   │
-    └──────┬──────┘
-           │
-           ▼
-    ┌─────────────┐
-    │   Service   │ ← Shared service in staging
-    │  (staging)  │
-    └─────────────┘
-```
-
-## ServiceProfiles for Routing (Optional)
-
-For fine-grained control, create ServiceProfiles:
-
-```yaml
-apiVersion: linkerd.io/v1alpha2
-kind: ServiceProfile
-metadata:
-  name: catalog.staging.svc.cluster.local
-  namespace: staging
-spec:
-  routes:
-    - name: GET /api/movies
-      condition:
-        method: GET
-        pathRegex: /api/movies.*
-      responseClasses:
-        - condition:
-            status:
-              min: 200
-              max: 299
-```
-
-## Network Policies Compatibility
-
-If you have network policies enabled (`networkPolicies.enabled: true`), Linkerd works within the existing policy framework. Ensure your policies allow:
-
-- Cross-namespace communication for Divert functionality
-- Traffic to and from Linkerd control plane
-
-Example network policy configuration in your Okteto Helm values:
-
-```yaml
-networkPolicies:
-  enabled: true
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              dev.okteto.com/okteto-managed: "true"
-```
-
-:::tip
-For complete network policy options, see the [Helm Configuration reference](../../helm-configuration.mdx#networkpolicies).
+:::note Other ingress configurations
+Divert with Linkerd has only been tested with Okteto's default `ingress-nginx` configuration. If you run a single ingress controller instead of Okteto's default dual controllers, add the annotation to the `ingress-nginx` controller instead of `okteto-nginx`. If you bring your own ingress controller, contact Okteto support before enabling Divert.
 :::
 
-## Monitoring Diverted Traffic (Administrator Only)
+## Enable Sidecar Injection in Shared Environments
 
-These monitoring capabilities are available to administrators with the Linkerd CLI. Developers use Divert normally without needing any of these tools.
+Linkerd proxies are only needed in **shared environments**, the namespaces that hold the complete application and receive diverted traffic. Every pod in a shared environment needs the proxy, because the proxy decides whether an outgoing call stays in the shared environment or goes to a diverted version of the service.
 
-### Using Linkerd Dashboard
+Developer namespaces must **not** enable sidecar injection. Okteto configures the DNS of diverted pods to fall back to the shared environment, so they do not need proxies. Do not add the Linkerd annotation to all Okteto-managed namespaces.
 
-```console
-linkerd viz dashboard
-```
+There are two ways to enable injection in a shared environment:
 
-Navigate to the namespace view to see:
-
-- Request rates per service
-- Success rates
-- Latency percentiles
-- Traffic flow between services
-
-### CLI Monitoring
+**Option 1: Preview Environment with the `okteto-shared` label (recommended)**
 
 ```console
-# Watch traffic to a service
-linkerd viz stat deploy -n <namespace>
-
-# Live traffic tap
-linkerd viz tap deploy/<deployment> -n <namespace>
+okteto preview deploy --repository <repo> --branch <branch> --label=okteto-shared <name>
 ```
 
-**Note**: Developers don't need these commands. They use Okteto's standard monitoring and observability features.
+Okteto annotates the underlying namespace with `linkerd.io/inject: enabled` before the deploy runs, so every pod gets the proxy from the start.
+
+**Option 2: Regular Namespace**
+
+Annotate the namespace **before** deploying the application:
+
+```console
+kubectl annotate namespace <shared-namespace> linkerd.io/inject=enabled
+```
+
+If the application is already deployed, restart the workloads after annotating so the proxies are injected:
+
+```console
+kubectl rollout restart deployment -n <shared-namespace>
+```
+
+:::note Jobs and CronJobs
+Okteto automatically disables sidecar injection for pods created by Jobs and CronJobs in shared environments. The proxy would keep those pods running after the main container finished.
+:::
+
+## How Linkerd Routes Diverted Traffic
+
+Linkerd proxies run in two places: the `okteto-nginx` ingress controller pods, and every pod in a shared environment.
+
+When a developer deploys a manifest with a `divert` section, the Okteto CLI creates a Divert custom resource for each service deployed in the developer namespace. The Divert controller in the Okteto control plane turns each of those into an `HTTPRoute` named `okteto-<service>` in the shared environment. The route sends requests whose `baggage` header contains `okteto-divert=<developer-namespace>` to the developer's copy of the service, and everything else to the shared copy.
+
+```
+Request to a shared-environment endpoint
+with baggage: okteto-divert=alice
+         │
+         ▼
+┌──────────────────────┐
+│ okteto-nginx         │  Linkerd proxy checks the HTTPRoute for
+│ + Linkerd proxy      │  the target service
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ Service A (staging)  │  Alice has no diverted copy of A,
+│ + Linkerd proxy      │  so the request stays in staging
+└──────────┬───────────┘
+           │ A calls B and propagates the header
+           ▼
+     Linkerd proxy matches okteto-divert=alice
+     against HTTPRoute okteto-b
+           │
+           ▼
+┌──────────────────────┐
+│ Service B (alice)    │  Alice's diverted copy of B
+│ (no proxy needed)    │  DNS falls back to staging for
+└──────────────────────┘  anything B calls that Alice didn't deploy
+```
+
+If a service has no `HTTPRoute`, or the header does not match any rule, the request always stays in the shared environment.
 
 ## Troubleshooting
 
-### Sidecar Not Injected
+### Sidecar Not Injected in the Shared Environment
 
-1. Verify namespace annotation:
+These checks apply to the shared environment only. Developer namespaces do not get sidecars.
+
+1. Verify the namespace annotation:
    ```console
-   kubectl get namespace <namespace> -o jsonpath='{.metadata.annotations}'
+   kubectl get namespace <shared-namespace> -o jsonpath='{.metadata.annotations}'
+   ```
+   It should include `linkerd.io/inject: enabled`.
+
+2. Check that each pod has a `linkerd-proxy` container (the name may vary by Linkerd version):
+   ```console
+   kubectl get pods -n <shared-namespace> -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
    ```
 
-2. Check Linkerd injection status:
+3. If the annotation was added after deploying, restart the workloads:
    ```console
-   kubectl get pods -n <namespace> -o jsonpath='{.items[*].spec.containers[*].name}'
+   kubectl rollout restart deployment -n <shared-namespace>
    ```
 
-3. Restart deployments:
+### Divert Resources Exist but No Routes Are Created
+
+1. Confirm the developer namespace has Divert resources:
    ```console
-   kubectl rollout restart deployment -n <namespace>
+   kubectl get diverts -n <developer-namespace>
+   ```
+   If none exist, check that `unsupported.linkerdDivert.enabled` is `true`, the Divert CRDs are installed, and the manifest uses the `nginx` driver.
+
+2. Check the routes in the shared environment:
+   ```console
+   kubectl get httproute -n <shared-namespace>
+   ```
+   Each diverted service should have a route named `okteto-<service>`.
+
+3. Review the Divert controller logs:
+   ```console
+   kubectl logs -l app.kubernetes.io/component=divert-controller -n okteto
    ```
 
-### Header Not Propagating
+### Divert Controller Keeps Restarting
 
-1. Verify header format: `baggage: okteto-divert=<namespace>`
-2. Check application code propagates headers
-3. Use Linkerd tap to trace the request:
+If the controller logs show an error like `no matches for kind "HTTPRoute" in version "gateway.networking.k8s.io/v1"`, the Gateway API CRDs are not installed. Verify with:
+
+```console
+kubectl get crds | grep gateway.networking.k8s.io
+```
+
+Install them following the [Gateway API installation guide](https://gateway-api.sigs.k8s.io/guides/#installing-gateway-api).
+
+### Traffic Not Routed to the Developer Namespace
+
+1. Verify the header format: `baggage: okteto-divert=<developer-namespace>`
+2. Check that the application propagates the header on every service-to-service call
+3. Check that the `okteto-nginx` pods have the `linkerd.io/inject: ingress` annotation and a `linkerd-proxy` container
+4. Check that the pods in the shared environment have the `linkerd-proxy` container
+5. Test from inside the shared environment:
    ```console
-   linkerd viz tap deploy/<deployment> --to deploy/<target>
-   ```
-
-### Traffic Not Routing Correctly
-
-1. Check ServiceProfile routes if configured
-2. Verify DNS resolution across namespaces
-3. Test direct service communication:
-   ```console
-   kubectl exec -it <pod> -- curl -H "baggage: okteto-divert=<ns>" http://service/path
+   kubectl exec -n <shared-namespace> deployment/<deployment> -- curl -H "baggage: okteto-divert=<developer-namespace>" http://<service>/path
    ```
 
 ## Uninstalling Linkerd
 
-If you need to remove Linkerd:
+Removing Linkerd disables service-to-service routing for the Divert nginx driver.
 
 ```console
-# Remove viz extension
-linkerd viz uninstall | kubectl delete -f -
-
 # Remove control plane
 linkerd uninstall | kubectl delete -f -
 
@@ -295,7 +254,7 @@ linkerd uninstall | kubectl delete -f -
 linkerd install --crds | kubectl delete -f -
 ```
 
-Update Okteto Helm values to remove the namespace annotation.
+Then remove the `okteto-nginx` annotation and set `unsupported.linkerdDivert.enabled` to `false` in your Okteto Helm values, and remove the `linkerd.io/inject` annotation from shared namespaces.
 
 ## Next Steps
 

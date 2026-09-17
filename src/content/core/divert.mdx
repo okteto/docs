@@ -28,7 +28,7 @@ Setting up Divert involves three roles: an Admin configures the driver once per 
 
 - Okteto Self-Hosted installation
 - Cluster admin access via `kubectl` and Helm 3.x
-- A driver decision: nginx (default) or istio (if your cluster already runs Istio)
+- A driver decision: nginx (default, requires Linkerd) or istio (if your cluster already runs Istio)
 
 **For Developers:**
 
@@ -44,7 +44,7 @@ Setting up Divert involves three roles: an Admin configures the driver once per 
 
 ### Step 1: Configure the Driver (Admin)
 
-The nginx driver is enabled by default and requires no configuration. To extend routing to service-to-service calls, you can optionally install Linkerd following the [Linkerd installation guide](../self-hosted/install/divert/linkerd-installation.mdx).
+The nginx driver is the default and requires Linkerd. Install Linkerd and enable Divert in your Okteto Helm values following the [Linkerd installation guide](../self-hosted/install/divert/linkerd-installation.mdx). Without Linkerd, only the most basic scenario works (a diverted service reached directly through its own endpoint), and service-to-service calls from the shared environment never reach your diverted services.
 
 If your cluster already runs Istio, configure the istio driver instead following the [Istio installation guide](../self-hosted/install/divert/istio-installation.mdx).
 
@@ -79,7 +79,7 @@ Your services must also propagate the `baggage` header to downstream calls. See 
 
 ### Step 4: Deploy and Verify
 
-Run `okteto deploy`. Okteto deploys your modified services, creates an ingress that injects the routing header, and gives you a unique URL such as `https://frontend-alice-myapp.okteto.example.com`.
+Run `okteto deploy`. Okteto deploys your modified services, creates public endpoints in your namespace that inject the routing header, and gives you a unique URL such as `https://frontend-alice-myapp.okteto.example.com`. Okteto also creates endpoints in your namespace for every public endpoint of the shared environment you did not deploy, so the whole application is reachable under your namespace's URLs.
 
 To verify routing, compare the response from your URL with the shared environment's URL, and confirm that calls to services you didn't deploy reach the shared Namespace. The [Divert tutorial](/docs/tutorials/divert) walks through this flow with a sample application, and [Using Divert](../development/using-divert.mdx) covers implementation patterns in detail.
 
@@ -94,7 +94,7 @@ Divert creates lightweight development environments containing only your modifie
 3. Divert automatically routes traffic:
    - Requests with your namespace header → Your version of the service
    - Requests to services you haven't deployed → Shared versions in the staging namespace
-   - Database, queue, and external service calls → Shared infrastructure
+   - Databases and queues → Either the shared instances, or your own copies deployed in your namespace (see [Infrastructure Configuration Options](#infrastructure-configuration-options))
 4. Your application works normally, unaware it's communicating with services across namespaces
 
 ### Traffic Routing Mechanism
@@ -113,42 +113,45 @@ This header:
 
 ### Architecture Example
 
-Consider a Movies application with multiple microservices. Alice is working on the frontend and only needs to deploy that service:
+Consider the [Movies application](https://github.com/okteto-community/movies-with-divert) used in the Divert samples. The frontend only talks to the API gateway, and the API gateway calls the catalog and rent services. Alice is working on the catalog service and only needs to deploy that service:
 
 ```mermaid
 graph TB
     User[User Request]
-    Frontend["Frontend (React)<br/><em>Alice's personal version</em>"]
-    Catalog[Catalog Service]
+    Frontend[Frontend]
     API[API Gateway]
+    Catalog["Catalog Service<br/><em>Alice's diverted version</em>"]
     Rent[Rent Service]
+    Worker[Worker]
     MongoDB[(MongoDB)]
     PostgreSQL[(PostgreSQL)]
     Kafka[(Kafka)]
 
     User --> Frontend
-    Frontend --> Catalog
     Frontend --> API
-    Frontend --> Rent
+    API --> Catalog
+    API --> Rent
     Catalog --> MongoDB
-    API --> PostgreSQL
+    Rent --> PostgreSQL
     Rent --> Kafka
+    Kafka --> Worker
+    Worker --> PostgreSQL
 
     classDef personal fill:#00d1ca,stroke:#00a89c,color:#000
     classDef shared fill:#e8e8e8,stroke:#999,color:#000
     classDef infrastructure fill:#f5f5f5,stroke:#ccc,color:#000
 
-    class Frontend personal
-    class Catalog,API,Rent shared
+    class Catalog personal
+    class Frontend,API,Rent,Worker shared
     class MongoDB,PostgreSQL,Kafka infrastructure
 ```
 
 **Key Points:**
-- **Alice's services** (teal): Only the Frontend is deployed in her namespace
-- **Shared services** (gray): Catalog, API Gateway, and Rent Service run in staging
+- **Alice's services** (teal): Only the catalog service is deployed in her namespace
+- **Shared services** (gray): Frontend, API gateway, rent service, and worker run in staging
 - **Shared infrastructure** (gray): Databases and message queues run in staging
 
-Alice doesn't need to deploy or manage the catalog service, rent service, API gateway, MongoDB, PostgreSQL, or Kafka. Divert handles all the routing transparently.
+When a request carrying `baggage: okteto-divert=alice` reaches the shared API gateway (for example, through the endpoints Okteto creates in Alice's namespace), the gateway propagates the header and Linkerd routes the catalog call to Alice's version. Requests without the header, or for services Alice didn't deploy, stay in staging. Alice doesn't need to deploy or manage the frontend, API gateway, rent service, worker, MongoDB, PostgreSQL, or Kafka.
 
 ## Setting Up Shared Environments
 
@@ -159,26 +162,27 @@ For Divert to work effectively, you need a shared namespace containing a complet
 You have two options for creating shared namespaces:
 
 1. **Global Preview Environment** (recommended for most teams)
-   - Created via Okteto's [Preview Environment](../previews/index.mdx) system
-   - Automatically managed by Okteto
-   - Fits teams that already redeploy from CI/CD pipelines
-   - Requires: preview automation configured in your repository
+   - Created via Okteto's [Preview Environment](../previews/index.mdx) system, either manually with `okteto preview deploy` or automatically from CI (for example, with Okteto's [GitHub Actions](../previews/using-github-actions.mdx))
+   - Global previews are visible to every user in the Okteto instance, so no extra sharing step is needed
+   - With the nginx driver, pass `--label=okteto-shared` so Okteto enables Linkerd sidecar injection in the namespace before the deploy runs
 
 2. **Regular Namespace**
-   - Standard Okteto Namespace deployed manually or via CI
-   - More control over deployment timing
-   - Fits stable staging or demo environments
-   - Requires: manual deployment management
+   - Standard Okteto Namespace deployed manually or from CI
+   - Must be shared explicitly with every developer who will divert from it
+   - With the nginx driver, annotate the namespace with `linkerd.io/inject=enabled` before deploying (see the [Linkerd installation guide](../self-hosted/install/divert/linkerd-installation.mdx#enable-sidecar-injection-in-shared-environments))
 
 :::info Access Requirements
-All developers need **read access** to the shared namespace services for Divert routing to work. Configure namespace permissions to ensure team members can access shared resources without deployment permissions.
+Access requirements depend on the driver:
+
+- **nginx driver**: developers need **read access** to the shared namespace so the CLI can copy its endpoints and services. Okteto's own service account needs write access to the shared namespace to create the `HTTPRoute` resources that route traffic.
+- **istio driver**: developers need **write access** to the VirtualServices in the shared namespace, because the CLI modifies them to add the header-based routing rules.
 :::
 
 ### Infrastructure Configuration Options
 
-When setting up your shared environment, you can configure databases and message queues in two ways:
+Divert routes HTTP traffic. It does not split databases or message queues for you, so you have to decide for each diverted service whether it uses the shared instances or its own. Both patterns are supported, and the safe default is isolation: if the service you are working on writes to a database or consumes from a queue, deploy your own copy. A bad write or a consumed message affects everyone using the shared environment.
 
-#### Option 1: Shared Infrastructure (Most Common)
+#### Option 1: Shared Infrastructure
 
 Databases and queues remain in the shared namespace, accessed by all developers:
 
@@ -197,14 +201,19 @@ deploy:
 - Lower resource usage per developer
 - Simpler configuration
 
+**Implications:**
+- Every write from a diverted service lands in the shared data. A bug or a test run can corrupt data for the whole team
+- Schema migrations run against the shared database and can break the shared environment
+- A diverted consumer can take messages from a shared queue that were meant for the shared environment
+
 **Use when:**
-- Database schemas are stable
+- The service you are working on only reads from the database
 - Test data can be shared
 - You want minimal resource overhead
 
-#### Option 2: Isolated Databases (Per Developer)
+#### Option 2: Isolated Databases and Queues (Per Developer)
 
-Each developer deploys their own database instances in their personal namespace:
+Each developer deploys their own database or queue instances in their personal namespace:
 
 ```yaml
 # In developer namespace (e.g., alice-feature)
@@ -225,28 +234,32 @@ deploy:
 
 **Benefits:**
 - Full control over test data
-- Schema changes don't affect other developers
-- [Volume Snapshots](use-volume-snapshots.mdx) enable fast database cloning
+- Schema changes and writes don't affect other developers
+- [Volume Snapshots](use-volume-snapshots.mdx) let you clone the shared database into your namespace in seconds instead of seeding it from scratch
+
+**Implications:**
+- Higher resource usage per developer
+- Your data drifts from the shared environment unless you refresh it (Volume Snapshots make this cheap)
 
 **Use when:**
+- The service you are working on writes to the database or consumes from a queue
 - Testing database migrations
 - You need isolated test data
-- Schema changes are frequent
 - Working with sensitive data
 
 :::tip Hybrid Approach
-You can mix both patterns: share stable databases (e.g., user accounts) while running isolated databases for services under active development (e.g., new feature schemas).
+You can mix both patterns: share stable databases your service only reads from (e.g., user accounts) while running isolated databases for services under active development (e.g., new feature schemas). See [Using Divert](../development/using-divert.mdx#database-isolation-patterns) for manifest examples of each pattern.
 :::
 
 ### Linkerd Configuration for Shared Namespaces
 
-If you use Linkerd with the nginx driver, sidecar injection must be enabled in both your shared namespace and developer namespaces for service-to-service routing to work:
+With the nginx driver, Linkerd sidecar injection must be enabled in the **shared namespace only**:
 
-- Linkerd sidecar injection must be enabled in the shared namespace
-- All services in the shared namespace need Linkerd sidecars
-- Developer namespaces inherit the Linkerd configuration automatically
+- Every pod in the shared namespace needs a Linkerd sidecar. The sidecar is what routes a service-to-service call to a diverted version when the header matches
+- Developer namespaces must **not** have sidecar injection enabled. Okteto configures diverted pods to fall back to the shared namespace through DNS, so they don't need proxies
+- Creating the shared environment with `okteto preview deploy --label=okteto-shared` enables injection automatically. For a regular namespace, annotate it before deploying
 
-See the [Linkerd installation guide](../self-hosted/install/divert/linkerd-installation.mdx) for setup instructions.
+See the [Linkerd installation guide](../self-hosted/install/divert/linkerd-installation.mdx#enable-sidecar-injection-in-shared-environments) for setup instructions.
 
 ### Verifying Your Shared Environment
 
@@ -257,7 +270,7 @@ Before developers start using Divert, verify your shared namespace is correctly 
    kubectl get pods -n staging
    ```
 
-2. **Verify Linkerd sidecars (only if using Linkerd):**
+2. **Verify Linkerd sidecars (nginx driver):**
    ```bash
    kubectl get pods -n staging -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
    ```
@@ -268,7 +281,7 @@ Before developers start using Divert, verify your shared namespace is correctly 
    kubectl exec -n staging deployment/frontend -- curl http://api-service/health
    ```
 
-4. **Confirm ingress is accessible:**
+4. **Confirm the public endpoint is accessible:**
    ```bash
    curl https://staging-yourapp.okteto.example.com
    ```
@@ -279,7 +292,7 @@ Okteto supports two implementations of Divert to accommodate different infrastru
 
 | Driver | Use Case | Requirements |
 |--------|----------|--------------|
-| **nginx** (default) | Standard Okteto installations | Uses Okteto's built-in nginx ingress with optional Linkerd for service mesh |
+| **nginx** (default) | Standard Okteto installations | Requires Linkerd. Uses Okteto's built-in nginx ingress for public endpoints and Linkerd for service-to-service routing |
 | **istio** | Environments with existing Istio service mesh | Requires Istio installation (non-default Okteto configuration) |
 
 Both drivers provide the same developer experience and use the same `okteto.yaml` configuration. The difference is in the underlying routing technology.
@@ -292,8 +305,8 @@ Both drivers now use the same baggage header format: `baggage: okteto-divert=<na
 
 **Choose nginx driver (default) when:**
 - Using standard Okteto installation
-- You want the simplest setup
-- Optional: You can add Linkerd to extend routing to service-to-service calls
+- Your cluster does not run Istio
+- You can install Linkerd in the cluster
 
 **Choose istio driver when:**
 - Your cluster already has Istio installed
@@ -301,7 +314,7 @@ Both drivers now use the same baggage header format: `baggage: okteto-divert=<na
 - Your team is familiar with Istio configuration
 
 :::tip
-**Istio vs Linkerd**: These serve different purposes. **Istio is a divert driver** (alternative to nginx), while **Linkerd extends the nginx driver** (optional add-on for service-to-service routing). You cannot use both Istio driver and Linkerd together. See the [admin configuration guide](../self-hosted/install/divert/index.mdx) for details.
+**Istio vs Linkerd**: These serve different purposes. **Istio is a divert driver** (alternative to nginx), while **Linkerd is required by the nginx driver** for service-to-service routing. You cannot use both Istio driver and Linkerd together. See the [admin configuration guide](../self-hosted/install/divert/index.mdx) for details.
 :::
 
 ## Services to Share
@@ -359,6 +372,8 @@ All four developers work simultaneously without conflicts:
 
 For Divert to work across service boundaries, your services must propagate the `baggage` header to downstream calls. This ensures that when Service A calls Service B, the routing header travels with the request.
 
+`baggage` is the [W3C standard header](https://www.w3.org/TR/baggage/) for propagating context between services, the same one used by distributed tracing. Most languages already have libraries that propagate it for you, such as the [OpenTelemetry](https://opentelemetry.io/docs/concepts/context-propagation/) instrumentation for HTTP clients and servers. If your services already use OpenTelemetry or a tracing library that supports W3C context propagation, you likely don't need to write any propagation code. The examples below show what the propagation looks like if you implement it by hand.
+
 ### Propagation Pattern
 
 ```
@@ -399,11 +414,16 @@ req.Header.Set("baggage", baggage)
 
 **Java/Spring:**
 ```java
-// Using Spring's WebClient
-webClient.get()
-    .uri("http://catalog-service/api/movies")
-    .header("baggage", baggage)
-    .retrieve();
+// Extract from incoming request
+@GetMapping("/api/movies")
+public Mono<Movies> getMovies(@RequestHeader(value = "baggage", required = false) String baggage) {
+    // Include in outgoing requests using Spring's WebClient
+    return webClient.get()
+        .uri("http://catalog-service/api/movies")
+        .header("baggage", baggage != null ? baggage : "")
+        .retrieve()
+        .bodyToMono(Movies.class);
+}
 ```
 
 :::tip
