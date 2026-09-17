@@ -2,7 +2,7 @@
 title: Getting started with Agentic Workflows
 description: Run an AI coding agent against a live Okteto environment using the Movies sample app
 id: agentic-workflows
-sidebar_custom_props: { logo: "okteto" }
+sidebar_custom_props: { logo: "claude" }
 ---
 
 Okteto gives AI coding agents the same live environments your team develops in. The agent deploys with `okteto deploy`, runs tests with `okteto test`, and reads results from real services instead of reasoning about files on disk.
@@ -87,7 +87,7 @@ The agent runs `okteto deploy --wait` to build every image and deploy all five s
   - https://movies-cindy.okteto.example.com/users
 ```
 
-All five services share one host and are routed by path, so `okteto endpoints` prints one URL per ingress path.
+The services that expose an ingress share one host and are routed by path, so `okteto endpoints` prints one URL per ingress path. The `worker` has no public endpoint.
 
 Open the first URL in your browser. The Movies app loads with six movies in the catalog.
 
@@ -103,7 +103,7 @@ In collaborative mode you own the dev session and the agent works inside it. Sta
 okteto up catalog
 ```
 
-The `catalog` service runs `nodemon`, so it reloads whenever a synced file changes. Leave this terminal open — the service's output appears here rather than in `okteto logs`.
+The `catalog` service runs `nodemon`, so it reloads whenever a synced file changes. Leave this terminal open.
 
 Now introduce a regression for the agent to find. In `catalog/server.js`, change the catalog query to return only five movies:
 
@@ -173,6 +173,10 @@ okteto test e2e                                             # confirm nothing el
 ```
 
 If a step fails, the agent reads the error, fixes the code, and redeploys. Each iteration gives it real feedback from running services, which is what lets it correct itself without you in the loop.
+
+:::tip
+Running several agents at once? Give each run its own Namespace with `okteto namespace create <name>` and pass `-n <name>` on every command. Agents should not run `okteto namespace use`, which switches the active Namespace in the shared Okteto context and races with every other run on the machine. See [Isolating parallel runs](/docs/agentic/autonomous-workflows/#isolating-parallel-runs).
+:::
 
 The new path needs no chart change: the `catalog` ingress routes the `/catalog` prefix, so `/catalog/count` is reachable as soon as the service handles it.
 
