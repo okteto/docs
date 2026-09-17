@@ -32,7 +32,7 @@ These steps are performed once by the Okteto administrator. Developers do not ne
 
 Install the Linkerd CLI on your **local machine** to manage the Linkerd installation:
 
-```console
+```bash
 # macOS/Linux
 curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install | sh
 
@@ -45,7 +45,7 @@ linkerd version
 
 ### Step 2: Validate Cluster Compatibility
 
-```console
+```bash
 linkerd check --pre
 ```
 
@@ -53,13 +53,13 @@ Address any issues before proceeding.
 
 ### Step 3: Install Linkerd CRDs
 
-```console
+```bash
 linkerd install --crds | kubectl apply -f -
 ```
 
 ### Step 4: Install Linkerd Control Plane
 
-```console
+```bash
 linkerd install | kubectl apply -f -
 ```
 
@@ -67,7 +67,7 @@ Okteto does not need any special Linkerd configuration. If you customize the Lin
 
 ### Step 5: Verify Installation
 
-```console
+```bash
 linkerd check
 ```
 
@@ -90,13 +90,13 @@ unsupported:
 
 Upgrade your Okteto installation:
 
-```console
+```bash
 helm upgrade okteto okteto/okteto -f values.yaml
 ```
 
 Verify the configuration:
 
-```console
+```bash
 # okteto-nginx pods should include a linkerd-proxy container
 kubectl get pods -n okteto -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}' | grep okteto-nginx
 
@@ -121,7 +121,7 @@ There are two ways to enable injection in a shared environment:
 
 **Option 1: Preview Environment with the `okteto-shared` label (recommended)**
 
-```console
+```bash
 okteto preview deploy --repository <repo> --branch <branch> --label=okteto-shared <name>
 ```
 
@@ -131,13 +131,13 @@ Okteto annotates the underlying namespace with `linkerd.io/inject: enabled` befo
 
 Annotate the namespace **before** deploying the application:
 
-```console
+```bash
 kubectl annotate namespace <shared-namespace> linkerd.io/inject=enabled
 ```
 
 If the application is already deployed, restart the workloads after annotating so the proxies are injected:
 
-```console
+```bash
 kubectl rollout restart deployment -n <shared-namespace>
 ```
 
@@ -225,7 +225,7 @@ These checks apply to the shared environment only. Developer namespaces do not g
 
 If the controller logs show an error like `no matches for kind "HTTPRoute" in version "gateway.networking.k8s.io/v1"`, the Gateway API CRDs are not installed. Verify with:
 
-```console
+```bash
 kubectl get crds | grep gateway.networking.k8s.io
 ```
 
@@ -246,7 +246,7 @@ Install them following the [Gateway API installation guide](https://gateway-api.
 
 Removing Linkerd disables service-to-service routing for the Divert nginx driver.
 
-```console
+```bash
 # Remove control plane
 linkerd uninstall | kubectl delete -f -
 
