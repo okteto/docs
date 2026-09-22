@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Writes llms.txt and llms-full.txt into the build output for every version
- * in versions.json, assembled from the per-page Markdown twins Docusaurus
+ * in versions.json, plus one more pair for the tutorials plugin's pages
+ * (unversioned, so every version links to it instead of duplicating it).
+ * Everything is assembled from the per-page Markdown twins Docusaurus
  * already writes for every version (docusaurus.config.js keeps
  * includeVersionedDocs + enableMarkdownFiles on unconditionally). We build
  * these ourselves instead of using the llms-txt plugin's own output, which
@@ -39,23 +41,14 @@ function collectMarkdownFiles(dir, baseDir, results) {
   }
 }
 
-// Lists every Markdown twin (relative to buildRoot) belonging to `version`,
-// sorted by path (reproduces the llms-txt plugin's own ordering with no
-// sidebar-aware logic needed). The root version's pages sit at buildRoot
-// unprefixed, alongside sibling dirs for every other version plus
-// tutorials/search - all excluded. An archived version's pages are its
-// landing page `V.md` plus everything under `V/`.
-function listVersionTwins(buildRoot, version, rootVersion) {
-  const isRoot = version === rootVersion;
+// Lists Markdown twins at buildRoot whose top-level name (without .md)
+// satisfies `matchName`, sorted by path (reproduces the llms-txt plugin's
+// own ordering with no sidebar-aware logic needed).
+function listTwins(buildRoot, matchName) {
   const results = [];
   for (const entry of fs.readdirSync(buildRoot, { withFileTypes: true })) {
     const nameWithoutExt = entry.name.replace(/\.md$/, '');
-    if (isRoot) {
-      const isVersionLike = VERSION_LIKE_REGEX.test(nameWithoutExt);
-      if (nameWithoutExt === 'tutorials' || nameWithoutExt === 'search' || isVersionLike) continue;
-    } else if (nameWithoutExt !== version) {
-      continue;
-    }
+    if (!matchName(nameWithoutExt)) continue;
     const fullPath = path.join(buildRoot, entry.name);
     if (entry.isDirectory()) {
       collectMarkdownFiles(fullPath, buildRoot, results);
@@ -65,6 +58,21 @@ function listVersionTwins(buildRoot, version, rootVersion) {
   }
   results.sort();
   return results;
+}
+
+// The root version's pages sit at buildRoot unprefixed, alongside sibling
+// dirs for every other version and the tutorials plugin's pages - both
+// excluded (tutorials get their own llms.txt below); `search` is an
+// interactive widget, not indexable content, excluded everywhere. An
+// archived version's pages are its landing page `V.md` plus everything
+// under `V/`.
+function listVersionTwins(buildRoot, version, rootVersion) {
+  if (version !== rootVersion) return listTwins(buildRoot, (name) => name === version);
+  return listTwins(buildRoot, (name) => name !== 'search' && name !== 'tutorials' && !VERSION_LIKE_REGEX.test(name));
+}
+
+function listTutorialsTwins(buildRoot) {
+  return listTwins(buildRoot, (name) => name === 'tutorials');
 }
 
 // twin "foo/bar.md" -> served URL "/docs/foo/bar/"; "index.md" -> "/docs/".
@@ -83,14 +91,14 @@ function htmlPathForTwin(twinPath) {
 
 // Every twin carries a "Documentation Index" pointer to llms.txt, inserted by
 // docusaurus.config.js's remarkLlmsIndexPointer. That plugin has no way to
-// know which version it's running for (the llms-txt plugin calls it with no
+// know which page it's running for (the llms-txt plugin calls it with no
 // file/route context), so it always points at the root llms.txt - correct
-// for the current version, wrong for every archived one. Fix it up here,
-// where we do know the version, both in what we embed in llms-full.txt and
-// in the served twin file itself.
+// only for the root version's own pages. Fix it up here, where we do know
+// the scope, both in what we embed in llms-full.txt and in the served twin
+// file itself.
 const INDEX_POINTER_URL_REGEX = /<(https?:\/\/[^>]+\/docs\/)llms\.txt>/;
-function withVersionAwareIndexPointer(content, version) {
-  return content.replace(INDEX_POINTER_URL_REGEX, (match, origin) => `<${origin}${version}/llms.txt>`);
+function withIndexPointerTarget(content, targetPrefix) {
+  return content.replace(INDEX_POINTER_URL_REGEX, (match, origin) => `<${origin}${targetPrefix}llms.txt>`);
 }
 
 const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
@@ -120,13 +128,15 @@ function extractDescription(htmlContent) {
   return match ? decodeHtmlEntities(match[1]) : null;
 }
 
-// { twinPath, url, title, description } for every page in `version`.
-function collectVersionEntries(buildRoot, version, rootVersion) {
-  return listVersionTwins(buildRoot, version, rootVersion).map((twinPath) => {
+// { twinPath, url, title, description } for every twin path, rewriting each
+// one's Documentation Index pointer to `targetPrefix` first (pass '' for the
+// root version, where it's already correct and no rewrite is needed).
+function collectEntries(buildRoot, twinPaths, targetPrefix) {
+  return twinPaths.map((twinPath) => {
     const twinFilePath = path.join(buildRoot, twinPath);
     let twinContent = fs.readFileSync(twinFilePath, 'utf8');
-    if (version !== rootVersion) {
-      const corrected = withVersionAwareIndexPointer(twinContent, version);
+    if (targetPrefix) {
+      const corrected = withIndexPointerTarget(twinContent, targetPrefix);
       if (corrected !== twinContent) {
         fs.writeFileSync(twinFilePath, corrected);
         twinContent = corrected;
@@ -158,12 +168,19 @@ function renderOtherVersionsSection(version, versions, rootVersion) {
   return lines;
 }
 
-function renderLlmsTxt(version, entries, versions, rootVersion) {
-  const lines = ['# Okteto Documentation', '', `> Okteto product documentation for version ${version}.`, ''];
-  lines.push(...renderOtherVersionsSection(version, versions, rootVersion));
-  lines.push('## docs', '');
-  for (const { title, url, description } of entries) {
-    lines.push(description ? `- [${title}](${url}): ${description}` : `- [${title}](${url})`);
+// Tutorials aren't tied to any version, so they get their own llms.txt
+// (written once, see main) and every version just links to it instead of
+// duplicating tutorial pages into every version's index/full-text dump.
+function renderTutorialsSection() {
+  return ['## Tutorials', '', '- [Okteto Tutorials](/docs/tutorials/llms.txt)', ''];
+}
+
+function renderLlmsTxt({ description, sectionHeading, entries, extraSections = [] }) {
+  const lines = ['# Okteto Documentation', '', `> ${description}`, ''];
+  for (const section of extraSections) lines.push(...section);
+  lines.push(`## ${sectionHeading}`, '');
+  for (const { title, url, description: entryDescription } of entries) {
+    lines.push(entryDescription ? `- [${title}](${url}): ${entryDescription}` : `- [${title}](${url})`);
   }
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }
@@ -173,6 +190,12 @@ function renderLlmsFullTxt(indexContent, buildRoot, entries) {
   return [indexContent.trimEnd(), '# Full Documentation Content', ...bodies].join('\n\n---\n\n') + '\n';
 }
 
+function writeLlmsFiles(destDir, llmsTxt, llmsFullTxt) {
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.writeFileSync(path.join(destDir, 'llms.txt'), llmsTxt);
+  fs.writeFileSync(path.join(destDir, 'llms-full.txt'), llmsFullTxt);
+}
+
 function main() {
   if (!fs.existsSync(BUILD_OUT_DIR)) {
     throw new Error(`${path.relative(ROOT_DIR, BUILD_OUT_DIR)} is missing. Run \`docusaurus build\` before this script.`);
@@ -180,23 +203,46 @@ function main() {
 
   const { versions, rootVersion } = readVersions();
 
+  const tutorialsEntries = collectEntries(BUILD_OUT_DIR, listTutorialsTwins(BUILD_OUT_DIR), 'tutorials/');
+  const hasTutorials = tutorialsEntries.length > 0;
+  if (hasTutorials) {
+    const tutorialsLlmsTxt = renderLlmsTxt({
+      description: 'Okteto tutorials - step-by-step guides that apply across versions.',
+      sectionHeading: 'tutorials',
+      entries: tutorialsEntries,
+      extraSections: [['## Documentation', '', '- [Okteto Documentation](/docs/llms.txt)', '']],
+    });
+    const tutorialsLlmsFullTxt = renderLlmsFullTxt(tutorialsLlmsTxt, BUILD_OUT_DIR, tutorialsEntries);
+    writeLlmsFiles(path.join(BUILD_OUT_DIR, 'tutorials'), tutorialsLlmsTxt, tutorialsLlmsFullTxt);
+    console.log(`Wrote build/docs/tutorials/llms.txt + llms-full.txt (${tutorialsEntries.length} pages)`);
+  } else {
+    console.warn('No tutorial pages found - skipping build/docs/tutorials/llms.txt.');
+  }
+
   for (const version of versions) {
-    const entries = collectVersionEntries(BUILD_OUT_DIR, version, rootVersion);
+    const isRoot = version === rootVersion;
+    const entries = collectEntries(BUILD_OUT_DIR, listVersionTwins(BUILD_OUT_DIR, version, rootVersion), isRoot ? '' : `${version}/`);
     if (entries.length === 0) {
       console.warn(`No pages found for version ${version} - skipping.`);
       continue;
     }
 
-    const llmsTxt = renderLlmsTxt(version, entries, versions, rootVersion);
+    const extraSections = [renderOtherVersionsSection(version, versions, rootVersion)];
+    if (hasTutorials) extraSections.push(renderTutorialsSection());
+
+    const llmsTxt = renderLlmsTxt({
+      description: `Okteto product documentation for version ${version}.`,
+      sectionHeading: 'docs',
+      entries,
+      extraSections,
+    });
     const llmsFullTxt = renderLlmsFullTxt(llmsTxt, BUILD_OUT_DIR, entries);
 
-    const servedDir = version === rootVersion ? BUILD_OUT_DIR : path.join(BUILD_OUT_DIR, version);
-    fs.mkdirSync(servedDir, { recursive: true });
-    fs.writeFileSync(path.join(servedDir, 'llms.txt'), llmsTxt);
-    fs.writeFileSync(path.join(servedDir, 'llms-full.txt'), llmsFullTxt);
+    const servedDir = isRoot ? BUILD_OUT_DIR : path.join(BUILD_OUT_DIR, version);
+    writeLlmsFiles(servedDir, llmsTxt, llmsFullTxt);
 
     const size = ((llmsTxt.length + llmsFullTxt.length) / 1024 / 1024).toFixed(2);
-    console.log(`Wrote build/docs/${version === rootVersion ? '' : version + '/'}llms.txt + llms-full.txt (${size} MB, ${entries.length} pages)`);
+    console.log(`Wrote build/docs/${isRoot ? '' : version + '/'}llms.txt + llms-full.txt (${size} MB, ${entries.length} pages)`);
   }
 }
 
