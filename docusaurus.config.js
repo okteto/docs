@@ -440,11 +440,18 @@ module.exports = {
     [
       '@signalwire/docusaurus-plugin-llms-txt',
       {
-        siteTitle: 'Okteto Documentation',
+        // The plugin's own llms.txt / llms-full.txt output is never used
+        // directly - scripts/generate-all-llms-files.js overwrites both with
+        // its own per-version-aware versions right after the build (see that
+        // script for why: the plugin only ever writes one combined file
+        // across every version, in an undocumented full-text format that
+        // can't be split back apart per version). What the plugin IS still
+        // used for, and does need this config: rendering every version's
+        // pages into clean per-page Markdown twins (enableMarkdownFiles),
+        // which the script reads directly.
         content: {
-          includeVersionedDocs: false,
+          includeVersionedDocs: true,
           enableMarkdownFiles: true,
-          enableLlmsFullTxt: true,
           beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripTierBadges, rehypeStripAgentActions],
           remarkPlugins: [remarkLlmsIndexPointer],
         },
