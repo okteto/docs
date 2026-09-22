@@ -46,6 +46,8 @@ This process will:
 - Set up version X.(Y+1) as the next unreleased version (e.g., 1.42)
 - Remove the oldest version to maintain 12 total versions
 
+**Note:** Every version's `llms.txt` and `llms-full.txt` are regenerated automatically as part of `yarn build` (Step 8).
+
 **Prerequisites:**
 - Determine the version number for the new release (e.g., `1.41`)
 - Have release notes ready for the new version in `src/content/release-notes.mdx`
@@ -196,6 +198,8 @@ Fix any errors before proceeding. Common issues:
 - Broken anchor links from moved release notes
 - Missing redirects
 - Invalid configuration in docusaurus.config.js
+
+This same command also writes `llms.txt` and `llms-full.txt` into `build/docs/{VERSION}/` for every version in `versions.json` (see `scripts/generate-all-llms-files.js`). Docusaurus's own versioning already renders every version's HTML on every build regardless of which one is the last version, so reading that output back out as clean per-page Markdown (via `enableMarkdownFiles`, always on) and assembling it into each version's own index and full-text dump adds only a few seconds — cheap enough to fully regenerate from `versioned_docs/` on every single build instead of persisting the result.
 
 ### Step 9: Commit and Create Pull Request
 
