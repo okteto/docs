@@ -199,7 +199,7 @@ Fix any errors before proceeding. Common issues:
 - Missing redirects
 - Invalid configuration in docusaurus.config.js
 
-This same command also writes `llms.txt` and `llms-full.txt` into `build/docs/{VERSION}/` for every version in `versions.json` (see `scripts/generate-all-llms-files.js`). Docusaurus's own versioning already renders every version's HTML on every build regardless of which one is the last version, so reading that output back out as clean per-page Markdown (via `enableMarkdownFiles`, always on) and assembling it into each version's own index and full-text dump adds only a few seconds — cheap enough to fully regenerate from `versioned_docs/` on every single build instead of persisting the result.
+This same command also writes `llms.txt` and `llms-full.txt` into `build/docs/` for the root/latest version and `build/docs/{VERSION}/` for each other version in `versions.json` (see `scripts/generate-all-llms-files.js`). Docusaurus's own versioning already renders every version's HTML on every build regardless of which one is the last version, so reading that output back out as clean per-page Markdown (via `enableMarkdownFiles`, always on) and assembling it into each version's own index and full-text dump adds only a few seconds — cheap enough to fully regenerate from `versioned_docs/` on every single build instead of persisting the result.
 
 ### Step 9: Commit and Create Pull Request
 
