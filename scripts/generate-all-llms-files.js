@@ -75,11 +75,12 @@ function listTutorialsTwins(buildRoot) {
   return listTwins(buildRoot, (name) => name === 'tutorials');
 }
 
-// twin "foo/bar.md" -> served URL "/docs/foo/bar/"; "index.md" -> "/docs/".
+// Points at the twin itself ("/docs/foo/bar.md"), not the HTML page, so an
+// agent following the link gets clean Markdown directly - matching every
+// other link the llms-txt plugin generates (e.g. cross-page links inside
+// twin bodies, via rehype-links.js).
 function urlForTwin(twinPath) {
-  const withoutExt = twinPath.slice(0, -'.md'.length);
-  const routePath = withoutExt === 'index' ? '' : `${withoutExt}/`;
-  return `/docs/${routePath}`;
+  return `/docs/${twinPath}`;
 }
 
 // twin "foo/bar.md" -> companion HTML "foo/bar/index.html"; "index.md" ->
