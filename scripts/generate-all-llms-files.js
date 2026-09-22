@@ -81,6 +81,18 @@ function htmlPathForTwin(twinPath) {
   return withoutExt === 'index' ? 'index.html' : `${withoutExt}/index.html`;
 }
 
+// Every twin carries a "Documentation Index" pointer to llms.txt, inserted by
+// docusaurus.config.js's remarkLlmsIndexPointer. That plugin has no way to
+// know which version it's running for (the llms-txt plugin calls it with no
+// file/route context), so it always points at the root llms.txt - correct
+// for the current version, wrong for every archived one. Fix it up here,
+// where we do know the version, both in what we embed in llms-full.txt and
+// in the served twin file itself.
+const INDEX_POINTER_URL_REGEX = /<(https?:\/\/[^>]+\/docs\/)llms\.txt>/;
+function withVersionAwareIndexPointer(content, version) {
+  return content.replace(INDEX_POINTER_URL_REGEX, (match, origin) => `<${origin}${version}/llms.txt>`);
+}
+
 const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
 function decodeHtmlEntities(text) {
   return text.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+\d*);/gi, (match, entity) => {
@@ -111,7 +123,15 @@ function extractDescription(htmlContent) {
 // { twinPath, url, title, description } for every page in `version`.
 function collectVersionEntries(buildRoot, version, rootVersion) {
   return listVersionTwins(buildRoot, version, rootVersion).map((twinPath) => {
-    const twinContent = fs.readFileSync(path.join(buildRoot, twinPath), 'utf8');
+    const twinFilePath = path.join(buildRoot, twinPath);
+    let twinContent = fs.readFileSync(twinFilePath, 'utf8');
+    if (version !== rootVersion) {
+      const corrected = withVersionAwareIndexPointer(twinContent, version);
+      if (corrected !== twinContent) {
+        fs.writeFileSync(twinFilePath, corrected);
+        twinContent = corrected;
+      }
+    }
     const htmlPath = path.join(buildRoot, htmlPathForTwin(twinPath));
     const htmlContent = fs.existsSync(htmlPath) ? fs.readFileSync(htmlPath, 'utf8') : '';
     return {
