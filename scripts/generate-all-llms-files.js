@@ -176,8 +176,8 @@ function renderTutorialsSection() {
   return ['## Tutorials', '', '- [Okteto Tutorials](/docs/tutorials/llms.txt)', ''];
 }
 
-function renderLlmsTxt({ description, sectionHeading, entries, extraSections = [] }) {
-  const lines = ['# Okteto Documentation', '', `> ${description}`, ''];
+function renderLlmsTxt({ title, description, sectionHeading, entries, extraSections = [] }) {
+  const lines = [`# ${title}`, '', `> ${description}`, ''];
   for (const section of extraSections) lines.push(...section);
   lines.push(`## ${sectionHeading}`, '');
   for (const { title, url, description: entryDescription } of entries) {
@@ -208,6 +208,7 @@ function main() {
   const hasTutorials = tutorialsEntries.length > 0;
   if (hasTutorials) {
     const tutorialsLlmsTxt = renderLlmsTxt({
+      title: 'Okteto Tutorials',
       description: 'Okteto tutorials - step-by-step guides that apply across versions.',
       sectionHeading: 'tutorials',
       entries: tutorialsEntries,
@@ -232,6 +233,7 @@ function main() {
     if (hasTutorials) extraSections.push(renderTutorialsSection());
 
     const llmsTxt = renderLlmsTxt({
+      title: 'Okteto Documentation',
       description: `Okteto product documentation for version ${version}.`,
       sectionHeading: 'docs',
       entries,
