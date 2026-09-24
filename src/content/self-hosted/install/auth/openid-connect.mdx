@@ -63,6 +63,7 @@ Once you have the  OpenID Connect Application ready, update the `auth` section o
       emailKey: email
       pictureKey: picture
       groupsKey: groups
+      subjectKey: sub
 ```
 
 > You can also use a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the sensitive part of these credentials.
@@ -76,6 +77,18 @@ The `issuer` and `authorization` endpoints must match the value returned in the 
 
 The `mapping` fields are optional. Use them to configure the mapping between Okteto's user attributes and the claim coming from your authentication provider.
 
+## User identity binding
+
+Okteto binds each user to a single account in your identity provider. The binding is the provider's issuer together with the claim mapped to `subjectKey` (`sub` by default), which the OpenID Connect standard defines as the only claim guaranteed to be stable and unique for a user. If a second provider account resolves to the same Okteto user, Okteto refuses the login with a clear message instead of signing in as the existing user.
+
+Existing users are bound on their next login, so no migration is required.
+
 :::warning
-Okteto uses the claim mapped to `externalIDKey` (`nickname` by default) as the unique identifier for each user. You are responsible for choosing a claim whose value your authentication provider guarantees to be unique for every user. If two users share the same `externalIDKey` value, they map to the same Okteto account.
+The claim mapped to `externalIDKey` (`nickname` by default) is a lookup claim, not an identity guarantee. Okteto uses it to find and name the user, so choose a value your provider keeps unique. A collision on it no longer merges two accounts: the second login is refused instead.
 :::
+
+### Changing the subject claim
+
+Change `subjectKey` only when `sub` is not stable for your provider. Microsoft Entra issues a pairwise `sub` that differs per application registration, so set `subjectKey` to `oid`, which stays stable across registrations there.
+
+Decide the subject claim before your first rollout. Each user is bound to the claim value that was present the first time they logged in, so changing `subjectKey` later stops every user from matching their binding and refuses them all at login. To recover, clear the `dev.okteto.com/idp-issuer` and `dev.okteto.com/idp-subject` annotations from the affected user service accounts. The next login re-binds each user, which reopens the window where the first account to log in claims the user.
