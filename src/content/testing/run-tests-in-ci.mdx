@@ -1,0 +1,166 @@
+---
+title: Running Okteto Test in CI
+description: Run your Okteto Test suites automatically in a GitHub Actions pipeline against a Preview Environment.
+sidebar_label: Running Tests in CI
+id: run-tests-in-ci
+---
+
+Okteto Test runs your Test Containers in a Continuous Integration (CI) pipeline against the same production-like Kubernetes environment your code runs in. This guide shows you how to run the `test` section of your Okteto Manifest on every pull request with GitHub Actions, alongside a Preview Environment, and export the test results as build artifacts.
+
+Running your tests in CI with Okteto reuses the `test` section you already run locally with `okteto test`, so tests behave the same in your inner development loop and in your pipeline.
+
+## Prerequisites
+
+- An Okteto instance and an [Okteto Manifest](reference/okteto-manifest.mdx) with a [`test` section](reference/okteto-manifest.mdx#test-object-optional) that defines your Test Containers. If you haven't defined one yet, follow the [Getting started with Okteto Test](testing/getting-started-test.mdx) guide.
+- A GitHub repository for your application.
+- An Okteto [Admin Access Token](admin/dashboard.mdx#admin-access-tokens).
+
+This guide uses the [movies rental application](https://github.com/okteto/movies) as the sample application.
+
+## Step 1: Store your Okteto credentials as secrets
+
+The workflow authenticates to your Okteto instance with the [`okteto/context`](https://github.com/marketplace/actions/okteto-context) action, which reads two values from your repository secrets. Storing them as secrets keeps them out of your workflow file.
+
+Create the following secrets in your GitHub repository under **Settings → Secrets and variables → Actions**:
+
+- `OKTETO_TOKEN`: your Okteto [Admin Access Token](admin/dashboard.mdx#admin-access-tokens).
+- `OKTETO_CONTEXT`: the URL of your Okteto instance, for example `https://okteto.example.com`.
+
+For step-by-step instructions on adding secrets, see [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository).
+
+## Step 2: Add the Test action to your workflow
+
+The [`okteto/test`](https://github.com/marketplace/actions/okteto-test) action runs the Test Containers defined in your Okteto Manifest. Run it after the [`okteto/deploy-preview`](https://github.com/marketplace/actions/deploy-preview-environment) action so your tests execute against a live Preview Environment created for the pull request.
+
+Create a `.github/workflows` folder in the root of your repository and add the following workflow file:
+
+```yaml
+# file: .github/workflows/preview.yaml
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Context
+        uses: okteto/context@latest
+        with:
+          url: ${{ secrets.OKTETO_CONTEXT }}
+          token: ${{ secrets.OKTETO_TOKEN }}
+
+      - name: Deploy Preview Environment
+        uses: okteto/deploy-preview@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: pr-${{ github.event.number }}
+          timeout: 15m
+
+      - name: Run tests
+        uses: okteto/test@latest
+        with:
+          namespace: pr-${{ github.event.number }}
+          tests: e2e
+```
+
+The `namespace` input points the `test` action at the Preview Environment deployed in the previous step, so your Test Containers run in the same Namespace as the application under test. The `tests` input names the Test Containers to run, matching the keys in the `test` section of your Okteto Manifest. Separate multiple names with spaces, or omit the input to run every Test Container.
+
+The `test` action accepts these inputs:
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `tests` | No | (all) | Test Containers to run, separated by spaces. Runs all Test Containers if omitted. |
+| `namespace` | No | current context | Namespace to run the tests in. Set this to the Preview Environment Namespace. |
+| `name` | No | (none) | Name of the Development Environment. |
+| `file` | No | default path | Path to the Okteto Manifest. |
+| `deploy` | No | `false` | Deploy the Development Environment before testing, even if it already exists. |
+| `no-cache` | No | `false` | Ignore the Test Container `caches` for this run. |
+| `variables` | No | (none) | Variables passed to the tests, separated by commas. |
+| `timeout` | No | `5m` | How long to wait for the tests to finish, for example `10m`. |
+| `log-level` | No | (none) | Log verbosity: `debug`, `info`, `warn`, or `error`. |
+
+:::warning
+Set `cancel-in-progress: false` in the `concurrency` block. Canceling an in-progress deployment can leave the Preview Environment in an inconsistent state and leak resources in your cluster.
+:::
+
+## Step 3: Export test artifacts
+
+Add the [`artifacts`](reference/okteto-manifest.mdx#test-object-optional) field to a Test Container to export files, such as reports and screenshots, after the tests run. The following `e2e` Test Container exports a Playwright report and its results:
+
+```yaml title="okteto.yaml"
+test:
+  e2e:
+    image: ghcr.io/okteto/playwright:chromium
+    context: e2e
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+```
+
+The `okteto/test` action downloads these artifacts to the runner. Use the [`actions/upload-artifact`](https://github.com/actions/upload-artifact) action to attach them to the workflow run so you can download them from the pull request:
+
+```yaml
+      - name: Save Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Save test results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30
+          include-hidden-files: true
+```
+
+The `if: ${{ !cancelled() }}` condition uploads the artifacts even when a test fails, so you can inspect the results of a failed run.
+
+## Verification
+
+Open a pull request against the `main` branch. GitHub starts the workflow, which deploys the Preview Environment and then runs your Test Containers against it. Track the run in the **Checks** section of the pull request.
+
+When the tests pass, the workflow succeeds and the `test` step logs output like this:
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'e2e'
+ i  Running 'bash run_tests.sh'
+  6 passed (9.9s)
+ ✓  Command 'bash run_tests.sh' successfully executed
+ ✓  Test container 'e2e' passed
+```
+
+When a test fails, the `test` step exits with a non-zero code, the check fails on the pull request, and the exported artifacts are still available for download from the workflow run.
+
+## Troubleshooting
+
+- **The tests run in the wrong Namespace.** Confirm the `namespace` input of the `okteto/test` action matches the `name` of the `okteto/deploy-preview` step. Both must reference the same Preview Environment.
+- **The workflow can't authenticate.** Check that the `OKTETO_TOKEN` and `OKTETO_CONTEXT` secrets exist and that `OKTETO_TOKEN` is a valid [Admin Access Token](admin/dashboard.mdx#admin-access-tokens).
+- **A Test Container isn't found.** The values in the `tests` input must match the keys under the `test` section of your Okteto Manifest. Run `okteto test` locally to confirm the Test Container names.
+- **The tests time out.** Raise the `timeout` input, for example `timeout: 15m`, for suites that take longer than the 5-minute default.
+
+## Next steps
+
+- Run the same Test Containers locally in your inner loop with [Okteto Test](testing/getting-started-test.mdx).
+- Automatically remove the Preview Environment when the pull request closes by adding the [Preview Environments cleanup workflow](previews/using-github-actions.mdx#step-5-cleanup).
+- Run your pipeline on GitLab instead with [Preview environments using GitLab CI/CD](previews/using-gitlab-cicd.mdx).
