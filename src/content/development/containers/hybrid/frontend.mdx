@@ -1,17 +1,18 @@
 ---
 title: Getting Started with Hybrid Mode for Frontend Development
-description: This tutorial will show you how to develop a frontend service using hybrid mode
+description: Run a frontend service locally with hot reload while the rest of the application runs in Okteto using Hybrid Mode.
 sidebar_label: Frontend
 id: hybrid-frontend
 ---
 
 import Image from "@theme/Image";
 
-This tutorial will show you how to develop a sample Frontend application using Okteto Hybrid Mode.
+This guide shows you how to develop a sample frontend application using Okteto Hybrid Mode. The frontend runs on your machine with its own hot-reload server, while the API and database stay in the cluster.
 
 ## Prerequisites
 
-Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done so yet.
+- Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done so yet.
+- Install [Node.js](https://nodejs.org/) and [yarn](https://yarnpkg.com/) on your machine. In Hybrid Mode the frontend runs locally, so its tooling has to be installed locally too.
 
 ## Step 1: Deploy the Sample App
 
@@ -34,8 +35,6 @@ This file describes how to deploy the Sample App.
 ```yaml title="okteto.yml"
 deploy:
   - helm upgrade --install movies chart
-    --set api.image=${OKTETO_BUILD_API_IMAGE}
-    --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
 The Sample App consists of the following services:
@@ -52,13 +51,15 @@ okteto deploy
 
 ```bash
  i  Using cindy @ okteto.example.com as context
- i  Running 'helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}'
+ i  Running 'helm upgrade --install movies chart'
 ...
  ✓  Development environment 'movies-with-helm' successfully deployed
  i  Endpoints available:
   - https://movies-cindy.okteto.example.dev
   - https://movies-cindy.okteto.example.dev/api
 ```
+
+Open the first endpoint in your browser to check that the application is running.
 
 ## Step 2: Activate your Development Container
 
@@ -77,9 +78,33 @@ dev:
 The `frontend` key matches the name of the **frontend** Deployment. The definition of the rest of fields are:
 
 - `mode`: to configure Hybrid development mode
-- `workdir`: the working dir of the command
-- `command`: the command to start the frontend service locally
-- `reverse`: to expose the local port 80 in the Development Container port 80 using a reverse tunnel
+- `workdir`: the local directory where `command` runs
+- `command`: the command to start the frontend service locally. `bash` opens a shell so you can start the dev server yourself in the next step.
+- `reverse`: to expose the local port 80 in the Development Container port 80 using a reverse tunnel. The notation is `remotePort:localPort`.
+
+In Hybrid Mode, the remote Development Container runs an SSH server instead of the frontend code. The Okteto endpoint keeps routing `/` to that container, and the reverse tunnel carries the traffic to your machine:
+
+```mermaid
+graph LR
+    Browser["Browser"]
+
+    subgraph local["Your machine"]
+        FE["webpack dev server<br/>localhost:80"]
+    end
+
+    subgraph cluster["Okteto"]
+        ING["Okteto endpoint"]
+        DC["frontend Development Container<br/>(SSH server, port 80)"]
+        API["api"]
+        DB[("MongoDB")]
+    end
+
+    Browser --> ING
+    ING -->|"/"| DC
+    ING -->|"/api"| API
+    DC -.->|"reverse tunnel"| FE
+    API --> DB
+```
 
 Next, execute the following command to activate your Development Container:
 
@@ -89,7 +114,7 @@ okteto up frontend
 
 ```bash
  i  Using cindy @ okteto.example.com as context
- i  Development environment 'microservices-demo' already deployed.
+ i  'movies-with-helm' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
  ✓  Reverse tunnel configured
     Context:   okteto.example.com
     Namespace: cindy
@@ -99,5 +124,33 @@ okteto up frontend
 bash-3.2$
 ```
 
-You can run `yarn install` + `yarn start` to start the **frontend** service locally.
-Your local process will be still available from its okteto endpoint because the local port `80` is accessible via a reverse tunnel to the cluster.
+The Okteto CLI opens a local shell in the `frontend` directory. The shell has the [environment variables](development/containers/hybrid/index.mdx) of the remote `frontend` container injected, so your local process sees the same configuration as the one running in the cluster.
+
+## Step 3: Start the frontend locally
+
+In the shell opened by `okteto up`, install the dependencies and start the webpack dev server:
+
+```bash
+yarn install
+yarn start
+```
+
+The dev server listens on port 80 with hot module replacement enabled. Open the Okteto endpoint in your browser (for example, `https://movies-cindy.okteto.example.dev`). The request reaches the Development Container in the cluster, and the reverse tunnel forwards it to the dev server running on your machine. Requests to `/api` go straight to the API service in the cluster, so the frontend works without any change to its configuration.
+
+:::note
+The dev server binds port 80. On Linux, binding ports below 1024 requires elevated privileges. Run `yarn start` with `sudo`, or grant the `CAP_NET_BIND_SERVICE` capability to your Node.js binary.
+:::
+
+## Step 4: Develop with hot reload
+
+Open the `frontend/src` directory in your IDE and edit a component, for example a heading or a style. The webpack dev server runs on your machine, so the change shows up in the browser through hot module replacement, with no file synchronization involved. You get the same feedback loop as fully local development, while the frontend talks to the API and database running in the cluster.
+
+## Step 5: Deactivate your Development Container
+
+Press `Ctrl+C` in the terminal to stop the dev server and exit the `okteto up` session. This does not restore the original `frontend` Deployment. To do that, run:
+
+```bash
+okteto down frontend
+```
+
+You can also set the [`OKTETO_AUTO_DOWN_ENABLED`](reference/feature-flags.mdx) feature flag to run `okteto down` automatically when the session ends.
