@@ -45,9 +45,9 @@ auth:
   github:
     enabled: true
     // highlight-next-line
-    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_ID"
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_ID"
     // highlight-next-line
-    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_SECRET"
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
     // highlight-next-line
     organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
 ```
@@ -70,8 +70,8 @@ If you want to provide access to users outside of your GitHub organization, you 
 auth:
   github:
     enabled: true
-    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_ID"
-    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_SECRET"
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_ID"
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
     organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
     // highlight-next-line
     allowList: ["acct1","acct2","acct3"]
@@ -88,6 +88,48 @@ To install the App, open `https://github.com/apps/YOUR_GITHUB_APP_NAME/installat
 :::info
 The `organization` filter and the App installation must point to the same GitHub organization. If you change the `organization` value, install the App in the new organization as well.
 :::
+
+## Restricting access to GitHub teams
+
+The `teams` field restricts login to members of specific teams in the GitHub organization set in `organization`. Access is then managed from GitHub: adding a user to one of the teams lets them log in, without changes to your Helm configuration.
+
+```yaml title="config.yaml"
+auth:
+  github:
+    enabled: true
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_ID"
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
+    organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
+    // highlight-next-line
+    teams: ["platform", "backend"]
+```
+
+Each entry is a team slug, the last segment of the team URL. For `https://github.com/orgs/acme/teams/platform`, the slug is `platform`. The `organization` field is required when `teams` is set. The Helm chart fails to render without it, or when an entry isn't a slug, such as a team name with spaces.
+
+At login, Okteto checks the team memberships of the user and admits active members of at least one of the listed teams:
+
+- Members of a child team count as members of its parent team.
+- Users with a pending invitation to a team are rejected until they accept it.
+- Accounts listed in `allowList` skip the organization and team checks.
+
+Users who aren't members of any of the teams see an error asking them to contact their administrator.
+
+Okteto checks team membership only at login. Removing a user from the teams blocks their next login, but doesn't revoke the sessions and tokens they already have. To remove their access immediately, remove the user from the [Admin Dashboard](admin/dashboard.mdx#users).
+
+### Permissions for reading team membership
+
+GitHub doesn't include team membership in the OAuth response, so Okteto reads it from the GitHub API with the token of the user logging in. The permission it needs depends on the type of app you use for login:
+
+| App type | Required permission |
+|----------|---------------------|
+| OAuth App | The `read:org` scope. Okteto already requests it when `organization` is set. |
+| GitHub App | The `Members` organization permission set to `Read-only`, with the App installed in the organization, as described in [Installing the GitHub App in your organization](#installing-the-github-app-in-your-organization). |
+
+If your GitHub App doesn't have the `Members` permission yet, add it from the App settings in GitHub. An organization owner must accept the updated permissions before they apply to the installation.
+
+If your organization restricts access from OAuth Apps, an organization owner must approve the OAuth App. Otherwise GitHub doesn't share team memberships with Okteto, and logins are rejected.
+
+When GitHub refuses to return a team membership, Okteto rejects the login and writes the GitHub error to the logs of the `okteto-api` pods.
 
 ## Video walkthrough
 
