@@ -608,6 +608,25 @@ The IAM role referenced by `AWS_ROLE_ARN` needs a trust policy that allows `sts:
 
 Replace `<oidc-issuer>` with the cluster's issuer URL without the `https://` prefix and `<account>` with your AWS account ID. Keep the `aud` value in sync with the `audience` field in the directive. To restrict the role to a single Namespace, replace the wildcard with `system:serviceaccount:<namespace>:default` and move that condition under `StringEquals`.
 
+#### x-okteto-service-account (string, optional)
+
+Set the Kubernetes ServiceAccount that the service's pods run under. Okteto applies the value as `serviceAccountName` on the generated Deployment, StatefulSet, or Job. The value must be a valid [DNS-1123 subdomain](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names), and an invalid value fails at parse time.
+
+```yaml
+services:
+  api:
+    image: myorg/api:latest
+    x-okteto-service-account: api-sa
+```
+
+The field supports environment variable expansion, so you can set it from a variable such as `${SA_NAME}`. If the value is empty, for example because `${SA_NAME}` isn't set, the deploy fails instead of falling back to the `default` ServiceAccount. When you combine Compose files, a value in a later file replaces the value from an earlier one. When you omit the field, the service's pods run under the Namespace's `default` ServiceAccount. The field only affects the service that declares it.
+
+Pair this field with [`x-okteto-identity-token`](reference/docker-compose.mdx#x-okteto-identity-token-object-optional) to scope a cloud provider's trust policy to a single service. The projected token's subject becomes `system:serviceaccount:<namespace>:<service-account>`, so the provider can trust one service instead of the shared `default` ServiceAccount.
+
+:::warning
+The ServiceAccount must already exist in the Namespace. If it doesn't, `okteto deploy` fails before applying anything, with an error that names the missing ServiceAccount, the service, and the Namespace.
+:::
+
 ### volumes ([object], optional)
 
 List of volumes created by the Docker Compose file.
@@ -986,6 +1005,7 @@ uts
 | x-node-selector | Pod scheduling hint |
 | x-enable-service-links | Toggle Kubernetes service link environment variable injection per service |
 | x-okteto-identity-token | Project a ServiceAccount token for keyless cloud federation |
+| x-okteto-service-account | Set the ServiceAccount the service's pods run under |
 | resources | Top-level CPU / memory requests and limits (shorthand for `deploy.resources`) |
 | healthcheck.http | HTTP path and port healthcheck probe |
 | scale | Compose-style replica shorthand (alias for `deploy.replicas`) |
