@@ -106,6 +106,10 @@ auth:
 
 Each entry is a team slug, the last segment of the team URL. For `https://github.com/orgs/acme/teams/platform`, the slug is `platform`. The `organization` field is required when `teams` is set. The Helm chart fails to render without it, or when an entry isn't a slug, such as a team name with spaces.
 
+:::warning
+Okteto doesn't check that the teams exist. GitHub answers the same way for a team that doesn't exist as for a user who isn't a member of it, so a misspelled slug rejects every login with the team error. Copy each slug from the team URL.
+:::
+
 At login, Okteto checks the team memberships of the user and admits active members of at least one of the listed teams:
 
 - Members of a child team count as members of its parent team.
@@ -125,9 +129,9 @@ GitHub doesn't include team membership in the OAuth response, so Okteto reads it
 | OAuth App | The `read:org` scope. Okteto already requests it when `organization` is set. |
 | GitHub App | The `Members` organization permission set to `Read-only`, with the App installed in the organization, as described in [Installing the GitHub App in your organization](#installing-the-github-app-in-your-organization). |
 
-If your GitHub App doesn't have the `Members` permission yet, add it from the App settings in GitHub. An organization owner must accept the updated permissions before they apply to the installation.
+If your GitHub App doesn't have the `Members` permission yet, add it from the App settings in GitHub. An organization owner must accept the updated permissions before they apply to the installation. Until then, GitHub doesn't show the organization to Okteto, and users see an error saying that their account isn't part of the organization, even when they are members.
 
-If your organization restricts access from OAuth Apps, an organization owner must approve the OAuth App. Otherwise GitHub doesn't share team memberships with Okteto, and logins are rejected.
+If your organization restricts access from OAuth Apps, an organization owner must approve the OAuth App. Until then, GitHub hides the organization from Okteto, and users see the same error saying that their account isn't part of the organization.
 
 When GitHub refuses to return a team membership, Okteto rejects the login and writes the GitHub error to the logs of the `okteto-api` pods.
 
