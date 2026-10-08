@@ -72,7 +72,14 @@ Example:
 }
 ```
 
-### Step 2: Create the New Version
+### Step 2: Archive Old Release Notes
+
+Move the oldest version's release notes from active to archived. Do this before creating the new version so the snapshot includes the archived notes; the official version is served from the snapshot, not from `src/content`. The oldest version is the last item in [`versions.json`](versions.json).
+
+1. **Cut the oldest version section** from the bottom of [`src/content/release-notes.mdx`](src/content/release-notes.mdx)
+2. **Paste it at the top** of [`src/content/archived-release-notes.mdx`](src/content/archived-release-notes.mdx) (after the intro paragraph, before other versions)
+
+### Step 3: Create the New Version
 
 Run the docusaurus version command with the new version number:
 
@@ -87,7 +94,7 @@ This command will:
 - Create `versioned_sidebars/version-1.XX-sidebars.json` with the sidebar config
 - Add `1.XX` to the top of `versions.json`
 
-### Step 3: Update docusaurus.config.js
+### Step 4: Update docusaurus.config.js
 
 Modify the `presets.docs.versions` section of [`docusaurus.config.js`](docusaurus.config.js):
 
@@ -121,7 +128,7 @@ Modify the `presets.docs.versions` section of [`docusaurus.config.js`](docusauru
 
 5. **Remove the oldest version entry** from the `versions` object. The object lists only the official version and the five versions before it, so its oldest entry is not the oldest version in `versions.json`. For example, when releasing `1.41`, remove the `'1.35'` entry. Versions in `versions.json` without an entry still build with the default label, path, and `unmaintained` banner.
 
-### Step 4: Update netlify.toml Redirects
+### Step 5: Update netlify.toml Redirects
 
 Update the redirect rules at the bottom of [`netlify.toml`](netlify.toml):
 
@@ -149,7 +156,7 @@ Update the redirect rules at the bottom of [`netlify.toml`](netlify.toml):
      status = 302
    ```
 
-### Step 5: Update archives.md
+### Step 6: Update archives.md
 
 Update [`src/pages/archives.md`](src/pages/archives.md):
 
@@ -167,7 +174,7 @@ Update [`src/pages/archives.md`](src/pages/archives.md):
 
 3. **Remove the oldest version** from the "Previously released versions" table
 
-### Step 6: Remove the Oldest Version Files
+### Step 7: Remove the Oldest Version Files
 
 Identify the oldest version from `versions.json` (should be at the bottom) and remove its files:
 
@@ -178,13 +185,6 @@ rm -rf versioned_sidebars/version-1.29-sidebars.json
 ```
 
 **Manually remove the oldest version** from [`versions.json`](versions.json) (remove from the bottom of the array).
-
-### Step 7: Archive Old Release Notes
-
-Move the oldest version's release notes from active to archived:
-
-1. **Cut the oldest version section** from the bottom of [`src/content/release-notes.mdx`](src/content/release-notes.mdx)
-2. **Paste it at the top** of [`src/content/archived-release-notes.mdx`](src/content/archived-release-notes.mdx) (after the intro paragraph, before other versions)
 
 ### Step 8: Verify the Build
 
@@ -225,26 +225,26 @@ For agents or scripts automating this process, here are the key parameters:
 **Files to modify:**
 
 1. **src/content/variables.json** - Update with new release values
-2. **Run command:** `yarn run docusaurus docs:version {NEW_VERSION}`
-3. **docusaurus.config.js:**
+2. **src/content/release-notes.mdx** - Cut bottom section for `{OLDEST_VERSION}`
+3. **src/content/archived-release-notes.mdx** - Paste `{OLDEST_VERSION}` section at top (after intro). Steps 2 and 3 must run before the snapshot in step 4, which copies both files into `versioned_docs/version-{NEW_VERSION}/`
+4. **Run command:** `yarn run docusaurus docs:version {NEW_VERSION}`
+5. **docusaurus.config.js:**
    - `lastVersion: '{NEW_VERSION}'`
    - `current.label: '{NEXT_VERSION}'`
    - `current.path: '{NEXT_VERSION}'`
    - Add `'{NEW_VERSION}': { label: '{NEW_VERSION}', path: '/', banner: 'none' }` at top of versions
    - Change `'{PREV_VERSION}'` path from `'/'` to `'{PREV_VERSION}'` and banner from `'none'` to `'unmaintained'`
    - Remove the oldest entry from versions, which is `NEW_VERSION - 6` (e.g., `'1.35'` when releasing `1.41`). This is not `{OLDEST_VERSION}`: the config lists only the official version and the five before it
-4. **netlify.toml:**
+6. **netlify.toml:**
    - Official redirect: `from = "/docs/{NEW_VERSION}/*"`
    - Unreleased redirect: `to = "/docs/{NEXT_VERSION}/:splat"`
    - Add deprecated redirect: `from = "/docs/{OLDEST_VERSION}/*"`
-5. **src/pages/archives.md:**
+7. **src/pages/archives.md:**
    - Update current version table to `{NEW_VERSION}`
    - Add `{PREV_VERSION}` to previous versions table
    - Remove `{OLDEST_VERSION}` from previous versions table
-6. **Delete files:** `versioned_docs/version-{OLDEST_VERSION}/` and `versioned_sidebars/version-{OLDEST_VERSION}-sidebars.json`
-7. **versions.json** - Remove `{OLDEST_VERSION}` from array (should be last item)
-8. **src/content/release-notes.mdx** - Cut bottom section for `{OLDEST_VERSION}`
-9. **src/content/archived-release-notes.mdx** - Paste `{OLDEST_VERSION}` section at top (after intro)
+8. **Delete files:** `versioned_docs/version-{OLDEST_VERSION}/` and `versioned_sidebars/version-{OLDEST_VERSION}-sidebars.json`
+9. **versions.json** - Remove `{OLDEST_VERSION}` from array (should be last item)
 10. **Run:** `yarn build` to verify
 
 **Version count:** Maintain exactly 12 versions in `versions.json` after completion.
