@@ -7,6 +7,10 @@ id: azure-storage-container
 
 This guide will walk you through the process of setting up the Okteto Registry with Azure Storage Container to store your container images.
 
+The Okteto Registry authenticates to your storage account with either a [storage account access key](#storage-account-access-key) or [Microsoft Entra Workload ID](#microsoft-entra-workload-id).
+
+## Storage account access key
+
 In this guide, `<<storage-account-access-key>>` refers to a storage account access key with read/write permissions to the storage container you want to use for the Okteto Registry.
 
 Create a secret with the value of `<<storage-account-access-key>>` using the command below:
@@ -25,8 +29,81 @@ registry:
         enabled: true
         storage:
           container: <<your-storage-container-name>>
-          accountName: <<your-service-account-name>>
+          accountName: <<your-storage-account-name>>
 ```
+
+## Microsoft Entra Workload ID
+
+On AKS, the Okteto Registry can authenticate with [Microsoft Entra Workload ID](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview) instead of a storage account access key. Set the following environment variables:
+
+```bash
+export RESOURCE_GROUP="<<your-resource-group>>"
+export AKS_CLUSTER="<<your-aks-cluster-name>>"
+export STORAGE_ACCOUNT="<<your-storage-account-name>>"
+```
+
+Your AKS cluster needs the OIDC issuer and workload identity enabled:
+
+```bash
+az aks update --resource-group "${RESOURCE_GROUP}" --name "${AKS_CLUSTER}" --enable-oidc-issuer --enable-workload-identity
+```
+
+Create a user-assigned managed identity for the Okteto Registry:
+
+```bash
+az identity create --resource-group "${RESOURCE_GROUP}" --name okteto-registry
+export IDENTITY_CLIENT_ID="$(az identity show --resource-group "${RESOURCE_GROUP}" --name okteto-registry --query clientId --output tsv)"
+export IDENTITY_PRINCIPAL_ID="$(az identity show --resource-group "${RESOURCE_GROUP}" --name okteto-registry --query principalId --output tsv)"
+```
+
+Grant the identity the `Storage Blob Data Contributor` role on your storage account. Assign it on the storage account, not on the container: the Okteto Registry also requests a user delegation key to sign the URLs it redirects image pulls to.
+
+```bash
+az role assignment create \
+  --assignee-object-id "${IDENTITY_PRINCIPAL_ID}" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Storage Blob Data Contributor" \
+  --scope "$(az storage account show --resource-group "${RESOURCE_GROUP}" --name "${STORAGE_ACCOUNT}" --query id --output tsv)"
+```
+
+Get the Okteto Registry service account name and federate it with the identity:
+
+```bash
+export OKTETO_REGISTRY_SERVICE_ACCOUNT_NAME="$(kubectl get sa -n=okteto -l=app.kubernetes.io/component=registry -o=jsonpath='{.items[0].metadata.name}')"
+export AKS_OIDC_ISSUER="$(az aks show --resource-group "${RESOURCE_GROUP}" --name "${AKS_CLUSTER}" --query oidcIssuerProfile.issuerUrl --output tsv)"
+
+az identity federated-credential create \
+  --resource-group "${RESOURCE_GROUP}" \
+  --identity-name okteto-registry \
+  --name okteto-registry \
+  --issuer "${AKS_OIDC_ISSUER}" \
+  --subject "system:serviceaccount:okteto:${OKTETO_REGISTRY_SERVICE_ACCOUNT_NAME}" \
+  --audiences api://AzureADTokenExchange
+```
+
+Then, add the following configuration to your Okteto Helm configuration file. The `okteto-registry-secret` secret isn't needed:
+
+```yaml title="config.yaml"
+registry:
+  storage:
+    provider:
+      azure:
+        enabled: true
+        storage:
+          container: <<your-storage-container-name>>
+          accountName: <<your-storage-account-name>>
+        workloadIdentity:
+          enabled: true
+  serviceAccount:
+    annotations:
+      azure.workload.identity/client-id: <<your-identity-client-id>>
+```
+
+## Network access
+
+With either authentication method, clients that pull images, such as your Kubernetes nodes, the Okteto Build Service, and developer machines, download image layers directly from your storage account (`<<your-storage-account-name>>.blob.core.windows.net`), so they need network access to it. To serve image layers through the Okteto Registry instead, set `registry.storage.redirect.disable: true` in your Okteto Helm configuration file.
+
+## Upgrading your Okteto instance
 
 Finally, [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
 We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
