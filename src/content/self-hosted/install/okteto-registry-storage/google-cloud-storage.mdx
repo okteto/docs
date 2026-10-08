@@ -21,6 +21,22 @@ gcloud iam service-accounts add-iam-policy-binding \
   --project $GCP_PROJECT
 ```
 
+Next, grant the Google Cloud service account the `iam.serviceAccounts.signBlob` permission on itself. The Okteto Registry redirects image pulls to signed Cloud Storage URLs, and with Workload Identity it signs them through the IAM Credentials API as its own service account. The `roles/iam.serviceAccountTokenCreator` role includes this permission:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com \
+  --role roles/iam.serviceAccountTokenCreator \
+  --member "serviceAccount:GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com" \
+  --project GSA_PROJECT
+```
+
+Without this permission, image pulls fail with HTTP 500 errors and the Okteto Registry logs `Permission 'iam.serviceAccounts.signBlob' denied`. Clients that pull images, such as your Kubernetes nodes, the Okteto Build Service, and developer machines, download image layers directly from `storage.googleapis.com`, so they need network access to it.
+
+:::note
+To serve image layers through the Okteto Registry instead, set `registry.storage.redirect.disable: true` in your Okteto Helm configuration file. The service account then doesn't need the `iam.serviceAccounts.signBlob` permission, and clients only need access to the Okteto Registry.
+:::
+
 Important: Make sure you have [Workload Identity enabled](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#option_2_node_pool_modification) in your cluster for this to work. Workload Identity in Google Kubernetes Engine (GKE), allows for seamless and secure communication between Kubernetes workloads and Google Cloud services.
 
 After this, configure the Okteto Registry with a workload ID in your Okteto Helm configuration file:
