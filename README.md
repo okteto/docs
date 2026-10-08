@@ -119,7 +119,7 @@ Modify the `presets.docs.versions` section of [`docusaurus.config.js`](docusauru
    },
    ```
 
-5. **Remove the oldest version entry** from the `versions` object (to maintain 12 versions total)
+5. **Remove the oldest version entry** from the `versions` object. The object lists only the official version and the five versions before it, so its oldest entry is not the oldest version in `versions.json`. For example, when releasing `1.41`, remove the `'1.35'` entry. Versions in `versions.json` without an entry still build with the default label, path, and `unmaintained` banner.
 
 ### Step 4: Update netlify.toml Redirects
 
@@ -232,7 +232,7 @@ For agents or scripts automating this process, here are the key parameters:
    - `current.path: '{NEXT_VERSION}'`
    - Add `'{NEW_VERSION}': { label: '{NEW_VERSION}', path: '/', banner: 'none' }` at top of versions
    - Change `'{PREV_VERSION}'` path from `'/'` to `'{PREV_VERSION}'` and banner from `'none'` to `'unmaintained'`
-   - Remove `'{OLDEST_VERSION}'` entry from versions
+   - Remove the oldest entry from versions, which is `NEW_VERSION - 6` (e.g., `'1.35'` when releasing `1.41`). This is not `{OLDEST_VERSION}`: the config lists only the official version and the five before it
 4. **netlify.toml:**
    - Official redirect: `from = "/docs/{NEW_VERSION}/*"`
    - Unreleased redirect: `to = "/docs/{NEXT_VERSION}/:splat"`
