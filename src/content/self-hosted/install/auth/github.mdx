@@ -104,25 +104,27 @@ auth:
     teams: ["platform", "backend"]
 ```
 
-Each entry is a team slug, the last segment of the team URL. For `https://github.com/orgs/acme/teams/platform`, the slug is `platform`. The `organization` field is required when `teams` is set. The Helm chart fails to render without it, or when an entry isn't a slug, such as a team name with spaces.
+Each entry is a team slug, the last segment of the team URL. For `https://github.com/orgs/acme/teams/platform`, the slug is `platform`. The `organization` field is required when `teams` is set. The Helm chart fails to render without it, or when an entry can't be a slug, for example because it contains spaces, commas or slashes.
 
 :::warning
-Okteto doesn't check that the teams exist. GitHub answers the same way for a team that doesn't exist as for a user who isn't a member of it, so a misspelled slug rejects every login with the team error. Copy each slug from the team URL.
+Okteto doesn't check that the teams exist. GitHub answers the same way for a team that doesn't exist as for a user who isn't a member of it, so a misspelled slug admits no one through that team. If none of the listed slugs is correct, every login fails with the error saying that the account isn't part of any of the configured GitHub teams. Copy each slug from the team URL.
 :::
 
 At login, Okteto checks the team memberships of the user and admits active members of at least one of the listed teams:
 
 - Members of a child team count as members of its parent team.
-- Users with a pending invitation to a team are rejected until they accept it.
+- Users who haven't accepted their invitation to the organization are rejected, with the error saying that their account isn't part of the organization, until they accept it.
 - Accounts listed in `allowList` skip the organization and team checks.
 
-Users who aren't members of any of the teams see an error asking them to contact their administrator.
+Users who aren't members of any of the teams see an error saying that their GitHub account isn't part of any of the configured GitHub teams.
 
-Okteto checks team membership only at login. Removing a user from the teams blocks their next login, but doesn't revoke the sessions and tokens they already have. To remove their access immediately, remove the user from the [Admin Dashboard](admin/dashboard.mdx#users).
+Okteto checks team membership only at login. Removing a user from the teams blocks their next login, but doesn't revoke the sessions, personal access tokens and kubeconfigs they already have. To remove their access immediately, remove the user from the [Admin Dashboard](admin/dashboard.mdx#users). This also deletes all the namespaces the user owns.
 
 ### Permissions for reading team membership
 
-GitHub doesn't include team membership in the OAuth response, so Okteto reads it from the GitHub API with the token of the user logging in. The permission it needs depends on the type of app you use for login:
+Reading team membership needs the same permissions as the organization check, so if login restricted to your organization already works, there's nothing else to configure.
+
+GitHub doesn't send team membership at login, so Okteto reads it from the GitHub API with the token of the user logging in. The permission it needs depends on the type of app you use for login:
 
 | App type | Required permission |
 |----------|---------------------|
@@ -133,7 +135,7 @@ If your GitHub App doesn't have the `Members` permission yet, add it from the Ap
 
 If your organization restricts access from OAuth Apps, an organization owner must approve the OAuth App. Until then, GitHub hides the organization from Okteto, and users see the same error saying that their account isn't part of the organization.
 
-When GitHub refuses to return a team membership, Okteto rejects the login and writes the GitHub error to the logs of the `okteto-api` pods.
+If GitHub returns any other error for a membership request, such as a rate limit, and no other listed team admits the user, the login fails with an internal server error, and Okteto writes the GitHub error to the logs of the `okteto-api` pods.
 
 ## Video walkthrough
 
