@@ -93,6 +93,8 @@ The `organization` filter and the App installation must point to the same GitHub
 
 The `teams` field restricts login to members of specific teams in the GitHub organization set in `organization`. Access is then managed from GitHub: adding a user to one of the teams lets them log in, without changes to your Helm configuration.
 
+`teams` is a list, with one team per entry:
+
 ```yaml title="config.yaml"
 auth:
   github:
@@ -101,7 +103,11 @@ auth:
     clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
     organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
     // highlight-next-line
-    teams: ["platform", "backend"]
+    teams:
+      // highlight-next-line
+      - platform
+      // highlight-next-line
+      - backend
 ```
 
 Each entry is a team slug, the last segment of the team URL. For `https://github.com/orgs/acme/teams/platform`, the slug is `platform`. The `organization` field is required when `teams` is set. The Helm chart fails to render without it, or when an entry can't be a slug, for example because it contains spaces, commas or slashes.
@@ -117,8 +123,6 @@ At login, Okteto checks the team memberships of the user and admits active membe
 - Accounts listed in `allowList` skip the organization and team checks.
 
 Users who aren't members of any of the teams see an error saying that their GitHub account isn't part of any of the configured GitHub teams.
-
-Okteto checks team membership only at login. Removing a user from the teams blocks their next login, but doesn't revoke the sessions, personal access tokens and kubeconfigs they already have. To remove their access immediately, remove the user from the [Admin Dashboard](admin/dashboard.mdx#users). This also deletes all the namespaces the user owns.
 
 ### Permissions for reading team membership
 
