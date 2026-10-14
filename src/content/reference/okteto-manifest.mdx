@@ -184,8 +184,27 @@ Each dependency supports the following fields:
 - `manifest`: the path to the Okteto Manifest within the repository. Defaults to `okteto.yaml` in the root of the repository
 - `branch`: the branch or tag to deploy. If not specified, it uses the default branch of the repository
 - `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands
-- `wait`: if `true`, Okteto waits for the dependency deployment to complete before continuing with the main deployment. If `false`, the dependency deploys asynchronously (default: `false`)
+- `wait`: if `true`, Okteto waits for the dependency to be ready before starting the main deployment. If `false`, the main deployment starts without waiting for it (default: `false`). In both cases, `okteto deploy` waits for every dependency to finish before completing, and a dependency that fails makes the deploy fail
 - `timeout`: maximum time to wait for the dependency deployment to complete when `wait` is `true`. Uses duration format like `5m`, `1h`, etc. (default: `5m`)
+- `depends_on`: a dependency name, or a list of dependency names, that must deploy successfully before this one starts. Each name must match another entry in the `dependencies` section
+
+Okteto deploys dependencies in parallel. Use `depends_on` to order them: a dependency starts once all the dependencies it lists have deployed successfully.
+
+```yaml
+dependencies:
+  database:
+    repository: https://github.com/okteto/database
+  messaging:
+    repository: https://github.com/okteto/messaging
+  backend:
+    repository: https://github.com/okteto/backend
+    depends_on:
+      - database
+      - messaging
+    wait: true
+```
+
+In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
 
 ### deploy ([string], optional)
 
