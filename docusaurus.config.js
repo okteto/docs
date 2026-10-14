@@ -212,7 +212,7 @@ module.exports = {
     },
     algolia: {
       appId: 'RS9BKUCQCT',
-      apiKey: 'ac5c1ba5f3d4e8eceb4ce860d568da39',
+      apiKey: '9213a8b24b30e1994c4c8ff5f282cf6f',
       indexName: 'okteto',
       algoliaOptions: {},
       position: 'left',
