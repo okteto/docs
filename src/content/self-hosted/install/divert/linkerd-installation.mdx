@@ -36,7 +36,7 @@ These steps are performed once by the Okteto administrator. Developers do not ne
 
 Install the Linkerd CLI on your **local machine** (as an administrator) to manage the Linkerd installation:
 
-```console
+```bash
 # macOS/Linux
 curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install | sh
 
@@ -51,7 +51,7 @@ linkerd version
 
 ### Step 2: Validate Cluster Compatibility
 
-```console
+```bash
 linkerd check --pre
 ```
 
@@ -59,19 +59,19 @@ Address any issues before proceeding.
 
 ### Step 3: Install Linkerd CRDs
 
-```console
+```bash
 linkerd install --crds | kubectl apply -f -
 ```
 
 ### Step 4: Install Linkerd Control Plane
 
-```console
+```bash
 linkerd install | kubectl apply -f -
 ```
 
 ### Step 5: Verify Installation
 
-```console
+```bash
 linkerd check
 ```
 
@@ -81,7 +81,7 @@ All checks should pass before continuing.
 
 For observability dashboards:
 
-```console
+```bash
 linkerd viz install | kubectl apply -f -
 linkerd viz check
 ```
@@ -102,7 +102,7 @@ namespace:
 
 Upgrade your Okteto installation:
 
-```console
+```bash
 helm upgrade okteto okteto/okteto -f values.yaml
 ```
 
@@ -110,13 +110,13 @@ helm upgrade okteto okteto/okteto -f values.yaml
 
 For existing namespaces, add the annotation:
 
-```console
+```bash
 kubectl annotate namespace <namespace> linkerd.io/inject=enabled
 ```
 
 Then restart deployments to inject sidecars:
 
-```console
+```bash
 kubectl rollout restart deployment -n <namespace>
 ```
 
@@ -220,7 +220,7 @@ These monitoring capabilities are available to administrators with the Linkerd C
 
 ### Using Linkerd Dashboard
 
-```console
+```bash
 linkerd viz dashboard
 ```
 
@@ -233,7 +233,7 @@ Navigate to the namespace view to see:
 
 ### CLI Monitoring
 
-```console
+```bash
 # Watch traffic to a service
 linkerd viz stat deploy -n <namespace>
 
@@ -248,43 +248,43 @@ linkerd viz tap deploy/<deployment> -n <namespace>
 ### Sidecar Not Injected
 
 1. Verify namespace annotation:
-   ```console
+```bash
    kubectl get namespace <namespace> -o jsonpath='{.metadata.annotations}'
-   ```
+```
 
 2. Check Linkerd injection status:
-   ```console
+```bash
    kubectl get pods -n <namespace> -o jsonpath='{.items[*].spec.containers[*].name}'
-   ```
+```
 
 3. Restart deployments:
-   ```console
+```bash
    kubectl rollout restart deployment -n <namespace>
-   ```
+```
 
 ### Header Not Propagating
 
 1. Verify header format: `baggage: okteto-divert=<namespace>`
 2. Check application code propagates headers
 3. Use Linkerd tap to trace the request:
-   ```console
+```bash
    linkerd viz tap deploy/<deployment> --to deploy/<target>
-   ```
+```
 
 ### Traffic Not Routing Correctly
 
 1. Check ServiceProfile routes if configured
 2. Verify DNS resolution across namespaces
 3. Test direct service communication:
-   ```console
+```bash
    kubectl exec -it <pod> -- curl -H "baggage: okteto-divert=<ns>" http://service/path
-   ```
+```
 
 ## Uninstalling Linkerd
 
 If you need to remove Linkerd:
 
-```console
+```bash
 # Remove viz extension
 linkerd viz uninstall | kubectl delete -f -
 

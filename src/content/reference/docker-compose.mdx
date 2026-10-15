@@ -63,7 +63,7 @@ We summarize the most relevant ones below:
 
 #### build ([string|object], optional)
 
-Indicate how to build the image of this service when running `okteto build` or `okteto deploy --build`.
+Indicate how to build the image of this service when running `okteto build` or `okteto deploy`.
 The value is the path to the build context:
 
 ```yaml
@@ -152,8 +152,19 @@ depends_on:
   - initialization-svc
 ```
 
+Okteto checks these conditions every second while `okteto deploy` runs, and it doesn't create the dependent service until all of them are met. The wait is bounded by the deploy timeout, which defaults to 5 minutes. You can change it with the `--timeout` flag of [`okteto deploy`](reference/okteto-cli.mdx#deploy) or the `OKTETO_TIMEOUT` environment variable. This wait applies even if you don't pass `--wait`.
+
 :::info
-💡 To enforce `depends_on` ordering during environment wake-up, enable the [`OKTETO_COMPOSE_DEPENDS_ON_ENABLED` feature flag](reference/feature-flags.mdx).
+If a dependency never meets its condition, the deploy fails instead of waiting forever:
+
+- **Timeout**: when the timeout expires, `okteto deploy` exits with `compose '<name>' didn't finish after 5m0s`.
+- **Failed job**: if a `service_completed_successfully` dependency runs out of retries and its Job is marked as failed, the deploy fails immediately with `service '<service>' dependency '<dependency>' failed`.
+- **Failed healthcheck**: if a `service_healthy` dependency fails a liveness probe (`x-okteto-liveness: true`), the deploy fails immediately with `service '<service>' cannot be deployed because dependent service '<dependency>' is failing its healthcheck probes`. A failing readiness probe only prints a warning, and Okteto keeps waiting until the timeout.
+- **Crash loop**: if a dependency's container restarts 3 times during the deploy (or the number set in `deploy.restart_policy.max_attempts`), the deploy fails with `service '<dependency>' has been restarted N times within this deploy`.
+:::
+
+:::info
+💡 To enforce `depends_on` ordering during environment wake-up, enable the [`OKTETO_COMPOSE_WAIT_FOR_DEPENDENCIES` feature flag](reference/feature-flags.mdx).
 :::
 
 #### deploy (object, optional)
@@ -520,6 +531,16 @@ x-node-selector:
 
 More information about Kubernetes node selectors is [available here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
+#### x-enable-service-links (boolean, optional)
+
+Controls whether Kubernetes injects [service link environment variables](https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#environment-variables) into the service containers. By default, Kubernetes adds variables such as `<SERVICE>_SERVICE_HOST`, `<SERVICE>_SERVICE_PORT`, and `<SERVICE>_PORT` for every service in the namespace, with port values formatted as URIs (for example, `tcp://10.0.0.1:8125`). Set this field to `false` to stop the injection for a service whose application reads those variable names for its own configuration.
+
+```yaml
+x-enable-service-links: false
+```
+
+When unset, Okteto preserves the default Kubernetes behavior and injects the variables. This field is opt-in and only affects the service that declares it.
+
 #### x-okteto-identity-token (object, optional)
 
 Project an audience-scoped Kubernetes ServiceAccount token into the service container, so the application can authenticate to cloud providers through OIDC or AWS STS web-identity federation without static credentials. Okteto creates a [projected `serviceAccountToken` volume](https://kubernetes.io/docs/concepts/storage/projected-volumes/#serviceaccounttoken) and mounts it read-only at the configured path. The kubelet refreshes the token before it expires.
@@ -586,6 +607,25 @@ The IAM role referenced by `AWS_ROLE_ARN` needs a trust policy that allows `sts:
 ```
 
 Replace `<oidc-issuer>` with the cluster's issuer URL without the `https://` prefix and `<account>` with your AWS account ID. Keep the `aud` value in sync with the `audience` field in the directive. To restrict the role to a single Namespace, replace the wildcard with `system:serviceaccount:<namespace>:default` and move that condition under `StringEquals`.
+
+#### x-okteto-service-account (string, optional)
+
+Set the Kubernetes ServiceAccount that the service's pods run under. Okteto applies the value as `serviceAccountName` on the generated Deployment, StatefulSet, or Job. The value must be a valid [DNS-1123 subdomain](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names), and an invalid value fails at parse time.
+
+```yaml
+services:
+  api:
+    image: myorg/api:latest
+    x-okteto-service-account: api-sa
+```
+
+The field supports environment variable expansion, so you can set it from a variable such as `${SA_NAME}`. If the value is empty, for example because `${SA_NAME}` isn't set, the deploy fails instead of falling back to the `default` ServiceAccount. When you combine Compose files, a value in a later file replaces the value from an earlier one. When you omit the field, the service's pods run under the Namespace's `default` ServiceAccount. The field only affects the service that declares it.
+
+Pair this field with [`x-okteto-identity-token`](reference/docker-compose.mdx#x-okteto-identity-token-object-optional) to scope a cloud provider's trust policy to a single service. The projected token's subject becomes `system:serviceaccount:<namespace>:<service-account>`, so the provider can trust one service instead of the shared `default` ServiceAccount.
+
+:::warning
+The ServiceAccount must exist by the time the service is deployed. You can create it earlier in the same deploy, for example in your `deploy.commands` or with a job the service depends on. If it doesn't exist, `okteto deploy` fails with an error that names the ServiceAccount, the service, and the Namespace.
+:::
 
 ### volumes ([object], optional)
 
@@ -690,13 +730,11 @@ The `.env` file is placed at the same folder than the Docker Compose file.
 
 For example:
 
-```console
-$ cat .env
+```bash title=".env"
 TAG=v1.5
 ```
 
-```console
-$ cat docker-compose.yml
+```yaml title="docker-compose.yml"
 services:
    web:
       image: "app:${TAG}"
@@ -965,7 +1003,9 @@ uts
 | endpoints | Define HTTPS routes for services |
 | public: true | Auto-generate a Kubernetes Ingress |
 | x-node-selector | Pod scheduling hint |
+| x-enable-service-links | Toggle Kubernetes service link environment variable injection per service |
 | x-okteto-identity-token | Project a ServiceAccount token for keyless cloud federation |
+| x-okteto-service-account | Set the ServiceAccount the service's pods run under |
 | resources | Top-level CPU / memory requests and limits (shorthand for `deploy.resources`) |
 | healthcheck.http | HTTP path and port healthcheck probe |
 | scale | Compose-style replica shorthand (alias for `deploy.replicas`) |

@@ -7,7 +7,7 @@ id: bring-your-own-certificate
 
 # Bring your own Wildcard Certificate
 
-For this, you'll need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate in PKCS1 format, with `*.SUBDOMAIN` as its `Subject Alternative Name`.
+For this, you'll need the private and public keys of your certificate. The certificate must be a PEM-encoded X.509 certificate with `*.SUBDOMAIN` as its `Subject Alternative Name`. The private key can be PEM-encoded PKCS#1 (`BEGIN RSA PRIVATE KEY`), SEC1 (`BEGIN EC PRIVATE KEY`), or, starting with Okteto 1.48, PKCS#8 (`BEGIN PRIVATE KEY`).
 
 Import the secret into your kubernetes cluster by running the command below:
 
@@ -29,7 +29,7 @@ ingress-nginx:
       default-ssl-certificate: $(POD_NAMESPACE)/your-ssl-certificate-secret
 ```
 
-You can use any certificate provider you are familiar with if it's compatible with the x.509 and PKCS1 standards.
+You can use any certificate provider you are familiar with if it issues x.509 certificates.
 For example, we have a guide maintained by the community to [configure your certificate with GoDaddy](https://community.okteto.com/t/how-do-i-bring-my-godaddy-certificate-to-okteto/578/1).
 
 Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation for the new configuration to be applied.
@@ -69,3 +69,15 @@ ingress-nginx:
 
 Finally, [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
 We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+
+## Injecting the CA into cluster nodes
+
+When you enable `privateCA`, the [Okteto daemonset](self-hosted/helm-configuration.mdx#daemonset) installs the CA into each node's trust store by default, so the kubelet can pull images from the Okteto Registry. For `containerd` to trust the new CA, the daemonset restarts it once on each node. This restart interrupts any image pulls in progress and can restart the containers already running on that node.
+
+To avoid this restart, set [`daemonset.injectCA.enabled`](self-hosted/helm-configuration.mdx#daemonset) to `false` so the daemonset no longer touches the nodes' trust store. With injection disabled, you are responsible for adding the CA to every node's trust store yourself. If a node doesn't trust the CA, image pulls from the Okteto Registry fail with a certificate verification error.
+
+Please refer to your cloud provider's official documentation for guidance on how to perform this task:
+
+- **Google Kubernetes Engine (GKE)**: [Access private registries with private CA certificates](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/access-private-registries-private-certificates).
+- **Azure Kubernetes Service (AKS)**: [Custom certificate authority](https://learn.microsoft.com/en-us/azure/aks/custom-certificate-authority).
+- **Amazon Elastic Kubernetes Service (EKS)**: [Use private certificates to enable a container repository in Amazon EKS](https://aws.amazon.com/blogs/containers/use-private-certificates-to-enable-a-container-repository-in-amazon-eks/).

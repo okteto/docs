@@ -10,7 +10,7 @@ import TabItem from "@theme/TabItem";
 
 As part of Okteto's installation, several Custom Resource Definitions (CRDs) are installed in your cluster. These CRDs primarily store different types of information necessary for Okteto's functionality. You can view the list of Okteto's CRDs by exploring the `crds` folder in the templates of the [Okteto Helm Chart](https://artifacthub.io/packages/helm/okteto/okteto) or by running the following command:
 
-```console
+```bash
 kubectl get crd | grep okteto.com
 ```
 
@@ -183,11 +183,31 @@ spec:
   roleARN: <roleARN>
 ```
 
+To add a configuration for **Azure Cloud Credentials**, create a resource like this:
+
+- `metadata.name`: `azure-credentials-config`
+- `spec.audience`: The audience of the federated token. Use `api://AzureADTokenExchange`, the audience of the federated credential of your App Registration. Never use an audience accepted by your Kubernetes API server.
+- `spec.tenantId`: The Directory (tenant) ID of your Microsoft Entra tenant.
+- `spec.clientId`: The Application (client) ID of the App Registration that trusts the Okteto service account.
+- `spec.authorityHost`: Optional. The Microsoft Entra authority host, only needed for sovereign clouds. Defaults to `https://login.microsoftonline.com/`.
+
+```yaml title="azure-cloud-credential.yaml"
+apiVersion: admin.okteto.com/v1
+kind: DynamicConfig
+metadata:
+  name: azure-credentials-config
+  namespace: okteto
+spec:
+  audience: api://AzureADTokenExchange
+  tenantId: <tenant-id>
+  clientId: <client-id>
+```
+
 To apply the changes manually, run the command `kubectl apply -f aws-cloud-credential.yaml` from your terminal to add the catalog item to the your Cloud Credential to the cluster.
 
 :::note
-Each cloud provider credential configuration in Okteto must use a specific name: gcp-credentials-config for Google Cloud Platform and aws-credentials-config for Amazon Web Services.
-Only one credential configuration is allowed per provider, meaning you can define one for GCP and one for AWS, but no more than one for each.
+Each cloud provider credential configuration in Okteto must use a specific name: `gcp-credentials-config` for Google Cloud Platform, `aws-credentials-config` for Amazon Web Services and `azure-credentials-config` for Microsoft Azure.
+Only one credential configuration is allowed per provider, meaning you can define one for each of GCP, AWS and Azure, but no more than one for each.
 :::
 
 ## Okta User De-provisioning

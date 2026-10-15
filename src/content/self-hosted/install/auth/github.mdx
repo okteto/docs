@@ -45,9 +45,9 @@ auth:
   github:
     enabled: true
     // highlight-next-line
-    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_ID"
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_ID"
     // highlight-next-line
-    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_SECRET"
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
     // highlight-next-line
     organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
 ```
@@ -57,7 +57,7 @@ auth:
 [Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
 We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
 
-The `organization` field is optional. Only members of the organization will be allowed to log in into your Okteto instance. An empty `organization` field permits any user to log in.
+The `organization` field is optional but recommended. Setting it restricts login to members of the given GitHub organization, giving you finer control over who can access your Okteto instance. An empty `organization` field permits any user with a GitHub account to log in.
 
 :::warning
 If your Okteto instance is publicly reachable, we highly recommend that you set up access restrictions. Leaving the organization field blank lets anyone with a GitHub account log in to your Okteto instance.
@@ -70,14 +70,82 @@ If you want to provide access to users outside of your GitHub organization, you 
 auth:
   github:
     enabled: true
-    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_ID"
-    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIEND_SECRET"
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_ID"
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
     organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
     // highlight-next-line
     allowList: ["acct1","acct2","acct3"]
 ```
 
-We also have a video walking you through the steps on configuring GitHub as an authentication provider for your Okteto installation:
+## Installing the GitHub App in your organization
+
+When you set the `organization` field, Okteto verifies each user's GitHub organization membership at login and only admits members of that organization. To read that membership, the [Okteto GitHub App](self-hosted/install/github.mdx) must be installed in the organization you configured.
+
+GitHub only exposes a user's organization membership to an installed GitHub App that has the `Members` organization permission set to `Read-only`. The OAuth login flow does not require the App to be installed, so a login can complete while the membership check still fails. When the App is not installed in the configured organization, Okteto cannot confirm that a user belongs to it and rejects the login as unauthorized, even for members of the organization.
+
+To install the App, open `https://github.com/apps/YOUR_GITHUB_APP_NAME/installations/new` and select the organization you set in the `organization` field. This is the same GitHub App you configure for private repository access, so a single App covers both authentication and repository access.
+
+:::info
+The `organization` filter and the App installation must point to the same GitHub organization. If you change the `organization` value, install the App in the new organization as well.
+:::
+
+## Restricting access to GitHub teams
+
+The `teams` field restricts login to members of specific teams in the GitHub organization set in `organization`. Access is then managed from GitHub: adding a user to one of the teams lets them log in, without changes to your Helm configuration.
+
+`teams` is a list, with one team per entry:
+
+```yaml title="config.yaml"
+auth:
+  github:
+    enabled: true
+    clientId: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_ID"
+    clientSecret: "REPLACE_ME_WITH_YOUR_OAUTH_APP_CLIENT_SECRET"
+    organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
+    // highlight-next-line
+    teams:
+      // highlight-next-line
+      - platform
+      // highlight-next-line
+      - backend
+```
+
+Each entry is a team slug, the last segment of the team URL. For `https://github.com/orgs/acme/teams/platform`, the slug is `platform`. The `organization` field is required when `teams` is set. The Helm chart fails to render without it, or when an entry can't be a slug, for example because it contains spaces, commas or slashes.
+
+Quote slugs that YAML would read as a number or a boolean, such as `"2024"` or `"on"`. The Helm chart fails to render with an unquoted one, since YAML would turn it into a different value, like `true` for `on`.
+
+:::warning
+Okteto doesn't check that the teams exist. GitHub answers the same way for a team that doesn't exist as for a user who isn't a member of it, so a misspelled slug admits no one through that team. If none of the listed slugs is correct, every login fails with the error saying that the account isn't part of any of the configured GitHub teams, except for the accounts listed in `allowList`. Copy each slug from the team URL.
+:::
+
+At login, Okteto checks the team memberships of the user and admits active members of at least one of the listed teams:
+
+- Members of a child team count as members of its parent team.
+- Users who haven't accepted their invitation to the organization are rejected, with the error saying that their account isn't part of the organization, until they accept it.
+- Accounts listed in `allowList` skip the organization and team checks.
+
+Users who aren't members of any of the teams see an error saying that their GitHub account isn't part of any of the configured GitHub teams.
+
+### Permissions for reading team membership
+
+Reading team membership needs the same permissions as the organization check, so if login restricted to your organization already works, there's nothing else to configure.
+
+GitHub doesn't send team membership at login, so Okteto reads it from the GitHub API with the token of the user logging in. The permission it needs depends on the type of app you use for login:
+
+| App type | Required permission |
+|----------|---------------------|
+| OAuth App | The `read:org` scope. Okteto already requests it when `organization` is set. |
+| GitHub App | The `Members` organization permission set to `Read-only`, with the App installed in the organization, as described in [Installing the GitHub App in your organization](#installing-the-github-app-in-your-organization). |
+
+If your GitHub App doesn't have the `Members` permission yet, add it from the App settings in GitHub. An organization owner must accept the updated permissions before they apply to the installation. Until then, GitHub doesn't show the organization to Okteto, and users see an error saying that their account isn't part of the organization, even when they are members.
+
+If your organization restricts access from OAuth Apps, an organization owner must approve the OAuth App. Until then, GitHub hides the organization from Okteto, and users see the same error saying that their account isn't part of the organization.
+
+If GitHub returns any other error for a membership request, such as a rate limit, and no other listed team admits the user, the login fails with an internal server error, and Okteto writes the GitHub error to the logs of the `okteto-api` pods.
+
+## Video walkthrough
+
+The following video walks you through configuring GitHub as an authentication provider for your Okteto instance:
 
 <iframe
   width="560"

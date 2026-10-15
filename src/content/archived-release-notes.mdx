@@ -7,6 +7,185 @@ id: archived-release-notes
 
 Here you can find the release notes for archived versions of Okteto.
 
+## 1.37.3
+
+21 November 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.37 is designed to work with [Okteto CLI 3.12.x](https://github.com/okteto/okteto/releases/tag/3.12.0)
+
+### Bug Fixes
+
+- [Okteto CLI 3.12.3](https://github.com/okteto/okteto/releases/tag/3.12.3): Fixed a timeout error contacting with the SSH agent on remote deploys when some of the commands defined in the Okteto Manifest were performing SSH operations
+
+## 1.37.2
+
+15 October 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.37 is designed to work with [Okteto CLI 3.12.x](https://github.com/okteto/okteto/releases/tag/3.12.0)
+
+### Bug Fixes {#bug-fixes-1.37}
+
+- Fixed repository cloning failures with SSH host verification - Resolved conflicts between automatic SSH scanning and admin-configured known hosts that could cause deployment failures.
+
+## 1.37.1
+
+7 October 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.37 is designed to work with [Okteto CLI 3.12.x](https://github.com/okteto/okteto/releases/tag/3.12.0)
+
+### Improvements {#improvements-1.37.1}
+
+- Upgrade Redis to 8.2.2 to fix [CVE-2025-49844](https://www.wiz.io/blog/wiz-research-redis-rce-cve-2025-49844)
+
+## 1.37.0
+
+1 October 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.37 is designed to work with [Okteto CLI 3.12.x](https://github.com/okteto/okteto/releases/tag/3.12.0)
+
+### Breaking Changes {#breaking-changes-1.37}
+
+- Removed the dependency on the Bitnami Redis Helm chart. Okteto now ships its own Kubernetes templates to deploy Redis. As part of this change, the workload has been updated from a StatefulSet to a Deployment, and the available Redis configuration options [have been reduced and standardized](self-hosted/helm-configuration.mdx#redis). If you previously customized Redis using Bitnami-specific values, review and update your Helm values to align with the supported configuration before upgrading. <!-- 9663 -->
+- We've changed the [default value of `pullAlways` to **false**](self-hosted/helm-configuration.mdx#pullalways) for pods deployed in Okteto-managed namespaces. This speeds up pod creation when images are already present on the node, while still allowing `pullAlways` to be explicitly enabled if needed <!-- 9690 -->
+
+### New Features {#new-features-1.37}
+
+- Added a centralized [Known Hosts feature to the Admin UI](admin/ssh-known-hosts.mdx) (Admin → Settings → Known Hosts). Admins can now pin trusted SSH host keys and disable automatic ssh-keyscan, ensuring secure, consistent cloning of repositories and submodules without custom runner images <!-- 9662 -->
+
+### Improvements {#improvements-1.37}
+
+- Improved error handling in the Okteto AI Agent UI for API errors and "Prompt too long" warnings <!-- 9636 -->
+- Temporal rate limit (QPS exceeded) errors now return as "progressing" instead of failing immediately <!-- 9664 -->
+- We've renamed AI Agent Fleets to Okteto AI throughout the product <!-- 9677 -->
+- [Okteto CLI 3.12.0](https://github.com/okteto/okteto/releases/tag/3.12.0): Updated Syncthing to 2.0.x for improved synchronization performance
+- [Okteto CLI 3.12.0](https://github.com/okteto/okteto/releases/tag/3.12.0): Added support for `endpoint_mode` in Compose files ([see documentation](reference/docker-compose.mdx#endpoint_mode-string-optional)).
+
+### Bug Fixes {#bug-fixes-1.37}
+
+- Fixed issues with endpoint handling in the Okteto AI Agent view, including non-scrollable lists and incorrect display of custom endpoints <!-- 9653 --> <!-- 9666 -->
+- Fixed an "unable to load agent" error when returning focus to the window <!-- 9703 -->
+- Fixed autoscroll behavior when sending a new prompt in the Agent UI <!-- 9705 -->
+- [Okteto CLI 3.12.0](https://github.com/okteto/okteto/pull/4760): Improved CLI stability by waiting for SSE when streaming logs for pipeline, preview, deploy, and destroy operations
+
+## 1.36.2
+
+12 September 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
+
+### Improvements
+
+- Improve Okteto UI UX by showing "Pulling" status when encountering transient pull QPS exceeded errors
+
+### Bug Fixes
+
+- Fixed an issue with Kubernetes credential configuration in the delete agent job
+- Fixed a UI issue where the list of endpoints in the agent view was not scrollable
+
+## 1.36.1
+
+9 September 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
+
+### Bug Fixes
+- Fixed an issue with streaming Okteto Agent installation logs that was preventing the agent chat from loading
+
+## 1.36.0
+
+5 September 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.36 is designed to work with [Okteto CLI 3.11.x](https://github.com/okteto/okteto/releases/tag/3.11.0)
+
+### Okteto AI Now Available (Beta)
+Okteto AI brings the power of AI directly into your development workflow, powered by Claude Code from Anthropic. Each agent operates independently in its own Kubernetes namespace with full isolation, giving you the safety and control you need for AI-assisted development.
+
+#### Key Capabilities
+
+- **Intelligent Repository Onboarding**: Agents can quickly understand and work with existing codebases, analyzing project structure, dependencies, and patterns to get up to speed faster than ever
+- **Application Scaffolding**: Generate new services, APIs, and applications from natural language descriptions, complete with best practices and proper project structure
+- **Task Automation**: Automate common development tasks like adding endpoints, refactoring code, updating dependencies, or implementing new features
+- **Real Containerized Environments**: All agents run in production-like Kubernetes environments with access to the same runtime, secrets, and configurations as your actual development setup
+- **Parallel Execution**: Launch multiple agents simultaneously to work on different features or experiments independently
+
+#### For Administrators
+Organization administrators have full control over Okteto AI deployment:
+- Enable the feature for your organization through the Admin Dashboard under Admin > Okteto AI
+- Toggle access per user to control who can launch AI agents in your organization
+- Configure LLM keys - Provide your own Anthropic API key (directly from Anthropic or via Amazon Bedrock)
+
+We're continuously improving Okteto AI based on your feedback. Try it today and let us know how it transforms your development workflow!
+
+### New Features {#new-features-1.36}
+
+- Added a [new Public API endpoint to delete users](admin/okteto-api.mdx)  <!-- 9572 -->
+- Added support for [configuring custom init containers](self-hosted/helm-configuration.mdx#installer) in the installer job  <!-- 9598 -->
+- Pre-pull Okteto images used by jobs to accelerate job start times. This deploys a new [DaemonSet in the cluster that pre-pulls images](self-hosted/helm-configuration.mdx#prepullimages ) onto nodes.  <!-- 9601 -->
+
+### Improvements {#improvements-1.36}
+
+- Installer now retries transient connection issues  <!-- 9608 -->
+- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Added support for overriding the [`readOnlyRootFilesystem`](reference/okteto-manifest.mdx#securitycontext-object-optional) property in the `securityContext` of dev containers defined in the Okteto Manifest
+
+### Bug Fixes {#bug-fixes-1.36}
+
+- Fixed previews layout issue that could hide logs when breadcrumb is visible  <!-- 9588 -->
+- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Fixed a panic when deploying an Okteto manifest with Divert using `okteto up` or `okteto test`
+- [Okteto CLI 3.11.0](https://github.com/okteto/okteto/releases/tag/3.11.0): Fixed an issue with the `--wait` flag in `okteto deploy` when deploying a subset of services from a Compose file. The command no longer hangs until timeout
+
+## 1.35.2
+
+29 August 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.35 is designed to work with [Okteto CLI 3.10.x](https://github.com/okteto/okteto/releases/tag/3.10.0)
+
+### Bug Fixes
+- Downgrade BuildKit dependency to version `0.22.0` to avoid a bug that was causing a huge consumption in CPU, provoking poor performance and stuck builds.
+
+## 1.35.1
+
+12 August 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.35 is designed to work with [Okteto CLI 3.10.x](https://github.com/okteto/okteto/releases/tag/3.10.0)
+
+### Bug Fixes
+- Fixed an issue in the daemonset which was causing the component to fail when the Okteto instance was not using self-signed certificates nor private CAs.
+
+## 1.35.0
+
+1 August 2025
+
+This version is compatible with Kubernetes versions 1.31 to 1.33 \
+Okteto Chart release 1.35 is designed to work with [Okteto CLI 3.10.x](https://github.com/okteto/okteto/releases/tag/3.10.0)
+
+### New Features {#new-features-1.35}
+- Added support for [Kubernetes 1.33](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.33.md) (support for 1.30 has been removed) and [Amazon Linux 2023](https://github.com/amazonlinux/amazon-linux-2023). [Please follow our upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-135x--kubernetes-133-support-and-amazon-linux-2023-al2023compatibility) when moving to Amazon Linux 2023
+- CIDR-based traffic filtering is now supported for BYOC (Bring Your Own Cluster) environments. Use this to improve security by restricting access to Okteto services to specific IP ranges.
+- Namespace deletion now properly applies the timeout value to dev environments that use a `destroy` section in their manifest. Previously, if a dev environment took longer than 5 minutes to destroy gracefully, the overall namespace deletion would fail, even if a longer timeout was specified. <!-- 9530 -->
+- Added support for `loadBalancerSourceRanges` in the BuildKit service configuration to better control external access
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Okteto now supports inheriting Kubernetes `nodeSelector` and resource settings in Development Environments. When omitted from the `okteto.yaml` manifest, these values can be pulled from the base Kubernetes resources using the `OKTETO_INHERIT_KUBERNETES_RESOURCES` and `OKTETO_INHERIT_KUBERNETES_NODESELECTOR` feature flags.
+
+### Improvements {#improvements-1.35}
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Improved the `okteto deploy` command to avoid rebuilding all images when deploying a compose and only a subset of services are being deployed.
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Updated the `okteto preview destroy` command to correctly propagate the `--timeout` flag to the backend, ensuring longer destroy operations don’t fail prematurely. ⚠️ This requires both CLI 3.10.0 and Chart 1.35.
+- [Okteto CLI 3.10.0](https://github.com/okteto/okteto/releases/tag/3.10.0): Enhanced `okteto context use` to better handle invalid or expired local tokens. The CLI will now prompt for login rather than failing with a non-actionable error.
+
+### Bug Fixes {#bug-fixes-1.35}
+- Fixed an issue that prevented some development environments from waking up as expected when there were dependency cycles between dev environments
+- Improved AWS IAM Role regex handling for tighter validation on Private Registry Credentials and Cloud Credentials
+
+### Removal Notice {#removal-notice-1.35}
+- Support for Kubernetes [1.30](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.30.md) has been removed in this release.
+
 ## 1.34
 
 3 July 2025

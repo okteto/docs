@@ -21,6 +21,43 @@ function rehypeStripHashLinks() {
   return (tree) => walk(tree);
 }
 
+// Strip tier badges (the TiersList component, rendered as
+// `<div class="TiersList"><span class="Tier">…</span></div>`) from the
+// Markdown twins. They sit inside heading HTML, so without this the badge
+// labels concatenate into the heading text (e.g.
+// `# CatalogScaleEnterpriseSelf-Hosted`).
+function rehypeStripTierBadges() {
+  const isTierBadge = (node) =>
+    node.tagName === 'div' &&
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('TiersList');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isTierBadge(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
+// Strip the AgentActions control (the "Copy page / Open in agent" split
+// button) from the Markdown twins — it's page chrome, not content. Same
+// dependency-free hast walk as rehypeStripHashLinks above.
+function rehypeStripAgentActions() {
+  const isAgentActions = (node) =>
+    Array.isArray(node.properties && node.properties.className) &&
+    node.properties.className.includes('AgentActions');
+
+  const walk = (node) => {
+    if (!node.children) return;
+    node.children = node.children.filter((child) => !isAgentActions(child));
+    node.children.forEach(walk);
+  };
+
+  return (tree) => walk(tree);
+}
+
 // Docs origin and base path (also used for url/baseUrl in module.exports below).
 const SITE_URL = 'https://www.okteto.com';
 const BASE_URL = '/docs/';
@@ -175,7 +212,7 @@ module.exports = {
     },
     algolia: {
       appId: 'RS9BKUCQCT',
-      apiKey: 'ac5c1ba5f3d4e8eceb4ce860d568da39',
+      apiKey: '9213a8b24b30e1994c4c8ff5f282cf6f',
       indexName: 'okteto',
       algoliaOptions: {},
       position: 'left',
@@ -331,20 +368,35 @@ module.exports = {
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.46',
+          lastVersion: '1.49',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.47',
-              path: '1.47',
+              label: '1.50',
+              path: '1.50',
             },
-            '1.46': {
+            '1.49': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.46',
+              label: '1.49',
               path: '/',
               banner: 'none',
+            },
+            '1.48': {
+              label: '1.48',
+              path: '1.48',
+              banner: 'unmaintained',
+            },
+            '1.47': {
+              label: '1.47',
+              path: '1.47',
+              banner: 'unmaintained',
+            },
+            '1.46': {
+              label: '1.46',
+              path: '1.46',
+              banner: 'unmaintained',
             },
             '1.45': {
               label: '1.45',
@@ -354,21 +406,6 @@ module.exports = {
             '1.44': {
               label: '1.44',
               path: '1.44',
-              banner: 'unmaintained',
-            },
-            '1.43': {
-              label: '1.43',
-              path: '1.43',
-              banner: 'unmaintained',
-            },
-            '1.42': {
-              label: '1.42',
-              path: '1.42',
-              banner: 'unmaintained',
-            },
-            '1.41': {
-              label: '1.41',
-              path: '1.41',
               banner: 'unmaintained',
             },
           },
@@ -403,12 +440,19 @@ module.exports = {
     [
       '@signalwire/docusaurus-plugin-llms-txt',
       {
-        siteTitle: 'Okteto Documentation',
+        // The plugin's own llms.txt / llms-full.txt output is never used
+        // directly - scripts/generate-all-llms-files.js overwrites both with
+        // its own per-version-aware versions right after the build (see that
+        // script for why: the plugin only ever writes one combined file
+        // across every version, in an undocumented full-text format that
+        // can't be split back apart per version). What the plugin IS still
+        // used for, and does need this config: rendering every version's
+        // pages into clean per-page Markdown twins (enableMarkdownFiles),
+        // which the script reads directly.
         content: {
-          includeVersionedDocs: false,
+          includeVersionedDocs: true,
           enableMarkdownFiles: true,
-          enableLlmsFullTxt: true,
-          beforeDefaultRehypePlugins: [rehypeStripHashLinks],
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripTierBadges, rehypeStripAgentActions],
           remarkPlugins: [remarkLlmsIndexPointer],
         },
       },
