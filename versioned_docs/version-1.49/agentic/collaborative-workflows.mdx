@@ -1,0 +1,61 @@
+---
+title: Collaborative Workflows
+description: How developers and AI agents work together using okteto up and okteto exec
+sidebar_label: Collaborative Workflows
+---
+
+In collaborative mode, you stay in control of the development session while the agent runs commands, tests, and debugs issues inside your live Okteto environment. You manage the dev session with `okteto up`. The agent runs commands in the active Development Container using `okteto exec`. Code changes sync automatically, so when the agent edits a file, it's running in the container within seconds. No rebuilds between iterations.
+
+## How it works
+
+1. The agent runs `okteto deploy --wait` to set up the environment (or you do this yourself)
+2. You run `okteto up <service>` in your terminal to start the dev session
+3. The agent uses `okteto exec -- <command>` to run commands in the dev container
+4. Code changes sync to the container automatically via [file sync](development/containers/file-sync/index.mdx)
+5. The agent checks results with `okteto exec` and `okteto test`
+6. You iterate together until the task is complete
+
+:::warning
+`okteto up` is interactive and hangs if an agent runs it. You always start the dev session yourself. See [Command rules](agentic/best-practices.mdx#command-rules).
+:::
+
+## Workflow example: fixing a bug
+
+You start the dev environment:
+```bash
+okteto up api
+```
+
+You ask the agent:
+```
+The /api/orders endpoint returns a 500 error when the cart is empty.
+Can you investigate and fix it?
+```
+
+The agent investigates:
+```bash
+# Reproduce the failure by running the test that covers it
+okteto exec -- npm test -- --grep "empty cart"
+
+# After reading the code and making a fix...
+
+# Run the tests again to verify
+okteto exec -- npm test
+```
+
+Because `api` is in dev mode, its live output appears in the `okteto up api` terminal you control, not in `okteto logs`. The agent reproduces and verifies the fix by running commands in the dev container with `okteto exec`.
+
+Since file sync is active, the agent's code changes are immediately available in the running container. No rebuild needed.
+
+The agent's day-to-day commands in this mode are `okteto exec` and `okteto test`. Output from the service in dev mode appears in your `okteto up` terminal, not in `okteto logs`; the agent uses `okteto logs <service>` for the other services in the environment. The full list of commands agents may and may not run is in [Command rules](agentic/best-practices.mdx#command-rules). For flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
+
+## File sync
+
+When `okteto up` is running, Okteto syncs file changes between your local machine and the dev container. The agent edits files locally, changes appear in the container within seconds, and the running application picks them up immediately (assuming hot-reload or similar). There's no need to run `okteto build` or `okteto deploy` for code changes during development.
+
+The agent makes a change, runs a test with `okteto exec`, sees the result, and iterates. No waiting on builds.
+
+## Next steps
+
+- [Autonomous Workflows](agentic/autonomous-workflows.mdx) — let the agent handle the full lifecycle without human input
+- [Best Practices](agentic/best-practices.mdx) — command rules and common pitfalls

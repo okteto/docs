@@ -23,7 +23,9 @@ module.exports = {
       },
       items: [
         'getting-started-with-okteto',
+        'agentic-workflows',
         'preview-environments',
+        'agent-ticket-to-pr',
         'aws-lambda',
         'compose-getting-started',
         'external-resources',

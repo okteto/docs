@@ -1,0 +1,92 @@
+---
+title: Use OpenID Connect (OIDC) as your Authentication Provider
+description: Use OpenID Connect (OIDC) as the authentication provider of your Okteto Self-hosted instance
+sidebar_label: OpenID Connect
+id: openid-connect
+---
+
+This guide will walk you through the steps necessary to configure OpenID Connect (OIDC) as the authentication provider for Okteto.
+
+:::note
+If you are looking to configure Private Registry credentials from Amazon ECR, please [see our guide here](admin/registry-credentials/amazon-ecr.mdx#using-iam-roles-via-openid-connect-oidc-federation).
+:::
+
+Okteto supports any identity provider that implements the OpenID Connect standard. We have dedicated guides for the following providers:
+
+- [Azure Active Directory](azure-ad.mdx)
+- [GitLab](gitlab.mdx)
+- [Okta](okta.mdx)
+
+For other providers, follow your OpenID Connect service provider's documentation on how to create the required application.
+
+:::note
+Your provider needs to support the [UserInfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) in order to be used with Okteto.
+This authentication option follows the OpenID standard, and it has been validated with Okta, PingIdentity, and GitLab.
+:::
+
+## Prerequisites
+
+- A working installation of [Okteto](get-started/install/index.mdx)
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine
+
+## Create the OpenID Connect Application
+
+When creating the application, you'll need to provide the following values:
+
+- Start SSO URL: `https://okteto.DOMAIN`
+- Redirect URIs: `https://okteto.DOMAIN`, `https://okteto.DOMAIN/auth/callback`
+- Scopes: `openid`, `email`, `profile`
+- Response Type: `code`
+- Grant Type: `authorization code`
+
+## Configure Okteto
+
+Once you have the  OpenID Connect Application ready, update the `auth` section of your Helm configuration file with the following values:
+
+```yaml title="config.yaml"
+  openid:
+    enabled: true
+    // highlight-next-line
+    clientId: "REPLACE_ME_WITH_YOUR_APPLICATION_CLIENT_ID"
+    // highlight-next-line
+    clientSecret: "REPLACE_ME_WITH_YOUR_APPLICATION_CLIENT_SECRET"
+    // highlight-next-line
+    group: "REPLACE_ME_WITH_YOUR_GROUP"
+    endpoints:
+      // highlight-next-line
+      issuer: "REPLACE_ME_WITH_YOUR_ISSUER_URL"
+      // highlight-next-line
+      authorization: "REPLACE_ME_WITH_YOUR_AUTHORIZATION_URL"
+    mapping:
+      externalIDKey: nickname
+      nameKey: name
+      emailKey: email
+      pictureKey: picture
+      groupsKey: groups
+      subjectKey: sub
+```
+
+> You can also use a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the sensitive part of these credentials.
+
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
+We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+
+The `group` field is optional. Only members of the group will be allowed to log in into your Okteto instance. An empty `group` field permits any user to log in.
+
+The `issuer` and `authorization` endpoints must match the value returned in the provider config discovery.
+
+The `mapping` fields are optional. Use them to configure the mapping between Okteto's user attributes and the claim coming from your authentication provider.
+
+## User identity binding
+
+Okteto binds each user to a single account in your identity provider. The binding is the provider's issuer together with the claim mapped to `subjectKey`. It defaults to `sub`, which the OpenID Connect standard defines as the only claim guaranteed to be stable and unique for a user. If you point `subjectKey` at any other claim, that guarantee no longer applies, so you are responsible for choosing one whose value your provider keeps stable and unique for every user. If a second provider account resolves to the same Okteto user, Okteto refuses the login with a clear message instead of signing in as the existing user.
+
+:::warning
+Okteto uses the claim mapped to `externalIDKey` (`nickname` by default) as the unique identifier for each user. You are responsible for choosing a claim whose value your authentication provider guarantees to be unique for every user. If two users share the same `externalIDKey` value, the latter will fail to log in due to collision.
+:::
+
+### Changing the subject claim
+
+Change `subjectKey` only when `sub` is not stable for your provider. Microsoft Entra issues a pairwise `sub` that differs per application registration, so set `subjectKey` to `oid`, which stays stable across registrations there.
+
+**Decide the subject claim before your first rollout.** Each user is bound to the claim value that was present the first time they logged in, so changing `subjectKey` later stops every user from matching their binding and refuses them all at login. If you need to change it after rollout, contact Okteto to plan the migration and re-bind the affected users safely.

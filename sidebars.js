@@ -23,6 +23,7 @@ module.exports = {
             'get-started/install/digitalocean-doks',
             'get-started/install/google-gke',
             'get-started/install/microsoft-aks',
+            'get-started/install/nutanix-nkp',
             'get-started/install/openshift',
           ],
         },
