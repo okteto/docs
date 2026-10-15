@@ -15,14 +15,24 @@ Unreleased
 This version is compatible with Kubernetes versions 1.34 to 1.36 \
 Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://github.com/okteto/okteto/releases)
 
+### Important Notes {#important-notes-1.50}
+
+- **Okteto Registry upgraded to distribution 3.1.2**: The Okteto Registry now runs [distribution](https://github.com/distribution/distribution) 3.1.2. Image pushes and pulls can fail for a few seconds during the upgrade. If you override `registry.image`, it must point to a distribution 3.x image <!-- PROD-541, app#10465 -->
+
 ### New Features {#new-features-1.50}
 
 - **Login restricted to GitHub teams**: With GitHub as the authentication provider, the [`auth.github.teams`](self-hosted/install/auth/github.mdx#restricting-access-to-github-teams) Helm setting restricts login to members of specific teams of the GitHub organization set in `auth.github.organization`. Access is then managed by adding users to those teams in GitHub, without changing the Helm configuration <!-- PROD-542, app#10453 -->
 - **Azure Cloud Credentials**: [Cloud Credentials](admin/cloud-credentials/azure.mdx) now support Microsoft Azure. The commands in your Okteto Manifests authenticate to Azure with workload identity federation, without client secrets: Okteto injects `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_AUTHORITY_HOST` and `AZURE_FEDERATED_TOKEN_FILE`, the variables used by the Azure SDKs. Requires Okteto CLI 3.25.0 or later <!-- PROD-532, app#10437, okteto#5174 -->
+- **Microsoft Entra Workload ID for the Okteto Registry**: The Okteto Registry can access [Azure Storage with Microsoft Entra Workload ID](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx#microsoft-entra-workload-id) instead of a storage account access key (`registry.storage.provider.azure.workloadIdentity.enabled`) <!-- PROD-541, app#10465 -->
+- **Image pulls from Google Cloud Storage with Workload Identity**: With [Google Cloud Storage and Workload Identity](self-hosted/install/okteto-registry-storage/google-cloud-storage.mdx), `registry.storage.provider.gcp.workloadIdentity.redirect` redirects image pulls to signed Cloud Storage URLs instead of serving image layers through the Okteto Registry. We strongly recommend enabling it: clients download image layers directly from Cloud Storage, which takes that traffic off the Okteto Registry, and it will become the default in an upcoming release. It needs the `iam.serviceAccounts.signBlob` permission described in the guide <!-- PROD-541, app#10465 -->
 
 ### Improvements {#improvements-1.50}
 
 - **Developers can wake Global Preview Environments**: Any Developer can now wake a sleeping Global Preview Environment from the [Okteto Dashboard](core/user-roles-and-permissions.mdx#access-to-global-preview-environments). Only the owner and Admins can put it to sleep manually <!-- DEV-1307, app#10450 -->
+
+### Bug Fixes {#bug-fixes-1.50}
+
+- Fixed the Okteto Registry with [DigitalOcean Spaces](self-hosted/install/okteto-registry-storage/digitalocean-spaces.mdx) not working when `registry.storage.provider.digitalocean.region` isn't set: the default region was `SFO1`, which isn't a Spaces region. It now defaults to `nyc3` <!-- PROD-541, app#10465 -->
 
 ## 1.49.0
 
