@@ -328,7 +328,7 @@ import Image from "@theme/Image";
 ## Contributors
 
 <a href="https://github.com/okteto/docs/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=okteto/docs" />
+  <img src="https://contrib.rocks/image?repo=okteto/docs" alt="Avatars of contributors to the Okteto docs repository on GitHub" />
 </a>
 
 <!--  https://contrib.rocks -->
