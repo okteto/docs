@@ -189,6 +189,7 @@ module.exports = {
               items: [
                 'admin/cloud-credentials/aws-cloud-credentials',
                 'admin/cloud-credentials/gcp-cloud-credentials',
+                'admin/cloud-credentials/azure-cloud-credentials',
               ],
             },
             'admin/integrations/okta-user-deprovisioning',
