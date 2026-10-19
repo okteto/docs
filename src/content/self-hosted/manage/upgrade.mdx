@@ -35,6 +35,21 @@ _You can use `helm ls` to find the name of your release._
 
 Please review [the release notes](release-notes.mdx) before upgrading. New features, known issues, and configuration changes will be listed there.
 
+## Upgrading to Okteto 1.50.x – Okteto Registry Images in Azure Storage
+
+Okteto 1.50 upgrades the Okteto Registry to [distribution](https://github.com/distribution/distribution) 3.1.2, which names the blobs in Azure Storage without the leading `/` that earlier versions used ([distribution#4278](https://github.com/distribution/distribution/issues/4278)). Only [Azure Storage](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx) is affected: Google Cloud Storage, Amazon S3, DigitalOcean Spaces and filesystem storage keep their images.
+
+With Azure Storage, the Okteto Registry starts normally, but it doesn't find the images pushed before the upgrade, and requests for them fail with errors such as `manifest unknown` or `repository name not known`. These images aren't deleted: they stay in your storage container and keep using space. New pushes work normally.
+
+Before upgrading, decide how to handle these images:
+
+- **Start with a new storage container**: Create a new container in your storage account and set it in `registry.storage.provider.azure.storage.container` when you upgrade. Once you no longer need the previous container, delete it to free its space.
+- **Keep specific images**: Copy them to another registry before the upgrade, and copy them back to the Okteto Registry after the upgrade. For example, use `regctl image copy <source-image> <destination-image>` from [regclient](https://github.com/regclient/regclient). An [Admin Access Token](admin/dashboard.mdx#admin-access-tokens) is enough to copy them, since Admins can pull and push the images of every Namespace. Run `okteto context show --include-token` to see the Okteto Registry hostname and the credentials of your current Okteto context.
+
+Images built by your Development Environments and Preview Environments are rebuilt when you redeploy them, and images pushed by your pipelines are rebuilt when you rerun those pipelines. Push again any other image you need.
+
+If you roll back to Okteto 1.49 with the same storage container, the Okteto Registry finds the images pushed before the upgrade again, but not the ones pushed with 1.50.
+
 ## Upgrading to Okteto 1.40.x – Default Registry Change to GitHub Container Registry
 
 Starting with Okteto 1.40, the default installation pulls Okteto images from **GitHub Container Registry (ghcr.io)** instead of Docker Hub. Images are still published to both registries, so you can choose which one to use.
