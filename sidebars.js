@@ -291,6 +291,7 @@ module.exports = {
           label: 'Operating Okteto',
           items: [
             'self-hosted/manage/upgrade',
+            'self-hosted/manage/migrate-to-gateway-api',
             'self-hosted/manage/argocd',
             'self-hosted/manage/okteto-license',
             'self-hosted/manage/buildkit-high-performance',
