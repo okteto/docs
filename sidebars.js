@@ -66,7 +66,15 @@ module.exports = {
         {
           type: 'category',
           label: 'Endpoints',
-          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
+          link: { type: 'doc', id: 'core/endpoints/automatic-ssl' },
+          items: [
+            'core/endpoints/httproutes',
+            'core/endpoints/docker-compose',
+            'core/endpoints/ingress',
+            'core/endpoints/services',
+            'core/endpoints/custom-endpoints',
+            'core/endpoints/private-endpoints',
+          ],
         },
         'core/namespaces',
         'core/divert',
