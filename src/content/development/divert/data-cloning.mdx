@@ -1,0 +1,99 @@
+---
+title: Data Cloning
+description: Decide whether a diverted service uses the shared database or its own copy, and clone the shared data with Volume Snapshots.
+sidebar_label: Data Cloning
+id: data-cloning
+---
+
+Data cloning is giving a diverted service its own copy of a database, cloned from the shared environment, instead of the database in the shared environment. Divert doesn't split databases: a diverted service connects to whatever database its connection string resolves to. Every write a diverted service makes to the shared database is visible to everyone using the shared environment, and a bad migration can break it for the whole team.
+
+Okteto supports both approaches, and you can choose per database.
+
+## Shared Database
+
+If you don't deploy a database in your Namespace, a connection string with a short service name, such as `postgresql://postgresql:5432/movies`, resolves to the database in the shared environment.
+
+Use the shared database when the service you divert:
+
+- Only reads from it
+- Writes data that is partitioned by a key that you control, such as a test tenant or user, so your writes don't affect anyone else
+
+Implications:
+
+- Every write from your diverted service lands in the shared data
+- Schema migrations run against the shared database and can break the shared environment for everyone
+- Your service sees the same data as everyone else, which keeps tests realistic
+
+:::tip Read-only credentials
+Give diverted environments a database user with read-only permissions, so a diverted service can't write to the shared database by mistake.
+:::
+
+## Database Copy in Your Namespace
+
+Deploy the database in your Namespace together with the service that uses it. A connection string with a short service name, such as `mongodb://mongodb:27017/catalog`, now resolves to your copy, without changing your service's configuration. In the [Movies with Divert](https://github.com/okteto-community/movies-with-divert) sample, the catalog chart deploys the catalog service and its MongoDB database:
+
+```yaml
+deploy:
+  commands:
+    - name: Deploy Catalog and MongoDB
+      command: helm upgrade --install catalog catalog/chart --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+  divert:
+    namespace: ${OKTETO_SHARED_NAMESPACE}
+```
+
+Use your own database copy when the service you divert:
+
+- Writes to the database, and the data isn't partitioned
+- Runs schema migrations
+- Needs data that you don't want to share, or a known initial state for tests
+
+Implications:
+
+- Your environment uses the storage and memory of the database copy
+- Your data diverges from the shared environment until you clone it again
+
+### Initializing Your Database Copy
+
+There are two ways to fill your database copy:
+
+| Mode | How | Best for |
+|---|---|---|
+| **Empty** | Deploy the database empty and let your service run its migrations and seed data at startup | Services that own their schema and can seed test data |
+| **Clone** | Restore the database volume from a [Volume Snapshot](core/use-volume-snapshots.mdx) of the shared environment's database | Services that need realistic data, or large datasets that take too long to seed |
+
+To clone the shared database, create a snapshot of its volume in the shared environment, and annotate the volume of your database copy with it:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-data
+  annotations:
+    dev.okteto.com/from-snapshot-name: postgresql-snapshot
+    dev.okteto.com/from-snapshot-namespace: movies-shared
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+Okteto restores the volume from the snapshot when you deploy, so your database starts with a copy of the shared data instead of an empty one. Refresh the snapshot in the shared environment as part of its deployment, so new copies start from recent data.
+
+## Databases Owned by Each Service
+
+Data cloning works best when each service owns its own tables or its own database. In that case, divert a service together with its database, and keep every other database in the shared environment:
+
+| Diverted service | Database copy in your Namespace | Shared databases |
+|---|---|---|
+| catalog | MongoDB (catalog data) | PostgreSQL (rentals) |
+| rent and worker | PostgreSQL (rentals) | MongoDB (catalog data) |
+
+If several services write to the same tables, cloning the database for one of them means that the services you didn't deploy keep writing to the shared database, while yours writes to your copy. Divert all the services that write to those tables together, or use the shared database with partitioned data.
+
+## Choosing an Approach
+
+- Start with your own database copy if the service you divert writes to the database. It's the safe default.
+- Use the shared database for services that only read, or when your data is partitioned per developer.
+- Always use your own database copy for schema migrations.

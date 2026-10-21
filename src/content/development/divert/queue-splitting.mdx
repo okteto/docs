@@ -1,0 +1,154 @@
+---
+title: Queue Splitting
+description: Keep messages produced in a diverted environment out of the shared environment's consumers, and the other way around.
+sidebar_label: Queue Splitting
+id: queue-splitting
+---
+
+Queue splitting is making sure that each message is consumed by the environment it belongs to. Divert routes HTTP and gRPC requests, but it doesn't intercept message brokers. When you divert a service that produces or consumes messages from Kafka, SQS, RabbitMQ, or any other broker, your application decides which environment consumes each message.
+
+Okteto doesn't need a plugin per broker for this. It relies on two things your services already have:
+
+- **The divert header**: requests meant for your diverted environment carry the `baggage` header with the key `okteto-divert=<namespace>`, and Okteto injects `OKTETO_DIVERTED_ENVIRONMENT=<namespace>` into the pods of your diverted environment. The variable is not set in the shared environment.
+- **DNS resolution**: in a diverted environment, a service name resolves to your Namespace first and to the shared environment if you didn't deploy it. A broker deployed in your Namespace takes precedence over the shared one.
+
+## Choosing an Approach
+
+There are three ways to handle a queue when you divert a service that uses it:
+
+| Approach | What happens | Use when |
+|---|---|---|
+| **Shared broker without filtering** | Your consumer and the shared consumer compete for the same messages. Each message is processed by whichever gets it first. | Never for consumers. It's only safe if the service you divert only produces messages that the shared consumers can process. |
+| **Shared broker with filtering** | Producers copy the divert header into each message. Each consumer only processes the messages for its own environment. | You divert a consumer, or a producer and a consumer together, and want them to see the traffic of the shared environment. |
+| **Broker in your Namespace** | Your producers and consumers use their own broker. Nothing reaches the shared broker. | You change the shape of messages, need full isolation, or your application can't filter messages. |
+
+If you aren't sure, start with a broker in your Namespace. A message consumed by the wrong environment is lost for the environment it was meant for.
+
+## Configuring Each Queue's Address
+
+Both the filtering and the isolated approaches are easier if every queue is configured by its full address, not only by its name. Read the broker host and the topic or queue name of each queue from environment variables:
+
+```yaml
+environment:
+  ORDERS_BROKER: kafka:9092
+  ORDERS_TOPIC: orders
+  RETURNS_BROKER: kafka:9092
+  RETURNS_TOPIC: returns
+```
+
+With short service names like `kafka`, the queue resolves to the broker in your Namespace if you deployed one, and to the shared broker if you didn't, without changing the configuration. To mix approaches, point each queue at the broker you want: `kafka.staging.svc.cluster.local:9092` always uses the shared broker, while `kafka:9092` uses yours when it exists.
+
+## Shared Broker with Filtering
+
+Filtering has two parts: the producer copies the divert header into the message, and the consumer checks it.
+
+### Producer: Copy the Divert Header into the Message
+
+Forward the incoming `baggage` header as message metadata: a header in Kafka or RabbitMQ, or a message attribute in SQS or Pub/Sub.
+
+```go
+// Kafka producer (sarama)
+if baggage := baggageFromContext(ctx); baggage != "" {
+    msg.Headers = append(msg.Headers, sarama.RecordHeader{
+        Key:   []byte("baggage"),
+        Value: []byte(baggage),
+    })
+}
+```
+
+```javascript
+// SQS producer
+const params = { QueueUrl: queueUrl, MessageBody: JSON.stringify(order) };
+const divertKey = getDivertKey(req.get('baggage'));
+if (divertKey) {
+  params.MessageAttributes = {
+    'okteto-divert': { DataType: 'String', StringValue: divertKey }
+  };
+}
+await sqs.send(new SendMessageCommand(params));
+```
+
+### Consumer: Process Only Your Environment's Messages
+
+A consumer processes a message when:
+
+- the message's `okteto-divert` value equals `OKTETO_DIVERTED_ENVIRONMENT`, or
+- the message has no `okteto-divert` value and `OKTETO_DIVERTED_ENVIRONMENT` is empty (the shared environment).
+
+```go
+func extractDivertKey(baggage string) string {
+    for _, member := range strings.Split(baggage, ",") {
+        kv := strings.SplitN(strings.TrimSpace(member), "=", 2)
+        if len(kv) == 2 && kv[0] == "okteto-divert" {
+            return kv[1]
+        }
+    }
+    return ""
+}
+
+// divertKey comes from the message's baggage header (Kafka)
+// or from its okteto-divert attribute (SQS)
+func belongsHere(divertKey string) bool {
+    return divertKey == os.Getenv("OKTETO_DIVERTED_ENVIRONMENT")
+}
+```
+
+How the consumer skips a message depends on the broker.
+
+### Kafka and Other Publish-Subscribe Brokers
+
+Give each environment its own consumer group, so every environment receives every message and keeps its own offsets:
+
+```go
+groupID := fmt.Sprintf("worker-%s", os.Getenv("OKTETO_DIVERTED_ENVIRONMENT"))
+if os.Getenv("OKTETO_DIVERTED_ENVIRONMENT") == "" {
+    groupID = "worker-shared"
+}
+```
+
+Each consumer then skips the messages that aren't for its environment. If the shared consumer and yours used the same consumer group, Kafka would deliver each message to only one of them, and messages would be lost for the other environment.
+
+Configure new consumer groups to start from the latest offset (`auto.offset.reset=latest`), so a new diverted environment doesn't process the whole history of the topic.
+
+### SQS and Other Work Queues
+
+In a work queue, each message is delivered to one consumer. A consumer that receives a message for another environment releases it immediately so another consumer can take it:
+
+```go
+if !belongsHere(stringAttribute(m.MessageAttributes, "okteto-divert")) {
+    sqsClient.ChangeMessageVisibility(ctx, &sqs.ChangeMessageVisibilityInput{
+        QueueUrl:          queueURL,
+        ReceiptHandle:     m.ReceiptHandle,
+        VisibilityTimeout: 0,
+    })
+    continue
+}
+```
+
+Every release counts as a receive. If the queue has a redrive policy, raise `maxReceiveCount`, or messages for a diverted environment can end up in the dead-letter queue before the right consumer receives them. With many diverted consumers on the same queue, a broker in your Namespace, or a queue per environment, scales better.
+
+## Broker in Your Namespace
+
+Deploy the broker in your diverted environment together with the producer and the consumer you are changing. Because of DNS resolution, your services use your broker without configuration changes:
+
+```yaml
+deploy:
+  commands:
+    - name: Deploy Rentals
+      command: helm upgrade --install rentals rentals/chart --set api.image=${OKTETO_BUILD_RENT_IMAGE} --set worker.image=${OKTETO_BUILD_WORKER_IMAGE}
+  divert:
+    namespace: ${OKTETO_SHARED_NAMESPACE}
+```
+
+In the [Movies with Divert](https://github.com/okteto-community/movies-with-divert) sample, the `rentals` chart deploys the rent service, the worker, Kafka, and PostgreSQL, so `okteto.rentals.yaml` gives the developer an isolated broker and database.
+
+Only messages produced in your Namespace reach your broker. If you divert only a consumer, produce test messages yourself, or divert the producer too.
+
+For managed brokers such as Amazon SQS, create the queue as part of your deploy commands, named after your Namespace, and pass its name to your services. The [TacoShop sample](https://github.com/okteto-community/tacoshop-with-divert-queues) creates its AWS resources from the Okteto Manifest.
+
+## Examples
+
+- [Sample app, Kafka consumer](https://github.com/ifbyol/sample-app/tree/divert-kafka-consumer-using-headers): diverts a Kafka consumer on the shared broker, with a consumer group per Namespace
+- [Sample app, Kafka producer and consumer](https://github.com/ifbyol/sample-app/tree/divert-kafka-consumer-producer-using-headers): diverts the producer and the consumer together on the shared broker
+- [TacoShop with Divert Queues](https://github.com/okteto-community/tacoshop-with-divert-queues): filtering on a shared SQS queue
+- [Movies with Divert](https://github.com/okteto-community/movies-with-divert): a broker in the diverted environment
