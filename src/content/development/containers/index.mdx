@@ -1,14 +1,37 @@
 ---
 title: Development Containers
-description: In this section, we'll see how you can use Development Containers on Okteto
+description: Development Containers sync your local code changes to a container running in your Okteto Namespace.
 ---
 
-Okteto makes it easier to develop on Kubernetes by using Development Containers.
-Development Containers allow you to hot reload and debug your Development Environments **as fast as you write code** 🚀
+import Image from "@theme/Image";
 
-Development Containers support two different modes:
+Development Containers let you hot reload and debug your Development Environments in Kubernetes. When you run [`okteto up`](reference/okteto-cli.mdx#up), [File Sync](reference/file-synchronization.mdx) synchronizes your local code changes to the remote Development Container.
 
-- [File Sync development mode](file-sync/index.mdx): syncs your local changes to your remote Development Container (default mode)
-- [Hybrid development mode](hybrid/index.mdx): runs your service locally and simulates your laptop belonging to the cluster network by using ssh tunnels
+<p align="center">
+  <Image
+    src={require("@site/static/img/sync-development-arch.png").default}
+    alt="Development Container architecture with File Sync"
+    width="850"
+  />
+</p>
 
-The [mode](reference/okteto-manifest.mdx#mode-string-optional) is configured in your Okteto Manifest and affects the behavior of [`okteto up`](reference/okteto-cli.mdx#up).
+When you run `okteto up`, Okteto replaces the **api** Kubernetes Deployment with a development copy Deployment called **api-okteto** with the following development-time improvements:
+
+- Okteto overrides the container-level configuration of the **api-okteto** Kubernetes Deployment with the values defined in your [Development Container](reference/okteto-manifest.mdx#dev-object-optional). A typical example of this is to replace the production container image with one that contains your development runtime
+- A bidirectional file [synchronization service](reference/file-synchronization.mdx) is started to keep your changes up to date between your local filesystem and your Development Container
+- Automatic port forwarding using [SSH](reference/ssh-server.mdx). This allows you to do things like access your cluster services via `localhost`
+
+It's worth noting that your Development Container inherits the original **api** Kubernetes Deployment manifest.
+Therefore, the Development Container uses the same service account, environment variables, secrets, volumes, sidecars as the original **api** Kubernetes Deployment, providing a fully production-like development experience.
+
+Development Containers work for applications in any language. There are getting started guides for the following languages:
+
+- [ASP.NET](development/containers/aspnetcore.mdx)
+- [Go](development/containers/golang.mdx)
+- [Java](development/containers/java.mdx)
+- [Node.js](development/containers/node.mdx)
+- [PHP](development/containers/php.mdx)
+- [Python](development/containers/python.mdx)
+- [Ruby](development/containers/ruby.mdx)
+
+Take a look at [our samples repository](https://github.com/okteto/samples) to see more examples of how to build, deploy and develop applications on Okteto with different programming languages, frameworks, and deployment tools.
