@@ -5,7 +5,7 @@ description: In this section, we'll see how you can onboard your apps to Okteto
 
 import Image from "@theme/Image";
 
-This guide explains how to write your first Okteto Manifest and deploy your app to Okteto.
+This guide explains how to write your first Okteto Manifest to deploy and test your app in Okteto.
 
 ## Requirements
 
@@ -55,6 +55,28 @@ deploy:
       helm upgrade --install movies chart \
         --set api.image=${OKTETO_BUILD_API_IMAGE} \
         --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+
+test:
+  frontend:
+    image: node:20
+    context: frontend
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+  e2e:
+    image: ghcr.io/okteto/playwright:chromium
+    context: e2e
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
 ```
 
 This guide will take you through the following sections:
@@ -62,5 +84,6 @@ This guide will take you through the following sections:
 - `deploy`: Configure a list of commands to deploy your application
 - `dependencies`: Configure a list of git repositories to deploy as part of your application
 - `build`: Configure a list of images to build for your application
+- `test`: Configure a list of Test Containers to test your application
 
 Now that you know what your are building, [start the tutorial](deploy.mdx) and deploy your app to Okteto 😎

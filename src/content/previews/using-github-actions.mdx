@@ -1,34 +1,26 @@
 ---
 title: Preview environments using GitHub Actions
-description: Create a preview environment for your application using Okteto and GitHub Actions
+description: Deploy a Preview Environment and run your automated tests on every pull request with GitHub Actions.
 sidebar_label: Using GitHub Actions
 id: using-github-actions
 ---
 
 import Image from "@theme/Image";
 
-This section will show you how to automatically create a preview environment for your applications using Okteto and GitHub Actions.
+This guide configures GitHub Actions to deploy a Preview Environment for every pull request, run your automated tests against it, and destroy it when the pull request closes.
 
-## Pre-Requisites
+## Prerequisites
 
 - An Okteto account
 - A [GitHub account](https://github.com)
 
-For this tutorial, we'll be using our sample [movies rental application](https://github.com/okteto/movies). If you're using your own application to follow along, please ensure you have your [Okteto Manifest](reference/okteto-manifest.mdx) configured.
+This guide uses the [Movies app](https://github.com/okteto/getting-started) from the [getting started guide](get-started/deploy-your-app/index.mdx). Fork the repository to your GitHub account so you can configure secrets and open pull requests. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](core/okteto-manifest.mdx#deploy) and [`test`](core/okteto-manifest.mdx#test) sections.
 
 ## Step 1: Create the GitHub Workflow
 
-To create the preview environments, we will use our [GitHub Actions for Okteto](https://github.com/okteto/actions).
+A Preview Environment follows the lifecycle of a pull request. Whenever a pull request is opened or updated, the workflow deploys a Preview Environment in Okteto with the code in the pull request, and comments the Preview Environment URL on the pull request.
 
-A preview environment follows the lifecycle of a Pull Request. The GitHub action we create will make sure that whenever a Pull Request is created:
-
-1. A preview environment is deployed in Okteto with the code in the PR
-1. The PR is updated with the URL of the preview environment
-
-The sample repository has been configured to use [the workflow described above](https://github.com/okteto/movies/blob/main/.github/workflows/preview.yaml).
-If you want to use this on for your repositories, all you need to do is to create a `.github/workflows` folder in the root of your repo, and save your workflow file in it.
-
-The workflow file to create the preview environments looks like this:
+Create a `.github/workflows` folder in the root of your repository and save the following workflow file in it. The sample repository already includes the [final version of this workflow](https://github.com/okteto/getting-started/blob/main/.github/workflows/preview.yaml), with the test steps you add in [Step 4](#step-4-run-your-tests-on-every-pull-request).
 
 ```yaml
 # file: .github/workflows/preview.yaml
@@ -49,7 +41,7 @@ jobs:
       - name: Context
         uses: okteto/context@latest
         with:
-          url: ${{secrets.OKTETO_CONTEXT}}
+          url: ${{ secrets.OKTETO_CONTEXT }}
           token: ${{ secrets.OKTETO_TOKEN }}
 
       - name: Deploy preview environment
@@ -60,6 +52,11 @@ jobs:
           name: pr-${{ github.event.number }}
           timeout: 15m
 ```
+
+What each step does:
+
+- `okteto/context` connects the workflow to your Okteto instance.
+- `okteto/deploy-preview` deploys the Preview Environment `pr-<number>` with the `deploy` section of your Okteto Manifest, and comments its URL on the pull request.
 
 :::warning
 **Important:** Always set `cancel-in-progress: false` for preview environment workflows.
@@ -76,22 +73,23 @@ Setting to `true` will cancel **in-progress deployments**, which can lead to:
 The concurrency group configuration above ensures that workflows are properly queued per pull request, preventing concurrent deployments to the same preview environment.
 :::
 
+
 ## Step 2: Configure your secrets
 
-If you noticed, the workflow uses the `secrets.OKTETO_TOKEN` and `secrets.OKTETO_CONTEXT`. We do this, so we don't have to commit these values into our repo.
+The workflow reads your Okteto credentials from the `secrets.OKTETO_TOKEN` and `secrets.OKTETO_CONTEXT` secrets, so you don't commit them to your repository.
 
-Before you run this workflow you need to create the following secrets in your repository:
+Create the following secrets in your repository:
 
 - `OKTETO_TOKEN` with an Okteto [Admin Access Token](admin/dashboard.mdx#admin-access-tokens)
 - `OKTETO_CONTEXT` with the URL of your Okteto instance (e.g. `https://okteto.example.com`).
 
-See [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for adding these to your Github repository.
+See [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for adding these to your GitHub repository.
 
-The workflow also uses `secrets.GITHUB_TOKEN`, but this gets populated automatically by GitHub.
+The workflow also uses `secrets.GITHUB_TOKEN`, which GitHub populates automatically.
 
-## Step 3: Open a Pull Request
+## Step 3: Open a Pull Request and see your changes live
 
-Once your changes are in your repository, go ahead and open a new pull request. GitHub will receive the event, and it will start your workflow. You can see the workflow's status and logs in the `checks` section of the pull request.
+Make a change in a new branch of your repository and open a pull request against `main`. GitHub receives the event and starts your workflow. You can see the workflow's status and logs in the **Checks** section of the pull request.
 
 <p align="center">
   <Image
@@ -101,23 +99,88 @@ Once your changes are in your repository, go ahead and open a new pull request. 
   />
 </p>
 
-## Step 4: See your changes live
-
-After a few seconds, the workflow will update the pull request with the URL of your preview environment. Click on it to see the changes in real-time.
+When the deployment finishes, the workflow comments the URL of your Preview Environment on the pull request. Open it to see your changes running, and share it with your team to review them.
 
 <p align="center">
   <Image
-    src={require("@site/static/img/preview-message.png").default}
-    alt="preview environment message with URL"
+    src={require("@site/static/img/preview-message+1.50.png").default}
+    alt="GitHub Actions comment on the pull request with the Preview Environment name and its endpoint URLs"
     width="650"
   />
 </p>
 
-Every time the branch is updated, the same workflow will run, automatically updating the preview environment.
+Every time the branch is updated, the same workflow runs again and redeploys the Preview Environment.
 
-## Step 5: Cleanup
+## Step 4: Run your tests on every pull request
 
-The sample repo also includes a workflow [to cleanup the preview environments](https://github.com/okteto/movies/blob/main/.github/workflows/preview-closed.yaml) once the pull request is closed. We recommend you follow this pattern to remove the preview environment after merging a pull request automatically.
+The Preview Environment is where your automated tests run on every pull request. The Okteto Manifest of the Movies app defines two Test Containers: `frontend` runs the frontend unit tests, and `e2e` runs [Playwright](https://playwright.dev/) end-to-end tests against the deployed application and exports their reports as artifacts:
+
+```yaml title="okteto.yaml"
+test:
+  frontend:
+    image: node:20
+    context: frontend
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+
+  e2e:
+    image: ghcr.io/okteto/playwright:chromium
+    context: e2e
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+```
+
+Add the following steps at the end of the `preview` job in your `.github/workflows/preview.yaml` file:
+
+```yaml
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        uses: okteto/test@latest
+        with:
+          namespace: pr-${{ github.event.number }}
+
+      - name: Save Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 30
+```
+
+What each step does:
+
+- `actions/checkout` clones the repository so the `okteto/test` action can read your Okteto Manifest and send the test `context` to Okteto.
+- `okteto/test` runs the Test Containers defined in the [`test` section](core/okteto-manifest.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. Use the `tests` input to run only some Test Containers, for example `tests: e2e`.
+- `actions/upload-artifact` attaches the Playwright report exported through the `artifacts` field to the workflow run. The `if: ${{ !cancelled() }}` condition uploads it even when a test fails, so you can inspect the results of a failed run.
+
+The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the Test Container `caches`, and `file` to set the path of your Okteto Manifest. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.
+
+Every pull request now runs the same Test Containers that developers run with `okteto test` against their Development Environment. Developers iterate on their tests locally, without pushing changes and waiting for CI, and know that the tests behave exactly the same way when they run in CI.
+
+## Step 5: Check your test results
+
+Push the workflow change to the branch of your pull request. The workflow redeploys the Preview Environment and runs your tests against it.
+
+The `Run tests` step shows the output of each Test Container. When a Test Container fails, the step fails and the check on the pull request shows the failure, so you can block merging until the tests pass.
+
+The Playwright report is available as the `playwright-report` artifact in the summary of the workflow run, for both passing and failing runs. The Preview Environment keeps running after the tests finish, so your team can still open it to review the changes.
+
+## Step 6: Cleanup
+
+The sample repository also includes a workflow [to destroy the Preview Environment](https://github.com/okteto/getting-started/blob/main/.github/workflows/preview-closed.yaml) when the pull request is closed or merged. Add it to your repository to remove Preview Environments automatically:
 
 ```yaml
 # file: .github/workflows/preview-closed.yaml
@@ -133,7 +196,7 @@ jobs:
       - name: Context
         uses: okteto/context@latest
         with:
-          url: ${{secrets.OKTETO_CONTEXT}}
+          url: ${{ secrets.OKTETO_CONTEXT }}
           token: ${{ secrets.OKTETO_TOKEN }}
 
       - name: Destroy preview environment
@@ -141,7 +204,3 @@ jobs:
         with:
           name: pr-${{ github.event.number }}
 ```
-
-## Resources
-
-- [How To Set Up Preview Environments With Okteto](https://youtu.be/kgX5qUkJGDA) - A video walking through the process of setting up Preview environments.
