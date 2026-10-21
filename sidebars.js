@@ -118,7 +118,17 @@ module.exports = {
       link: { type: 'doc', id: 'development/index' },
       items: [
         'development/using-okteto-cli',
-        'development/using-divert',
+        {
+          type: 'category',
+          label: 'Divert',
+          link: { type: 'doc', id: 'development/divert/index' },
+          items: [
+            'development/divert/header-propagation',
+            'development/divert/queue-splitting',
+            'development/divert/data-cloning',
+            'development/divert/troubleshooting',
+          ],
+        },
         {
           type: 'category',
           label: 'Development Containers',
@@ -259,15 +269,7 @@ module.exports = {
                 'self-hosted/install/auth/token',
               ],
             },
-            {
-              type: 'category',
-              label: 'Configure Divert',
-              link: { type: 'doc', id: 'self-hosted/install/divert/index' },
-              items: [
-                'self-hosted/install/divert/linkerd-installation',
-                'self-hosted/install/divert/istio-installation',
-              ],
-            },
+            'self-hosted/install/divert/index',
             'self-hosted/install/github-integration',
             'self-hosted/install/volume-snapshots',
           ],

@@ -1,0 +1,150 @@
+---
+title: Header Propagation
+description: Forward the baggage header between your services so Divert can route calls deep in the call chain to your diverted services.
+sidebar_label: Header Propagation
+id: header-propagation
+---
+
+Header propagation is forwarding the `baggage` header of an incoming request to every outgoing request or message that the request triggers. Divert routes a request by its divert header: the `baggage` header with the key `okteto-divert=<namespace>`. The header is set by the client, such as the Okteto UI, a browser extension, or `curl`, but when a service calls another service, it makes a new request, and the header is only there if your service copied it. Propagating the header is up to your application, not Okteto.
+
+## When You Need Header Propagation
+
+The Movies application has a frontend that calls an API gateway, which calls the catalog service. Alice diverts the catalog service and opens the application with `baggage: okteto-divert=alice`.
+
+Without propagation, the API gateway receives the header, but its call to the catalog service is a new request without it, so the call reaches the shared catalog service:
+
+![The API gateway receives the baggage header but calls the catalog service without it, so the request reaches the shared catalog service instead of Alice's](@site/static/img/divert-propagation-missing.svg)
+
+With propagation, the API gateway forwards the header, and the call reaches Alice's catalog service:
+
+![The API gateway forwards the baggage header to the catalog call, and the request reaches Alice's catalog service](@site/static/img/divert-propagation.svg)
+
+The same applies to queues: a message only carries the divert header if the producer copied it into the message. See [Queue Splitting](development/divert/queue-splitting.mdx).
+
+You don't need header propagation when:
+
+- The service you divert is the one that receives the request first, such as the frontend or the API gateway
+- Every service between the entry point and the service you divert runs in your Namespace. Calls from your Namespace reach your services without the header
+
+In any other case, every service in the call chain needs to propagate the header, including services you never deploy or change. Add propagation to every service of the application, not only to the ones you are working on.
+
+## Recognizing the Problem
+
+Missing propagation looks like Divert isn't working:
+
+- Requests sent directly to your diverted service through a shared host with your divert header reach your version
+- Requests that reach your service through another service reach the shared version instead
+
+To confirm it, log the `baggage` header in each service of the chain and send a request through the usual entry point. The first service whose outgoing call is missing the header is the one that doesn't propagate it.
+
+## Using `baggage` and OpenTelemetry
+
+`baggage` is the [W3C standard header](https://www.w3.org/TR/baggage/) for propagating context between services, and the default propagator of [OpenTelemetry](https://opentelemetry.io/docs/concepts/context-propagation/). If your services are instrumented with OpenTelemetry, they probably propagate it already:
+
+| Language | Setup |
+|---|---|
+| Java | The [OpenTelemetry Java agent](https://opentelemetry.io/docs/zero-code/java/agent/) propagates `tracecontext` and `baggage` by default for the HTTP clients and servers it instruments. |
+| Python | Run your service with `opentelemetry-instrument` and install the instrumentation packages for your framework and HTTP client (`opentelemetry-bootstrap -a install`). `baggage` is in the default `OTEL_PROPAGATORS`. |
+| Node.js | Use `@opentelemetry/sdk-node` with `@opentelemetry/auto-instrumentations-node`. `baggage` is in the default propagators. |
+| Go | Go has no default propagator. Register `propagation.TraceContext{}` and `propagation.Baggage{}` with `otel.SetTextMapPropagator`, and wrap your handlers and clients with [`otelhttp`](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp), or with [`otelgrpc`](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc) for gRPC. |
+
+For Go:
+
+```go
+otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+    propagation.TraceContext{},
+    propagation.Baggage{},
+))
+
+// Extract baggage from incoming requests
+http.Handle("/api/movies", otelhttp.NewHandler(moviesHandler, "movies"))
+
+// Inject baggage into outgoing requests made with r.Context()
+client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+```
+
+Things to check:
+
+- If you set `OTEL_PROPAGATORS`, make sure it includes `baggage`.
+- You don't need to export traces to propagate the header. Set `OTEL_TRACES_EXPORTER=none` if you only want propagation.
+- Work moved to background threads, worker pools, or job queues loses the request context unless you pass it explicitly.
+- Messaging instrumentation varies by library. Check that published messages carry the `baggage` header before relying on it.
+
+## Propagating the Header Manually
+
+Without OpenTelemetry, read the header in a middleware and set it on every outgoing call. Put both in a shared middleware or client library, so every service propagates the header the same way. For gRPC, the header travels as `baggage` metadata: read it from the incoming metadata and add it to the outgoing context, for example with `metadata.AppendToOutgoingContext` in Go.
+
+### Go
+
+```go
+type baggageKey struct{}
+
+func BaggageMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        ctx := context.WithValue(r.Context(), baggageKey{}, r.Header.Get("baggage"))
+        next.ServeHTTP(w, r.WithContext(ctx))
+    })
+}
+
+func newRequest(ctx context.Context, method, url string) (*http.Request, error) {
+    req, err := http.NewRequestWithContext(ctx, method, url, nil)
+    if err != nil {
+        return nil, err
+    }
+    if baggage, _ := ctx.Value(baggageKey{}).(string); baggage != "" {
+        req.Header.Set("baggage", baggage)
+    }
+    return req, nil
+}
+```
+
+### Node.js (Express)
+
+```javascript
+app.use((req, res, next) => {
+  req.baggage = req.get('baggage') || '';
+  next();
+});
+
+app.get('/api/movies', async (req, res) => {
+  const response = await axios.get('http://catalog:8080/movies', {
+    headers: req.baggage ? { baggage: req.baggage } : {}
+  });
+  res.json(response.data);
+});
+```
+
+### Java (Spring Boot)
+
+```java
+@GetMapping("/api/movies")
+public Mono<Movies> getMovies(@RequestHeader(value = "baggage", required = false) String baggage) {
+    return webClient.get()
+        .uri("http://catalog:8080/movies")
+        .headers(h -> { if (baggage != null) h.set("baggage", baggage); })
+        .retrieve()
+        .bodyToMono(Movies.class);
+}
+```
+
+### Python (FastAPI)
+
+```python
+@app.get("/api/movies")
+async def get_movies(request: Request):
+    headers = {}
+    if baggage := request.headers.get("baggage"):
+        headers["baggage"] = baggage
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get("http://catalog:8080/movies", headers=headers)
+        return response.json()
+```
+
+### Adding Your Own Baggage Entries
+
+`baggage` is a comma-separated list of `key=value` entries, such as `okteto-divert=alice,user-id=42`. If a service adds its own entries, append them to the incoming value instead of replacing it, or the `okteto-divert` entry is lost. To read it in your code, split the header on `,` and look for the `okteto-divert` key.
+
+## Gateways and Proxies
+
+API gateways, CDNs, and WAFs in front of your services can drop headers they don't recognize. If requests reach your first service without the `baggage` header, check the configuration of the components between the client and your services.
