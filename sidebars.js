@@ -36,6 +36,7 @@ module.exports = {
             'get-started/deploy-your-app/dependencies',
             'get-started/deploy-your-app/endpoints',
             'get-started/deploy-your-app/build',
+            'get-started/deploy-your-app/test',
           ],
         },
         {
@@ -142,13 +143,7 @@ module.exports = {
       type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
-      items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
-    },
-    {
-      type: 'category',
-      label: 'Okteto Test',
-      link: { type: 'doc', id: 'testing/index' },
-      items: ['testing/getting-started-test'],
+      items: ['previews/why-preview-environments', 'previews/using-github-actions', 'previews/using-gitlab-cicd'],
     },
     {
       type: 'category',

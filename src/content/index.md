@@ -37,7 +37,7 @@ Okteto works with the agents you already use, such as Claude Code, Cursor, Codex
 Okteto's [Development Environments](development/index.mdx) enable you to deploy and develop applications directly in the cloud with a single [CLI command](development/using-okteto-cli.mdx) or click of a button. Write code locally on your machine and view your changes live, deployed in the cloud **as soon as you hit save**! You don't have to spend time configuring anything to do this.
 
 ### Okteto Test: Shift Left, Test Fast  
-Speed up your feedback loops by running **unit, integration, and end-to-end tests** inside your dev environments. With [Okteto Test](testing/index.mdx), you can catch bugs before they hit CI without waiting for long pipeline runs.
+Speed up your feedback loops by running **unit, integration, and end-to-end tests** inside your dev environments. With [Okteto Test](core/okteto-manifest.mdx#test), you can catch bugs before they hit CI, and run the same tests against a [Preview Environment](previews/why-preview-environments.mdx) on every pull request.
 
 ### Automated Preview Environments
 Collaborate and share your progress with ease. Okteto's [Preview Environments](previews/index.mdx) automatically generate a unique, shareable version of your application for each pull request, making code reviews, automated end-to-end testing, and stakeholder feedback a breeze.

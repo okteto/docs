@@ -1,148 +1,170 @@
 ---
 title: Preview environments using GitLab CI/CD
-description: Configure GitLab CI/CD to automatically create Preview Environments for your application using Okteto.
+description: Deploy a Preview Environment and run your automated tests on every merge request with GitLab CI/CD.
 sidebar_label: Using GitLab CI/CD
 id: using-gitlab-cicd
 ---
 
 import Image from "@theme/Image";
 
-Okteto integrates with GitLab review apps to automatically create a Preview Environment for your applications on every merge request.
+This guide configures GitLab CI/CD to deploy a Preview Environment for every merge request, run your automated tests against it, and destroy it when the merge request's branch is deleted.
 
 ## Prerequisites
 
 - An Okteto account
 - A [GitLab account](https://gitlab.com)
 
-This tutorial uses the sample [movies rental application](https://gitlab.com/okteto/preview-environments). If you are using your own application, make sure your [Okteto Manifest](reference/okteto-manifest.mdx) is configured.
+This guide uses the [Movies app](https://gitlab.com/okteto/getting-started) from the [getting started guide](get-started/deploy-your-app/index.mdx). Fork the project to your GitLab account so you can configure CI/CD variables and open merge requests. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](core/okteto-manifest.mdx#deploy) and [`test`](core/okteto-manifest.mdx#test) sections.
 
-## Step 1: Configure your Okteto API token
+## Step 1: Create the GitLab Pipeline
 
-To deploy a Preview Environment with Okteto, you need to define the following environment variables:
+A Preview Environment follows the lifecycle of a merge request. Whenever a merge request is opened or updated, the pipeline deploys a Preview Environment in Okteto with the code in the merge request, and links it from the merge request.
 
-1. `OKTETO_TOKEN`: an Okteto [access token](admin/dashboard.mdx#admin-access-tokens)
-1. `OKTETO_CONTEXT`: specify the URL of your Okteto instance (e.g., https://okteto.example.com)
-
-To add the environment variables:
-
-1. Navigate to your GitLab repository.
-1. Go to the **Settings** menu on the left, and click on the **CI/CD** entry:
-   <p align="center">
-     <Image
-       src={require("@site/static/img/gitlab-settings-cicd.jpg").default}
-       alt="GitLab settings, CI/CD"
-     />
-   </p>
-1. Expand the **Variables** section, and click on the **Add Variable** button under the "Project variables" section.
-    :::note
-    The "Protect variable" flag is checked by default, meaning only protected branches can access the variable's value. Uncheck this flag if you want to use the variable across all branches.
-    :::
-
-1. Add `OKTETO_TOKEN` as the key and your access token as the value, then click the **Add Variable** button:
-   <p align="center">
-     <Image
-       src={
-         require("@site/static/img/gitlab-settings-cicd-add-variables-okteto-token.png")
-           .default
-       }
-       alt="update variable with Okteto Token"
-     />
-   </p>
-
-1. Repeat the same process to add the `OKTETO_CONTEXT` variable (optional):
-   <p align="center">
-     <Image
-       src={
-         require("@site/static/img/gitlab-settings-cicd-add-variables-added.png")
-           .default
-       }
-       alt="environment variables added"
-     />
-   </p>
-
-## Step 2: Configure the Preview Environment on the repository
-
-To configure GitLab to deploy your Preview Environment, create a [`.gitlab-ci.yml`](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html) file at the root of the repository.
-
-This file defines two jobs: `review` creates a Preview Environment for every branch, and `stop-review` destroys it when merging or deleting the branch.
-
-The flow to create a Preview Environment looks like this:
-
-1. Create a dedicated Namespace for the Preview Environment
-1. Build and deploy the application using the [Okteto preview](previews/index.mdx) defined in the repository.
-1. Add the URL of the Preview Environment to the Merge Request.
-
-The flow to delete a Preview Environment looks like this:
-
-1. Destroy the application deployed with [Okteto preview](previews/index.mdx)
-
-The `.gitlab-ci.yml` looks like this:
+Create a [`.gitlab-ci.yml`](https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html) file at the root of your repository with the following content. The sample project already includes the [final version of this pipeline](https://gitlab.com/okteto/getting-started/-/blob/main/.gitlab-ci.yml), with the test job you add in [Step 4](#step-4-run-your-tests-on-every-merge-request).
 
 ```yaml
 # file: .gitlab-ci.yml
-image: ghcr.io/okteto/okteto:latest
+image: ghcr.io/okteto/okteto:stable
 
 stages:
-  - review
+  - preview
 
-review:
-  stage: review
-  variables:
-    APP: review-$CI_COMMIT_REF_SLUG
+deploy-preview:
+  stage: preview
   script:
-    - okteto preview deploy review-$CI_COMMIT_REF_SLUG --branch $CI_COMMIT_REF_NAME --repository $CI_PROJECT_URL
-
-
+    - okteto preview deploy mr-$CI_MERGE_REQUEST_IID --branch $CI_COMMIT_REF_NAME --repository $CI_PROJECT_URL --wait
+    - echo "PREVIEW_URL=$(okteto preview endpoints mr-$CI_MERGE_REQUEST_IID -o json | grep -o 'https://[^"/]*' | head -1)" >> preview.env
+  artifacts:
+    reports:
+      dotenv: preview.env
   environment:
-    name: review/$CI_COMMIT_REF_SLUG
-    url: https://movies-review-$CI_COMMIT_REF_SLUG.okteto.example.com
-    on_stop: stop-review
-  only:
-    - branches
-  except:
-    - master
+    name: preview/mr-$CI_MERGE_REQUEST_IID
+    url: $PREVIEW_URL
+    on_stop: destroy-preview
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-stop-review:
-  stage: review
-  when: manual
-  environment:
-    name: review/$CI_COMMIT_REF_SLUG
-    action: stop
+destroy-preview:
+  stage: preview
   script:
-    - okteto preview destroy review-$CI_COMMIT_REF_SLUG
+    - okteto preview destroy mr-$CI_MERGE_REQUEST_IID
   variables:
     GIT_STRATEGY: none
-  only:
-    - branches
-  except:
-    - master
+  environment:
+    name: preview/mr-$CI_MERGE_REQUEST_IID
+    action: stop
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
 ```
 
-A few recommendations when creating your Preview Environment:
+What each job does:
 
-- Create one Preview Environment per branch or merge request to keep things isolated. The example uses `$CI_COMMIT_REF_SLUG` in the name to ensure the Namespace is unique and that only one Preview Environment exists per branch.
-- Pass the URL of your Preview Environment using the `environment.url` key so reviewers can go directly to the Preview Environment from GitLab.
-- Delete both the Preview Environment and the Namespace when the branch is deleted to avoid manual cleanup.
+- `deploy-preview` deploys the Preview Environment `mr-<IID>` with the `deploy` section of your Okteto Manifest. The `--wait` flag makes the job finish when the Preview Environment is ready. The job then saves the URL of the Preview Environment, so the [GitLab environment](https://docs.gitlab.com/ee/ci/environments/) links to it from the merge request.
+- `destroy-preview` destroys the Preview Environment. GitLab runs it when the merge request's branch is deleted, for example when you merge with **Delete source branch** selected, and you can also run it manually from the pipeline.
 
-:::tip
+The `rules` run both jobs only in [merge request pipelines](https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html), so every merge request gets its own Preview Environment.
 
-See the [Okteto CLI reference](reference/okteto-cli.mdx) for the full list of available commands and flags.
+## Step 2: Configure your CI/CD variables
 
-:::
+The pipeline reads your Okteto credentials from CI/CD variables, so you don't commit them to your repository. The Okteto CLI uses them automatically:
 
-## Step 3: Create a merge request
+- `OKTETO_TOKEN` with an Okteto [Admin Access Token](admin/dashboard.mdx#admin-access-tokens)
+- `OKTETO_CONTEXT` with the URL of your Okteto instance (e.g. `https://okteto.example.com`)
 
-Once your changes are in your repository, make a small code change and create a new merge request.
-
-After a few seconds, the workflow updates the merge request with the URL of your Preview Environment. Click the **View App** button to access it and see your changes running.
+Add them in your project under **Settings → CI/CD → Variables** with the **Add variable** button. Select **Mask variable** for `OKTETO_TOKEN`, and clear **Protect variable** for both: merge request pipelines run on unprotected branches and can't read protected variables.
 
 <p align="center">
   <Image
-    src={require("@site/static/img/gitlab-merge-request.png").default}
-    alt="GitLab merge request page with a passed pipeline and a View app button linking to the deployed Preview Environment"
+    src={require("@site/static/img/gitlab-settings-cicd-add-variables-added+1.50.png").default}
+    alt="GitLab CI/CD Variables section with the OKTETO_CONTEXT and OKTETO_TOKEN variables, with OKTETO_TOKEN masked"
   />
 </p>
 
-## Step 4: Cleanup
+## Step 3: Open a Merge Request and see your changes live
 
-Merging the merge request or deleting the branch automatically triggers the `stop-review` job defined in the `.gitlab-ci.yml` file. The `stop-review` job destroys the Preview Environment automatically.
+Make a change in a new branch of your repository and open a merge request against `main`. GitLab receives the event and starts a merge request pipeline. You can see the pipeline's status and logs in the **Pipelines** tab of the merge request.
+
+When the deployment finishes, the merge request shows the Preview Environment. Click **View app** to see your changes running, and share the URL with your team to review them.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/gitlab-merge-request+1.50.png").default}
+    alt="GitLab merge request widget with a passed pipeline, the preview/mr-2 environment, and a View app button linking to the Preview Environment"
+    width="650"
+  />
+</p>
+
+Every time the branch is updated, the pipeline runs again and redeploys the Preview Environment.
+
+## Step 4: Run your tests on every merge request
+
+The Preview Environment is where your automated tests run on every merge request. The Okteto Manifest of the Movies app defines two Test Containers: `frontend` runs the frontend unit tests, and `e2e` runs [Playwright](https://playwright.dev/) end-to-end tests against the deployed application and exports their reports as artifacts:
+
+```yaml title="okteto.yaml"
+test:
+  frontend:
+    image: node:20
+    context: frontend
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - yarn install
+      - yarn test
+
+  e2e:
+    image: ghcr.io/okteto/playwright:chromium
+    context: e2e
+    caches:
+      - yarn/.cache
+      - node_modules
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+```
+
+Add a `test` stage and a `test` job to your `.gitlab-ci.yml` file:
+
+```yaml
+# file: .gitlab-ci.yml
+stages:
+  - preview
+  - test
+
+test:
+  stage: test
+  script:
+    - okteto test --namespace mr-$CI_MERGE_REQUEST_IID
+  artifacts:
+    when: always
+    paths:
+      - e2e/playwright-report/
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+```
+
+What the `test` job does:
+
+- `okteto test --namespace mr-$CI_MERGE_REQUEST_IID` runs the Test Containers defined in the [`test` section](core/okteto-manifest.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. Pass Test Container names, for example `okteto test e2e`, to run only some of them.
+- `artifacts` attaches the Playwright report exported through the `artifacts` field to the pipeline. `when: always` keeps it even when a test fails, so you can inspect the results of a failed run.
+
+See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the rest of the available flags, such as `--timeout` and `--var`.
+
+Every merge request now runs the same Test Containers that developers run with `okteto test` against their Development Environment. Developers iterate on their tests locally, without pushing changes and waiting for CI, and know that the tests behave exactly the same way when they run in CI.
+
+## Step 5: Check your test results
+
+Push the pipeline change to the branch of your merge request. The pipeline redeploys the Preview Environment and runs your tests against it.
+
+The `test` job shows the output of each Test Container. When a Test Container fails, `okteto test` exits with a non-zero code, the `test` job fails, and the merge request shows the failed pipeline, so you can block merging until the tests pass.
+
+The Playwright report is available in the artifacts of the `test` job, for both passing and failing runs. The Preview Environment keeps running after the tests finish, so your team can still open it to review the changes.
+
+## Step 6: Cleanup
+
+Merging the merge request with **Delete source branch** selected, or deleting the branch, stops the GitLab environment and runs the `destroy-preview` job, which destroys the Preview Environment. You can also run the `destroy-preview` job manually from the pipeline, or click **Stop** on the environment in **Operate → Environments**.

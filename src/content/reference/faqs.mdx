@@ -88,6 +88,22 @@ import Head from '@docusaurus/Head';
     },
     {
       "@type": "Question",
+      "name": "How do I deploy with Docker Compose or tools other than Helm?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The deploy section of the Okteto Manifest runs any command, so you can deploy your application with Helm, Docker Compose, or any other tool.<br><br>If your application is defined with Docker Compose, Okteto deploys your Docker Compose files directly with deploy: compose: docker-compose.yml. The <a href='https://www.okteto.com/docs/tutorials/compose-getting-started/'>Docker Compose on Kubernetes tutorial</a> shows how to deploy and develop an application with Docker Compose, and the <a href='https://www.okteto.com/docs/reference/docker-compose/'>Docker Compose reference</a> lists the supported fields.<br><br>For other tools, Okteto runs your deploy commands with <a href='https://www.okteto.com/docs/core/remote-execution/'>Remote Execution</a> in a default image that already includes helm, kubectl, kustomize, and the Okteto CLI. To use any other tool, set the image field of the deploy section to an image that contains your deployment scripts or binaries."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I customize my application for Preview Environments?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "When Okteto deploys a Preview Environment, it sets the OKTETO_IS_PREVIEW_ENVIRONMENT environment variable to true in your deploy commands. Use it in your deploy commands, or pass it to your application, for example as a Helm value, to:<br><ul><li>Enable preview-specific features or configurations</li><li>Show preview banners or badges in your UI</li><li>Adjust logging or monitoring behavior</li><li>Connect to preview-specific resources</li></ul><br>For a complete list of available environment variables, see <a href='https://www.okteto.com/docs/core/okteto-variables/'>Okteto Variables</a>."
+      }
+    },
+    {
+      "@type": "Question",
       "name": "How can I use the --platform flag with okteto build?",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -145,6 +161,45 @@ annotations:
 Please see our [ArgoCD Configuration Guide](self-hosted/manage/argocd.mdx) for our full recommendation on deploying Okteto with ArgoCD
 :::
 
+
+## How do I deploy with Docker Compose or tools other than Helm?
+
+The [`deploy`](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest runs any command, so you can deploy your application with Helm, Docker Compose, or any other tool.
+
+### Docker Compose
+
+If your application is defined with Docker Compose, Okteto deploys your Docker Compose files directly:
+
+```yaml title="okteto.yaml"
+deploy:
+  compose: docker-compose.yml
+```
+
+The [Docker Compose on Kubernetes tutorial](/docs/tutorials/compose-getting-started) shows how to deploy and develop an application with Docker Compose, and the [Docker Compose reference](reference/docker-compose.mdx) lists the supported fields.
+
+### Custom tooling
+
+Okteto runs your deploy commands with [Remote Execution](core/remote-execution.mdx) in a default image that already includes `helm`, `kubectl`, `kustomize`, and the Okteto CLI.
+To use any other tool, set the `image` field of the `deploy` section to an image that contains your deployment scripts or binaries, as described in [Defining Your Own Image](core/remote-execution.mdx#defining-your-own-image):
+
+```yaml title="okteto.yaml"
+deploy:
+  image: ghcr.io/your-org/deploy-tools:1.0
+  commands:
+    - name: Deploy with my scripts
+      command: ./scripts/deploy.sh
+```
+
+## How do I customize my application for Preview Environments?
+
+When Okteto deploys a [Preview Environment](previews/index.mdx), it sets the `OKTETO_IS_PREVIEW_ENVIRONMENT` environment variable to `true` in your `deploy` commands. Use it in your deploy commands, or pass it to your application, for example as a Helm value, to:
+
+- Enable preview-specific features or configurations
+- Show preview banners or badges in your UI
+- Adjust logging or monitoring behavior
+- Connect to preview-specific resources
+
+For a complete list of available environment variables, see [Okteto Variables](core/okteto-variables.mdx).
 
 ## How to use private images?
 

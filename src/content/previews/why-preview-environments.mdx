@@ -1,0 +1,80 @@
+---
+title: Why Preview Environments
+description: Preview Environments run your automated tests on every pull or merge request and give your team a live environment to review each change.
+sidebar_label: Why Preview Environments
+id: why-preview-environments
+---
+
+import Image from "@theme/Image";
+
+Preview Environments give every pull request in GitHub or merge request in GitLab its own environment, where your automated tests run and your team reviews the change before it merges.
+
+## No Configuration Drift from Development to Production
+
+A common setup in many teams looks like this: developers run the application locally with tools like Docker Compose, Continuous Integration (CI) runs tests on a virtual machine with Docker, and production runs on Kubernetes. Each stage runs on a different platform with its own configuration. This configuration drift causes tests that pass locally but fail in CI, and bugs that never show up in development or CI but appear in production.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/classic-software-development.png").default}
+    alt="Diagram comparing development, CI, and production stages running on different platforms: local environment, virtual machine, and Kubernetes"
+    width="850"
+  />
+</p>
+
+With Okteto, development, CI, and production all run on Kubernetes, which eliminates configuration drift from development to production, including CI. Developers run the Test Containers defined in the [`test` section of the Okteto Manifest](core/okteto-manifest.mdx#test) with `okteto test` against their Development Environment, and your pipeline runs the same Test Containers against the Preview Environment. Your tests are 100% reproducible between your machine and CI: no more tests that only fail in CI.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/okteto-for-testing.png").default}
+    alt="Diagram showing development, CI, and production all running on Kubernetes with Okteto for consistent environments"
+    width="850"
+  />
+</p>
+
+## Hands-On Feedback from Your Whole Team
+
+A Preview Environment is a live, shared version of each change. Automated tests, developers, AI agents, QA engineers, product managers, designers, sales, and marketing all interact with the same running application through one URL, with read-only access and nothing to set up. Instead of passing around screenshots or recordings, everyone tests the real change and gives feedback on the pull request or merge request before it merges.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/preview-environment-collaboration.png").default}
+    alt="Diagram of a Preview Environment running on Kubernetes with the frontend, api, and mongoDB services, used by automated tests, AI agents, developers, QA engineers, product managers, designers, and sales and marketing"
+    width="850"
+  />
+</p>
+
+## Simpler CI Jobs Without Docker
+
+A common way to run end-to-end tests in CI is to run the whole application inside the CI job: the job starts a Docker daemon, builds every image, starts the application with Docker Compose, and installs the test runtimes, browsers, and credentials your tests need.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/ci-with-docker.png").default}
+    alt="Diagram of a fat CI job: the CI runner holds test runtimes, browsers, and credentials, and a Docker daemon runs the frontend, api, and mongoDB services"
+    width="500"
+  />
+</p>
+
+This approach makes CI jobs heavy. They need privileged runners or access to the Docker socket, a common security concern in CI. They rebuild images and reinstall dependencies on every run, and they run your application on a different platform than production.
+
+With Okteto, CI jobs are light. The CI job only needs a Git checkout and the Okteto CLI, and all the complexity of your application is decoupled into Okteto: Okteto builds your images, deploys your application, and runs your Test Containers inside your Kubernetes cluster with [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/ci-with-okteto.png").default}
+    alt="Diagram of a light CI job with only Git checkout and the Okteto CLI, connected to Kubernetes, where Okteto runs the frontend, api, and mongoDB services and the frontend and e2e Test Containers"
+    width="600"
+  />
+</p>
+
+- CI jobs start faster and consume fewer resources, because they don't run Docker or your application.
+- [Smart Builds](core/build-service.mdx#smart-builds) reuse your images across pipelines and developers, so Okteto skips the builds of images that didn't change.
+- `okteto test` doesn't rerun tests if the code they depend on didn't change, which also cuts the number of cycles your CI runs.
+- The load on your CI system drops, because builds, deployments, and tests run in your cluster.
+
+## Next Steps
+
+Set up Preview Environments for your repository and run your tests on every change:
+
+- [GitHub Actions](previews/using-github-actions.mdx): deploy a Preview Environment and run your tests on every pull request
+- [GitLab CI/CD](previews/using-gitlab-cicd.mdx): deploy a Preview Environment and run your tests on every merge request
