@@ -38,6 +38,27 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 
 - Fixed the Okteto Registry with [DigitalOcean Spaces](self-hosted/install/okteto-registry-storage/digitalocean-spaces.mdx) not working when `registry.storage.provider.digitalocean.region` isn't set: the default region was `SFO1`, which isn't a Spaces region. It now defaults to `nyc3` <!-- PROD-541, app#10465 -->
 
+## 1.49.1
+
+22 October 2026
+
+This version is compatible with Kubernetes versions 1.34 to 1.36 \
+Okteto Chart release 1.49 is designed to work with [Okteto CLI 3.24.x](https://github.com/okteto/okteto/releases/tag/3.24.0)
+
+### Security {#security-1.49}
+
+Fixed a critical vulnerability related to the [compromised eMudhra intermediate certificate authorities](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449).
+
+- **Compromised intermediates rejected**: All Okteto components now reject any certificate chain that includes the compromised intermediates
+- **Updated CA certificates**: Every image in the chart, including Okteto Build (rootful and rootless) and the pipeline runner, now ships a CA bundle that no longer trusts `emSign ECC Root CA - G3` or `AAA Certificate Services`, the roots the compromised intermediates chain to. This also protects tools that rely on the system trust store, such as `git`, `curl`, and `helm`, during builds and pipelines <!-- okteto/pipeline-runner#29 -->
+- [Okteto CLI 3.24.1](https://github.com/okteto/okteto/releases/tag/3.24.1): The CLI now rejects any certificate chain that includes the compromised intermediates, and the `okteto/okteto` image ships the updated CA bundle. We recommend all users upgrade, especially on Linux, where protection otherwise depends on your distribution's `ca-certificates` update <!-- okteto/okteto#5213 -->
+
+### Important Notes {#important-notes-1.49.1}
+
+- **Certificates from the distrusted eMudhra root are rejected**: After upgrading, Okteto no longer accepts certificates that chain to `emSign ECC Root CA - G3`. If a Git server, container registry, or identity provider connected to Okteto uses one of these certificates, connections fail with a certificate verification error until the certificate is replaced. Contact your certificate provider to reissue it from a different hierarchy
+- **Images you maintain**: This release updates the images Okteto ships. Images you build or deploy, such as your development container images and any custom images you use to run deployments, use their own trust store. Update their `ca-certificates` package and any runtimes or libraries that ship their own list of trusted certificates
+- **Air-gapped installations**: Mirror the updated images to your private registry before upgrading. See the [air-gapped installation guide](self-hosted/manage/air-gapped.mdx)
+
 ## 1.49.0
 
 8 October 2026
