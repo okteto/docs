@@ -1,0 +1,110 @@
+---
+title: Custom Endpoints
+description: Customize the endpoints shown in the Okteto UI with annotations.
+sidebar_label: Custom Endpoints
+id: custom-endpoints
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+The Okteto UI shows the endpoints of the `Ingress`, `HTTPRoute`, and `VirtualService` resources deployed in your Namespaces. Okteto supports two annotations on these resources, including your own [HTTPRoutes](core/endpoints/httproutes.mdx), to customize the endpoints it shows.
+
+## Hiding Endpoints
+
+To hide the endpoints of a resource from the Okteto UI, add the `dev.okteto.com/hide-from-ui: "true"` annotation.
+
+## Replacing Endpoints
+
+To replace the default endpoints of a resource, use the `dev.okteto.com/endpoints` annotation. It accepts a comma-separated list of endpoints and expands the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` variables, so your endpoints stay portable between Namespaces.
+
+<Tabs
+  defaultValue="httproute"
+  values={[
+    { label: 'HTTPRoute', value: 'httproute', },
+    { label: 'Docker Compose', value: 'compose', },
+    { label: 'Ingress', value: 'ingress', },
+  ]}
+>
+<TabItem value="httproute">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/endpoints: https://movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}/api
+spec:
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: api
+          port: 8080
+    - backendRefs:
+        - name: frontend
+          port: 80
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+version: "3"
+services:
+  frontend:
+    build: frontend
+    ports:
+    - 80:80
+  backend:
+    build: backend
+    ports:
+    - 8080
+endpoints:
+  annotations:
+    dev.okteto.com/endpoints: https://movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}/api
+  rules:
+    - path: /
+      service: frontend
+      port: 80
+    - path: /api
+      service: backend
+      port: 8080
+```
+
+</TabItem>
+<TabItem value="ingress">
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+    dev.okteto.com/endpoints: https://movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}/api
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+</TabItem>
+</Tabs>

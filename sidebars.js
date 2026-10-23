@@ -67,7 +67,15 @@ module.exports = {
         {
           type: 'category',
           label: 'Endpoints',
-          items: ['core/endpoints/automatic-ssl', 'core/endpoints/private-endpoints'],
+          link: { type: 'doc', id: 'core/endpoints/automatic-ssl' },
+          items: [
+            'core/endpoints/httproutes',
+            'core/endpoints/docker-compose',
+            'core/endpoints/ingress',
+            'core/endpoints/services',
+            'core/endpoints/custom-endpoints',
+            'core/endpoints/private-endpoints',
+          ],
         },
         'core/namespaces',
         'core/divert',
@@ -270,6 +278,7 @@ module.exports = {
           label: 'Operating Okteto',
           items: [
             'self-hosted/manage/upgrade',
+            'self-hosted/manage/migrate-to-gateway-api',
             'self-hosted/manage/argocd',
             'self-hosted/manage/okteto-license',
             'self-hosted/manage/buildkit-high-performance',
