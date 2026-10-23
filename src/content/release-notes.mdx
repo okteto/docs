@@ -15,14 +15,50 @@ Unreleased
 This version is compatible with Kubernetes versions 1.34 to 1.36 \
 Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://github.com/okteto/okteto/releases)
 
+### Breaking Changes {#breaking-changes-1.50}
+
+- **Images in Azure Storage aren't found after the upgrade**: If the Okteto Registry uses Azure Storage, it no longer finds the images pushed before the upgrade, but they keep using space in your storage container ([distribution#4278](https://github.com/distribution/distribution/issues/4278)). Before upgrading, see the [upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-150x--okteto-registry-images-in-azure-storage) to start with a new storage container or keep specific images <!-- PROD-541, app#10465 -->
+
+### Important Notes {#important-notes-1.50}
+
+- **Okteto Registry upgraded to distribution 3.1.2**: The Okteto Registry now runs [distribution](https://github.com/distribution/distribution) 3.1.2. Image pushes and pulls can fail for a few seconds during the upgrade. If you override `registry.image`, it must point to a distribution 3.x image <!-- PROD-541, app#10465 -->
+
 ### New Features {#new-features-1.50}
 
 - **Login restricted to GitHub teams**: With GitHub as the authentication provider, the [`auth.github.teams`](self-hosted/install/auth/github.mdx#restricting-access-to-github-teams) Helm setting restricts login to members of specific teams of the GitHub organization set in `auth.github.organization`. Access is then managed by adding users to those teams in GitHub, without changing the Helm configuration <!-- PROD-542, app#10453 -->
 - **Azure Cloud Credentials**: [Cloud Credentials](admin/cloud-credentials/azure.mdx) now support Microsoft Azure. The commands in your Okteto Manifests authenticate to Azure with workload identity federation, without client secrets: Okteto injects `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_AUTHORITY_HOST` and `AZURE_FEDERATED_TOKEN_FILE`, the variables used by the Azure SDKs. Requires Okteto CLI 3.25.0 or later <!-- PROD-532, app#10437, okteto#5174 -->
+- **Microsoft Entra Workload ID for the Okteto Registry**: The Okteto Registry can access [Azure Storage with Microsoft Entra Workload ID](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx#microsoft-entra-workload-id) instead of a storage account access key (`registry.storage.provider.azure.workloadIdentity.enabled`) <!-- PROD-541, app#10465 -->
+- **Image pulls from Google Cloud Storage with Workload Identity**: With [Google Cloud Storage and Workload Identity](self-hosted/install/okteto-registry-storage/google-cloud-storage.mdx), `registry.storage.provider.gcp.workloadIdentity.redirect` redirects image pulls to signed Cloud Storage URLs instead of serving image layers through the Okteto Registry. We strongly recommend enabling it: clients download image layers directly from Cloud Storage, which takes that traffic off the Okteto Registry, and it will become the default in an upcoming release. It needs the `iam.serviceAccounts.signBlob` permission described in the guide <!-- PROD-541, app#10465 -->
 
 ### Improvements {#improvements-1.50}
 
 - **Developers can wake Global Preview Environments**: Any Developer can now wake a sleeping Global Preview Environment from the [Okteto Dashboard](core/user-roles-and-permissions.mdx#access-to-global-preview-environments). Only the owner and Admins can put it to sleep manually <!-- DEV-1307, app#10450 -->
+
+### Bug Fixes {#bug-fixes-1.50}
+
+- Fixed the Okteto Registry with [DigitalOcean Spaces](self-hosted/install/okteto-registry-storage/digitalocean-spaces.mdx) not working when `registry.storage.provider.digitalocean.region` isn't set: the default region was `SFO1`, which isn't a Spaces region. It now defaults to `nyc3` <!-- PROD-541, app#10465 -->
+
+## 1.49.1
+
+22 October 2026
+
+This version is compatible with Kubernetes versions 1.34 to 1.36 \
+Okteto Chart release 1.49 is designed to work with [Okteto CLI 3.24.x](https://github.com/okteto/okteto/releases/tag/3.24.0)
+
+### Security {#security-1.49}
+
+Fixed a critical vulnerability related to the [compromised eMudhra intermediate certificate authorities](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449).
+
+- **Compromised intermediates rejected**: All Okteto components now reject any certificate chain that includes the compromised intermediates
+- **Updated CA certificates**: Every image in the chart, including Okteto Build (rootful and rootless) and the pipeline runner, now ships a CA bundle that no longer trusts `emSign ECC Root CA - G3` or `AAA Certificate Services`, the roots the compromised intermediates chain to. This also protects tools that rely on the system trust store, such as `git`, `curl`, and `helm`, during builds and pipelines <!-- okteto/pipeline-runner#29 -->
+- [Okteto CLI 3.24.1](https://github.com/okteto/okteto/releases/tag/3.24.1): The CLI now rejects any certificate chain that includes the compromised intermediates, and the `okteto/okteto` image ships the updated CA bundle. We recommend all users upgrade, especially on Linux, where protection otherwise depends on your distribution's `ca-certificates` update <!-- okteto/okteto#5213 -->
+
+### Important Notes {#important-notes-1.49.1}
+
+- **Certificates from the distrusted eMudhra root are rejected**: After upgrading, Okteto no longer accepts certificates that chain to `emSign ECC Root CA - G3`. If a Git server, container registry, or identity provider connected to Okteto uses one of these certificates, connections fail with a certificate verification error until the certificate is replaced. Contact your certificate provider to reissue it from a different hierarchy
+- **Images you maintain**: This release updates the images Okteto ships. Images you build or deploy, such as your development container images and any custom images you use to run deployments, use their own trust store. Update their `ca-certificates` package and any runtimes or libraries that ship their own list of trusted certificates
+- **Cluster nodes in self-hosted installations**: Okteto doesn't manage your cluster nodes, so patching them remains your responsibility. Each node pulls container images using its own operating system trust store and container runtime. Update the `ca-certificates` package and container runtime on your nodes or, on managed Kubernetes services, upgrade to your provider's latest node image. This ensures image pulls are verified against an up-to-date trust store, so an attacker can't impersonate your registry to serve tampered images or capture registry credentials
+- **Air-gapped installations**: Mirror the updated images to your private registry before upgrading. See the [air-gapped installation guide](self-hosted/manage/air-gapped.mdx)
 
 ## 1.49.0
 
@@ -89,7 +125,7 @@ Okteto Chart release 1.48 is designed to work with [Okteto CLI 3.23.x](https://g
 - Fixed the resource list in the Namespace view hanging indefinitely when the Okteto Registry accepted connections but never responded. The image ownership check that enriches pull-error messages is now time-bounded and is skipped for images hosted outside the Okteto Registry <!-- 10370 -->
 - Fixed the **Redeploy** button in the resources sidebar being enabled for resources that can't be redeployed, such as resources being destroyed or requiring a force destroy. The sidebar now hides the button in those states, matching the resource details view <!-- DEV-1452, 10365 -->
 - Fixed long repository URLs not truncating in the Redeploy dialog, which broke the dialog layout <!-- DEV-1453, 10362 -->
-- [Okteto CLI 3.23.0](https://github.com/okteto/okteto/releases/tag/3.23.0): Fixed `okteto up` failing to establish the local SSH tunnel on macOS, most often with a VPN connected, with `ssh: handshake failed ... write: broken pipe`. The CLI dialed an empty-host address (`:PORT`), which macOS routed unreliably. Both sync and hybrid modes were affected <!-- okteto/okteto#5114, okteto/okteto#5115 -->
+- [Okteto CLI 3.23.0](https://github.com/okteto/okteto/releases/tag/3.23.0): Fixed `okteto up` failing to establish the local SSH tunnel on macOS, most often with a VPN connected, with `ssh: handshake failed ... write: broken pipe`. The CLI dialed an empty-host address (`:PORT`), which macOS routed unreliably <!-- okteto/okteto#5114, okteto/okteto#5115 -->
 
 ## 1.47.0
 
