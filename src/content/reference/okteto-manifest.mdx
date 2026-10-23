@@ -303,68 +303,52 @@ Your deploy commands will be executed before deploying your Docker Compose files
 
 #### Divert
 
-Divert deploys only the services you are changing and routes every other request to a shared environment that runs the complete application. See [Divert](core/divert.mdx) for the concepts and [Using Divert](development/divert/index.mdx) for a guide.
+Use the `divert` section to deploy only the services you change on top of a Shared Namespace. See [Divert](development/divert/index.mdx) to learn how it works.
 
 <Tabs
-  defaultValue="default"
+  defaultValue="gateway-api"
   values={[
-    { label: 'Default driver', value: 'default', },
-    { label: 'Istio driver', value: 'istio', },
+    { label: 'Gateway API', value: 'gateway-api', },
+    { label: 'Istio VirtualServices', value: 'istio', },
   ]}
 >
-<TabItem value="default">
-
-Add `divert.namespace` under the `deploy` section of your Okteto Manifest, and deploy only the services you are changing:
+<TabItem value="gateway-api">
 
 ```yaml
 deploy:
   commands:
-    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
+    - helm upgrade --install rentals rentals/chart --set api.image=${OKTETO_BUILD_RENT_IMAGE}
   divert:
-    namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
+    namespace: ${SHARED_NAMESPACE:-staging}
     hosts:
       - movies-staging.okteto.example.com
 ```
 
-- `namespace`: the namespace that runs the shared environment. Requests to services that your `deploy` section doesn't create are served by this namespace. It can be an Okteto Namespace or a namespace outside Okteto in the same cluster. Supports environment variable substitution.
-- `hosts` (optional): the HTTPS hosts of the shared environment to reach your Development Environment through. Okteto shows them as the endpoints of your Development Environment in the Okteto UI, and adds your divert header when you open them from the UI. Nothing is created in your Namespace for them.
-- `driver` (optional): omit it to use the default driver. Set it to `istio` to use the Istio driver.
-
-When you run `okteto deploy` with a `divert` section, Okteto:
-
-1. Deploys only the resources created by your `deploy` section
-2. Configures the DNS of your pods so services you didn't deploy resolve to the shared environment
-3. Routes requests that carry `okteto-divert=<your-namespace>` in the [`baggage`](https://www.w3.org/TR/baggage/) header to the services you deployed
-4. Injects the `OKTETO_DIVERTED_ENVIRONMENT` and `OKTETO_SHARED_ENVIRONMENT` environment variables into your pods
-
-Your services must forward the `baggage` header to the services they call. See [Header Propagation](development/divert/header-propagation.mdx).
+- `namespace`: the Shared Namespace. Services that the `deploy` section doesn't create are served by this namespace. Supports environment variable substitution.
+- `hosts` (optional): the hosts of the Shared Namespace that you use to reach the application. Okteto creates a dedicated endpoint for each of them in your Overlay Namespace, which adds your divert header automatically.
 
 </TabItem>
-
 <TabItem value="istio">
-
-With the Istio driver, list the Istio VirtualServices of the shared environment to divert:
 
 ```yaml
 deploy:
   commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - helm upgrade --install api-gateway chart/api-gateway --set image=${OKTETO_BUILD_API_GATEWAY_IMAGE}
   divert:
     driver: istio
     virtualServices:
-      - name: vs1
+      - name: api-gateway
         namespace: staging
         routes:
-          - route1
-          - route2
+          - api-route
     hosts:
-      - virtualService: frontend
+      - virtualService: api-gateway
         namespace: staging
 ```
 
 - `driver`: set it to `istio`.
-- `virtualServices`: the VirtualServices in the shared namespace that Okteto modifies so requests with your divert header are sent to your Namespace. Each entry has a name, a namespace, and an optional list of routes to divert. Without `routes`, every route of the VirtualService is diverted.
-- `hosts` (optional): VirtualServices that Okteto copies into your Namespace with their own host, such as `https://service-a-<your-namespace>.<subdomain>`. Requests to that host get your divert header automatically, and the copy points to the original VirtualService in the shared namespace. Use it for services you don't deploy, to get a URL for your version of the application without setting the header yourself.
+- `virtualServices`: the VirtualServices in the Shared Namespace that Okteto modifies to send requests with your divert header to your Overlay Namespace. Each entry has a `name`, a `namespace`, and an optional list of `routes` to divert. Without `routes`, every route of the VirtualService is diverted.
+- `hosts` (optional): VirtualServices of the Shared Namespace that Okteto copies into your Overlay Namespace with their own host, such as `https://api-gateway-<your-namespace>.<subdomain>`. Requests to that host get your divert header automatically.
 
 </TabItem>
 </Tabs>
