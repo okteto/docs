@@ -4,56 +4,54 @@ description: Cluster requirements to enable Divert with a service mesh based on 
 sidebar_label: Divert
 ---
 
-Divert needs a service mesh in each shared environment and a few Okteto Helm values. The service mesh routes the calls between the services of the shared environment, and sends the requests that carry a divert header to the diverted services. Admins configure it once per cluster, and developers then use Divert from their Okteto Manifest, as described in [Using Divert](development/divert/index.mdx).
+Divert needs a service mesh in each Shared Namespace and a few Okteto Helm values. The service mesh routes the calls between the services of the Shared Namespace, and sends the requests that carry a divert header to the overlay services. Once the cluster is configured with a service mesh, developers can use Divert from their Okteto Manifests, as described in [Overlay Namespace](development/divert/overlay-namespace.mdx).
+
+:::info Talk to us
+Service meshes, gateway controllers, and network policies are configured differently in every cluster, and their setup can add steps to enabling Divert. This guide covers the common setups, but we encourage you to [talk to us](https://www.okteto.com/contact/) to guide you through the configuration of your cluster.
+:::
 
 ## Requirements
 
-- Okteto 1.37 or later, and Okteto CLI 3.12 or later
-- A service mesh that routes east-west traffic, the calls between services, by the `baggage` header. The cluster gateway controller routes the requests that enter through the endpoints of the shared environment, but it doesn't see the calls between services inside it
-- The service mesh enabled in each **shared environment**, with sidecar injection or ambient mode. Diverted environments don't need it: their pods resolve service names to the shared environment when a service isn't deployed in them
+- A service mesh that routes east-west traffic, the calls between services, by the `baggage` header. The cluster gateway controller routes the requests that enter through the endpoints of the Shared Namespace, but it doesn't see the calls between services inside it. Meshes that implement [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), the Gateway API support for service meshes, such as Linkerd and Istio, route those calls with the same `HTTPRoute` resources
+- The service mesh enabled in each **Shared Namespace**, with sidecar injection or ambient mode. Overlay Namespaces don't need it, and you don't need to configure anything for them: Okteto automatically adds the Shared Namespace to the DNS search list of the pods it deploys in an Overlay Namespace. Kubernetes resolves a service name in the pod's own namespace first, so a call by service name reaches the overlay service if it's deployed in the Overlay Namespace, and the shared service otherwise
 
-:::tip Traffic through the cluster gateway controller
-If the services in your shared environment always call each other through the cluster gateway controller, it's enough to add the cluster gateway controller to the service mesh. This is the case when services call each other by their public endpoints, and those hostnames resolve inside the cluster to the private IP of the cluster gateway controller, so the calls stay in the cluster and go through the gateway controller instead of an external load balancer.
-:::
+## Drivers
 
-## Gateway API
+Okteto supports two drivers to route the requests with a divert header to the overlay services. Choose the one that matches your service mesh:
 
-If your service mesh implements the [Gateway API](https://gateway-api.sigs.k8s.io/), such as [Linkerd](https://linkerd.io/), enable Divert in your Okteto Helm values:
+- **Gateway API**: for service meshes that implement the Gateway API, such as Linkerd. Okteto creates the routing rules as Gateway API `HTTPRoute` resources.
+- **VirtualServices**: for clusters that use Istio and applications that define their routing with VirtualServices. Okteto adds the routing rules to those VirtualServices.
+
+### Gateway API
+
+The Gateway API driver works with any service mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), the [Gateway API](https://gateway-api.sigs.k8s.io/) support for east-west traffic, such as [Linkerd](https://linkerd.io/). For each overlay service, Okteto creates an `HTTPRoute` in the Shared Namespace that sends the requests with the divert header of the Overlay Namespace to the overlay service, and every other request to the shared service. Enable it in your Okteto Helm values:
 
 ```yaml
 divert:
   enabled: true
 ```
 
-Okteto routes diverted traffic with Gateway API `HTTPRoute` resources in the shared environment, so the Gateway API CRDs (`v1`) must be installed in the cluster. Developers don't set any driver in their Okteto Manifest.
+The Gateway API CRDs (`v1`) must be installed in the cluster. It's the default driver, so developers don't set any driver in their Okteto Manifest.
 
-## Istio VirtualServices
+### VirtualServices
 
-If your service mesh is Istio and your applications use VirtualServices, enable VirtualServices in your Okteto Helm values instead. You don't need to set `divert`:
+The VirtualServices driver works with clusters that use Istio, when your applications define their routing with VirtualServices. Okteto adds rules to the VirtualServices of the Shared Namespace that send the requests with the divert header of the Overlay Namespace to the overlay services. Enable it in your Okteto Helm values, instead of `divert`:
 
 ```yaml
 virtualServices:
   enabled: true
 ```
 
-Okteto routes diverted traffic by modifying the VirtualServices of the shared environment. Developers set `driver: istio` and the VirtualServices to divert in their Okteto Manifest.
-
-## Shared Environments Outside Okteto
-
-A shared environment in a namespace that Okteto doesn't manage is only supported with Istio VirtualServices. Select the namespace with `virtualServices.namespaceSelector`:
-
-```yaml
-virtualServices:
-  enabled: true
-  namespaceSelector:
-    kubernetes.io/metadata.name: staging
-```
-
-Enable the service mesh in that namespace too.
+Developers set `driver: istio` and the VirtualServices to divert in their Okteto Manifest.
 
 ## Network Policies
 
-If you enable [`networkPolicies`](self-hosted/helm-configuration.mdx#networkpolicies), allow traffic between the shared environment and the diverted environments:
+Divert needs traffic in both directions between a Shared Namespace and its Overlay Namespaces:
+
+- **From the Overlay Namespace to the Shared Namespace**: your overlay services call the shared services they don't deploy.
+- **From the Shared Namespace to the Overlay Namespace**: the service mesh sends requests with your divert header from the shared services to your overlay services.
+
+If you enable [`networkPolicies`](self-hosted/helm-configuration.mdx#networkpolicies) in your Okteto Helm values, Okteto applies the rules in `networkPolicies.ingress` to every Namespace it manages. Add a rule that allows ingress from every Okteto Namespace, which are labeled `dev.okteto.com: "true"`:
 
 ```yaml
 networkPolicies:
@@ -63,4 +61,92 @@ networkPolicies:
         - namespaceSelector:
             matchLabels:
               dev.okteto.com: "true"
+```
+
+Because the rule is applied to both the Shared Namespace and the Overlay Namespaces, it allows traffic in both directions.
+
+## Shared Namespaces Outside Okteto
+
+A Shared Namespace can be a namespace that Okteto doesn't manage, in the same cluster. Enable the service mesh in it, as in any Shared Namespace, and configure the following settings. The examples use a namespace named `staging`.
+
+### Access for Developers
+
+Developers need access to the objects of the Shared Namespace that Divert uses. Create a ClusterRole with access to them:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: okteto-divert-shared
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "grpcroutes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.istio.io"]
+    resources: ["virtualservices"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+```
+
+Then bind it to every Okteto user in the Shared Namespace with [`serviceAccounts.extraRoleBindings`](self-hosted/helm-configuration.mdx#serviceaccounts) in your Okteto Helm values:
+
+```yaml
+serviceAccounts:
+  extraRoleBindings:
+    staging:
+      - okteto-divert-shared
+```
+
+### Network Policies
+
+Okteto doesn't apply its network policies to a namespace it doesn't manage, so allow ingress on both sides.
+
+In the Okteto Helm values, allow ingress from the Shared Namespace into the Overlay Namespaces:
+
+```yaml
+networkPolicies:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com: "true"
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: staging
+```
+
+In the Shared Namespace, add a `NetworkPolicy` that allows ingress from the Okteto Namespaces:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-okteto-namespaces
+  namespace: staging
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com: "true"
+```
+
+### Istio VirtualServices
+
+With Istio VirtualServices, also select the Shared Namespace with `virtualServices.namespaceSelector` in your Okteto Helm values. Okteto's mutating webhook only receives events from the namespaces it manages, and this setting adds the Shared Namespace, so Okteto can respond to changes in its VirtualServices:
+
+```yaml
+virtualServices:
+  enabled: true
+  namespaceSelector:
+    kubernetes.io/metadata.name: staging
 ```

@@ -1,201 +1,80 @@
 ---
-title: Using Divert
-description: Create a shared environment and configure your Okteto Manifest to deploy only the services you change with Divert.
-sidebar_label: Using Divert
+title: Divert
+description: Divert lets you deploy only the services you change in an Overlay Namespace and reuse a Shared Namespace for the rest of the application.
+sidebar_label: Divert
 id: index
 ---
 
-Divert deploys only the services listed in your Okteto Manifest and routes every other request to a shared environment. This page covers the shared environment, the `divert` section of the Okteto Manifest, and how to reach your diverted environment. [Divert](core/divert.mdx) explains the concepts.
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
-## Shared Environment
+Divert lets you deploy only the services you are changing and reuse a Shared Namespace for every other service of the application. A request with your divert header reaches your version of the services you deployed, and the shared version of everything else.
 
-The shared environment is a namespace that runs the complete application. Diverted environments fall back to it for every service they don't deploy, so it should run the latest version of every service.
+## When to Use Divert
 
-### Okteto-Managed Shared Environment
+A namespace with a full replica of your application is the simplest setup, and it's the right choice for many teams: every service runs the version you deploy, and nothing you do affects anyone else.
 
-The recommended setup is a [Preview Environment](previews/index.mdx) that your CI redeploys on every merge to the main branch. The shared environment then always runs the latest image of every service, and every developer diverts from the same baseline.
+As your application grows, usually around 30 to 50 services, deploying a full replica of it for every feature starts to have tradeoffs:
 
-Create it with `okteto preview deploy` and the `okteto-shared` label:
+- **Longer deploy times**: every namespace waits for services nobody is changing to build, start, and become healthy
+- **Less reliability**: a deploy fails when any service fails, even one owned by another team that nobody in the namespace is touching
+- **Higher infrastructure costs**: every namespace reserves the resources of the whole application
 
-```bash
-okteto preview deploy movies-shared \
-  --repository https://github.com/okteto-community/movies-with-divert \
-  --branch main \
-  --label=okteto-shared
-```
+That's where Divert comes in. The full application runs once in a Shared Namespace, and each developer, CI job, or AI agent deploys only the services it changes in an Overlay Namespace. An Overlay Namespace starts in the time it takes to deploy those services, and uses only what those services need.
 
-The `okteto-shared` label enables service mesh injection in the Preview Environment's namespace before anything is deployed, which the default driver needs to route calls between services. Global Preview Environments are visible to every user of your Okteto instance.
+A full replica is still the better fit when you need control over every service, such as reproducing a bug that depends on specific versions of several services, or working on a change that touches most of the application.
 
-To redeploy it on every merge with GitHub Actions:
+## How Divert Works
 
-```yaml
-name: Deploy shared environment
-on:
-  push:
-    branches:
-      - main
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: okteto/context@latest
-        with:
-          token: ${{ secrets.OKTETO_TOKEN }}
-          url: ${{ secrets.OKTETO_CONTEXT }}
-      - uses: okteto/deploy-preview@latest
-        with:
-          name: movies-shared
-          labels: okteto-shared
-```
+Divert routes each request by the divert header it carries: the `baggage` header with the key `okteto-divert=<namespace>`. The diagram below shows the Movies application with Cindy working on the rent service:
 
-You can also use a regular Okteto Namespace. In that case, share the Namespace with every developer who diverts from it, and ask your Admin to enable service mesh injection in it before deploying the application.
+![Requests to the API gateway of staging go to the shared services. Requests with baggage okteto-divert=cindy reach Cindy's rent service, which uses its own MongoDB database and calls the shared catalog service](@site/static/img/divert-overview.svg)
 
-### Shared Environment Outside Okteto
+1. The Shared Namespace, `staging`, runs the complete application. Requests enter through the API gateway.
+2. Cindy deploys the rent service and its MongoDB database in her Overlay Namespace, `cindy`.
+3. When the API gateway calls the rent service, requests with Cindy's divert header (`baggage: okteto-divert=cindy`) reach her rent service.
+4. Cindy's rent service calls the catalog service. She didn't deploy it, so the call reaches the shared catalog service.
+5. Every other service, and every request without Cindy's divert header, is served by the Shared Namespace.
 
-With Istio VirtualServices, the shared environment can also be a namespace that Okteto doesn't manage, as long as it runs in the same cluster. This simplifies adoption when you already have a complete environment, such as a staging namespace populated with production-like data, that would be hard to replicate with an Okteto Manifest.
+Several Overlay Namespaces can use the same Shared Namespace at the same time. Each one only sees its own changes, and the Shared Namespace is not affected by any of them. An Overlay Namespace can also run several overlay services: they call each other directly, and use the Shared Namespace for everything else.
 
-For a namespace outside Okteto, your Admin selects it in the Okteto Helm values and enables the service mesh in it, as described in [Configure Divert in Your Cluster](self-hosted/install/divert/index.mdx#shared-environments-outside-okteto).
+## Concepts
 
-## Okteto Manifest Configuration
+- **Shared Namespace**: the namespace that runs the complete application. It serves every service that an Overlay Namespace doesn't deploy. It's usually a namespace that your CI redeploys on every merge. If Okteto manages your Shared Namespace, make it [persistent](core/namespaces.mdx#mark-a-namespace-as-persistent-to-prevent-it-from-sleeping-and-deletion) so it never goes to sleep.
+- **Overlay Namespace**: a namespace where a developer, a CI job, or an AI agent deploys only the services it is changing, on top of a Shared Namespace.
+- **Shared services** and **overlay services**: the services deployed in the Shared Namespace and in an Overlay Namespace.
+- **Subsystem**: a group of services that belong together and that you deploy as a unit, such as an API, its workers, its queues, and its databases.
+- **Divert header**: the [`baggage`](https://www.w3.org/TR/baggage/) header with the key `okteto-divert=<namespace>`, where `<namespace>` is the Overlay Namespace. Requests with the divert header reach the overlay service when one exists, and the shared service otherwise.
+- **Header Propagation**: forwarding the `baggage` header from each incoming request to the calls it triggers, so the divert header reaches every service in the call chain.
+- **Queue Splitting**: making sure each message is consumed by the namespace it belongs to.
+- **Data Cloning**: giving an Overlay Namespace its own copy of a database, instead of writing to the shared one.
 
-Add a `divert` section under `deploy` with the name of the shared namespace, and deploy only the services you are changing.
+## Cluster Requirements
 
-With Docker Compose, list the services to deploy:
+<Tabs
+  defaultValue="self-hosted"
+  values={[
+    { label: 'Self-Hosted', value: 'self-hosted', },
+    { label: 'BYOC', value: 'byoc', },
+  ]}
+>
+<TabItem value="self-hosted">
 
-```yaml
-deploy:
-  compose:
-    file: docker-compose.yml
-    services:
-      - payments
-  divert:
-    namespace: ${OKTETO_SHARED_NAMESPACE}
-    hosts:
-      - webapp-${OKTETO_SHARED_NAMESPACE}.okteto.example.com
-```
+On Self-Hosted instances, Divert requires a service mesh in each Shared Namespace and enabling Divert in your Okteto Helm values. Follow [Configure Divert in Your Cluster](self-hosted/install/divert/index.mdx) to set it up.
 
-With Helm or any other command, deploy only the charts of the services you are changing, and list the hosts of the shared environment you want to open:
+</TabItem>
 
-```yaml
-build:
-  catalog:
-    context: catalog
+<TabItem value="byoc">
 
-deploy:
-  commands:
-    - name: Deploy Catalog
-      command: helm upgrade --install catalog catalog/chart --set image=${OKTETO_BUILD_CATALOG_IMAGE}
-  divert:
-    namespace: ${OKTETO_SHARED_NAMESPACE}
-    hosts:
-      - movies-${OKTETO_SHARED_NAMESPACE}.okteto.example.com
-```
+On Bring Your Own Cloud (BYOC) instances, contact Okteto support to enable Divert in your cluster.
 
-The manifests above say that:
+</TabItem>
+</Tabs>
 
-1. Only `payments` (or `catalog`) is deployed in your Namespace.
-2. Every other service is served by the namespace in `OKTETO_SHARED_NAMESPACE`. Set it with `export OKTETO_SHARED_NAMESPACE=movies-shared` before running `okteto deploy` or `okteto up`, or as an [Okteto Variable](core/okteto-variables.mdx).
-3. `hosts` lists the HTTPS hosts of the shared environment that you use to reach the application. Okteto shows them as the endpoints of your Development Environment in the Okteto UI. Nothing is created in your Namespace for them.
+## Divert Guides
 
-You don't need to set a driver. Set `driver: istio` only if your cluster is configured for the [Istio driver](#istio-driver).
-
-Keep the manifest that deploys the full application, usually `okteto.yaml`, for the shared environment, and add one manifest per set of services that developers work on together, such as `okteto.catalog.yaml` or `okteto.rentals.yaml`. Deploy them with `okteto deploy -f okteto.catalog.yaml`.
-
-:::tip Docker Compose and `depends_on`
-If a service you divert has `depends_on` entries for services that already run in the shared environment, such as a database or a broker, Okteto Compose deploys those dependencies in your Namespace too. Remove those `depends_on` entries in the diverted setup if you want to use the shared instances.
-:::
-
-### Istio Driver
-
-If your cluster is configured for the Istio driver, also list the Istio VirtualServices to divert:
-
-```yaml
-deploy:
-  commands:
-    - helm upgrade --install frontend chart/frontend --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
-  divert:
-    driver: istio
-    virtualServices:
-      - name: frontend
-        namespace: staging
-        routes:
-          - frontend-route
-    hosts:
-      - virtualService: frontend
-        namespace: staging
-```
-
-- **`virtualServices`**: the VirtualServices in the shared namespace that Okteto modifies to send requests with your divert header to your Namespace. Use `routes` to divert only some of their routes.
-- **`hosts`** (optional): with the Istio driver, `hosts` lists VirtualServices of the shared namespace that Okteto copies into your Namespace with their own host, such as `https://frontend-<your-namespace>.<subdomain>`. Requests to that host get your divert header automatically, so you can reach services you didn't deploy without setting the header yourself.
-
-See the [Okteto Manifest reference](reference/okteto-manifest.mdx#divert) for every field.
-
-## What `okteto deploy` Does
-
-When the Okteto Manifest has a `divert` section, `okteto deploy` runs the `deploy` commands and then:
-
-1. Configures the DNS of your pods so a service name that doesn't exist in your Namespace resolves to the shared environment. Your services call `catalog` or `kafka` as usual, and get your copy if you deployed one, or the shared one if you didn't.
-2. Injects the `OKTETO_DIVERTED_ENVIRONMENT` (your Namespace) and `OKTETO_SHARED_ENVIRONMENT` (the shared namespace) environment variables into your pods.
-3. Routes requests that reach the shared environment with your divert header to the services you deployed.
-4. Shows the hosts listed in `divert.hosts` as the endpoints of your Development Environment in the Okteto UI.
-
-## Accessing Your Diverted Environment
-
-You reach your diverted environment through the hosts of the shared environment, with your divert header: `baggage: okteto-divert=<your-namespace>`. With the Istio driver, you can also use the hosts that Okteto creates in your Namespace for the VirtualServices listed in [`hosts`](#istio-driver), which add the header for you. How the header gets there depends on the client:
-
-- **Okteto UI**: click one of the endpoints of your Development Environment. Okteto opens the shared host and injects your divert header.
-- **Browser**: configure an extension such as [ModHeader](https://modheader.com/) to send `baggage: okteto-divert=<your-namespace>` on every request.
-- **`curl` and other clients**: set the header yourself:
-
-  ```bash
-  # Served by the shared environment
-  curl https://movies-movies-shared.okteto.example.com/api/catalog/healthz
-
-  # Served by Alice's catalog service
-  curl -H "baggage: okteto-divert=alice" \
-    https://movies-movies-shared.okteto.example.com/api/catalog/healthz
-  ```
-
-:::info Frontends served by the shared environment
-If you divert a backend service but not the frontend, the frontend's JavaScript runs in your browser and calls the API hosts of the shared environment. Those calls only carry your divert header if your browser adds it, so use a browser extension in that case.
-:::
-
-How a request is routed depends on whether it carries your divert header and whether the target service has a diverted version:
-
-| Request | Target service deployed in your Namespace | Target service not deployed in your Namespace |
-|---|---|---|
-| Shared host with your divert header | Your version | Shared version |
-| Shared host without the divert header | Shared version | Shared version |
-| Service-to-service call from the shared environment, with your divert header | Your version | Shared version |
-| Service-to-service call from your Namespace | Your version | Shared version |
-
-To review someone else's changes, send their divert header instead: `baggage: okteto-divert=bob`.
-
-### Automated Tests
-
-Tests can target the shared environment's hosts and send the divert header of the environment under test. For example, with Playwright:
-
-```js
-const BASE_URL = `https://movies-${process.env.OKTETO_SHARED_NAMESPACE}.${process.env.OKTETO_DOMAIN}`;
-
-export default defineConfig({
-  use: {
-    baseURL: BASE_URL,
-    extraHTTPHeaders: { baggage: `okteto-divert=${process.env.OKTETO_NAMESPACE}` },
-  },
-});
-```
-
-Run with [`okteto test`](reference/okteto-cli.mdx#test) in a diverted environment, the tests exercise the services you deployed and the shared version of everything else.
-
-## Known Limitations
-
-- **Jobs and CronJobs** in the shared environment don't get a service mesh proxy, because the proxy would keep their pods running after the main container finishes. Their outgoing calls are never diverted.
-- **Sleeping Namespaces**: requests routed from the shared environment don't wake up a sleeping diverted environment. Wake it up from the Okteto UI before using it.
-- **One manifest per set of services**: each combination of services you divert needs its own Okteto Manifest.
-
-## Example Repositories
-
-- [Movies with Divert](https://github.com/okteto-community/movies-with-divert): Helm-based application with a manifest per service, a shared environment deployed with GitHub Actions, and end-to-end tests
-- [Divert with Istio](https://github.com/okteto-community/getting-started-with-divert-istio): Istio driver configuration
+- [Shared Namespace](development/divert/shared-namespace.mdx): create and maintain the namespace that runs the complete application
+- [Overlay Namespace](development/divert/overlay-namespace.mdx): enable Divert in your Okteto Manifest, how it works, and how to access your overlay service endpoints
+- [Header Propagation](development/divert/header-propagation.mdx): forward the divert header between your services
+- [Queue Splitting](development/divert/queue-splitting.mdx): keep each message in the namespace it belongs to
+- [Data Cloning](development/divert/data-cloning.mdx): give your Overlay Namespace its own copy of the databases it writes to
