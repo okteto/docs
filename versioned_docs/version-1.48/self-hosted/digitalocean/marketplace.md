@@ -96,4 +96,4 @@ Okteto requires a DigitalOcean personal access token with read/write permissions
 
 ## Support
 
-If you get stuck or have any questions, feel free to reach out to us at hello@okteto.com, [Twitter](https://twitter.com/oktetohq), or [our community](https://community.okteto.com/).
+If you get stuck or have any questions, [open a support ticket](https://okteto.com/support) or ask in the [Okteto Community](https://community.okteto.com).
