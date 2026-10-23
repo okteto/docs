@@ -313,11 +313,6 @@ module.exports = {
               target: '_self',
             },
             {
-              label: 'Community',
-              href: 'https://community.okteto.com',
-              target: '_self',
-            },
-            {
               label: 'GitHub',
               href: 'https://github.com/okteto/okteto',
             },
