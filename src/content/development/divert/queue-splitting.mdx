@@ -1,0 +1,51 @@
+---
+title: Queue Splitting
+description: Keep each message in the namespace it belongs to when you use Divert with message queues.
+sidebar_label: Queue Splitting
+id: queue-splitting
+---
+
+Queue splitting is making sure each message is consumed by the namespace it belongs to. Divert routes HTTP and gRPC requests, but it doesn't intercept message brokers like Kafka, RabbitMQ, or SQS. Without a strategy, a consumer in your Overlay Namespace and a consumer in the Shared Namespace compete for the same messages, and each message is processed by whichever gets it first.
+
+## Service-Owned Queues
+
+The recommended approach is that each subsystem owns its queues: only its own services publish to them and consume from them. Other subsystems send work to it through its gRPC or HTTP API, and the subsystem publishes to its own queue.
+
+In the following example, the API gateway sends work to the rentals and catalog subsystems through their APIs. Each subsystem has its own Kafka, and only its own worker consumes from it:
+
+![The API gateway calls the rent API and the catalog API. The rentals subsystem has the rent API, its own Kafka, the rent worker, and a PostgreSQL database used by the API and the worker. The catalog subsystem has the catalog API, its own Kafka, the catalog worker, and a MongoDB database used by the API and the worker](@site/static/img/divert-queues.svg)
+
+With this pattern, Divert splits queues without changes to your producers or consumers. In the following example, Cindy deploys only the rentals subsystem in her Overlay Namespace:
+
+![Requests with baggage okteto-divert=cindy go from the API gateway of staging to Cindy's rent API. Cindy's Overlay Namespace runs the whole rentals subsystem: the rent API, its own Kafka, the rent worker, and PostgreSQL](@site/static/img/divert-queues-overlay.svg)
+
+1. In your Overlay Namespace, deploy the whole subsystem: its API, its broker (or its own vhost), its workers, and its databases.
+2. A request with your divert header reaches your API, which publishes to your broker. Your service resolves the broker by a short name, such as `rabbitmq:5672`, so it gets the one in your Overlay Namespace.
+3. Your workers consume from your broker. Messages for the Shared Namespace never reach them, and yours never reach the shared workers.
+
+Two rules make the pattern work:
+
+- **Deploy the API and the workers together.** If you deploy only the API, it publishes to a broker that nobody consumes from.
+- **Workers propagate the divert header.** If a worker calls other services while processing a message, it forwards the `baggage` header it received, as described in [Header Propagation](development/divert/header-propagation.mdx).
+
+## Sending Messages to Other Subsystems
+
+If a service needs to send messages to another subsystem, the recommended approach is that the other subsystem receives them through an HTTP or gRPC API, and publishes them to its own queue. Your service calls that API by its service name:
+
+- If the other subsystem is also deployed in your Overlay Namespace, the call reaches your copy, which publishes to your broker.
+- If it isn't, the call reaches the API of the Shared Namespace, which publishes to the shared broker.
+
+Divert resolves this for you, so queues work with Divert without changes to your producers or consumers.
+
+## Publishing Directly to Another Subsystem's Broker
+
+If an API in front of the other subsystem isn't possible, and your service publishes directly to its broker, your application decides which broker to use. Configure the address of the broker of each subsystem that you publish to:
+
+- When the subsystem that owns the queue is deployed in your Overlay Namespace, use the broker of your Overlay Namespace, such as `catalog-kafka:9092`.
+- When it isn't, use the broker of the Shared Namespace, with its fully qualified domain name, such as `catalog-kafka.staging.svc.cluster.local:9092`.
+
+```yaml
+environment:
+  CATALOG_BROKER: catalog-kafka.staging.svc.cluster.local:9092 # catalog isn't deployed in your Overlay Namespace
+  RENTALS_BROKER: rentals-kafka:9092                           # rentals is deployed in your Overlay Namespace
+```

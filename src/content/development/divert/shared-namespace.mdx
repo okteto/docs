@@ -1,0 +1,38 @@
+---
+title: Shared Namespace
+description: Create and maintain the Shared Namespace that runs the complete application for Divert.
+sidebar_label: Shared Namespace
+id: shared-namespace
+---
+
+The Shared Namespace runs the complete application. Overlay Namespaces fall back to it for every service they don't deploy, so it should run the latest version of every service.
+
+## Preview Environment Redeployed on Every Merge
+
+The recommended setup is a global [Preview Environment](previews/index.mdx) that your CI redeploys on every merge to the main branch. Preview Environments can be deployed from any CI tool. For example, with GitHub Actions, use the `okteto/deploy-preview` action:
+
+```yaml
+name: Deploy the Shared Namespace
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: okteto/context@latest
+        with:
+          token: ${{ secrets.OKTETO_TOKEN }}
+          url: ${{ secrets.OKTETO_CONTEXT }}
+      - uses: okteto/deploy-preview@latest
+        with:
+          name: staging
+```
+
+Make the Shared Namespace [persistent](core/namespaces.mdx#mark-a-namespace-as-persistent-to-prevent-it-from-sleeping-and-deletion), so it never goes to sleep.
+
+## Namespace Outside Okteto
+
+The Shared Namespace can also be a namespace that Okteto doesn't manage, such as an existing staging namespace with production-like data. It must run in the same cluster as the Overlay Namespaces: Divert routes requests between namespaces of the same cluster, so a Shared Namespace in another cluster isn't supported. Your Admin configures access to it, as described in [Shared Namespaces Outside Okteto](self-hosted/install/divert/index.mdx#shared-namespaces-outside-okteto).

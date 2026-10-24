@@ -303,133 +303,55 @@ Your deploy commands will be executed before deploying your Docker Compose files
 
 #### Divert
 
-Divert allows you to create lightweight development environments that include only the services you are actively working on while leveraging an existing shared environment for all other microservices.
-This reduces infrastructure costs and complexity in large microservices architectures.
-
-Okteto supports two different drivers: `nginx` (default) and `istio`.
+Use the `divert` section to deploy only the services you change on top of a Shared Namespace. See [Divert](development/divert/index.mdx) to learn how it works.
 
 <Tabs
-  defaultValue="nginx"
+  defaultValue="gateway-api"
   values={[
-    { label: 'Nginx', value: 'nginx', },
-    { label: 'Istio', value: 'istio', },
+    { label: 'Gateway API', value: 'gateway-api', },
+    { label: 'Istio VirtualServices', value: 'istio', },
   ]}
 >
-<TabItem value="nginx">
-
-Use the `nginx` driver if your applications rely on Okteto-generated endpoints for service-to-service communication.
-
-To deploy a `diverted` development environment, add the `divert.namespace` key under the `deploy` section of your Okteto Manifest.
-This configuration tells Okteto where to redirect requests for services not deployed in your current development environment.
+<TabItem value="gateway-api">
 
 ```yaml
 deploy:
   commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - helm upgrade --install rentals rentals/chart --set api.image=${OKTETO_BUILD_RENT_IMAGE}
   divert:
-    driver: nginx
-    namespace: staging
+    namespace: ${SHARED_NAMESPACE:-staging}
+    hosts:
+      - movies-staging.okteto.example.com
 ```
 
-- `driver`: Specifies the backend to divert requests. Use `nginx` (or leave this field unspecified) to use the default Nginx driver.
-- `namespace`: The namespace that holds the full shareable environment. When a request is directed to a service that wasn't created by the `deploy` command, Okteto will automatically direct it to the environment running on this namespace. This must be an Okteto-managed Namespace — one that Okteto deployed. Namespaces that Okteto did not deploy are not officially supported as divert targets.
-
-**Environment Variable Support:**
-
-The `namespace` field supports environment variable substitution:
-
-```yaml
-divert:
-  namespace: ${OKTETO_SHARED_NAMESPACE:-staging}
-```
-
-**Behavior:**
-
-When you run `okteto deploy` with a `divert` configuration:
-
-1. **Deployment**: Only resources defined in your `deploy.commands` are created in your namespace
-2. **Header Injection**: Okteto injects the key `okteto-divert` within the header [`baggage`](https://www.w3.org/TR/baggage/) into every request that passes through your development ingress
-3. **Traffic Routing**: Requests with your baggage header route to your namespace; missing services fall back to the shared namespace
-4. **DNS Resolution**: Services resolve to the shared namespace when not deployed locally
-
-This header allows Okteto to route requests between services running in your personal Namespace and services running in a shared environment.
-
-:::tip
-To maintain request routing across service boundaries, we recommend propagating the `baggage` (with the key `okteto-divert`) header to all downstream service calls.
-Beyond request routing, this header can also be used to:
-- Route messages to different queues or topics
-- Redirect requests to services in other namespaces
-- Dynamically select the correct database instance for read/write operations
-
-Check out [Using Divert](../development/using-divert.mdx#header-propagation) for language-specific examples of header propagation.
-:::
-
-**Additional Examples:**
-
-With local database:
-```yaml
-deploy:
-  commands:
-    - helm upgrade --install mongodb bitnami/mongodb
-    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
-  divert:
-    namespace: staging
-```
-
-Using dependencies with divert:
-```yaml
-dependencies:
-  mongodb:
-    repository: https://github.com/okteto/mongodb
-    wait: true
-
-deploy:
-  commands:
-    - helm upgrade --install catalog chart/catalog --set image=${OKTETO_BUILD_CATALOG_IMAGE}
-  divert:
-    namespace: staging
-```
+- `namespace`: the Shared Namespace. Services that the `deploy` section doesn't create are served by this namespace. Supports environment variable substitution.
+- `hosts` (optional): the hosts of the Shared Namespace that you use to reach the application. Okteto creates a dedicated endpoint for each of them in your Overlay Namespace, which adds your divert header automatically.
 
 </TabItem>
-
 <TabItem value="istio">
-
-Use the `istio` driver if your development environments use Istio for managing service-to-service communication.
-
-When divert is enabled, Okteto injects the key `okteto-divert` within the header [`baggage`](https://www.w3.org/TR/baggage/) to every request coming from the developer Namespace.
-If a request reaches the shared Namespace and matches a diverted virtual service, Okteto automatically redirects the request back to the developer Namespace.
-
-To divert a virtual service as part of your development environment, use the following notation:
 
 ```yaml
 deploy:
   commands:
-    - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+    - helm upgrade --install api-gateway chart/api-gateway --set image=${OKTETO_BUILD_API_GATEWAY_IMAGE}
   divert:
     driver: istio
     virtualServices:
-      - name: vs1
+      - name: api-gateway
         namespace: staging
         routes:
-          - route1
-          - route2
+          - api-route
     hosts:
-      - virtualService: frontend
+      - virtualService: api-gateway
         namespace: staging
 ```
 
-- `driver`: Specifies the backend to divert requests. Use `istio` to use the Istio driver.
-- `virtualServices`: A list of Istio VirtualService resources in the shared namespace to modify for traffic diversion. Okteto adds header-based routing logic to these virtual services so that requests with the baggage header are sent to the developer's namespace. Each entry is defined by its name, namespace, and an optional list of routes to be diverted.
-- `hosts` (optional): A list of virtual services to copy into the developer namespace with a dedicated host (e.g., `https://service-a-<dev-namespace>.<subdomain>`). Requests reaching this host automatically have the `okteto-divert` key injected as part of the `baggage` header. The copied virtual service internally points to the original in the shared namespace, so the rest of the request flow passes through the shared environment with divert headers applied. Use this for services you are **not** deploying in your development environment — it provides a dedicated URL to reach your version of the app without manually adding the baggage header to requests against the staging endpoint. Services you deploy in your own namespace already have their own endpoints.
+- `driver`: set it to `istio`.
+- `virtualServices`: the VirtualServices in the Shared Namespace that Okteto modifies to send requests with your divert header to your Overlay Namespace. Each entry has a `name`, a `namespace`, and an optional list of `routes` to divert. Without `routes`, every route of the VirtualService is diverted.
+- `hosts` (optional): VirtualServices of the Shared Namespace that Okteto copies into your Overlay Namespace with their own host, such as `https://api-gateway-<your-namespace>.<subdomain>`. Requests to that host get your divert header automatically.
+
 </TabItem>
 </Tabs>
-
-**Related Documentation:**
-
-- **[Divert Core Concepts](../core/divert.mdx)** - Understanding Divert architecture and traffic routing
-- **[Using Divert](../development/using-divert.mdx)** - Implementation guide with header propagation examples
-- **[Divert Tutorial](/docs/tutorials/divert)** - Step-by-step getting started guide
-- **[Self-Hosted Configuration](../self-hosted/install/divert/index.mdx)** - Admin setup for Divert drivers
 
 ### destroy ([string], optional)
 

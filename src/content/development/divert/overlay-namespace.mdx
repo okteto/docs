@@ -1,0 +1,94 @@
+---
+title: Overlay Namespace
+description: Configure the divert section of the Okteto Manifest to deploy only the subsystems you change on top of a Shared Namespace.
+sidebar_label: Overlay Namespace
+id: overlay-namespace
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+An Overlay Namespace deploys only the subsystems you are changing, and uses the Shared Namespace for everything else. You configure it with the `divert` section of the Okteto Manifest.
+
+For each subsystem you change, deploy everything it owns: its API, its workers, its queues, and its databases. A good practice is to have two kinds of Okteto Manifests in your repository: one per subsystem, that deploys only the services you want to change, and one that deploys the full stack. Use the first one for your Overlay Namespace. Use the full-stack manifest to deploy the Shared Namespace, or when you need a full replica of the application to develop a feature.
+
+## Enabling Divert in Your Okteto Manifest
+
+The fields of the `divert` section depend on the driver configured in your cluster:
+
+<Tabs
+  defaultValue="gateway-api"
+  values={[
+    { label: 'Gateway API', value: 'gateway-api', },
+    { label: 'VirtualServices', value: 'istio', },
+  ]}
+>
+<TabItem value="gateway-api">
+
+```yaml
+deploy:
+  commands:
+    - name: Deploy the rentals subsystem
+      command: helm upgrade --install rentals rentals/chart --set api.image=${OKTETO_BUILD_RENT_IMAGE} --set worker.image=${OKTETO_BUILD_WORKER_IMAGE}
+  divert:
+    namespace: staging
+    hosts:
+      - movies-staging.okteto.example.com
+```
+
+- **`namespace`**: the Shared Namespace. Every service that the `deploy` section doesn't create is served by this namespace.
+- **`hosts`** (optional): the hosts of the Shared Namespace that you use to reach the application. Okteto creates a dedicated endpoint for each of them in your Overlay Namespace, which adds your divert header automatically.
+
+</TabItem>
+<TabItem value="istio">
+
+```yaml
+deploy:
+  commands:
+    - helm upgrade --install api-gateway chart/api-gateway --set image=${OKTETO_BUILD_API_GATEWAY_IMAGE}
+  divert:
+    driver: istio
+    virtualServices:
+      - name: api-gateway
+        namespace: staging
+        routes:
+          - api-route
+    hosts:
+      - virtualService: api-gateway
+        namespace: staging
+```
+
+- **`driver`**: set it to `istio`.
+- **`virtualServices`**: the VirtualServices in the Shared Namespace that Okteto modifies to send the requests with your divert header to your Overlay Namespace. Each entry has a `name`, a `namespace`, and an optional list of `routes` to divert. Without `routes`, every route of the VirtualService is diverted.
+- **`hosts`** (optional): VirtualServices of the Shared Namespace that Okteto copies into your Overlay Namespace with their own host, such as `https://api-gateway-<your-namespace>.<subdomain>`. Requests to that host get your divert header automatically.
+
+</TabItem>
+</Tabs>
+
+## How Divert Works in Your Overlay Namespace
+
+When you enable Divert in your Okteto Manifest, `okteto deploy` runs the `deploy` commands and then:
+
+1. **Configures DNS.** Okteto adds the Shared Namespace to the DNS search list of your pods. A service name resolves to your Overlay Namespace first, and to the Shared Namespace if the service isn't deployed in yours. Your services call other services by name as usual.
+2. **Sets environment variables in your deploy commands.** Your `deploy` commands get `OKTETO_NAMESPACE`, with the name of your Overlay Namespace, and `OKTETO_SHARED_NAMESPACE`, with the name of the Shared Namespace. Pass them to your services, for example as Helm values, if your services need them.
+3. **Routes the requests with your divert header.** With the Gateway API driver, Okteto creates an `HTTPRoute` in the Shared Namespace for each of your overlay services. With the Istio driver, it adds the routing rules to the VirtualServices listed in `virtualServices`. Either way, requests that reach the Shared Namespace with your divert header go to your overlay services.
+4. **Creates dedicated endpoints.** For each host listed in `hosts`, Okteto creates an endpoint specific to your Overlay Namespace, and shows it in the Okteto UI. These endpoints add your divert header to every request automatically.
+
+## Accessing Your Overlay Service Endpoints
+
+There are two ways to reach the endpoints of your overlay services:
+
+1. **The dedicated endpoints of your Overlay Namespace.** Okteto creates them for the hosts listed in `hosts`, and shows them in the Okteto UI of your Overlay Namespace. They add your divert header automatically, so they work without any setup.
+2. **The endpoints of the Shared Namespace**, such as `https://movies-staging.okteto.example.com`. Without a divert header, they reach the Shared Namespace. To reach your overlay services through them, add your divert header, `baggage: okteto-divert=<your-namespace>`, to your requests:
+   - **In the browser**, with an extension such as [Requestly](https://requestly.com/) that sends the header on every request.
+   - **With CLI tools and scripts**, by setting the header in each request. For example, with `curl`:
+
+     ```bash
+     curl -H "baggage: okteto-divert=cindy" https://movies-staging.okteto.example.com/api/rent
+     ```
+
+Sometimes it's hard to create a domain per namespace: DNS rules don't allow it, certificates can't be generated automatically, or wildcard certificates aren't an option. Accessing through the endpoints of the Shared Namespace avoids the problem. You only configure one set of domains and certificates, for the Shared Namespace, and you choose the namespace that serves each request with the divert header.
+
+A sleeping Overlay Namespace only wakes up when a request reaches one of its own endpoints. Requests routed to your overlay services through the endpoints of the Shared Namespace don't wake it up. If your Overlay Namespace has no endpoints of its own, list the hosts you use in `hosts`: Okteto creates a dedicated endpoint for each of them, and requests to those endpoints wake up your Overlay Namespace.
+
+The dedicated endpoints use a different domain from the hosts of the Shared Namespace. If your application calls other hosts from the browser, configure it to accept cross-origin requests from the wildcard domain of your Okteto instance, such as `*.okteto.example.com`.
