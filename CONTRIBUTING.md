@@ -4,7 +4,7 @@ Thank you for showing interest in contributing to the Okteto docs! We appreciate
 
 ## Code of Conduct
 
-This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report any unacceptable behavior to hello@okteto.com.
+This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report any unacceptable behavior privately through [Okteto Support](https://okteto.com/support).
 
 ## Ways To Contribute
 

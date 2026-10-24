@@ -313,11 +313,6 @@ module.exports = {
               target: '_self',
             },
             {
-              label: 'Community',
-              href: 'https://community.okteto.com',
-              target: '_self',
-            },
-            {
               label: 'GitHub',
               href: 'https://github.com/okteto/okteto',
             },
@@ -341,8 +336,12 @@ module.exports = {
           title: 'Contact Us',
           items: [
             {
-              label: 'hello@okteto.com',
-              href: 'mailto:hello@okteto.com',
+              label: 'Support',
+              href: 'https://okteto.com/support',
+            },
+            {
+              label: 'Community',
+              href: 'https://community.okteto.com',
             },
             {
               label: 'Twitter',
