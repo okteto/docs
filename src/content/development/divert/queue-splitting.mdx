@@ -49,3 +49,18 @@ environment:
   CATALOG_BROKER: catalog-kafka.staging.svc.cluster.local:9092 # catalog isn't deployed in your Overlay Namespace
   RENTALS_BROKER: rentals-kafka:9092                           # rentals is deployed in your Overlay Namespace
 ```
+
+## Message-Level Routing
+
+Message-level routing is sharing the broker of the Shared Namespace, and making each consumer process only the messages of its namespace. You can deploy only the consumer you work on, without a broker, but every producer and consumer needs changes.
+
+In the following example, Cindy deploys only the rent worker. Both rent workers receive every message, and each one skips the messages of the other:
+
+![The rent API of staging publishes to the shared broker with the baggage in the message headers. The rent worker of staging skips the messages with okteto-divert=cindy. Cindy's rent worker processes only the messages with okteto-divert=cindy](@site/static/img/divert-queues-routing.svg)
+
+1. **Producers copy the divert header into the message.** A service that publishes a message while handling a request copies the `baggage` header of the request to the message headers.
+2. **Each Overlay Namespace creates its own subscription.** Give your consumer its own subscription, such as `rent-worker-cindy`, starting from the latest message, so it receives every new message.
+3. **Consumers filter by the divert header.** Your consumer processes only the messages with the `okteto-divert` entry of your environment. The shared consumer processes the rest.
+4. **Consumers propagate the divert header.** A consumer forwards the `baggage` header of the message on any request or message it sends while processing it.
+
+Delete your subscription when you destroy your Overlay Namespace.
