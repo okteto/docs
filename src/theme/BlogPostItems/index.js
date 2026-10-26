@@ -1,14 +1,12 @@
 // Swizzled (ejected): the blog index, tag and author pages show a grid of
 // post cards instead of the stock list of truncated posts, matching the
-// layout of the Sanity-powered blog.
+// layout of the Sanity-powered blog. Cards show no date: dates only order
+// the posts (newest first).
 
 import React from 'react';
 import Link from '@docusaurus/Link';
 
 import styles from './styles.module.scss';
-
-const formatDate = (date) =>
-  new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 
 function PostCard({ content }) {
   const { metadata, frontMatter, assets } = content;
@@ -27,10 +25,7 @@ function PostCard({ content }) {
           )}
           <div className={styles.cardMeta}>
             {author?.imageURL && <img src={author.imageURL} alt="" className={styles.avatar} />}
-            <span>
-              {author?.name && <strong>{author.name}</strong>}
-              <time dateTime={metadata.date}>{formatDate(metadata.date)}</time>
-            </span>
+            {author?.name && <strong>{author.name}</strong>}
           </div>
         </div>
       </Link>

@@ -46,7 +46,7 @@ module.exports = {
         sitemap: {
           filename: 'sitemap-blog.xml',
           // The old blog kept tag pages out of the sitemap too.
-          ignorePatterns: ['/blog/tags/**', '/blog/authors/', '/blog/archive/'],
+          ignorePatterns: ['/blog/tags/**', '/blog/authors/'],
         },
         ...shared.presetOptions,
         theme: {
@@ -66,6 +66,9 @@ module.exports = {
           'Posts from the Okteto team on development environments, platform engineering, Kubernetes, and AI coding agents.',
         postsPerPage: 30,
         blogSidebarCount: 0,
+        // Posts are ordered by `date`, but dates are not shown anywhere on the
+        // blog, so there is no by-year archive page either.
+        archiveBasePath: null,
         showReadingTime: true,
         authorsMapPath: '../authors.yml',
         tags: '../tags.yml',

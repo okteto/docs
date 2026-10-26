@@ -26,7 +26,7 @@ blog/
    title: "Okteto vs Bunnyshell: Choosing the Right Kubernetes Environment Platform"
    description: "One sentence for search results and link previews."
    slug: compare-okteto-versus-bunnyshell     # URL: /blog/compare-okteto-versus-bunnyshell/
-   date: 2026-09-10
+   date: 2026-09-10                             # orders posts (newest first); never shown
    authors: ["ramiro-berrelleza"]               # keys from authors.yml
    tags: ["kubernetes", "development-environments"]   # keys from tags.yml
    image: ./img/cover.jpg                       # featured image and social card

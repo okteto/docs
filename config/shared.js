@@ -60,9 +60,8 @@ function navbar(site, { start = [], end = [] } = {}) {
     items: [
       ...start,
       { href: SITE_URL, label: 'Product', position: 'left', target: '_self' },
-      site === 'blog'
-        ? { ...linkTo(site, 'docs', '/', 'Docs'), position: 'left' }
-        : { ...linkTo(site, 'blog', '/', 'Blog'), position: 'left' },
+      { ...linkTo(site, 'docs', '/', 'Docs'), position: 'left' },
+      { ...linkTo(site, 'blog', '/', 'Blog'), position: 'left' },
       { href: 'https://community.okteto.com', label: 'Community', position: 'left', target: '_self' },
       ...end,
       {
