@@ -68,12 +68,37 @@ async function groq(query) {
 // q85 is a fraction of that with no visible loss at blog sizes. `format: jpg`
 // is used for featured/social images because some link unfurlers still don't
 // render WebP og:images.
-function imageUrl(ref, { maxWidth = MAX_IMAGE_WIDTH, format = 'webp' } = {}) {
+// Author photos where the face isn't near the top of the frame, so the default
+// top-anchored square crop misses it. Values are Sanity focal-point crop
+// parameters (fraction of the image height, zoom), picked by eye.
+const AVATAR_FOCUS = {
+  'ashlynn-pericacho': { y: 0.46, zoom: 3 },
+  'anita-ihuman': { y: 0.36, zoom: 3 },
+};
+
+function imageUrl(ref, { maxWidth = MAX_IMAGE_WIDTH, format = 'webp', square = false, focus = null } = {}) {
   const [, hash, dims, ext] = ref.match(/^image-([a-f0-9]+)-(\d+x\d+)-(\w+)$/);
   const base = `https://cdn.sanity.io/images/${PROJECT_ID}/${DATASET}/${hash}-${dims}.${ext}`;
   if (['svg', 'gif'].includes(ext)) return { url: base, name: `${hash.slice(0, 12)}.${ext}` };
   const params = new URLSearchParams({ fm: format, q: '85' });
-  if (Number(dims.split('x')[0]) > maxWidth) params.set('w', String(maxWidth));
+  if (square) {
+    // Author photos render as circles. Crop to a square anchored at the top,
+    // where faces sit in portrait shots, instead of letting the browser squash
+    // a 400x600 photo into a circle.
+    const [w, h] = dims.split('x').map(Number);
+    const side = Math.min(maxWidth, w, h);
+    params.set('w', String(side));
+    params.set('h', String(side));
+    params.set('fit', 'crop');
+    if (focus) {
+      params.set('crop', 'focalpoint');
+      params.set('fp-x', '0.5');
+      params.set('fp-y', String(focus.y));
+      params.set('fp-z', String(focus.zoom));
+    } else {
+      params.set('crop', 'top');
+    }
+  } else if (Number(dims.split('x')[0]) > maxWidth) params.set('w', String(maxWidth));
   return { url: `${base}?${params}`, name: `${hash.slice(0, 12)}.${format}` };
 }
 
@@ -445,7 +470,7 @@ async function writeAuthors(posts) {
     if (a.jobtitle) lines.push(`  title: ${yamlString(a.jobtitle)}`);
     if (a.headline) lines.push(`  description: ${yamlString(a.headline)}`);
     if (a.image?.asset?._ref) {
-      const { url, name } = imageUrl(a.image.asset._ref, { maxWidth: 400 });
+      const { url, name } = imageUrl(a.image.asset._ref, { maxWidth: 400, square: true, focus: AVATAR_FOCUS[slug] });
       const file = `${slug}${path.extname(name)}`;
       downloads.push({ url, dest: path.join(AUTHOR_IMG_DIR, file) });
       lines.push(`  image_url: /img/authors/${file}`);
