@@ -10,13 +10,18 @@
 
 const SITE_URL = 'https://www.okteto.com';
 
-// Links between the two sites are absolute: a root-relative `/blog/` href on
-// the docs site would get the docs baseUrl prepended (Docusaurus does this
-// even for `pathname://` links). Inside the current site, links use `to` so
-// they go through the router.
+// Links between the two sites are root-relative (/docs/..., /blog/...), so
+// they stay on whatever host serves the page: production, a Netlify deploy
+// preview or an Okteto preview environment. Two switches make Docusaurus
+// emit them as plain links: `autoAddBaseUrl: false` stops it from prefixing
+// the current site's baseUrl (/docs/blog/), and `pathname://` makes it a full
+// page load instead of a client-side route the current site doesn't have.
+// Inside the current site, links use `to` so they go through the router.
 function linkTo(site, target, path, label) {
   if (site === target) return { label, to: path };
-  return { label, href: `${SITE_URL}/${target}${path}`, target: '_self' };
+  // Both sites use trailing slashes; without one the link costs a redirect.
+  const withSlash = path.endsWith('/') ? path : `${path}/`;
+  return { label, href: `pathname:///${target}${withSlash}`, autoAddBaseUrl: false, target: '_self' };
 }
 
 const siteConfig = {
