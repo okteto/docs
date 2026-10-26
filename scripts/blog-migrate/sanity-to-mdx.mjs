@@ -137,7 +137,33 @@ function codeSpan(text) {
 // on the old blog. On the Docusaurus blog they'd get the /blog/ baseUrl
 // prepended, so anything outside /blog/ becomes an absolute URL.
 function absolutize(href) {
-  return /^\/(?!\/|blog\/)/.test(href) ? `https://www.okteto.com${href}` : href;
+  return followLegacyRedirect(/^\/(?!\/|blog\/)/.test(href) ? `https://www.okteto.com${href}` : href);
+}
+
+// Posts that were renamed or merged left 301s in the website's _redirects
+// (/blog/old-slug /blog/new-slug/ 301!). Links to the old slug still worked
+// through the redirect; point them straight at the new URL instead.
+const legacyRedirects = new Map();
+async function loadLegacyRedirects() {
+  if (!LEGACY_STATIC_DIR) return;
+  const file = path.join(LEGACY_STATIC_DIR, '..', '_redirects');
+  let text;
+  try {
+    text = await fs.readFile(file, 'utf8');
+  } catch {
+    return;
+  }
+  for (const line of text.split('\n')) {
+    const [from, to, status = '301'] = line.trim().split(/\s+/);
+    if (!from?.startsWith('/blog/') || !to?.startsWith('/blog/') || !/^30[18]!?$/.test(status)) continue;
+    legacyRedirects.set(from.replace(/\/$/, ''), to);
+  }
+}
+
+function followLegacyRedirect(href) {
+  const m = href.match(/^(?:https?:\/\/(?:www\.)?okteto\.com)?(\/blog\/[^/?#]+)\/?([?#].*)?$/);
+  const target = m && legacyRedirects.get(m[1]);
+  return target ? `https://www.okteto.com${target.replace(/\/?$/, '/')}${m[2] || ''}` : href;
 }
 
 function safeHref(href) {
@@ -241,8 +267,16 @@ function renderBlock(block, ctx) {
       }
       const style = block.style || 'normal';
       const heading = { h1: '#', h2: '##', h3: '###', h4: '####', h5: '#####', h6: '######' }[style];
-      // Headings are already bold, and `## **Title**` reads badly in source.
-      if (heading) return `${heading} ${escapeText(plainText(block).replace(/\s+/g, ' ').trim())}`;
+      // Headings are already bold, and `## **Title**` reads badly in source,
+      // so only link marks are kept.
+      if (heading) {
+        const linkKeys = new Set((block.markDefs || []).filter((d) => d._type === 'link').map((d) => d._key));
+        const linksOnly = {
+          ...block,
+          children: (block.children || []).map((c) => ({ ...c, marks: (c.marks || []).filter((m) => linkKeys.has(m)) })),
+        };
+        return `${heading} ${renderInline(linksOnly).replace(/<br \/>\n/g, ' ').replace(/\s+/g, ' ').trim()}`;
+      }
       if (style === 'blockquote') return text.split('\n').map((l) => `> ${l}`).join('\n');
       return text.split('\n').map(escapeLineStart).join('\n');
     }
@@ -280,10 +314,10 @@ function renderBlock(block, ctx) {
       return `<Arcade id=${jsx(block.arcadeID)} />`;
     case 'baseButton':
       ctx.components.add('BlogButton');
-      return `<BlogButton href=${jsx(block.url)} variant=${jsx((block.theme || 'Green').toLowerCase())}${block.arrow ? ' arrow' : ''}>${escapeText(block.label || '')}</BlogButton>`;
+      return `<BlogButton href=${jsx(block.url && absolutize(block.url.trim()))} variant=${jsx((block.theme || 'Green').toLowerCase())}${block.arrow ? ' arrow' : ''}>${escapeText(block.label || '')}</BlogButton>`;
     case 'callToActionPancake': {
       ctx.components.add('CallToAction');
-      const actions = (block.callToActions?.callToActions || []).map(({ label, url }) => ({ label, url }));
+      const actions = (block.callToActions?.callToActions || []).map(({ label, url }) => ({ label, url: url && absolutize(url.trim()) }));
       return `<CallToAction title=${jsx(block.title || '')} actions=${jsx(actions)} />`;
     }
     case 'customerQuote': {
@@ -320,6 +354,34 @@ function renderBlock(block, ctx) {
       warn(`block ${block._type} dropped`);
       return null;
   }
+}
+
+// Dead external links found by the 2026-10-26 link audit. Each entry points
+// the link at the page's new location or, when none exists, removes it.
+const CONTENT_FIXES = [
+  // OpenShift moved its docs to docs.redhat.com.
+  [
+    'https://docs.openshift.com/container-platform/4.1/authentication/using-rbac.html',
+    'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/authentication_and_authorization/using-rbac',
+  ],
+  // The article is gone and has no new home; drop it from the reference list.
+  ['- https://jeremievallee.com/2018/05/28/kubernetes-rbac-namespace-user.html\n', ''],
+  // Docker retired the get-started Swarm guide; link Swarm mode itself.
+  ['https://docs.docker.com/get-started/swarm-deploy/', 'https://docs.docker.com/engine/swarm/'],
+  // Gartner's conference topic page is gone; its platform engineering article replaces it.
+  [
+    'https://www.gartner.com/en/conferences/na/applications-us/featured-topic/platform-engineering',
+    'https://www.gartner.com/en/articles/what-is-platform-engineering',
+  ],
+  // The episode MP3 no longer exists on the podcast's site; link the episode page instead.
+  [
+    /<div class="no-border"[^]*?<audio controls[^]*?KPfGep125\.mp3[^]*?<\/audio>\s*<\/div>/,
+    '[Listen to the episode on the Kubernetes Podcast from Google](https://kubernetespodcast.com/episode/125-okteto/).',
+  ],
+];
+
+function applyContentFixes(text) {
+  return CONTENT_FIXES.reduce((out, [from, to]) => (typeof from === 'string' ? out.split(from).join(to) : out.replace(from, to)), text);
 }
 
 // ---------------------------------------------------------------------------
@@ -405,6 +467,7 @@ async function writeTags(tags) {
 }
 
 async function main() {
+  await loadLegacyRedirects();
   const [posts, tags] = await Promise.all([groq(POSTS_QUERY), groq(TAGS_QUERY)]);
   console.log(`sanity: ${posts.length} published posts, ${tags.length} tags`);
 
@@ -448,8 +511,8 @@ async function main() {
       // .md files as plain Markdown, so raw HTML and stray `{` keep working).
       let text = post.textMarkdown.replace(/\r\n/g, '\n').trim();
       text = text
-        .replace(/(\]\()(\/[^)\s]*)/g, (m, open, href) => `${open}${absolutize(href)}`)
-        .replace(/(href=["'])(\/[^"']*)/g, (m, open, href) => `${open}${absolutize(href)}`);
+        .replace(/(\]\()((?:https?:\/\/(?:www\.)?okteto\.com)?\/[^)\s]*)/g, (m, open, href) => `${open}${absolutize(href)}`)
+        .replace(/(href=["'])((?:https?:\/\/(?:www\.)?okteto\.com)?\/[^"']*)/g, (m, open, href) => `${open}${absolutize(href)}`);
       if (await copyLegacyStatic(post.slug)) {
         // `![x](demo.gif)` resolved against the page URL on the old blog. In
         // Docusaurus a relative Markdown image must be a file next to the
@@ -463,7 +526,7 @@ async function main() {
     stats[ext] += 1;
 
     for (const stale of ['index.md', 'index.mdx']) await fs.rm(path.join(postDir, stale), { force: true });
-    await fs.writeFile(path.join(postDir, `index.${ext}`), `${frontMatter(post, featured, social)}\n\n${body.trim()}\n`);
+    await fs.writeFile(path.join(postDir, `index.${ext}`), `${frontMatter(post, featured, social)}\n\n${applyContentFixes(body).trim()}\n`);
   }
 
   const authorCount = await writeAuthors(posts);

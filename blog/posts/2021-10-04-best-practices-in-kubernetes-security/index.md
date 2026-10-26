@@ -178,8 +178,7 @@ When implementing RBAC, you should prefer namespace-specific rights over cluster
 
 - https://docs.giantswarm.io/getting-started/rbac-and-psp/
 - https://www.cncf.io/blog/2018/08/01/demystifying-rbac-in-kubernetes/
-- https://jeremievallee.com/2018/05/28/kubernetes-rbac-namespace-user.html
-- https://docs.openshift.com/container-platform/4.1/authentication/using-rbac.html
+- https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/authentication_and_authorization/using-rbac
 - https://thenewstack.io/three-realistic-approaches-to-kubernetes-rbac/
 
 ### Protect etcd with TLS, Firewall and Encryption
