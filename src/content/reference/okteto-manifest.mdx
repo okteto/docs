@@ -306,18 +306,18 @@ Your deploy commands will be executed before deploying your Docker Compose files
 Divert allows you to create lightweight development environments that include only the services you are actively working on while leveraging an existing shared environment for all other microservices.
 This reduces infrastructure costs and complexity in large microservices architectures.
 
-Okteto supports two different drivers: `nginx` (default) and `istio`.
+Okteto supports two different drivers: `gateway-api` (default) and `istio`.
 
 <Tabs
-  defaultValue="nginx"
+  defaultValue="gateway-api"
   values={[
-    { label: 'Nginx', value: 'nginx', },
+    { label: 'Gateway API', value: 'gateway-api', },
     { label: 'Istio', value: 'istio', },
   ]}
 >
-<TabItem value="nginx">
+<TabItem value="gateway-api">
 
-Use the `nginx` driver if your applications rely on Okteto-generated endpoints for service-to-service communication.
+Use the `gateway-api` driver if your applications rely on Okteto-generated endpoints for service-to-service communication.
 
 To deploy a `diverted` development environment, add the `divert.namespace` key under the `deploy` section of your Okteto Manifest.
 This configuration tells Okteto where to redirect requests for services not deployed in your current development environment.
@@ -327,11 +327,11 @@ deploy:
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
   divert:
-    driver: nginx
+    driver: gateway-api
     namespace: staging
 ```
 
-- `driver`: Specifies the backend to divert requests. Use `nginx` (or leave this field unspecified) to use the default Nginx driver.
+- `driver`: Specifies the backend to divert requests. Use `gateway-api` (or leave this field unspecified) to use the default driver. The `nginx` value is no longer accepted.
 - `namespace`: The namespace that holds the full shareable environment. When a request is directed to a service that wasn't created by the `deploy` command, Okteto will automatically direct it to the environment running on this namespace. This must be an Okteto-managed Namespace — one that Okteto deployed. Namespaces that Okteto did not deploy are not officially supported as divert targets.
 
 **Environment Variable Support:**

@@ -12,15 +12,15 @@ Okteto supports two drivers for Divert routing:
 
 | Driver | Description | Default | Purpose |
 |--------|-------------|---------|---------|
-| **nginx** | Uses Okteto's built-in nginx ingress controller | ✅ Yes | Standard installations with Okteto-managed routing |
+| **gateway-api** | Uses Okteto's built-in nginx ingress controller | ✅ Yes | Standard installations with Okteto-managed routing |
 | **istio** | Uses Istio's VirtualService for header-based routing | No | Environments with existing Istio service mesh |
 
 :::info Important Distinction
 **Istio and Linkerd serve different purposes:**
-- **Istio** is a **divert driver** - an alternative to the nginx driver for environments already using Istio
-- **Linkerd** is an **optional enhancement** for the **nginx driver** - it adds service mesh capabilities to nginx-based routing
+- **Istio** is a **divert driver** - an alternative to the gateway-api driver for environments already using Istio
+- **Linkerd** is an **optional enhancement** for the **gateway-api driver** - it adds service mesh capabilities to nginx-based routing
 - You **cannot** use both Istio driver and Linkerd together
-- Choose one: nginx driver (with optional Linkerd) **OR** istio driver
+- Choose one: gateway-api driver (with optional Linkerd) **OR** istio driver
 :::
 
 ## Okteto's Ingress Controllers
@@ -34,9 +34,9 @@ By default, Okteto deploys two nginx ingress controllers:
 
 Running two separate controllers isolates user traffic from control plane traffic, preventing developer app deployments from disrupting control plane access during reconfigurations and updates, and vice versa (this is an nginx limitation). When using the Istio driver, `okteto-nginx` is disabled in favor of Istio handling user traffic. See the [Istio Installation](istio-installation.mdx) guide for details.
 
-## nginx Driver (Default)
+## gateway-api Driver (Default)
 
-The nginx driver is enabled by default in Okteto installations. It uses the `okteto-nginx` ingress controller to inject and route based on the `baggage: okteto-divert=<namespace>` header.
+The gateway-api driver is enabled by default in Okteto installations. It uses the `okteto-nginx` ingress controller to inject and route based on the `baggage: okteto-divert=<namespace>` header. The previous `nginx` value is no longer accepted.
 
 ### Requirements
 
@@ -52,7 +52,7 @@ The nginx driver is enabled by default in Okteto installations. It uses the `okt
 
 ### Linkerd Integration (Optional)
 
-For enhanced service mesh capabilities with the nginx driver, you can install Linkerd. This provides:
+For enhanced service mesh capabilities with the gateway-api driver, you can install Linkerd. This provides:
 
 - Header-based routing at the service mesh level
 - Automatic mTLS between services
@@ -66,7 +66,7 @@ See [Linkerd Installation](linkerd-installation.mdx) for setup instructions.
 The istio driver is designed for environments that already use Istio for service mesh. It leverages Istio's VirtualService for header-based routing without requiring additional components.
 
 :::warning
-The istio driver is for environments that have **already installed Istio** and prefer Istio-native routing. If you don't have Istio, use the nginx driver instead. Do not install Istio just for Divert - the nginx driver is simpler and sufficient.
+The istio driver is for environments that have **already installed Istio** and prefer Istio-native routing. If you don't have Istio, use the gateway-api driver instead. Do not install Istio just for Divert - the gateway-api driver is simpler and sufficient.
 :::
 
 ### Requirements
@@ -90,14 +90,14 @@ See [Istio Installation](istio-installation.mdx) for full setup instructions, in
 
 Once an administrator has configured the Divert infrastructure, developers use the `divert` section in their `okteto.yaml`:
 
-### nginx Driver Example
+### gateway-api Driver Example
 
 ```yaml
 deploy:
   commands:
     - helm upgrade --install myservice chart
   divert:
-    driver: nginx  # Optional, this is the default
+    driver: gateway-api  # Optional, this is the default
     namespace: staging
 ```
 
@@ -127,7 +127,7 @@ Both drivers use the same header format (unified in Okteto 1.31+):
 baggage: okteto-divert=<namespace>
 ```
 
-For backward compatibility with older nginx driver installations, the header `baggage.okteto-divert` is also supported but deprecated.
+For backward compatibility, the header `baggage.okteto-divert` is also supported but deprecated.
 
 ## Network Policies
 
@@ -179,7 +179,7 @@ For complete network policy configuration options, see the [Helm Configuration r
 
 ## Next Steps
 
-- **[Linkerd Installation](linkerd-installation.mdx)** - Enhanced routing with Linkerd (nginx driver only)
+- **[Linkerd Installation](linkerd-installation.mdx)** - Enhanced routing with Linkerd (gateway-api driver only)
 - **[Istio Installation](istio-installation.mdx)** - Full Istio setup guide (istio driver)
 - **[Using Divert](development/using-divert.mdx)** - Developer implementation guide
 - **[Divert Tutorial](/docs/tutorials/divert)** - Getting started guide for developers
