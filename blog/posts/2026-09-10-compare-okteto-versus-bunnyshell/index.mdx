@@ -1,0 +1,169 @@
+---
+title: "Okteto vs Bunnyshell: Choosing the Right Kubernetes Environment Platform for Your Team"
+title_meta: "Okteto vs Bunnyshell: Comparing Kubernetes Environment Platforms"
+description: "Okteto and Bunnyshell take different approaches to Kubernetes environments. This guide explains the key differences to help you choose."
+slug: compare-okteto-versus-bunnyshell
+date: 2026-09-10
+authors: ["ramiro-berrelleza"]
+image: ./img/2629ad8166a5.jpg
+image_alt: "Graphic with okteto versus bunnyshell logos"
+---
+
+import { CallToAction } from '@site/src/components/blog';
+
+Most platform comparisons turn into feature checklists, and feature checklists are the least useful way to make this decision. Both Okteto and Bunnyshell will give your developers an environment per pull request. Both run your workloads in your own Kubernetes cluster. If that is the whole requirement, either one will do the job.
+
+{/* truncate */}
+
+The decision gets interesting when you ask a different question: who holds the environment, and who does it answer to? Bunnyshell delivers environments to you as a service from its own cloud. Okteto gives you an environment platform that lives inside your infrastructure. That single difference propagates into where your configuration is stored, what access your cluster has to grant, how the platform bills you, and what happens when AI agents start asking for environments too. This guide walks through it.
+
+## Understanding the Shared Challenge
+
+Modern cloud-native development is complex. Your applications aren't just code anymore. They're code plus configuration, runtime dependencies, network policies, secrets, and interactions across dozens of microservices. Developers can't gain real confidence that their changes work by running unit tests on a laptop. They need access to realistic environments that reflect production complexity.
+
+Both Okteto and Bunnyshell recognize this challenge, and both were built to end the queue for a shared staging environment. Bunnyshell's own documentation opens on exactly that pain: only one engineer at a time can deploy to staging, so everyone else waits or competes for access. That is a real problem, and it is worth solving.
+
+The two platforms diverge on where the solution should live. That is the part worth understanding before you commit.
+
+## How Bunnyshell Works
+
+Bunnyshell describes itself as an Environments as a Service platform. You connect a Kubernetes cluster and a Git provider, and Bunnyshell orchestrates full-stack environments inside your cluster on demand or automatically from pull requests.
+
+The model is genuinely capable. You define an environment as a set of components, and those components can come from Docker Compose files, Helm charts, raw Kubernetes manifests, Terraform modules, prebuilt Docker images, or your own scripts. First-class Terraform components are a real strength if your environments include cloud resources alongside containers. Container images build inside a Kubernetes cluster using Kaniko or BuildKit, either yours or one Bunnyshell manages. Dependencies between components are declared with `dependsOn`, and anything without a dependency deploys in parallel. Bunnyshell installs webhooks in your Git provider, so opening a pull request clones a designated primary environment with the branch swapped, and closing or merging the pull request destroys it. Git ChatOps lets developers drive environments from pull request comments, which is a nice touch we do not have an equivalent for.
+
+The architectural detail that matters most is how Bunnyshell reaches your cluster. It connects from the outside, to your Kubernetes API server, using credentials you provide. Its documentation is direct about the consequence: clusters "need to either be publicly exposed, or have Bunnyshell IPs whitelisted." Its guidance for private and air-gapped clusters says the same thing, and states plainly that without API access, Bunnyshell cannot create, monitor, or destroy environments. The environment definition itself, `bunnyshell.yaml`, is held by the platform rather than your repository. Their docs note it is stored "for now" exclusively in Bunnyshell.
+
+For teams whose main pain is the staging queue, and whose clusters can accept an external control plane, this is a coherent and well-built answer.
+
+## How Okteto Works
+
+Okteto starts from a different premise: the environment platform should be a component of your infrastructure, not a service that reaches into it.
+
+You [install Okteto inside your own Kubernetes cluster with our Helm chart](https://www.okteto.com/docs/get-started/install/), or you run it as [Bring Your Own Cloud](https://www.okteto.com/docs/byoc/), where we operate the platform inside your cloud account while you keep ownership of the account and the data. Nothing outside your perimeter needs a route to your Kubernetes API. [Air-gapped installation](https://www.okteto.com/docs/self-hosted/manage/air-gapped/) is documented end to end, including mirroring the platform and CLI images into your private registry and disabling telemetry, so a cluster with no internet access at all can still run the full platform.
+
+Your environment definition, [`okteto.yaml`](https://www.okteto.com/docs/core/okteto-manifest/), is a file in your repository. That is not a filing detail. It means environment changes arrive as pull requests, get reviewed, carry history, and roll back like any other code. It also means one definition serves every consumer: the CLI a developer runs, the Preview Environment built for a pull request, the test containers `okteto test` executes, and the AI agent working on a ticket all read the same file.
+
+That manifest sits on top of what you already have rather than replacing it. Okteto implements and extends the [Compose Specification](https://www.okteto.com/docs/reference/docker-compose/), so a `docker-compose.yaml` deploys to Kubernetes as written, and Helm charts and raw Kubernetes manifests work the same way. For the parts of your stack that are not containers, the manifest's [`external` section](https://www.okteto.com/docs/tutorials/external-resources/) pulls cloud resources into the environment, so an RDS database, an S3 bucket, a Lambda function or a LaunchDarkly environment is created alongside it, shown in the dashboard, garbage-collected with it, and torn down by `okteto destroy`. Provisioning tooling stays your choice, because `deploy` commands run whatever you point them at, Terraform included. And since [those commands can run remotely](https://www.okteto.com/docs/core/remote-execution/), your developers do not need Helm, kubectl or Terraform installed locally at all.
+
+Okteto is also built on the premise that different environment types exist to serve different workflows, and a platform should be optimized for each workflow's specific job.
+
+[**Dev Environments**](https://www.okteto.com/docs/development/) are optimized for iteration speed. [File sync and live updates](https://www.okteto.com/docs/development/containers/file-sync/), hot reload, remote debugging, port forwarding for IDE integration, [hybrid mode](https://www.okteto.com/docs/development/containers/hybrid/) for running one service locally against the rest in the cluster, and [Volume Snapshots](https://www.okteto.com/docs/core/use-volume-snapshots/), which seed a new environment's database from a snapshot of real staging or production data, so dev and preview environments come up populated instead of empty.
+
+[**Preview Environments**](https://www.okteto.com/docs/previews/) are optimized for collaboration and validation, with auto-deploy on pull requests, shareable URLs, and automatic cleanup. The job is letting PMs, designers, QA, and stakeholders validate a change with no technical setup.
+
+**Test Environments** are optimized for consistency. [Okteto Test](https://www.okteto.com/docs/testing/) runs unit, integration, and end-to-end tests inside the cluster rather than on a separate CI virtual machine, with the same runtime as production and access to private services.
+
+[**Agent Environments**](https://www.okteto.com/docs/ai-agent-environments/) give AI coding agents the same isolated, production-like environment a developer gets, driven by the same CLI and manifest, so an agent can deploy its change, run the tests, hit the live endpoints, and read the logs before a human reviews anything.
+
+<CallToAction title={"See how Okteto's on-demand development environments provide the runtime feedback infrastructure developers and AI agents need to deliver production-ready code."} actions={[{"label":"Get a demo","url":"https://www.okteto.com/get-demo"}]} />
+
+## Quick Comparison
+
+Eight differences that decide most evaluations. The rest of this guide explains why each one matters.
+
+- **Stack support**: both read Docker Compose, Helm charts and Kubernetes manifests. Bunnyshell adds a declarative Terraform component type, which Okteto does not have; with Okteto you run Terraform from a `deploy` command and register what it creates in the manifest's `external` section.
+- **Where the platform runs**: Okteto installs inside your infrastructure, Self-Hosted or BYOC. Bunnyshell runs an external control plane that needs to reach your Kubernetes API, or your cluster whitelisting its IP ranges.
+- **Where the environment is defined**: `okteto.yaml` lives in your Git repository and is reviewed like code. `bunnyshell.yaml` is stored in the Bunnyshell platform.
+- **What an AI agent gets**: with Okteto, the same production-like environment a developer gets, with real services and data. With Bunnyshell, a separate sandbox service with an isolated scratch filesystem.
+- **Environment types**: purpose-built dev, preview, test and agent environments on one platform, against primary, ephemeral and preview environments that are clones of one pattern.
+- **Development container fidelity**: Okteto's inherits the real Deployment config, including service account, secrets, volumes and sidecars. Bunnyshell's Remote Development strips the Kubernetes health probes and syncs through a third-party tool.
+- **Testing**: in-cluster execution via Okteto Test with production parity, against no dedicated test product and a reliance on your external CI.
+- **Pricing model**: per seat with unlimited environments and agents per seat, against $0.007 per minute for every active environment.
+
+## The Philosophical Divide: A Service You Consume vs a Capability You Own
+
+Here is the distinction that explains almost every other difference between these platforms.
+
+Bunnyshell treats environments as a service delivered to you. The provider holds the control plane, holds the environment definition, reaches into your cluster to act, and meters what you consume. That is a legitimate model, and it is the same model behind most of the SaaS you already buy. It has a real benefit: there is very little for you to operate.
+
+Okteto treats environments as a capability you own. The platform runs inside your boundary, the definition lives in your repository, and the same substrate serves developers, CI, and agents. There is a little more for you to own, and in exchange the environment layer becomes part of your infrastructure rather than a dependency on someone else's.
+
+Neither answer is universally right. But the second one holds up better under three specific pressures: security review, GitOps discipline, and agent scale. The rest of this guide is about those three.
+
+## Architecture Matters: Where the Control Plane Sits
+
+### Your cluster does not have to be reachable
+
+This is the difference that most often decides an enterprise evaluation. With Bunnyshell, your Kubernetes API server has to be reachable by an external service, whether by public exposure or by whitelisting its published IP ranges, and it has to accept credentials with enough authority to create and destroy workloads across namespaces. Their private-cluster guidance requires exactly this, which means a cluster with genuinely no inbound path cannot be onboarded.
+
+With Okteto, the platform is [a workload inside the cluster](https://www.okteto.com/docs/self-hosted/). There is no external control plane to admit, no IP range to allow, and no standing credential held outside your boundary. If your security team's position is that nothing outside the perimeter gets an authenticated path to the Kubernetes API, that position stays intact.
+
+### Your environment definition is a file in your repository
+
+When configuration lives in the platform rather than the repo, ordinary engineering practice gets harder. You cannot review an environment change in a pull request, cannot diff what changed between two weeks, cannot revert by reverting a commit, and cannot reconstruct the environment from the repository alone. Bunnyshell mitigates this in part: custom templates can be stored in Git repositories you choose, and its CLI can fetch and decrypt definitions. But the environment definition, by their documentation, sits in the platform.
+
+Okteto's [`okteto.yaml`](https://www.okteto.com/docs/reference/okteto-manifest/) is versioned with the code it describes. This also matters for a reason that was not obvious two years ago: it is how an AI agent learns your environment. The agent reads the manifest out of the repository, discovers your services from it, and runs the same commands a developer would.
+
+### Your development container inherits real production configuration
+
+Both platforms let you write code locally and run it in the cluster. The mechanics differ in ways worth knowing.
+
+Bunnyshell's Remote Development prepares the target component by adding init containers and a persistent volume for your code, installing an SSH server, syncing files with Mutagen, and overriding the container's command. It also removes the Kubernetes `livenessProbe`, `readinessProbe`, and `startupProbe`, overwriting them with null for the duration of the session, because development containers usually don't start the same processes production ones do.
+
+Okteto's [`okteto up` creates a development copy](https://www.okteto.com/docs/development/containers/file-sync/) of the Deployment that inherits the original manifest. Per our documentation, the development container uses the same service account, environment variables, secrets, volumes, and sidecars as the workload it stands in for. We override container-level configuration too, primarily to swap in a development image, so this is a difference in degree rather than kind. But the degree is the point: the closer the development container sits to the real Deployment, the fewer bugs wait until production to introduce themselves.
+
+## What Changes When Agents Enter the Picture
+
+This is where the two platforms diverge most sharply, and it is the newest part of the comparison.
+
+Bunnyshell's answer for AI is a separate sandbox service, marketed alongside the platform rather than built into it. It provisions an isolated micro-sandbox in roughly 100 milliseconds, with its own filesystem and network namespace, sized in their published example at half a CPU and 512Mi of memory, and it is designed for running untrusted code. It is a good primitive, and for tasks like executing a model's generated snippet it is the right tool. What it is not is your application. We went deeper on that distinction in [Sandboxes vs. Environments](https://www.okteto.com/blog/sandboxes-vs-environments-why-the-distinction-matters-for-enterprise-ai-development/). There is no service graph in it, no real database, no message queue, none of your configuration. Their in-platform AI feature, Workspaces, is a persistent virtual machine on KubeVirt with a preinstalled toolchain, aimed at connecting Cursor, Windsurf, Copilot, or JetBrains Gateway over SSH. That is a cloud development machine, which is useful, but it is still not your running system.
+
+The distinction decides what an agent can actually prove. An agent with a scratch filesystem can write code and run whatever tests need nothing but the language runtime. An agent with a real environment can deploy the change, watch the dependent services respond, run the integration suite against a real database, curl the live endpoint, read the logs, and fix what broke. Only the second one produces a change that has been verified rather than merely written, and the review burden on your engineers is completely different in each case.
+
+Okteto gives the agent the developer's environment. You [install the plugin](https://www.okteto.com/docs/agentic/) in one command, and Claude Code, Cursor, Codex, Copilot, or anything else that reads the open Agent Skills format learns your CLI and your manifest. Agents work in one of two modes: [collaborative](https://www.okteto.com/docs/agentic/collaborative-workflows/), where you hold the dev session and the agent runs commands inside it, or [autonomous](https://www.okteto.com/docs/agentic/autonomous-workflows/), where the agent deploys the environment, implements the change, runs the test containers, smoke-tests the endpoints, checks the logs, and opens a pull request when everything passes.
+
+Then there is the bill. Bunnyshell's published Startup rate, as of September 2026, is $0.007 per minute per active environment, which is $0.42 an hour. For short-lived human previews that is a sensible way to charge. Agents invert the assumption, because they hold environments concurrently and for longer stretches than people do. A hundred concurrent environments running eight hours a day, twenty-one days a month, comes to roughly $7,000 a month in platform fees before a cent of your own cloud spend. Okteto [bills per seat](https://www.okteto.com/docs/admin/billing/) annually and charges nothing per environment or per agent: one seat can run as many of both as your infrastructure supports, and an Enterprise license covers every cluster in your fleet with only unique seats counted. What is left to optimize is your own infrastructure, which the Garbage Collector and Resource Manager exist to do. That model is also why your bill tracks your team rather than your machine time, so it stays predictable as your agent count climbs. For the number itself, our team can put together a real quote, sized to your team, your cluster footprint, and the agent concurrency you expect.
+
+## Platform Engineering Enablements
+
+For platform engineering leaders, the question isn't just "which tool helps developers code faster?" It's "which platform helps me build and scale a developer experience function?"
+
+Both products give you instrumentation, though they measure different things, and it is worth being precise about the difference. Bunnyshell reports DORA-style Engineering Metrics derived from your Git history, with average cycle time broken into coding, pickup, review, and deploy intervals, plus deployment frequency, and it integrates Kubecost for cloud cost reporting grouped by project, environment, cluster, template, or user. If what you want is delivery-flow reporting, that is a solid offering, and if DORA reporting to leadership is a hard requirement this quarter, weigh it honestly. Okteto Insights measures the platform rather than the Git graph, and it exports its metrics, so you can join them to whatever already tracks your delivery flow.
+
+Okteto instruments the platform itself:
+
+[**Okteto Insights**](https://www.okteto.com/docs/core/okteto-insights-dashboards/) gives you dashboards for build duration, deploy times, test results, node and pod utilization, and platform adoption, and the metrics can be consumed from your own observability tooling.
+
+[**Okteto Catalog**](https://www.okteto.com/docs/admin/catalog/) lets platform teams define standardized, compliant environment templates, managed from the Admin Dashboard or declared as [Custom Resource Definitions](https://www.okteto.com/docs/self-hosted/manage/custom-resource-definitions/) so they live in your GitOps repo. Developers get self-service access to approved configurations without the platform team becoming a bottleneck.
+
+[**Resource Manager**](https://www.okteto.com/docs/admin/resource-manager/) right-sizes CPU and memory requests from observed usage, and the [**Garbage Collector**](https://www.okteto.com/docs/admin/cleanup/) applies sleep and delete policies to idle namespaces and Preview Environments. These are remediation, not just reporting: they act on the cost rather than charting it.
+
+[**Unified manifest**](https://www.okteto.com/docs/reference/okteto-manifest/) with `build`, `dev`, `test`, and `deploy` sections gives you one configuration model across every environment type, in your repository.
+
+**Enterprise readiness**: SSO, [RBAC](https://www.okteto.com/docs/core/user-roles-and-permissions/), audit logs, [private endpoints](https://www.okteto.com/docs/core/endpoints/private-endpoints/), and SOC 2 Type 2 compliance, without tier gating that depends on your headcount.
+
+One practical note on tiering, since it affects evaluation. Bunnyshell's published plans put DORA metrics, cloud cost reporting, and advanced RBAC on the Scaleup plan, which carries a twenty user minimum, and the audit log on Enterprise. Worth checking against your own team size and compliance requirements early rather than late.
+
+## Choosing the Right Platform for Your Team
+
+Both platforms solve real problems. The right choice depends on your organization's context, not which platform has more features.
+
+**Okteto fits best if:**
+
+- Your security posture will not grant an external control plane an authenticated path to your Kubernetes API, or you operate air-gapped
+- You want environment configuration versioned in Git and reviewed like code
+- You are putting AI agents to work and need them verifying changes against real services and data, not writing code in a scratch sandbox
+- You expect environment and agent counts to grow and do not want platform cost to track machine time
+- You need different workflows optimized for different jobs: developer velocity, stakeholder review, test reliability, agent autonomy
+- You are building or scaling a platform engineering function and want telemetry on the platform, plus automated cost remediation
+- You have existing production pipelines such as [ArgoCD](https://www.okteto.com/docs/self-hosted/manage/argocd/) and need a platform that integrates rather than replaces
+
+**Bunnyshell may fit if:**
+
+- Your primary pain is the shared staging queue, and a full-stack environment per pull request is the whole requirement
+- Your clusters can accept an external control plane, and a managed control plane is an advantage rather than a constraint
+- You want delivery-flow DORA reporting out of the box
+- Your consumption is genuinely bursty and short-lived, which is where pay-per-minute is cheapest
+- You want driving environments from pull request comments via ChatOps
+
+## The Platform Engineering Perspective
+
+If you are a platform engineering leader evaluating these solutions, the strategic question is this: are you buying an environment service, or building an environment capability?
+
+Bunnyshell answers the first. It hands you on-demand environments with very little to operate, and for a team whose constraint is the staging queue, that is a fast win.
+
+Okteto answers the second. The platform runs inside your boundary, the definition of an environment lives in your repository, and the same substrate serves developers, CI, and now agents, under governance you set. That matters more every quarter, because the number of things asking your platform for a production-like environment is going up, and most of them are not people.
+
+If your organization has committed to Kubernetes, and your constraint is verified velocity across humans and agents rather than the absence of a staging environment, Okteto is purpose-built for that outcome.
+
+<CallToAction title={"See how teams of 20 to 2,000+ developers use Okteto to give every engineer and every agent a production-like place to prove their work before review."} actions={[{"label":"See how it works","url":"https://www.okteto.com/get-demo/"}]} />

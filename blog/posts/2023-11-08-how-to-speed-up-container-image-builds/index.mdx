@@ -1,0 +1,80 @@
+---
+title: "How To Speed Up Container Image Builds"
+title_meta: "How to speed up image builds with cache management"
+description: "Best practices for optimizing dockerfiles and container image builds"
+slug: how-to-speed-up-container-image-builds
+date: 2023-11-08
+authors: ["arsh-sharma"]
+tags: ["containers"]
+image: ./img/3c84aef84250.jpg
+image_alt: "The image features the text \"Development Experience: Docker Image Builds\" in bold white and blue letters. The background is dark with a textured pattern. To the right of the text is the Docker logo, a stylized blue whale carrying a stack of containers. The overall theme of the image emphasizes the role of Docker in enhancing the development experience, specifically focusing on the process of building Docker images."
+series: "Learning Kubernetes"
+related: ["using-argocd-with-okteto-for-a-unified-kubernetes-development-experience", "automate-provisioning-any-dev-resource-on-any-cloud-provider-with-pulumi-and-okteto"]
+---
+
+Okteto comes with a [build service](https://www.okteto.com/docs/cloud/build/) that enables developers to offload image building steps to the cloud. This eliminates the need for Docker to be running on their local machines during development. However, if the Dockerfiles for your application are not written correctly, remote image building can also be time-consuming. To avoid this, it is crucial to follow best practices when writing Dockerfiles and steer clear of common pitfalls. But how do you optimize your image builds and make them faster? This is a question which pops up in our [community](https://community.okteto.com/) often. Our CTO, [Pablo](https://twitter.com/pchico83), wrote a community post on this topic, which can be found [here](https://community.okteto.com/t/my-image-builds-are-slow-how-can-i-make-them-faster/1061).
+
+{/* truncate */}
+
+In this article, we will explore those (and some additional) tips in greater detail which will help you enhance build times and, consequently, expedite the launch of your team’s development environments!
+
+## Understanding How Image Builds From Dockerfiles Work
+
+Before we delve into enhancing build times, it would be beneficial to understand how Dockerfiles instructions are utilized by a build service (whether it's Okteto's build service or Docker running locally) to construct images. Each instruction in your Dockerfile gives rise to an image layer. Layers help optimize work and conserve bandwidth. These layers are cached and do not require recomputation if things don't change. This means that if you change one line in your Dockerfile, only the layers after that point are regenerated. The rest of the previously built image remains as is. Now that we have this foundational knowledge about how layer caching for Dockerfiles works, let's see how we can leverage it to achieve faster build times.
+
+## Best Practices for Writing Efficient Dockerfiles
+
+### Don't Copy Large Irrelevant Folders
+
+To optimize the image build process, it's recommended to use a `.dockerignore` file. This file allows you to exclude irrelevant files and folders, reducing the time required to transfer your local files to the build service.
+
+For instance, if you're working with a node app and copying the application code to the container, you can exclude copying the local `node_modules` folder to the container. This is because the `node_modules` will anyways be regenerated when you run `npm install` in the container. By doing so, you can improve the efficiency of the build process.
+
+For more detailed guidance on using the `.dockerignore` file, you can refer to the official documentation [here](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+
+### Try Minimizing the Number of Instructions in Your Dockerfile
+
+As mentioned earlier, in a Dockerfile, each instruction plays a role in forming a new layer within the image. To optimize the efficiency of building the image, it is recommended to minimize the number of layers by combining multiple commands into a single RUN instruction. This can be achieved by utilizing the \&\& operator and ensuring that unnecessary files and dependencies are cleaned up within the same RUN instruction. By embracing this approach, you can significantly expedite the process of building images, resulting in faster and more efficient builds.
+
+### Arrange Your Instructions Properly
+
+As we learned above, Dockerfile instructions are cached as layers. When making changes to an instruction, only the subsequent layers will be regenerated. This presents an opportunity to strategically order our instructions, ensuring that we avoid rebuilding unchanged layers. To achieve this, it is recommended to arrange Dockerfile instructions based on their frequency of change. Place the most stable and least frequently changing instructions at the top of your Dockerfile, while volatile or frequently changing instructions should be placed at the bottom. Here is an example of the recommended order of instructions:
+
+1. Install the necessary tools for building your application.
+1. Install or update library dependencies.
+1. Generate your application.
+
+By optimizing the order of instructions, we can improve the efficiency and speed of the Dockerfile build process.
+
+### Leverage Cache Mounts
+
+Rebuilding the same layer for each image build can be a time-consuming process. However, with cache mounts, you can store intermediate layers from your Dockerfile and reuse them across multiple builds. Cache mounts work by mapping a specific directory within the container image's build context to a directory on the host system. This mapped directory becomes a storage space for intermediate files and dependencies. By utilizing cache mounts, you can avoid recreating these layers during each build, resulting in significantly reduced build times. If you're interested in learning more about using cache mounts with webpack/nodejs, check out our tutorial [here](https://www.okteto.com/blog/building-docker-images-faster-for-webpack/). Additionally, you can find a list of cache folders used by various programming languages and frameworks by following [this link](https://github.com/actions/cache#implementation-examples).
+
+The following two recommendations for enhancing image builds are specific to [Okteto's Build service](https://www.okteto.com/docs/cloud/build/).
+
+### Increase CPU/Memory Resources
+
+During the installation of Okteto Self Hosted, you have the option to configure the CPU and memory resources allocated for the Okteto Build service. This can be done by modifying the [buildkit section](https://www.okteto.com/docs/self-hosted/administration/configuration/#buildkit) in your Okteto helm values file. For example, the following configuration reserves 1 CPU and 4 GB of memory for the Okteto Build service, with a limit of 2 CPUs and 8 GB of memory:
+
+```yaml
+buildkit:
+  resources:
+    requests:
+      cpu: 1
+      memory: 4GB
+    limits:
+      cpu: 2
+      memory: 8GB
+```
+
+Please note that the performance of the Okteto Build service can be influenced by the type of processor it runs on. Different virtual machines (VMs) may have processors with varying capabilities. To enhance performance, you can configure the Okteto Build service to run on a dedicated node pool with a high-speed processor. This can be achieved by using the [tolerations.buildPool](https://www.okteto.com/docs/self-hosted/administration/configuration/#tolerations) section in the Okteto helm values.
+
+Furthermore, for further optimization of performance, you can scale the Okteto Build service instances based on CPU utilization. This can be done either by configuring more instances with `buildkit.replicaCount` or by utilizing `buildkit.hpa` to implement a Horizontal Pod Autoscaler based on CPU utilization.
+
+### Configure Better Storage
+
+Choosing the right storage for the Okteto Build service is a crucial configuration setting that can greatly enhance image build speed. Since image builds require intensive I/O operations, opting for SSDs instead of standard disks can have a significant impact on build performance. You can configure the storage class of the Okteto Build service by setting the `buildkit.persistence.storageClass field`. Additionally, the `buildkit.persistence.size` and `buildkit.persistence.cache` fields allow you to adjust the size of the storage and cache folders for Okteto's Build service.
+
+## Conclusion
+
+In conclusion, the ability to expedite the image build process plays a significant role in enhancing the overall development experience. By minimizing the number of instructions, arranging them properly, leveraging cache mounts, and optimizing resources and storage, you can realize notable improvements in your build times and efficiency. Okteto's Build service, with its flexible configuration options and dedicated resources, is designed to further streamline this process. We encourage you to explore and leverage these strategies in your development workflow and experience the difference. So why wait? Give [Okteto](https://www.okteto.com/) a try today and elevate your development experience!

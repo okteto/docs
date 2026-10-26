@@ -1,0 +1,59 @@
+---
+title: "Sandboxes vs. Environments: Why the Distinction Matters for Enterprise AI Development"
+title_meta: "Sandboxes vs. Environments: What Enterprise AI Agents Need"
+description: "Sandboxes were built for one problem. AI agents need more. Here's why full-stack environments change everything for enterprise teams."
+slug: sandboxes-vs-environments-why-the-distinction-matters-for-enterprise-ai-development
+date: 2026-03-20
+authors: ["ashlynn-pericacho"]
+image: ./img/47ee7f669182.jpg
+image_alt: "Sandboxes Aren't Enough"
+social_image: /img/social/sandboxes-vs-environments-why-the-distinction-matters-for-enterprise-ai-development.jpg
+---
+
+import { CallToAction } from '@site/src/components/blog';
+
+Something is shifting in how platform teams talk about developer infrastructure. A few months ago, the conversation was: "How do we stop developers from blocking each other on shared staging?" Today it's become: "How do we manage hundreds of developers and an unknown number of AI agents all pushing code simultaneously, and how do we know what's happening?"
+
+{/* truncate */}
+
+Those are not the same problem. The solutions aren't either.
+
+## How the sandbox conversation started
+
+The sandbox model made a lot of sense when the original problem was straightforward. Developers on microservices teams were blocked waiting for shared environments. If you could spin up a lightweight copy of just the service you were touching and route traffic to it for testing, you could unblock the team without duplicating the entire cluster. Fast, cheap, and easy to explain to anyone who'd ever waited three hours to get a staging slot.
+
+For teams running primarily HTTP services, sandboxes still do that job well. The concept is immediately legible to engineering teams, the economics are compelling, and the time-to-working-demo is fast.
+
+The issue is that "sandbox" has become the default vocabulary for any kind of isolated development environment. And those two things, a routing overlay for a specific service versus a fully isolated environment, are meaningfully different.
+
+## What breaks when AI enters the loop
+
+Engineering teams are discovering that AI agents have a different profile of requirements than human developers. Humans working in a constrained environment can adapt. They notice that a network path isn't supported, file a ticket, adjust the workflow. They can read documentation and make configuration changes to work around a routing limitation.
+
+AI agents can't. They require environments that are complete, where the full build, deploy, and verify loop runs without workarounds.
+
+In conversations with platform engineering teams over the past several months, three failure modes keep surfacing.
+
+**The build gap.** Closing the loop in agentic development means the agent tests its change, receives feedback, iterates intelligently on that feedback, and produces a PR that will pass CI, without a human stepping in. An agent that can write code but can't build it inside its own environment can't do that. The code gets written and pushed, but the agent has to wait for an external build to surface errors, which can take minutes or hours. Every iteration cycle is slowed by that wait. The agentic development loop breaks at exactly the point it was supposed to accelerate things. The velocity benefit teams are expecting doesn't materialize when a human or a separate CI system still has to close the loop.
+
+**The environment scope gap.** A sandbox is a routing overlay, not a complete environment. An agent working in a sandbox has a scoped view: it can route traffic to a specific service, but the rest of the stack, filesystem state, queue consumers, deployment configuration, the full service graph, is shared and outside the agent's control. Agents don't just touch traffic endpoints. They write code that interacts with everything. When the environment doesn't encompass that full scope, changes that appear to work within the sandbox may behave differently when they interact with parts of the stack that were never isolated. Full-context environments give agents a complete, isolated namespace. Everything the agent needs is within its scope, under its control.
+
+**The governance gap.** This is the one that keeps platform engineering leads up at night, and it's the one that's been slowest to get architectural attention. When AI agents create environments at scale, spinning up, modifying, and tearing down infrastructure in response to code commits, platform teams need visibility. Which agents created which environments? What did they access? What did it cost? Who authorized it? Without an audit trail and a policy layer, AI-at-scale becomes an unmanaged black box. Security reviews stall. Budget conversations get difficult. The platform team, which was supposed to be an enabler, becomes a blocker.
+
+## Why this matters specifically for enterprise teams
+
+For a small team running HTTP microservices, sandboxes are probably enough. The networking requirements are simple, governance is informal, and the per-service economics make sense.
+
+For an enterprise team, 200 to 1,000+ developers, complex networking, formal security reviews, platform engineering teams with compliance and cost accountability, the requirements are structurally different. The platform team needs to approve the tooling. Security needs identity integration (SSO, SAML, SCIM). Compliance may need audit trails. And the development workflow needs to support the full stack, not just a routing layer.
+
+The teams that move fast on sandbox tools in early evaluation often hit these walls at the platform engineering review. "We were making too many compromises" is a phrase that shows up more than once when teams describe why a tool that worked in demos didn't make it through a real implementation.
+
+## The right frame: governed agentic development
+
+The productive frame isn't "sandboxes are bad." It's that sandboxes were designed for a specific problem, and that problem has grown. As AI agents take on more of the development loop, the infrastructure underneath them needs to grow with it.
+
+That means build systems agents can operate natively. Full-stack environment isolation so agents work in a complete, controlled context. Enterprise auth that integrates with how the rest of the organization manages access. And a governance layer that creates audit trails and policy enforcement for everything agents do, so platform teams can approve AI tooling for production use and developers can trust that what agents build actually works end to end.
+
+The teams asking the right questions right now are the ones separating "can we demo this?" from "can we run this in production at enterprise scale?" Sandboxes are a starting point. Governed environments are the destination.
+
+<CallToAction title={"Okteto is the enterprise platform for governed agentic development, full Kubernetes environments with a build system, enterprise auth, and agent governance. "} actions={[{"label":"See how it works →","url":"https://www.okteto.com/get-demo/"}]} />

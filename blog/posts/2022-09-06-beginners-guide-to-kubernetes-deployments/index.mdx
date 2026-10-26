@@ -1,0 +1,180 @@
+---
+title: "Beginner’s Guide to Kubernetes Deployments"
+slug: beginners-guide-to-kubernetes-deployments
+date: 2022-09-06
+authors: ["arsh-sharma"]
+tags: ["kubernetes", "containers"]
+image: ./img/d2c346054414.jpg
+series: "Learning Kubernetes"
+related: ["kubernetes-basics", "developing-microservices-by-hot-reloading-on-kubernetes-clusters"]
+---
+
+Over the last five years, [Kubernetes](https://kubernetes.io/) has seen rapid adoption as a container orchestrator. And for a good reason too. [Containers](https://www.docker.com/resources/what-container/) solved the problem of being unable to run applications easily on different environments and systems. But there were a lot of problems when running containers at scale:
+
+{/* truncate */}
+
+- How do you ensure a minimum number of containers are always running?
+- What happens when a container goes down?
+- How do you update your application without any downtime?
+
+Kubernetes solved all these and many more problems for us. But [its architecture](https://www.okteto.com/blog/kubernetes-basics/#:~:text=Kubernetes%20Architecture%20Basics) has always been an object of mystery when looked at from far. How is it managing all these containers for us? What inputs does it need from us to do this? All of this can be scary if you haven’t gotten the [basics of Kubernetes](https://www.okteto.com/blog/kubernetes-basics/) right. In this article, we will focus on one of the basic objects it has to offer: Deployments.
+
+## A Bit About Pods First
+
+Learning about Deployments directly before knowing about Pods is like learning to read without knowing the alphabet. We won’t go into much detail about pods here, but I’ll cover enough so the rest of the article makes sense.
+
+[Pods](https://www.okteto.com/blog/kubernetes-basics/#:~:text=with%20Okteto!-,Pods,-Kubernetes%20Pods%20are) are the most fundamental unit in the K8s world. The simplest way to understand pods without getting confused is to think of them as a wrapper for containers. Kubernetes doesn’t run containers directly. Instead, it runs Pods, where we specify which containers we want to run. Another thing to remember about pods, which we’ll get back to later, is that in the K8s world, pods are meant to be ephemeral: a single pod runs a single instance of your application, and that’s all there is to it. A running pod is only responsible for ensuring an instance of your application is running.
+
+You can learn more about Pods via our [Kubernetes Tutorial for Beginners](https://www.okteto.com/blog/kubernetes-basics/).
+
+## Kubernetes vs Docker Deployments
+
+When we talk of Deployments in Kubernetes, it is very different from what we mean when we refer to deploying your application using just Docker. This is why I wanted to have a separate section to clarify the difference, so you don’t get confused.
+
+When we talk about deploying using Docker, we usually mean the process of building container images from our Dockerfiles, pushing them to a registry, and then running our application containers.
+
+In the world of Kubernetes, however, Deployments are an **object**. As per the [official documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/#kubernetes-objects):
+
+> A Kubernetes object is a "record of intent"--once you create the object, the Kubernetes system will constantly work to ensure that object exists.
+
+These objects are accompanied by [controllers](https://www.okteto.com/blog/kubernetes-basics/#:~:text=A%20controller%20in%20K8s%20is%20responsible%20for%20observing%20an%20object%20and%20making%20sure%20that%20the%20current%20state%20of%20that%20object%20matches%20the%20desired%20state%20we%20specified.). So for the Deployment object, there is a Deployment controller. The controllers ensure that the object's current state matches the desired state we specified.
+
+## Deployments in Kubernetes
+
+So now we know two things: Pods are the fundamental unit in the world of K8s, and Deployments are a type of Kubernetes object. With this, we’re ready to understand the Deployment object in more detail. Let’s consider the following scenario:
+
+You run a bunch of pods to serve your application to the users. Now let’s say there’s a sudden increase in traffic, and your pods start running out of resources. What should Kubernetes do in this case? If you recall, I mentioned that Pods only have the single function of running your application. They alone can’t bring up more pods if existing pods run out of resources.
+
+To help manage pods, we need another Kubernetes object. And that’s where Deployments kick in. Instead of creating individual pods to serve our application, we create a Deployment object. The Deployment controller is then responsible for the management of these pods. All we have to do is create our Deployment object, and then the controller will handle the task of making sure that our specified number of pods is always running. What’s more, is that it also allows us to do other useful things like scale the number of pods, update the version of our application (without any downtime!), and even roll back to a previous app version if we discover a bug. We’ll soon see all of these in action. But let’s now learn how we can create them.
+
+### Creating a Deployment
+
+I'll assume you have a K8s cluster ready to work with. If you don’t, you can use the free one provided by the [Okteto Platform](https://www.okteto.com/docs/core/credentials/kubernetes-credentials). If this is your first time interacting with Kubernetes, I will recommend you read our [Beginners’ Guide to Kubernetes](https://www.okteto.com/blog/kubernetes-basics/) before continuing with this.
+
+Let us look at what the YAML for a typical Deployment object would look like:
+
+```yaml
+# nginx-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+```
+
+Looking at the `spec` section, you’ll notice we have a property called `replicas`. This refers to the number of pods we want our Deployment to run. The Deployment controller will continuously check if these many pods are up and running at any given time. If that’s not the case, it will work towards reaching this number by creating more pods or deleting existing ones.
+
+Then under the `selector`, we specify the labels of the pods for the Deployment controller. This is so that it knows which pods it is supposed to manage. Let’s say in our Deployment object, we specify that we want three replicas, but two pods with the label `app: nginx` already exist before we create the object. In this case, the controller will only create one additional pod for us. Had we not specified any labels, then the controller wouldn’t have been able to identify that two of the needed pods were already running.
+
+The `template` section is nothing but a Pod template's metadata and specification section. The `metadata` section lets the Deployment controller know what labels to attach to any new pods it creates, and the `spec` section has information about the containers which would run in the pod.
+
+You can create this Deployment just like you would any other object by using the `kubectl apply` command:
+
+```
+kubectl apply -f nginx-deployment.yaml
+```
+
+After creating the Deployment, if you now look at all the objects in our K8s cluster by running:
+
+```
+kubectl get all
+```
+
+you’ll notice that we not only have the Deployment, but we also see the three pods which the Deployment created for us!
+
+```
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/nginx-deployment-877f48f6d-2zp4p   1/1     Running   0          15s
+pod/nginx-deployment-877f48f6d-8tf9g   1/1     Running   0          15s
+pod/nginx-deployment-877f48f6d-ptgz8   1/1     Running   0          15s
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)     AGE
+service/kubernetes   ClusterIP   10.120.32.1     <none>        443/TCP     223d
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nginx-deployment   3/3     3            3           16s
+
+NAME                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/nginx-deployment-877f48f6d   3         3         3       16s
+```
+
+### Performing Rolling Updates
+
+Let’s say you updated your container image and now want all your pods serving your application using the new image. If you were to manually delete and recreate them, you would face downtime. To avoid this, Kubernetes supports something called Rolling Updates. Rolling updates are the default strategy K8s uses whenever you make any updates to your Deployment. When doing a Rolling update, K8s doesn’t bring down all the pods at once and then bring up all the new ones. Instead, it brings down some pods, then brings up some, and then repeats this process until all old pods have been replaced. This ensures that there are always pods available serving the application to the users.
+
+Let’s see this in action by changing the image used in our nginx deployment:
+
+```
+kubectl set image deployment nginx-deployment nginx=nginx:1.19.10
+```
+
+To see the rollout process in action as it proceeds, run:
+
+```
+kubectl rollout status deployment nginx-deployment
+```
+
+When you do this, you’ll notice exactly what I described taking place in the logs:
+
+```
+Waiting for deployment "nginx-deployment" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "nginx-deployment" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "nginx-deployment" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "nginx-deployment" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "nginx-deployment" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "nginx-deployment" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "nginx-deployment" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "nginx-deployment" rollout to finish: 1 old replicas are pending termination...
+deployment "nginx-deployment" successfully rolled out
+```
+
+### Rolling Back Deployments
+
+Now let’s say we realize there’s a bug in the latest container image we just updated `nginx` to. In this case, we would ideally like to return to the last version of our deployment, which we knew was working. K8s allows us to do exactly that using the `undo` subcommand.
+
+If you run:
+
+```
+kubectl rollout history deployment nginx-deployment
+```
+
+you should be able to see all the updates we made to our Deployment. We can go back to any previous version (in the case the first one) by running:
+
+```
+kubectl rollout undo deployment nginx-deployment --to-revision=1
+```
+
+Like with Rolling Updates, when rolling back, Kubernetes will ensure that all the pods aren’t brought down all at once to avoid downtime.
+
+### Scaling Deployments
+
+The number of pods we mention in the `replicas` section of our Deployment can be updated. This is very useful when we want the number of pods to be changed based on the load. If at some point, there are a lot of users trying to access our application, we would obviously want more pods so there is no overload.
+
+Let’s say we want Kubernetes to increase the number of pods for our deployment if the CPU load of the [node](https://www.okteto.com/blog/kubernetes-basics/#:~:text=In%20the%20Kubernetes%20world%2C%20a%20machine%20is%20called%20a%20node.) exceeds 80%. But we still want the max number of pods it scales up to to be 7. The `autoscale` subcommand helps us achieve exactly that:
+
+```
+kubectl autoscale deployment nginx-deployment --min=3 --max=7 --cpu-percent=80
+```
+
+Based on this, when the load decreases to less than 80%, it will also automatically start scaling down the number of pods until there are just three running pods.
+
+## Making Kubernetes Deployments Easy for Developers To Manage
+
+I hope you found this introduction to Kubernetes Deployments useful. There is [much more](https://www.okteto.com/blog/kubernetes-basics/) to Deployments, but this should be enough to get you started. In today’s world, even developers have to deal with Kubernetes. While that is not ideal, it is becoming almost unavoidable at this point. But the good thing is that if you’re developing cloud native applications, [Okteto](https://www.okteto.com/) allows you to continue doing so without having to [worry about Kubernetes](https://www.okteto.com/docs/). Okteto takes care of managing all your Deployments and having a [Kubernetes based Development Environment](https://www.okteto.com/docs/welcome/overview/#development-environments) ready for you to develop in - without you having to spend hours configuring things.
+
+Check out our [Getting Started Guide](https://www.okteto.com/docs/getting-started/) to see it in action yourself!

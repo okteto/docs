@@ -1,0 +1,114 @@
+---
+title: "Okteto Chart 1.6, 1.7 & CLI 2.14 released with Kubernetes 1.24 support"
+title_meta: "Okteto Product Updates for April 2023"
+description: "Okteto's April product update contains many improvements to the Okteto Experience including new CLI version, support for dynamic endpoints and more!"
+slug: product-update-april-2023
+date: 2023-04-12
+authors: ["matt-gonzales"]
+image: ./img/ebbb024628ae.jpg
+image_alt: "The image features the text \"Product Updates April 2023\" in bold white letters on a dark blue background with a hexagonal pattern. A small rocket icon is placed to the left of the main text, symbolizing new launches or advancements. The Okteto logo, a teal circle with a stylized \"C\" and the text \"Okteto,\" is positioned at the bottom right. The design indicates recent updates or new features introduced by Okteto in April 2023."
+---
+
+import { BlogButton } from '@site/src/components/blog';
+
+We're excited about March's product update because it contains many improvements to the Okteto product experience. We've updated our CLI to version 2.14, added support for dynamic endpoints for external resources, and more!
+
+{/* truncate */}
+
+Below is a detailed list of the features and improvements that shipped in March with links to the documentation to learn more.
+
+## New features
+
+### Added support for Kubernetes 1.24
+
+Okteto is striving for N-2 version support for Kubernetes to ensure we remain aligned with cloud infrastructure providers and the regular channel releases from the CNCF and Kubernetes community.
+
+This change, and our broader effort to stay current with new Kubernetes versions, will ensure a consistent and stable experience on Okteto.
+
+### Updated the Okteto CLI version to 2.14
+
+The latest version of the Okteto CLI includes several new features and some bug fixes. We continue to invest in the CLI to provide a great developer experience to our customers and end users because it is the entry point for most developers and is core to the Okteto product experience.
+
+<BlogButton href={"https://github.com/okteto/okteto/releases/tag/2.14.0"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Customize endpoints shown in the Okteto UI
+
+You can now use the **dev.okteto.com/endpoints** annotation in your **Ingress** or **VirtualServices** resource to define a list of endpoints (separated by commas) that will replace the default endpoints used by Okteto.
+
+This change also expands the **OKTETO\_NAMESPACE** and **OKTETO\_DOMAIN** environment variables to make endpoints portable between namespaces.
+
+<BlogButton href={"https://www.okteto.com/docs/core/endpoints/automatic-ssl#customizing-the-endpoints-shown-in-the-okteto-dashboard"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Support for configuring the buildkit service account
+
+Buildkit is the build service used in conjunction with **okteto build** to build containers directly in the cluster. The service account for buildkit is now configurable to provide you with more flexibility and control over your Okteto implementation.
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/administration/configuration/#buildkit"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Token-based authentication for simpler self-hosted installation
+
+When installing [Okteto Self-Hosted](https://www.okteto.com/docs/self-hosted/), we now default to token-based authentication. This simplifies the installation process by removing the need to initially implement more complex authentication systems, seeking internal approvals to get access to those systems, and reducing the time to first exploration of Okteto.
+
+Once you've explored Okteto with this initial implementation, you can switch to another authentication method that is more ideal for expanding to multiple users and production environments.
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/administration/configuration/#token"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Added automatic Personal Access Token expiration
+
+Starting in Okteto 1.7, Personal Access Tokens (PAT) will have a default, automatic expiration of **180 days**. We made this change to align ourselves with information security best practices and balancing the developer experience within Okteto. When a PAT expires, it can no longer be used to authenticate a user or for API requests. It is also not possible to restore an expired token; you must create a new token.
+
+**Note:** Existing tokens are not affected by this change unless or until the Okteto instance is upgraded to 1.7 or newer. At that point, the expiration timer begins from the day the instance is upgraded.
+
+<BlogButton href={"https://www.okteto.com/docs/core/credentials/personal-access-tokens#token-expiration"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Changed self-hosted registry storage default to container filesystem
+
+When installing Okteto self-hosted, you are no longer required to use external storage for the registry. Now the installer defaults to using the **container filesystem storage.** This change simplifies the self-hosted installation process further to help you get setup faster.
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/administration/configuration/#filesystem"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Support custom quotas for node port and load balancer service types
+
+Previously customers would specify desired quotas in the **values.yaml** file but Okteto would ignore values that were not defined as configurable. We've now added **maxNodePorts** and **maxLoadBalancers** to the list of configurable options at the namespace level for your Okteto instance.
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/administration/configuration/#quotas"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Public override support for self-signed certificates and bring your own certificate
+
+We now support the definition of a **publicOverride** option in your chart configuration, which enables you to customize the domain your developers use to access your Okteto instance. This does not affect the (sub)domains used for development environment endpoints within Okteto.
+
+For example, if **publicOverride** is set to **okteto.schrutefarms.com**, your developers would access your Okteto instance using **okteto.schrutefarms.com** but your developer endpoints would still remain **movies-dwight.example.com**.
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/administration/configuration/#publicoverride"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+### Improved the wake operation
+
+The Okteto wake operation running behind the scenes now prioritizes waking dependency services first to ensure your environment is brought back up without any issues. This change aligns the wake operation with the development environment creation process by using the same order of operations.
+
+### Added support for dynamic endpoints for external resources
+
+You can now use dynamic endpoints for external resources you include in your Okteto manifest. This means you can create a complete list of services for your application that exists within Okteto and provides a convenient link to relevant service endpoints along with documentation to help other developers collaborating in the same namespace.
+
+This feature supports:
+
+- Static endpoints (a hardcoded URL in the **external** section)
+- Hybrid endpoints (a mix of static + $ENV\_VARS)
+- Dynamic endpoints (completely dynamic using $ENV\_VARS)
+
+<BlogButton href={"https://www.okteto.com/docs/reference/manifest/#use-dynamic-endpoints-for-an-external-url"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+## Breaking changes
+
+### Changed the default ingress class for ingresses managed by okteto
+
+In the March release we've changed the default ingress class for ingresses managed by Okteto from **nginx** to **okteto-nginx**. We made this change to prevent collisions with other controllers that may already be installed on a cluster.
+
+There is no action required from our users and all ingresses managed by Okteto will be automatically updated as part of this change.
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/install/releases/#breaking-changes"} variant={"transparent"} arrow>Documentation</BlogButton>
+
+## See a more detailed list
+
+For a more detailed list of improvements, bug fixes, breaking changes, and deprecation notices please see [our documentation](https://www.okteto.com/docs/self-hosted/install/releases/#170).
+
+<BlogButton href={"https://www.okteto.com/docs/self-hosted/install/releases/#170"} variant={"green"}>Release Notes</BlogButton>

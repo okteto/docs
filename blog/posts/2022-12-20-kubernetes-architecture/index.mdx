@@ -1,0 +1,108 @@
+---
+title: "What is Kubernetes Architecture? A Complete Guide"
+description: "In this blog we learn what the architecture of Kubernetes looks like including worker and control plane node components."
+slug: kubernetes-architecture
+date: 2022-12-20
+authors: ["hemanta-sundaray"]
+tags: ["kubernetes"]
+image: ./img/838300584546.jpg
+related: ["kubernetes-basics", "developing-microservices-by-hot-reloading-on-kubernetes-clusters"]
+---
+
+import { CallToAction, Video } from '@site/src/components/blog';
+
+## What is Kubernetes
+
+In DevOps, Kubernetes is a [container orchestration tool](https://www.okteto.com/blog/container-orchestration-and-kubernetes/). It is used to deploy and manage containerized applications in an automated way.
+
+{/* truncate */}
+
+[Kubernetes was first released in 2014](https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/). Since then, its [adoption](https://edgedelta.com/company/blog/kubernetes-adoption-statistics) has grown phenomenally and continues to grow steadily. Now, it has become the de facto container orchestration platform of choice for organizations across the world.
+
+<Video src={"https://cdn.sanity.io/files/6icyfeiq/production/36509a0ac7c52c7208513d2bb68c2330d5b36496.mp4"} />
+
+In this blog post, we will take a closer look at the components that make up a Kubernetes cluster, which is the foundation of Kubernetes. This will help you understand Kubernetes better. If you're not familiar with [Kubernetes basics](https://www.okteto.com/blog/kubernetes-basics/) you could check out our beginners guide.
+
+<CallToAction title={"Stay on Top of Kubernetes Best Practices & Trends"} actions={[{"label":"Download the Trend Report","url":"https://www.okteto.com/ebooks/dzone-kubernetes/"}]} />
+
+## Kubernetes Architecture Explained
+
+To understand the [Kubernetes](https://www.okteto.com/blog/kubernetes-cheat-sheet-must-know-commands-and-examples/) architecture better we can break it down into different components. There are different componenets making up a regular node than there are in a control plane node. But before that let's see what the two types of nodes are.
+
+## Nodes in Kubernetes Cluster
+
+A Kubernetes cluster provides the platform to [deploy \& host containers](https://www.freecodecamp.org/news/deploy-docker-image-to-kubernetes/). It is made up of nodes (physical or virtual machines), which are of two distinct types: the control plane node and the worker nodes.
+
+### Control Plane Node
+
+The control plane node plays a very important role in the Kubernetes Architecture since it hosts the Kubernetes control plane, which is the brain behind all operations inside the cluster. The control plane is what controls and makes the whole cluster function. It stores the state of the cluster, monitors containers, and coordinates actions across the cluster.
+
+### Worker Nodes
+
+Worker nodes are the nodes used to actually run the containers. We never directly interact with the worker nodes. Instead, we send instructions to the control plane. The control plane then delegates the task of creating and maintaining containers to the worker nodes.
+
+We understood that a Kubernetes cluster is composed of two distinct types of nodes. That was the first step to understand the Kubernetes Architecture. Now, let’s look more closely at the components running inside these nodes.
+
+## Kubernetes Control Plane Architecture
+
+The control plane is composed of several components, each of which is responsible for a different aspect of cluster management. Kubernetes Architecture can be explained by understanding them in detail. Some of the main components are:
+
+### API Server
+
+The API Server is the central component of the Kubernetes control plane. In simple terms, it is a web server that listens for HTTP requests. It exposes the Kubernetes API that external clients use to communicate with the cluster. For example, an external client could use the Kubernetes API to get a list of all the running Pods.
+
+### Scheduler
+
+**The scheduler is responsible for scheduling Pods on nodes in a cluster.** To find an appropriate node for a Pod, the scheduler uses two concepts: predicates \& priorities.
+
+- **Predicates:** Predicates are rules or conditions that the scheduler uses to determine whether a particular node is a suitable place to run a particular Pod. For example, a predicate might check whether a node has sufficient CPU \& memory resources to run the Pod. If a node does not satisfy all the predicates for a given Pod, the scheduler will not schedule the Pod on that node.
+- **Priorities:** Priorities are used by the scheduler to rank nodes in the cluster and to select the most suitable node for each Pod. The scheduler assigns a priority score to each node, based on various factors such as available resources on the node, the number of Pods already running on the node, and the overall health of the node. When it comes time to schedule a Pod, the scheduler will select the node with the highest priority score that satisfies all of the predicates for the Pod. This ensures that Pods are scheduled to maximize the utilization of cluster resources.
+
+### Controller Manager
+
+**The controller manager is a component that runs a set of controllers that are responsible for managing the state of the cluster.** It provides the controllers with access to the API Server, where they can access the current state of the cluster. It also gives them access to the etcd distributed database, where they can store and retrieve the desired state of the cluster.
+
+In Kubernetes, a controller is a piece of software that continuously watches the state of the cluster. And it makes changes to the cluster to move the current state toward the desired state.
+
+For example, a Deployment is a Kubernetes resource that specifies the desired state of a group of Pods, such as the number of replicas and the template used to create the Pods. The Deployment controller is a type of controller that watches the current state of Deployments in the cluster. It ensures that the actual state of the Pods matches the desired state specified in the Deployment. If the current state deviates from the desired state, the Deployment controller will make changes to the cluster, such as creating or deleting Pods, to bring the current state back into alignment with the desired state.
+
+### Etcd
+
+**Etcd is a key-value data store, used by Kubernetes to store its configuration data \& cluster state.**
+
+Etcd is used by other components of the Kubernetes platform to store and retrieve the data needed for their operation. This can include information about the containers and pods running on the cluster, as well as other data related to the state of the cluster.
+
+The only component that talks to etcd directly is the Kubernetes API server. All other components read and write data to etcd indirectly through the API server. This way updates to the cluster state are always consistent. The API server also makes sure that the data written to the store is always valid and that changes to the data are only performed by authorized clients. You can learn more about [etcd](https://www.ibm.com/topics/etcd) here.
+
+## Kubernetes Worker Node Architecture
+
+I hope you're now able to understand some of the Kubernetes components. Now we'll learn about the components making up the worker nodes in K8s.
+
+### Container Runtime
+
+Kubernetes is a container orchestrator. Yet, Kubernetes itself does not know how to create, start, and stop containers. Instead, it delegates these operations to a pluggable component called the container runtime. The container runtime is a piece of software that creates and manages containers on a cluster node.
+
+Kubernetes supports multiple container runtimes, including containerd \& CRI-O. In addition to containerd \& CRI-O, Kubernetes also supports any other runtime that implements the Kubernetes CRI (Container Runtime Interface). It specifies the interface that the container runtime must implement to be compatible with Kubernetes. This makes it easier to integrate new or custom runtimes, allowing the users to choose one that best suits their needs.
+
+### Kubelet
+
+Kubelet is an agent that runs on each worker node. Its main responsibility is to **run \& manage the containers associated with a Pod.**
+
+When the control plane decides to schedule a Pod to a particular node, it sends the Pod definition to the API Server. The Pod definition specifies the containers that should be included in the Pod, as well as their requirements \& dependencies. Then, the kubelet on the node receives the Pod definition from the API Server and uses it to run the containers.
+
+To do this, the kubelet communicates with the container runtime \& provides it with the necessary information, such as the image to use and the required resources. The container runtime then uses this information to pull images from an image registry and run the containers based on those images.
+
+**The Kubelet is also responsible for ensuring that the Pods are running and healthy.** It does this by running health checks on the containers and monitoring their resource usage.
+
+For example, the kubelet can use a liveness probe to periodically check that a container is still running and responding to requests. If the liveness probe fails, the kubelet will restart the container and try to get it back into a healthy state. Similarly, the kubelet monitors the resource usage of the containers to ensure that they are not exceeding their allocated resources. If a container is using more resources than it is allowed, the kubelet will take action to prevent the container from overusing the resources and potentially impacting the performance of other containers on the node.
+
+### Kube-proxy
+
+Kube-proxy runs on each worker node and is responsible for enabling communication between the containers on the node \& the rest of the Kubernetes cluster. The kube-proxy uses a variety of techniques to enable this communication, including:
+
+- **Network Forwarding:** The kube-proxy uses network forwarding to route traffic between the containers on the node and the rest of the cluster. This allows the containers to access services \& other resources that are available in the cluster, such as databases \& other services.
+- **Load Balancing:** The kube-proxy can also provide load-balancing for the containers on the node. It helps to distribute incoming traffic across the containers on the node, ensuring that no single container becomes overloaded. This improves the performance of the application
+
+## Conclusion
+
+This was a simplified overview of the Kubernetes architecture. Now, you should have a big-picture understanding of how different components of a Kubernetes cluster communicate with each other \& how Kubernetes functions as a whole. If you want to learn more about Kubernetes, you should check out our [Kubernetes for Beginners](https://www.okteto.com/blog/kubernetes-basics/) blog for a comprehensive guide!

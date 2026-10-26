@@ -1,4 +1,5 @@
 const path = require('path');
+const shared = require('./config/shared');
 
 const docsContentPath = 'src/content';
 
@@ -59,7 +60,7 @@ function rehypeStripAgentActions() {
 }
 
 // Docs origin and base path (also used for url/baseUrl in module.exports below).
-const SITE_URL = 'https://www.okteto.com';
+const SITE_URL = shared.SITE_URL;
 const BASE_URL = '/docs/';
 
 // Origin for the llms.txt pointer. On Netlify deploy previews / branch deploys
@@ -111,17 +112,12 @@ function remarkLlmsIndexPointer() {
 }
 
 module.exports = {
+  ...shared.siteConfig,
   title: 'Okteto Documentation',
   tagline: 'Kubernetes for Developers',
-  url: SITE_URL,
   baseUrl: BASE_URL,
-  trailingSlash: true,
-  organizationName: 'okteto', // Usually your GitHub org/user name.
-  projectName: 'okteto', // Usually your repo name.
   favicon: 'img/favicon.ico',
-  onBrokenLinks: 'throw',
-  onBrokenAnchors: 'throw',
-  onDuplicateRoutes: 'warn',
+  staticDirectories: shared.staticDirectories('static'),
   markdown: {
     mermaid: true,
     hooks: {
@@ -133,61 +129,7 @@ module.exports = {
     image: 'https://www.okteto.com/docs/okteto-meta-image.png',
   },
   headTags: [
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'apple-touch-icon',
-        size: '180x180',
-        href: '/docs/favicon/apple-touch-icon.png',
-      },
-    },
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'icon',
-        type: 'image/png',
-        size: '32x32',
-        href: '/docs/favicon/favicon-32x32.png',
-      },
-    },
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'icon',
-        type: 'image/png',
-        size: '16x16',
-        href: '/docs/favicon/favicon-16x16.png',
-      },
-    },
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'manifest',
-        href: '/docs/favicon/site.webmanifest',
-      },
-    },
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'mask-icon',
-        href: '/docs/favicon/safari-pinned-tab.svg',
-        color: '#00d1ca',
-      },
-    },
-    {
-      tagName: 'meta',
-      attributes: {
-        name: 'msapplication-TileColor',
-        content: '#da532c',
-      },
-    },
-    {
-      tagName: 'meta',
-      attributes: {
-        name: 'theme-color',
-        content: '#fff',
-      },
-    },
+    ...shared.headTags(BASE_URL),
     {
       // Machine-readable pointer so agents crawling the HTML can find the index.
       tagName: 'link',
@@ -200,15 +142,9 @@ module.exports = {
     },
   ],
   themeConfig: {
-    colorMode: {
-      defaultMode: 'light',
-      disableSwitch: false,
-    },
+    ...shared.themeConfig,
     tableOfContents: {
       maxHeadingLevel: 4,
-    },
-    prism: {
-      theme: require('./src/theme/theme-okteto.js'),
     },
     algolia: {
       appId: 'RS9BKUCQCT',
@@ -217,37 +153,14 @@ module.exports = {
       algoliaOptions: {},
       position: 'left',
     },
-    navbar: {
-      hideOnScroll: false,
-      logo: {
-        alt: 'Okteto Logo',
-        src: 'img/logo.svg',
-        href: 'https://www.okteto.com',
-        target: '_self',
-      },
-      items: [
+    navbar: shared.navbar('docs', {
+      start: [
         {
           type: 'search',
           position: 'left',
         },
-        {
-          href: 'https://www.okteto.com',
-          label: 'Product',
-          position: 'left',
-          target: '_self',
-        },
-        {
-          href: 'https://www.okteto.com/blog/',
-          label: 'Blog',
-          position: 'left',
-          target: '_self',
-        },
-        {
-          href: 'https://community.okteto.com',
-          label: 'Community',
-          position: 'left',
-          target: '_self',
-        },
+      ],
+      end: [
         {
           type: 'docsVersionDropdown',
           position: 'right',
@@ -267,95 +180,9 @@ module.exports = {
             },
           ],
         },
-        {
-          href: 'https://www.okteto.com/free-trial',
-          label: 'Get Started',
-          position: 'right',
-          target: '_self',
-          className: 'Button teal GetFreeTrialButton',
-        },
       ],
-    },
-    footer: {
-      style: 'dark',
-      links: [
-        {
-          title: 'Docs',
-          items: [
-            {
-              label: 'Installation Guide',
-              to: '/get-started/install',
-            },
-            {
-              label: 'Getting Started Guide',
-              to: '/get-started/deploy-your-app',
-            },
-            {
-              label: 'Okteto Manifest',
-              to: '/core/okteto-manifest',
-            },
-            {
-              label: 'Okteto CLI Reference',
-              to: '/reference/okteto-cli',
-            },
-            {
-              label: 'Release Notes',
-              to: '/release-notes',
-            },
-          ],
-        },
-        {
-          title: 'Resources',
-          items: [
-            {
-              label: 'Blog',
-              href: 'https://www.okteto.com/blog/',
-              target: '_self',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/okteto/okteto',
-            },
-            {
-              label: 'YouTube',
-              href: 'https://www.youtube.com/@OktetoHQ',
-            },
-            {
-              label: 'Pricing',
-              href: 'https://www.okteto.com/pricing',
-              target: '_self',
-            },
-            {
-              label: 'llms.txt',
-              href: LLMS_TXT_URL,
-              target: '_self',
-            },
-          ],
-        },
-        {
-          title: 'Contact Us',
-          items: [
-            {
-              label: 'Support',
-              href: 'https://okteto.com/support',
-            },
-            {
-              label: 'Community',
-              href: 'https://community.okteto.com',
-            },
-            {
-              label: 'Twitter',
-              href: 'https://twitter.com/oktetohq',
-            },
-            {
-              label: 'Get 30 Days Free',
-              href: 'https://www.okteto.com/free-trial',
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Okteto, Inc.`,
-    },
+    }),
+    footer: shared.footer('docs', { llmsTxtUrl: LLMS_TXT_URL }),
   },
   presets: [
     [
@@ -410,17 +237,10 @@ module.exports = {
           },
           include: ['**/*.md', '**/*.mdx'],
         },
-        theme: {
-          customCss: require.resolve('./src/styles/main.scss'),
-        },
-        googleAnalytics: {
-          trackingID: 'UA-120828135-1',
-          anonymizeIP: true,
-        },
-        gtag: {
-          trackingID: 'G-KSKZWJHTJZ',
-          anonymizeIP: true,
-        },
+        // The blog is a separate site (docusaurus.blog.config.js); without
+        // this the preset would also pick up ./blog and publish it under /docs/.
+        blog: false,
+        ...shared.presetOptions,
       },
     ],
   ],
@@ -435,7 +255,6 @@ module.exports = {
         breadcrumbs: false,
       },
     ],
-    'docusaurus-plugin-sass',
     [
       '@signalwire/docusaurus-plugin-llms-txt',
       {
@@ -463,26 +282,7 @@ module.exports = {
         redirects: [],
       },
     ],
-    [
-      'docusaurus-gtm-plugin',
-      {
-        id: 'GTM-W6RQFNT',
-      },
-    ],
-    [
-      "posthog-docusaurus",
-      {
-        apiKey: "phc_hABE2tLx6OC3RdADvVeFYfwtQQhYSE5swoqkQQscU6K",
-        appUrl: "https://us.i.posthog.com", // optional, defaults to "https://us.i.posthog.com"
-        enableInDevelopment: false, // optional
-      },
-    ],
+    ...shared.plugins,
   ],
-  scripts: [
-    // Hubspot script
-    {
-      src: '//js.hs-scripts.com/5418301.js',
-      async: true,
-    }
-  ],
+  scripts: shared.scripts,
 };
