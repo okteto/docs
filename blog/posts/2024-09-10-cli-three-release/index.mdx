@@ -1,0 +1,83 @@
+---
+title: "Announcing Okteto CLI 3.0"
+slug: cli-three-release
+date: 2024-09-10
+authors: ["pablo-chico-de-guzman"]
+image: ./img/3710e5dbd8a9.jpg
+image_alt: "Image that says 'announcing okteto cli 3.0' with the oketo logo on a blue background"
+---
+
+We are happy to announce the release of Okteto CLI 3.0! This release marks a significant milestone, bringing together the most impactful features we’ve developed recently. With this version, we’re focused on improving the developer experience (DevX) through thoughtful updates, including a few breaking changes and the removal of deprecated features to boost future efficiency. 😊
+
+{/* truncate */}
+
+**Okteto CLI 3.0 will be shipped in early October and integrated into the Okteto Chart 1.25 release**. There are some potential breaking changes, so please keep reading below to make sure your workflows aren’t affected by this update.
+
+### Our progress over the last 12 months leading to Okteto CLI 3.0!
+
+The main features we have released during this period are:
+
+- [Deploy on Remote](https://www.okteto.com/docs/core/remote-execution/): Do you need custom tooling to run the deploy commands of your Okteto Manifest? You can now define a container image to serve as the runtime of your deploy commands, eliminating all the dependencies on your local machine configuration to deploy your Dev Environments.
+- [Smart Builds](https://www.okteto.com/docs/core/build-service/#smart-builds): Are you tired of repeatedly building your container images? Smart builds detect repeated builds from other developers in your cluster and reuse them automatically, allowing you to deploy your Dev Environments in seconds.
+- [Okteto Test](https://www.okteto.com/docs/testing/): Have you ever felt frustrated while troubleshooting a CI workflow? Say bye-bye to committing and waiting for minutes until CI fails. Okteto Test provides fast feedback and repeatability when running CI workflows on your local machine and on CI 😊
+- [Hybrid Development Mode](https://www.okteto.com/docs/development/containers/hybrid/): There are situations when running a service locally is faster than synchronizing code with a remote Development Container. Hybrid development mode enables you to run the service in development locally while keeping the rest of your application components on Okteto to take advantage of your local machine hardware.
+- [Okteto Logs](https://www.okteto.com/docs/reference/okteto-cli/#logs): Have you ever tried troubleshooting your application and felt frustrated running several `kubectl` commands to find an error condition? `okteto logs` gives you a single command to obtain all this information without imposing Kubernetes cognitive load.
+
+### How can I try Okteto CLI 3.0?
+
+Okteto CLI 3.0 has been shipped in early October and is integrated into the Okteto Chart 1.25 release. Before upgrading to Okteto Chart 1.25, make sure your workflows aren’t affected by Okteto CLI 3.0. To do that, we recommend installing Okteto CLI 3.0 by using the following command:
+
+`curl https://get.okteto.com -sSfL`
+
+💡 Go back to the previous Okteto CLI version with: `curl https://get.okteto.com -sSfL | OKTETO_VERSON=2.31.0 sh`
+
+Then, run `okteto deploy` and `okteto up` with your Okteto Manifests to ensure things keep working as expected.
+
+**On Windows**
+
+1. **Download the Okteto CLI 3.0 Executable:**
+    - Visit the [Okteto GitHub Releases page](https://github.com/okteto/okteto/releases/tag/3.0.0).
+    - Download the Windows executable directly using this link: [Download okteto.exe](https://github.com/okteto/okteto/releases/download/3.0.0/okteto.exe).
+1. **Move the Executable to a Preferred Location and add to your system PATH**
+    - To verify you’ve installed the CLI 3.0, you can run `okteto version`
+
+To go back to the previous version, download the Windows executable for 2.31.0 and use it to replace the current executable.
+
+Verify your rollback by running `okteto version`
+
+### Full list of breaking changes
+
+A major release is a great opportunity to remove deprecated functionality, help us increase the quality of our code base, and more suitable for future feature development. This is the full list of breaking changes in Okteto CLI 3.0:
+
+- Commands no longer available: `okteto init`, `okteto push`, `okteto stack`, `okteto login` (replaced by `okteto context`) and `okteto update` (replaced by `okteto version update`).
+- Okteto Stacks syntax has been removed in favor of Docker Compose syntax. If you are using the Okteto Stack filenames `okteto-stack.yaml` or `stack.yaml`, check out our [guide to migrate from Okteto Stacks to Docker Compose](https://community.okteto.com/t/important-update-migrating-from-okteto-stacks-to-docker-compose/1262).
+- Local container registry credentials have less precedence than [Okteto Registry Credentials.](https://www.okteto.com/docs/admin/registry-credentials/) You can keep more precedence for your local registry credentials by setting the variable `OKTETO_LOCAL_REGISTRY_STORE_PRIORITY_ENABLED` to `true` in your terminal or as an Okteto Variable.
+- Changes in flags for `okteto deploy`:
+    - `--build` is removed. By default, images will always be built unless you specify `--no-build` to skip the build process
+    - `--f` no longer supports pointing to a folder, only regular files are allowed.
+    - Removed positional argument to deploy individual services from a Docker Compose file. This functionality is supported at the [Okteto Manifest level](https://www.okteto.com/docs/reference/okteto-manifest/#deploy-with-compose).
+- Changes in flags for `okteto up`:
+    - `--deploy` will also rebuild the container images
+    - `--command` is removed in favor of the syntax `-- <<your command>>`
+        - For example `okteto up api -- bash`
+- Support for `devrc` file is removed. `devrc` allowed developers to overwrite the Okteto Manifest with custom configuration.
+- The commands `okteto pipeline deploy`, `okteto pipeline destroy`, `okteto preview deploy` and `okteto preview destroy` now default to `--wait=true`
+- Drop support for Okteto Manifest v1. [Follow our guide to migrate from v1 to v2](https://www.okteto.com/docs/reference/manifest-migration/).
+- Flags `--namespace` and `--context` always take precedence over environment variables `OKTETO_NAMESPACE` and `OKTETO_CONTEXT`. `namespace` and `context` are no longer supported at the Okteto Manifest level.
+
+### Updates to GitHub Actions
+
+Each GitHub Action supports the following tags:
+
+- `latest`: this is the version running the last stable Okteto CLI release
+- `v3`: this is the version running the last stable Okteto CLI 3.x release
+- `v2`: this is the version running the last stable Okteto CLI 2.x release
+- `main`: this is our development version. **Don't use this tag for production usage!**
+
+Finally, you can ping a specific Okteto CLI version in your GitHub Actions, for example, `okteto/context@2.31.0`.
+
+### Keep in touch!
+
+We understand that changes like these may require some adjustments to your workflows, and we’re here to support you every step of the way. If you have any questions or need assistance transitioning to Okteto CLI 3.0, please don’t hesitate to contact our support team.
+
+Thank you for your understanding and continued support as we strive to enhance the Okteto experience for all users.

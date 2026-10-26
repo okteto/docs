@@ -1,0 +1,114 @@
+---
+title: "Making Your Helm-Packaged Applications Ready for Cloud Native Development with Okteto"
+title_meta: "Making Helm-Packaged Apps Ready for Cloud Native Development"
+description: "In this article, we will explore how you can leverage existing Helm Charts for your apps to spin up cloud native dev environments with the help of Okteto."
+slug: making-your-helm-packaged-applications-ready-for-cloud-native-development-with-okteto
+date: 2023-09-01
+authors: ["arsh-sharma"]
+tags: ["helm", "kubernetes"]
+image: ./img/3269301aa9fe.jpg
+image_alt: "The image features the logos of Okteto and Helm. The background is split into two sections: the left side is dark blue with hexagonal patterns and contains the Okteto logo (a teal circle with a stylized \"C\" and the text \"Okteto\"), while the right side is white with subtle hexagonal patterns and displays the Helm logo (a ship's wheel with the word \"HELM\" in bold blue letters). The design emphasizes the collaboration or integration between Okteto and Helm, both tools commonly used in Kubernetes environments."
+series: "Integrations With Okteto"
+related: ["using-argocd-with-okteto-for-a-unified-kubernetes-development-experience", "okteto-extends-developer-experience-to-all-resources"]
+---
+
+Helm, often referred to as the "package manager for Kubernetes," is a powerful tool that streamlines the installation and management of cloud native applications with Kubernetes. It simplifies deployment complexities and brings efficiency to release your applications for Kubernetes. By packaging applications as Helm Charts, platform engineers can create reusable components that encapsulate all the Kubernetes resources needed for an application and its runtime configuration.
+
+{/* truncate */}
+
+In this article, we will explore how you can leverage existing Helm Charts for your applications to spin up cloud native development environments for the developers on your team with the help of Okteto.
+
+## What Okteto Can Do for You
+
+Okteto empowers platform engineers to automate and streamline the modern development experience, by enabling provisioning of self-service dev environments for developers that closely resemble production. These environments cater to all stages of the development lifecycle, from coding until deployment.
+
+By deploying applications for development on Kubernetes and automating the provisioning of any necessary additional resources, Okteto bridges the gap between dev and prod. If your applications are already packaged as Helm Charts, you can effortlessly leverage them to create dev environments for every developer and stage across the lifecycle. This ensures two things that make a significant impact on the speed of the development experience:
+
+- Developers have the ability to work in a realistic production-like environment and not waste time configuration environments. By utilizing the same helm charts for both spinning up development environments and deploying applications to production, you ensure that the development team operates in an environment that closely mirrors the production setup. This eliminates the occurrence of bugs and security vulnerabilities that often arise due to configuration discrepancies between development and production. Say goodbye to late-stage surprises in the software development lifecycle.
+- Developers are freed from the cognitive load of setting up these environments and worrying about managing Kubernetes. With Okteto's manifest-driven development environments, once platform engineers write all the configuration for creating a developer environment, developers simply need to log into their Okteto instance and click the launch button. This eliminates the need for them to do anything else to get things up and running. It also ensures they don't have to deal with Kubernetes themselves and spend time learning it.
+
+Okteto comes with a ready-to-use Manifest for effortless platform automation, allowing you to easily define, automate, and govern all your environments. Let's explore how we can create an Okteto Manifest to set up modern development environments for a todo list application that has already been packaged as a helm chart.
+
+## Prerequisites
+
+Before diving into writing the Okteto manifest, let me provide some details about the application we'll be working with. This will help you draw parallels with your own application and make it easier for you to write your own Okteto manifest.
+
+Our [sample todo list application](https://github.com/okteto/oktetodo) consists of three microservices placed in one repository:
+
+1. A React Frontend ([client](https://github.com/okteto/oktetodo/tree/main/client)) responsible for the UI.
+1. A Node.js Express ([server](https://github.com/okteto/oktetodo/tree/main/server)) backend that communicates with the UI and the database.
+1. A Postgres Database ([db](https://github.com/okteto/oktetodo/tree/main/db)) used to store the todos
+
+Within the directory for each service, you will find a folder named `chart` that contains the helm chart for deploying the respective service. It is important to note that in the `deployment.yaml`, the container image for the client and server service is kept configurable instead of being hardcoded. Pay close attention to this detail as we will come back to this later.
+
+```yaml
+# oktetodo/client/chart/templates/client-deployment.yaml
+...
+spec:
+      containers:
+        - name: client
+          image: {{ .Values.image }}
+          ports:
+            - containerPort: 3000
+```
+
+This is crucial because it provides you with the flexibility to pass different versions of the container (such as prod or a branch) while maintaining the same manifest, rather than being stuck with a fixed hardcoded image that was pushed to your image registry weeks ago. The best part is that Okteto automates the image building and pushing steps, freeing developers from these tasks. We will delve into more details on this topic later when we explore how we pass the built image to these deployments.
+
+## Writing the Okteto Manifest for Helm Packaged Applications
+
+Now that you're familiar with the application's appearance, let's move on to creating our [Okteto Manifest](https://www.okteto.com/docs/reference/manifest/). This manifest encompasses three key sections that configure your development environments and the experience:
+
+1. Build: This section outlines the instructions for building images for various services within your application.
+1. Deploy: Here, you define how Okteto deploys your application, setting up your development environment.
+1. Dev: This section contains the configuration for remote development containers for each of your microservices.
+
+The Okteto manifest offers [numerous options](https://www.okteto.com/docs/reference/manifest/#dev-object-optional) to customize the behavior of your development containers. However, for simplicity's sake, let's explore a simple Okteto Manifest for this application to start with.
+
+```yaml
+build:
+  server:
+    context: server
+  client:
+    context: client
+deploy:
+  - name: Deploy the DB
+    command: helm upgrade --install db db/chart
+  - name: Deploy the Node.js Backend
+    command: helm upgrade --install server server/chart --set image=${OKTETO_BUILD_SERVER_IMAGE}
+  - name: Deploy the React Frontend
+    command: helm upgrade --install client client/chart --set image=${OKTETO_BUILD_CLIENT_IMAGE}
+dev:
+  server:
+    command: bash
+    sync:
+      - server:/app
+  client:
+    command: bash
+    sync:
+      - client:/app
+```
+
+In the build section, we define the location of the Dockerfile for each of our microservices. This allows Okteto to build container images using the latest code from the repository when developers launch their development environments. We use the `context` parameter to specify the folders where the Dockerfile for each microservice resides. Additionally, you can utilize the `dockerfile` key to precisely indicate the exact location of the Dockerfile.
+
+The deploy section is where we execute the Helm commands to deploy our application's Helm charts to the Kubernetes cluster used for development. Remember our earlier discussion about not hardcoding the container image name in the deployment YAMLs for our application's microservices?
+
+Here, we define values for those container images. With Okteto, you can reference the images it builds in the `build` step within the deploy section using the `$OKTETO_BUILD_SERVICENAME_IMAGE` variable. To reiterate, the benefit of this approach is that the development environments are always set up with the latest code, rather than relying on older images that were built and pushed a long time ago. And like we discussed earlier, all the image building and pushing is handled by Okteto so developers don't have to worry about anything.
+
+In the dev section, we define the configuration of the dev containers for each of the microservices. The `command` key tells Okteto what command to run by default when developers replace the running container for the service with a dev container by running `okteto up`. And the `sync` key tells Okteto what folders on your local machine to sync with the folders inside the container. You would usually sync where your service's code lives locally to the working directory you specified in the Dockerfile for your service.
+
+That's it! You've completed all the necessary configuration to make your Helm packaged application ready for development on Okteto. You can try running `okteto deploy` from the root of your cloned repo to see if everything is working as expected. Once you've done this, you can make your application available for cloud native development to your developers by adding it to your [Okteto Catalog](https://www.okteto.com/docs/cloud/launch-from-catalog/).
+
+Please note that if you wish Okteto to automatically generate endpoints for your application services, you will need to include the following annotation in your application's ingress YAML file:
+
+```yaml
+annotations:
+    dev.okteto.com/generate-host: "true"
+```
+
+You can read more about this [here](https://www.okteto.com/docs/cloud/ssl/) in the docs.
+
+## Conclusion
+
+In this article, we explored how easily you can prepare your Helm packaged applications for cloud native development using Okteto. This approach offers numerous platform benefits, such as unified, automated, and governed environments throughout your modern software delivery lifecycle. If you're interested in learning more about the advantages Okteto brings to your organization's development experience, be sure to check out our [Platform Features](https://www.okteto.com/platform-features/).
+
+If you're convinced that enabling a modern, cloud-native development experience for your team is the way to go, [sign up](https://www.okteto.com/free-trial/) for our free self-hosted trial and get started today.
