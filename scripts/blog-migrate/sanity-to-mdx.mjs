@@ -356,6 +356,34 @@ function renderBlock(block, ctx) {
   }
 }
 
+// Dead external links found by the 2026-10-26 link audit. Each entry points
+// the link at the page's new location or, when none exists, removes it.
+const CONTENT_FIXES = [
+  // OpenShift moved its docs to docs.redhat.com.
+  [
+    'https://docs.openshift.com/container-platform/4.1/authentication/using-rbac.html',
+    'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/authentication_and_authorization/using-rbac',
+  ],
+  // The article is gone and has no new home; drop it from the reference list.
+  ['- https://jeremievallee.com/2018/05/28/kubernetes-rbac-namespace-user.html\n', ''],
+  // Docker retired the get-started Swarm guide; link Swarm mode itself.
+  ['https://docs.docker.com/get-started/swarm-deploy/', 'https://docs.docker.com/engine/swarm/'],
+  // Gartner's conference topic page is gone; its platform engineering article replaces it.
+  [
+    'https://www.gartner.com/en/conferences/na/applications-us/featured-topic/platform-engineering',
+    'https://www.gartner.com/en/articles/what-is-platform-engineering',
+  ],
+  // The episode MP3 no longer exists on the podcast's site; link the episode page instead.
+  [
+    /<div class="no-border"[^]*?<audio controls[^]*?KPfGep125\.mp3[^]*?<\/audio>\s*<\/div>/,
+    '[Listen to the episode on the Kubernetes Podcast from Google](https://kubernetespodcast.com/episode/125-okteto/).',
+  ],
+];
+
+function applyContentFixes(text) {
+  return CONTENT_FIXES.reduce((out, [from, to]) => (typeof from === 'string' ? out.split(from).join(to) : out.replace(from, to)), text);
+}
+
 // ---------------------------------------------------------------------------
 // Front matter
 
@@ -498,7 +526,7 @@ async function main() {
     stats[ext] += 1;
 
     for (const stale of ['index.md', 'index.mdx']) await fs.rm(path.join(postDir, stale), { force: true });
-    await fs.writeFile(path.join(postDir, `index.${ext}`), `${frontMatter(post, featured, social)}\n\n${body.trim()}\n`);
+    await fs.writeFile(path.join(postDir, `index.${ext}`), `${frontMatter(post, featured, social)}\n\n${applyContentFixes(body).trim()}\n`);
   }
 
   const authorCount = await writeAuthors(posts);
