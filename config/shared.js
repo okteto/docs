@@ -118,6 +118,21 @@ function footer(site, { llmsTxtUrl }) {
   };
 }
 
+// Algolia search. One index holds both sites: the crawler adds a
+// `docusaurus_tag` to every record (`docs-default-<version>` on docs pages,
+// `default` on blog posts), and Docusaurus's contextual search filters on it,
+// so the docs search box returns docs and the blog's returns blog posts.
+const algolia = {
+  appId: 'RS9BKUCQCT',
+  apiKey: '9213a8b24b30e1994c4c8ff5f282cf6f',
+  indexName: 'okteto',
+  algoliaOptions: {},
+  position: 'left',
+};
+
+// Navbar item for the search box, placed first on both sites.
+const searchNavbarItem = { type: 'search', position: 'left' };
+
 const themeConfig = {
   colorMode: {
     defaultMode: 'light',
@@ -177,6 +192,8 @@ module.exports = {
   navbar,
   footer,
   themeConfig,
+  algolia,
+  searchNavbarItem,
   presetOptions,
   plugins,
   scripts,
