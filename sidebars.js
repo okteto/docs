@@ -78,7 +78,6 @@ module.exports = {
           ],
         },
         'core/namespaces',
-        'core/divert',
         'core/build-service',
         'core/okteto-insights-dashboards',
         'core/okteto-manifest',
@@ -118,7 +117,6 @@ module.exports = {
       link: { type: 'doc', id: 'development/index' },
       items: [
         'development/using-okteto-cli',
-        'development/using-divert',
         {
           type: 'category',
           label: 'Development Containers',
@@ -143,6 +141,18 @@ module.exports = {
             'development/deploy/deploy-from-git',
             'development/deploy/from-private-repositories',
             'development/deploy/develop-on-okteto-button',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Divert',
+          link: { type: 'doc', id: 'development/divert/index' },
+          items: [
+            'development/divert/shared-namespace',
+            'development/divert/overlay-namespace',
+            'development/divert/header-propagation',
+            'development/divert/queue-splitting',
+            'development/divert/data-cloning',
           ],
         },
       ],
@@ -259,17 +269,9 @@ module.exports = {
                 'self-hosted/install/auth/token',
               ],
             },
-            {
-              type: 'category',
-              label: 'Configure Divert',
-              link: { type: 'doc', id: 'self-hosted/install/divert/index' },
-              items: [
-                'self-hosted/install/divert/linkerd-installation',
-                'self-hosted/install/divert/istio-installation',
-              ],
-            },
             'self-hosted/install/github-integration',
             'self-hosted/install/volume-snapshots',
+            'self-hosted/install/divert/index',
           ],
         },
         'self-hosted/helm-configuration',
