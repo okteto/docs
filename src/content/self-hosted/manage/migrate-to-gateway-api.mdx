@@ -16,7 +16,7 @@ This guide is a draft. Its content, including the configuration it describes, ma
 1. **No NGINX annotations.** Okteto doesn't process `nginx.ingress.kubernetes.io/*` annotations. If your applications depend on them, see [Application Changes](#application-changes).
 2. **No bundled controllers.** The chart no longer packages the NGINX Ingress controllers (`ingress-nginx` and `okteto-nginx`). You install and operate your Gateway controller outside of the Okteto installation. Okteto works with any Gateway API controller.
 3. **No auto-generated certificate.** Okteto no longer generates an internal wildcard certificate. If you set `wildcardCertificate.create: true`, change it to `false` and manage the certificate yourself, as described in [Wildcard Certificate](#wildcard-certificate).
-4. **Private Endpoints deprecated.** [Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted, and their enforcement under Gateway API depends on your Gateway controller. See [Private Endpoints](#private-endpoints) for the details and the alternative.
+4. **No Private Endpoints.** [Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported. See [Private Endpoints](#private-endpoints) for the alternative.
 
 The control plane is always exposed through HTTPRoutes. Development Environment endpoints can use HTTPRoutes, Ingress objects, or both.
 
@@ -31,7 +31,7 @@ Before you migrate, make sure your applications don't depend on the Okteto NGINX
 
 ## Supported Gateway Controllers
 
-Okteto works with any Gateway controller that implements Gateway API. Some features, such as connection upgrades for the Kubernetes API proxy and Private Endpoints, rely on Envoy Gateway resources and behave differently on other controllers, as noted in the relevant sections later in this topic. If you use a specific Gateway controller, [let us know](https://okteto.com/support) so we can add it to our release tests.
+Okteto works with any Gateway controller that implements Gateway API. As of today, we run our end-to-end tests against Envoy Gateway, Istio, and Kong. If you use a different Gateway controller, [let us know](https://okteto.com/support) so we can add it to our release tests.
 
 ## Installation Prerequisites
 
@@ -70,11 +70,7 @@ The control plane and the Development Environment endpoints can share the same `
 
 ### Private Endpoints
 
-[Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted. Under Gateway API, their enforcement depends on your Gateway controller: Envoy Gateway enforces them, while other Gateway controllers ignore the private marking and serve the endpoints publicly.
-
-:::warning
-On any Gateway controller other than Envoy Gateway, endpoints marked as private are served publicly. Don't rely on Private Endpoints to protect sensitive applications unless you run Envoy Gateway.
-:::
+[Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported with Gateway API. Endpoints marked as private are exposed like any other endpoint.
 
 To keep your applications off the public internet, we recommend a load balancer with a private IP dedicated to your applications: use separate Gateways for the control plane and the Development Environment endpoints, and expose the Development Environment `Gateway` through an internal load balancer. Only clients with access to your private network can reach the applications.
 
@@ -84,16 +80,17 @@ To keep your applications off the public internet, we recommend a load balancer 
 
 Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you create the certificate yourself and reference it from your `Gateway` listeners.
 
-The certificate must be valid for the hostnames served by each `Gateway` listener. A wildcard certificate for `*.$SUBDOMAIN`, like the one the example `Gateway` earlier in this topic references, covers both the Okteto control plane and your Development Environment endpoints. At a minimum, the control plane requires these hostnames:
+The certificate must be valid for the hostnames served by each `Gateway` listener. At a minimum, the Okteto control plane requires these hostnames:
 
 | Hostname | Serves |
 |----------|--------|
 | `okteto.$SUBDOMAIN` | The Okteto UI and the Okteto API |
 | `registry.$SUBDOMAIN` | The Okteto Registry |
 | `kubernetes.$SUBDOMAIN` | The Kubernetes API endpoint used by the Okteto CLI |
-| `buildkit.$SUBDOMAIN` | The Okteto Build Service, which the Okteto CLI reaches over a port-forward and validates by hostname |
 
-If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`, so the certificate must also be valid for the `publicOverride` hostname.
+When you don't use `publicOverride`, a wildcard certificate for `*.$SUBDOMAIN` covers these control plane hostnames and your Development Environment endpoints.
+
+If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`. The `publicOverride` hostname is a separate domain outside `*.$SUBDOMAIN`, so a `*.$SUBDOMAIN` wildcard certificate doesn't cover it. The certificate must list the `publicOverride` hostname as well, alongside `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`.
 
 :::warning
 The `Gateway` validates the certificate that the Okteto Kubernetes API proxy presents. If that certificate is self-signed or signed by a private CA, either set `kubeAPIServerProxy.backendTLSPolicy.caCertificateRefs` to the CA certificate so the `Gateway` trusts it, or disable the chart-managed validation with `kubeAPIServerProxy.backendTLSPolicy.enabled: false`. Without one of these, the `Gateway` rejects the proxy's certificate and `okteto up`, `kubectl exec`, and `kubectl logs` fail. A publicly trusted certificate needs neither setting.
@@ -132,7 +129,7 @@ This flow requires Okteto CLI 3.15.0 or later. Earlier versions reach BuildKit t
 
 `okteto up`, `okteto build`, `kubectl exec`, `kubectl port-forward`, and `kubectl logs` reach the Kubernetes API through `kubernetes.$SUBDOMAIN`. These commands open WebSocket or SPDY connection upgrades. Most Gateway controllers reject them by default and require specific configuration.
 
-Okteto routes `kubernetes.$SUBDOMAIN` through an internal proxy behind an HTTPRoute. With Envoy Gateway, the chart attaches a `BackendTrafficPolicy` to that HTTPRoute when the Envoy Gateway resource definitions are available at install time. The name of the policy and its target HTTPRoute follow your Helm release name, so they read `okteto-kubernetes` for a release named `okteto`:
+Okteto routes `kubernetes.$SUBDOMAIN` through an internal proxy behind an HTTPRoute. With Envoy Gateway, the chart attaches this `BackendTrafficPolicy` to that HTTPRoute automatically:
 
 ```yaml
 apiVersion: gateway.envoyproxy.io/v1alpha1
@@ -149,10 +146,6 @@ spec:
     - type: websocket
     - type: spdy/3.1
 ```
-
-:::note
-The chart detects Envoy Gateway from the resource definitions available when it renders. If you render the chart without access to the cluster's resource definitions, for example with `helm template` or some GitOps tools, the chart can't detect Envoy Gateway and skips this policy without an error. Confirm the policy exists after install, or apply it yourself.
-:::
 
 With any other Gateway controller, configure the equivalent setting so that `websocket` and `spdy/3.1` upgrades are allowed on the HTTPRoute for `kubernetes.$SUBDOMAIN`. You can also [tell us](https://okteto.com/support) which Gateway controller you use, and we'll add its configuration to the Okteto chart.
 
@@ -286,11 +279,7 @@ endpoints:
       gateway:
         name: okteto
         namespace: okteto
-      defaultBackendHTTPRoute:
-        enabled: false # let your own wildcard HTTPRoute handle *.$SUBDOMAIN
 ```
-
-By default, Okteto attaches a catch-all HTTPRoute for `*.$SUBDOMAIN` that returns a 404 for hostnames without their own route. In this mode it competes with the wildcard HTTPRoute you create next, so set `endpoints.dev.gatewayAPI.defaultBackendHTTPRoute.enabled: false` and let your own wildcard HTTPRoute handle `*.$SUBDOMAIN`.
 
 To serve HTTPRoutes and Ingress objects at the same time, the `Gateway` of `endpoints.dev` receives all the traffic of your Development Environment endpoints, and you install an Ingress controller that serves your Ingress objects. Connect them with a wildcard HTTPRoute for `*.$SUBDOMAIN` that forwards all the traffic to the Service of your Ingress controller:
 
@@ -327,7 +316,7 @@ spec:
 
 The `Gateway` terminates TLS and sends plain HTTP to the Ingress controller. The `X-Forwarded-Proto` header tells the Ingress controller that the original request used HTTPS. If the Service of your Ingress controller is in a different namespace than the HTTPRoute, create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/api-types/referencegrant/) in that namespace.
 
-Your applications may open WebSocket or other connection upgrades through this wildcard HTTPRoute. Configure your Gateway controller so that the wildcard HTTPRoute supports them. With Envoy Gateway, set `endpoints.dev.gatewayAPI.wildcardHTTPRoute.backendTrafficPolicy.enabled: true` to allow connection upgrades on the wildcard HTTPRoute and remove its request timeout. Set `endpoints.dev.gatewayAPI.wildcardHTTPRoute.name` to the name of your wildcard HTTPRoute if it isn't `wildcard-to-ingress`.
+Your applications may open WebSocket or other connection upgrades through this wildcard HTTPRoute. Configure your Gateway controller so that the wildcard HTTPRoute supports them.
 
 ## DNS Configuration
 
