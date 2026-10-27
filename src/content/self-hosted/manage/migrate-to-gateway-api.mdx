@@ -92,10 +92,6 @@ When you don't use `publicOverride`, a wildcard certificate for `*.$SUBDOMAIN` c
 
 If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`. The `publicOverride` hostname is a separate domain outside `*.$SUBDOMAIN`, so a `*.$SUBDOMAIN` wildcard certificate doesn't cover it. The certificate must list the `publicOverride` hostname as well, alongside `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`.
 
-:::warning
-The `Gateway` validates the certificate that the Okteto Kubernetes API proxy presents. If that certificate is self-signed or signed by a private CA, either set `kubeAPIServerProxy.backendTLSPolicy.caCertificateRefs` to the CA certificate so the `Gateway` trusts it, or disable the chart-managed validation with `kubeAPIServerProxy.backendTLSPolicy.enabled: false`. Without one of these, the `Gateway` rejects the proxy's certificate and `okteto up`, `kubectl exec`, and `kubectl logs` fail. A publicly trusted certificate needs neither setting.
-:::
-
 To configure it:
 
 1. Create a TLS secret in the `okteto` namespace with a certificate valid for these hostnames. A wildcard certificate for `*.$SUBDOMAIN` also works, and you can reuse the public certificate served by your load balancer. See [bring your own certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) and [cert-manager](self-hosted/install/certificates/cert-manager.mdx) for ways to create it.
