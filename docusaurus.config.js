@@ -111,6 +111,52 @@ function remarkLlmsIndexPointer() {
   };
 }
 
+// Site-level JSON-LD entity graph: who publishes these docs (Organization),
+// the docs site itself (WebSite), and the product they document (WebApplication).
+// Rendered into the <head> of every docs page so answer engines and search read
+// the publisher and product identity instead of inferring it. Page-level
+// TechArticle/BreadcrumbList blocks reference these @id values.
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'Okteto, Inc.',
+      url: `${SITE_URL}/`,
+      description:
+        'Okteto gives coding agents production-like environments to verify their work.',
+      logo: {
+        '@type': 'ImageObject',
+        '@id': `${SITE_URL}/#logo`,
+        url: `${SITE_URL}${BASE_URL}img/logo.svg`,
+      },
+      sameAs: [
+        'https://github.com/okteto/okteto',
+        'https://twitter.com/oktetohq',
+        'https://www.youtube.com/@OktetoHQ',
+      ],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}${BASE_URL}#website`,
+      url: `${SITE_URL}${BASE_URL}`,
+      name: 'Okteto Documentation',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      inLanguage: 'en-US',
+    },
+    {
+      '@type': 'WebApplication',
+      '@id': `${SITE_URL}/#product`,
+      name: 'Okteto Platform',
+      description: 'Okteto is the environment platform for agentic development.',
+      url: `${SITE_URL}/`,
+      applicationCategory: 'DeveloperApplication',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+    },
+  ],
+};
+
 module.exports = {
   ...shared.siteConfig,
   title: 'Okteto Documentation',
@@ -130,6 +176,14 @@ module.exports = {
   },
   headTags: [
     ...shared.headTags(BASE_URL),
+    {
+      // Site-level entity graph (Organization, WebSite, WebApplication).
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify(siteJsonLd),
+    },
     {
       // Machine-readable pointer so agents crawling the HTML can find the index.
       tagName: 'link',
