@@ -42,23 +42,6 @@ function rehypeStripTierBadges() {
   return (tree) => walk(tree);
 }
 
-// Strip the AgentActions control (the "Copy page / Open in agent" split
-// button) from the Markdown twins — it's page chrome, not content. Same
-// dependency-free hast walk as rehypeStripHashLinks above.
-function rehypeStripAgentActions() {
-  const isAgentActions = (node) =>
-    Array.isArray(node.properties && node.properties.className) &&
-    node.properties.className.includes('AgentActions');
-
-  const walk = (node) => {
-    if (!node.children) return;
-    node.children = node.children.filter((child) => !isAgentActions(child));
-    node.children.forEach(walk);
-  };
-
-  return (tree) => walk(tree);
-}
-
 // Docs origin and base path (also used for url/baseUrl in module.exports below).
 const SITE_URL = shared.SITE_URL;
 const BASE_URL = '/docs/';
@@ -270,7 +253,7 @@ module.exports = {
         content: {
           includeVersionedDocs: true,
           enableMarkdownFiles: true,
-          beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripTierBadges, rehypeStripAgentActions],
+          beforeDefaultRehypePlugins: [rehypeStripHashLinks, rehypeStripTierBadges],
           remarkPlugins: [remarkLlmsIndexPointer],
         },
       },

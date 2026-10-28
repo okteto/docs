@@ -92,7 +92,7 @@ Docusaurus applies `baseUrl` to the whole site:
 - `docusaurus.config.js` builds `/docs/` into `build/docs`.
 - `docusaurus.blog.config.js` builds `/blog/` into `build/blog`.
 - `config/shared.js` holds what both share: navbar, footer, favicons, Prism
-  theme, analytics (GA, GTM, PostHog, HubSpot) and styles. `shared/static`
+  theme, analytics (GA, GTM, Mixpanel, HubSpot) and styles. `shared/static`
   holds the fonts, favicons and logo. The React theme in `src/theme` and
   `src/styles` is shared too.
 - `src/plugins/okteto-blog` wraps the stock blog plugin to keep the old URLs
