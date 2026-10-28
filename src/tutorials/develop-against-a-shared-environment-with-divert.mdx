@@ -1,0 +1,173 @@
+---
+title: Develop a service against a shared environment with Divert
+description: Deploy a single service in an Overlay Namespace and reuse a Shared Namespace for the rest of the application with Divert.
+id: develop-against-a-shared-environment-with-divert
+sidebar_custom_props: { logo: "okteto" }
+---
+
+import Image from "@theme/Image";
+
+[Divert](/docs/development/divert/) lets you deploy only the services you are changing and reuse a Shared Namespace for every other service of the application. Instead of deploying a full replica of a large microservices application for every change, you deploy one service in your own Overlay Namespace, and requests that carry your Divert header reach it while everything else is served by the shared version.
+
+In this tutorial, you work with the [Movies](https://github.com/okteto/movies) sample application: a React frontend, a Node.js catalog service, a Java rent service, Go API and worker services, and MongoDB, Kafka, and PostgreSQL. You deploy the full application once in a Shared Namespace called `staging`, then develop the frontend in your own Overlay Namespace that reuses `staging` for every other service.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/divert-overview.svg").default}
+    alt="Requests to the API gateway of the staging namespace reach the shared services, while requests carrying a divert header reach the service deployed in an Overlay Namespace, which falls back to the shared services for everything it does not deploy"
+    width="850"
+  />
+</p>
+
+## Prerequisites
+
+- The [Okteto CLI](/docs/get-started/install-okteto-cli) installed and configured against your Okteto instance.
+- An Okteto instance with Divert enabled in the cluster. On Self-Hosted instances, follow [Configure Divert in Your Cluster](/docs/self-hosted/install/divert/). On Bring Your Own Cloud (BYOC) instances, contact Okteto support.
+- [Git](https://git-scm.com/) and a [GitHub](https://github.com) account to clone the sample repositories.
+
+## Step 1: Deploy the Shared Namespace
+
+The Shared Namespace runs the complete application. Overlay Namespaces fall back to it for every service they don't deploy, so deploy the full stack here first.
+
+Create a Namespace called `staging`:
+
+```console
+okteto namespace create staging
+```
+
+Clone the Movies application and deploy it into `staging`:
+
+```console
+git clone https://github.com/okteto/movies
+cd movies
+okteto deploy -n staging
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Development environment 'movies' successfully deployed
+ i  Endpoints available:
+  - https://movies-staging.okteto.example.com/
+```
+
+Open the endpoint in your browser and confirm the Movies application loads and lists movies. This is the shared version that every Overlay Namespace reuses.
+
+Ask an administrator to [mark the `staging` Namespace as persistent](/docs/core/namespaces/#mark-a-namespace-as-persistent-to-prevent-it-from-sleeping-and-deletion) so it never goes to sleep or gets deleted while developers divert against it.
+
+## Step 2: Review the Divert manifest
+
+The overlay deploys a single service and points Divert at the Shared Namespace. Clone the frontend-only repository:
+
+```console
+cd ..
+git clone https://github.com/okteto/movies-frontend-with-divert
+cd movies-frontend-with-divert
+```
+
+Open its `okteto.yaml`:
+
+```yaml
+build:
+  frontend:
+    context: .
+  dev:
+    context: .
+    target: dev
+
+deploy:
+  compose: okteto-compose.yml
+  divert:
+    namespace: staging
+
+dev:
+  frontend:
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    command: yarn start
+    sync:
+      - .:/src
+```
+
+Two fields drive the Divert behavior:
+
+- `deploy.compose` deploys only the `frontend` service, defined in `okteto-compose.yml`.
+- `deploy.divert.namespace` names the Shared Namespace, `staging`. Every service that the deploy doesn't create, such as the catalog, API, rent, worker, and the databases, is served by `staging`.
+
+The `dev.frontend` section configures live development for the frontend, which you use in Step 5.
+
+## Step 3: Deploy your Overlay Namespace
+
+Switch to your own Namespace. If you don't have one yet, create it with your name:
+
+```console
+okteto namespace create cindy
+```
+
+Deploy the overlay from the `movies-frontend-with-divert` directory:
+
+```console
+okteto deploy
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Built image for service 'frontend'
+ ✓  Development environment 'movies-frontend-with-divert' successfully deployed
+ i  Endpoints available:
+  - https://movies-cindy.okteto.example.com/
+```
+
+`okteto deploy` builds and deploys only the frontend into your `cindy` Namespace, then enables Divert against `staging`. Your Overlay Namespace starts in the time it takes to deploy one service, instead of the whole application.
+
+## Step 4: Confirm the routing
+
+Open your Overlay Namespace endpoint, `https://movies-cindy.okteto.example.com/`, in your browser. The application loads and behaves like the shared one, but the frontend is now the copy running in your Namespace.
+
+The dedicated endpoint that Okteto created for your Overlay Namespace adds your Divert header, `baggage: okteto-divert=cindy`, to every request automatically. When the frontend calls a service you didn't deploy, the request falls back to the shared version in `staging`. You see your frontend backed by the shared catalog, API, rent, worker, and databases, without deploying any of them.
+
+To reach your overlay service through the Shared Namespace endpoint instead, add the Divert header yourself. For example, with `curl`:
+
+```bash
+curl -H "baggage: okteto-divert=cindy" https://movies-staging.okteto.example.com/
+```
+
+A request without the Divert header reaches the shared frontend. A request with it reaches yours.
+
+## Step 5: Develop the frontend live
+
+Activate live development for the frontend:
+
+```console
+okteto up
+```
+
+```console
+ ✓  Persistent volume successfully attached
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Namespace: cindy
+    Name:      frontend
+
+Welcome to your development container. Happy coding!
+```
+
+`okteto up` is interactive and keeps a shell open in the Development Container. It syncs your local files into the container with [File Sync](/docs/reference/file-synchronization/) and runs `yarn start`, the command from the `dev.frontend` section, which serves the frontend with hot reload.
+
+Edit `src/App.jsx` in your local editor and change a visible string, such as the page title. Save the file. File Sync copies the change into the Development Container, `yarn start` reloads, and your Overlay Namespace endpoint shows the update. No commit, build, or push required.
+
+When you finish, stop the development session:
+
+```console
+okteto down
+```
+
+## Summary
+
+You deployed the full Movies application once in a Shared Namespace, deployed only the frontend in your own Overlay Namespace, and used Divert to serve every other service from the shared version. You then developed the frontend live against that shared stack. This is the pattern that keeps deploy times and infrastructure cost low as an application grows past the point where a full replica per developer is practical.
+
+## Next steps
+
+- [Shared Namespace](/docs/development/divert/shared-namespace/): keep the shared application up to date by redeploying it on every merge.
+- [Overlay Namespace](/docs/development/divert/overlay-namespace/): configure the `divert` section for multi-service subsystems and the Istio driver.
+- [Header Propagation](/docs/development/divert/header-propagation/): forward the Divert header across your services so it reaches every hop in a call chain.
+- [Queue Splitting](/docs/development/divert/queue-splitting/): keep each message in the Namespace it belongs to when your services use queues.
+- [Data Cloning](/docs/development/divert/data-cloning/): give your Overlay Namespace its own copy of the databases it writes to.

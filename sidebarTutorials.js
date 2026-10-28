@@ -31,6 +31,7 @@ module.exports = {
         'external-resources',
         'webpack',
         'using-launchdarkly-and-okteto-to-automate-modern-feature-flag-management',
+        'develop-against-a-shared-environment-with-divert',
         'optimize-your-development-environment',
         'create-and-use-volume-snapshots',
       ],
