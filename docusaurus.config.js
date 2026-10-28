@@ -159,9 +159,6 @@ module.exports = {
     },
   },
   themes: ['@docusaurus/theme-mermaid'],
-  customFields: {
-    image: 'https://www.okteto.com/docs/okteto-meta-image.png',
-  },
   headTags: [
     ...shared.headTags(BASE_URL),
     {

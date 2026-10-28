@@ -145,6 +145,10 @@ const algolia = {
 const searchNavbarItem = { type: 'search', position: 'left' };
 
 const themeConfig = {
+  // Default og:image / twitter:image for pages without their own (docs
+  // pages, blog index, tag and author pages, posts with no featured image).
+  // The website's social card, so links unfurl the same across okteto.com.
+  image: `${SITE_URL}/okteto-meta-image.png`,
   colorMode: {
     defaultMode: 'light',
     disableSwitch: false,
