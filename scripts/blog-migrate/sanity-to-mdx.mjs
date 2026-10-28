@@ -277,6 +277,8 @@ const YOUTUBE_VIDEOS = {
   'file-543d9b61b922f17ee71efe18ea1afb42b882f29c-mp4': 'RjnIr28kEAI', // platform-engineering-devops
   'file-a01b7556b741f3e93878c9aea4b24367fffb396f-mp4': 'AVCym56-twM', // platform-engineering-roadmap
   'file-fc7fdcd6f1c81eb4a28999691b8cca4bfead6ac5-mp4': 'yainTjNYbgU', // platform-engineering-benefits
+  'file-a6acc0600672346da35c95ccddf3cfa66b85cc88-mp4': 'VBZZ0q1jUvQ', // the-build-vs-buy-software-debate-includes-development-platforms (part 1)
+  'file-776fe8af317ad87e45f2213b74995d9f8c219344-mp4': '1lHBqkDsTps', // the-build-vs-buy-software-debate-includes-development-platforms (part 2)
 };
 
 function renderBlocks(blocks, ctx) {
