@@ -124,9 +124,13 @@ function extractTitle(twinContent, htmlContent) {
   return title.endsWith(SITE_TITLE_SUFFIX) ? title.slice(0, -SITE_TITLE_SUFFIX.length) : title;
 }
 
+// The HTML minifier drops attribute quotes where it can (`name=description`),
+// so quotes are optional here.
 function extractDescription(htmlContent) {
-  const match = htmlContent.match(/<meta[^>]*\bname="description"[^>]*\bcontent="([^"]*)"/);
-  return match ? decodeHtmlEntities(match[1]) : null;
+  const match = htmlContent.match(
+    /<meta[^>]*\bname=["']?description["']?(?=[\s/>])[^>]*\bcontent=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/
+  );
+  return match ? decodeHtmlEntities(match[1] ?? match[2] ?? match[3]) : null;
 }
 
 // { twinPath, url, title, description } for every twin path, rewriting each
