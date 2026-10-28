@@ -1,146 +1,57 @@
 ---
-title: Configure Divert
-description: Admin guide for configuring Divert drivers in self-hosted Okteto
-sidebar_label: Configure Divert
+title: Configure Divert in Your Cluster
+description: Cluster requirements to enable Divert with a service mesh based on the Gateway API or on Istio VirtualServices.
+sidebar_label: Divert
 ---
 
-Divert enables developers to create lightweight development environments that deploy only the services they're actively working on, while routing traffic to shared services for everything else. This section covers the administrative setup required to enable Divert in your Okteto installation.
+Divert needs a service mesh in each Shared Namespace and a few Okteto Helm values. The service mesh routes the calls between the services of the Shared Namespace, and sends the requests that carry a divert header to the overlay services. Once the cluster is configured with a service mesh, developers can use Divert from their Okteto Manifests, as described in [Overlay Namespace](development/divert/overlay-namespace.mdx).
 
-## Divert Drivers
-
-Okteto supports two drivers for Divert routing:
-
-| Driver | Description | Default | Purpose |
-|--------|-------------|---------|---------|
-| **nginx** | Uses Okteto's built-in nginx ingress controller | ✅ Yes | Standard installations with Okteto-managed routing |
-| **istio** | Uses Istio's VirtualService for header-based routing | No | Environments with existing Istio service mesh |
-
-:::info Important Distinction
-**Istio and Linkerd serve different purposes:**
-- **Istio** is a **divert driver** - an alternative to the nginx driver for environments already using Istio
-- **Linkerd** is an **optional enhancement** for the **nginx driver** - it adds service mesh capabilities to nginx-based routing
-- You **cannot** use both Istio driver and Linkerd together
-- Choose one: nginx driver (with optional Linkerd) **OR** istio driver
+:::info Talk to us
+Service meshes, gateway controllers, and network policies are configured differently in every cluster, and their setup can add steps to enabling Divert. This guide covers the common setups, but we encourage you to [talk to us](https://www.okteto.com/contact/) to guide you through the configuration of your cluster.
 :::
 
-## Okteto's Ingress Controllers
+## Requirements
 
-By default, Okteto deploys two nginx ingress controllers:
+- A service mesh that routes east-west traffic, the calls between services, by the `baggage` header. The cluster gateway controller routes the requests that enter through the endpoints of the Shared Namespace, but it doesn't see the calls between services inside it. Meshes that implement [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), the Gateway API support for service meshes, such as Linkerd and Istio, route those calls with the same `HTTPRoute` resources
+- The service mesh enabled in each **Shared Namespace**, with sidecar injection or in sidecar-less mode. Overlay Namespaces don't need it, and you don't need to configure anything for them: Okteto automatically adds the Shared Namespace to the DNS search list of the pods it deploys in an Overlay Namespace. Kubernetes resolves a service name in the pod's own namespace first, so a call by service name reaches the overlay service if it's deployed in the Overlay Namespace, and the shared service otherwise
 
-| Controller | Ingress Class | Service Type | Purpose |
-|------------|---------------|--------------|---------|
-| **`ingress-nginx`** | `okteto-controlplane-nginx` | LoadBalancer | The external-facing controller. Serves the Okteto control plane (API, Frontend, Buildkit, Registry) and forwards wildcard `*.subdomain` traffic to the user traffic controller |
-| **`okteto-nginx`** | `okteto-nginx` | ClusterIP | An internal controller dedicated to user/dev namespace ingress traffic |
+## Drivers
 
-Running two separate controllers isolates user traffic from control plane traffic, preventing developer app deployments from disrupting control plane access during reconfigurations and updates, and vice versa (this is an nginx limitation). When using the Istio driver, `okteto-nginx` is disabled in favor of Istio handling user traffic. See the [Istio Installation](istio-installation.mdx) guide for details.
+Okteto supports two drivers to route the requests with a divert header to the overlay services. Choose the one that matches your service mesh:
 
-## nginx Driver (Default)
+- **Gateway API**: for service meshes that implement the Gateway API, such as Linkerd. Okteto creates the routing rules as Gateway API `HTTPRoute` resources.
+- **VirtualServices**: for clusters that use Istio and applications that define their routing with VirtualServices. Okteto adds the routing rules to those VirtualServices.
 
-The nginx driver is enabled by default in Okteto installations. It uses the `okteto-nginx` ingress controller to inject and route based on the `baggage: okteto-divert=<namespace>` header.
+### Gateway API
 
-### Requirements
-
-- Standard Okteto installation (no additional configuration needed)
-- Optional: [Linkerd service mesh](linkerd-installation.mdx) for enhanced service-to-service routing
-
-### How It Works
-
-1. When a developer deploys with `divert` configuration, Okteto creates ingress rules that inject the baggage header
-2. Requests through the developer's endpoint automatically include `baggage: okteto-divert=<namespace>`
-3. The nginx ingress controller routes requests to the appropriate namespace based on this header
-4. For service-to-service communication, applications must propagate the baggage header
-
-### Linkerd Integration (Optional)
-
-For enhanced service mesh capabilities with the nginx driver, you can install Linkerd. This provides:
-
-- Header-based routing at the service mesh level
-- Automatic mTLS between services
-- Advanced traffic management and observability
-- Improved reliability with retries and circuit breaking
-
-See [Linkerd Installation](linkerd-installation.mdx) for setup instructions.
-
-## istio Driver
-
-The istio driver is designed for environments that already use Istio for service mesh. It leverages Istio's VirtualService for header-based routing without requiring additional components.
-
-:::warning
-The istio driver is for environments that have **already installed Istio** and prefer Istio-native routing. If you don't have Istio, use the nginx driver instead. Do not install Istio just for Divert - the nginx driver is simpler and sufficient.
-:::
-
-### Requirements
-
-- Okteto configured with Istio ingress mode
-- Istio service mesh installed in the cluster
-- Istio sidecar injection enabled for Okteto-managed namespaces
-
-See [Istio Installation](istio-installation.mdx) for full setup instructions, including Helm configuration, installing Istio components, and configuring the ingress gateway.
-
-### How It Works (Istio)
-
-1. When a developer deploys with `divert` and `driver: istio`, Okteto:
-   - Creates/modifies VirtualServices to route based on the baggage header
-   - Clones the specified host VirtualServices to the developer namespace for header injection
-2. Requests through the developer's endpoint include the baggage header
-3. Istio's routing rules direct traffic to the appropriate namespace
-4. The Istio sidecar propagates headers through the service mesh
-
-## Developer Configuration
-
-Once an administrator has configured the Divert infrastructure, developers use the `divert` section in their `okteto.yaml`:
-
-### nginx Driver Example
+The Gateway API driver works with any service mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), the [Gateway API](https://gateway-api.sigs.k8s.io/) support for east-west traffic, such as [Linkerd](https://linkerd.io/). For each overlay service, Okteto creates an `HTTPRoute` in the Shared Namespace that sends the requests with the divert header of the Overlay Namespace to the overlay service, and every other request to the shared service. Enable it in your Okteto Helm values:
 
 ```yaml
-deploy:
-  commands:
-    - helm upgrade --install myservice chart
-  divert:
-    driver: nginx  # Optional, this is the default
-    namespace: staging
+divert:
+  enabled: true
 ```
 
-### istio Driver Example
+The Gateway API CRDs (`v1`) must be installed in the cluster. Okteto doesn't install them: install them before enabling Divert, following the [Gateway API installation guide](https://gateway-api.sigs.k8s.io/guides/#installing-gateway-api) or the instructions of your service mesh. It's the default driver, so developers don't set any driver in their Okteto Manifest.
+
+### VirtualServices
+
+The VirtualServices driver works with clusters that use Istio, when your applications define their routing with VirtualServices. Okteto adds rules to the VirtualServices of the Shared Namespace that send the requests with the divert header of the Overlay Namespace to the overlay services. Enable it in your Okteto Helm values, instead of `divert`:
 
 ```yaml
-deploy:
-  commands:
-    - helm upgrade --install myservice chart
-  divert:
-    driver: istio
-    virtualServices:
-      - name: frontend-vs
-        namespace: staging
-        routes:
-          - main-route
-    hosts:
-      - virtualService: frontend
-        namespace: staging
+virtualServices:
+  enabled: true
 ```
 
-## Header Format
-
-Both drivers use the same header format (unified in Okteto 1.31+):
-
-```
-baggage: okteto-divert=<namespace>
-```
-
-For backward compatibility with older nginx driver installations, the header `baggage.okteto-divert` is also supported but deprecated.
+Developers set `driver: istio` and the VirtualServices to divert in their Okteto Manifest.
 
 ## Network Policies
 
-If you have network policies enabled in your Okteto installation, ensure they allow cross-namespace communication for Divert to function properly.
+Divert needs traffic in both directions between a Shared Namespace and its Overlay Namespaces:
 
-### Configuring Network Policies
+- **From the Overlay Namespace to the Shared Namespace**: your overlay services call the shared services they don't deploy.
+- **From the Shared Namespace to the Overlay Namespace**: the service mesh sends requests with your divert header from the shared services to your overlay services.
 
-If using `networkPolicies.enabled: true` in your Helm values, add rules to allow:
-
-- Cross-namespace communication between developer namespaces and shared namespaces
-- Traffic from the ingress controller to all namespaces
-
-Example configuration in your Helm values:
+If you enable [`networkPolicies`](self-hosted/helm-configuration.mdx#networkpolicies) in your Okteto Helm values, Okteto applies the rules in `networkPolicies.ingress` to every Namespace it manages. Add a rule that allows ingress from every Okteto Namespace, which are labeled `dev.okteto.com: "true"`:
 
 ```yaml
 networkPolicies:
@@ -149,38 +60,93 @@ networkPolicies:
     - from:
         - namespaceSelector:
             matchLabels:
-              dev.okteto.com/okteto-managed: "true"
+              dev.okteto.com: "true"
 ```
 
-:::tip
-For complete network policy configuration options, see the [Helm Configuration reference](../../helm-configuration.mdx#networkpolicies).
-:::
+Because the rule is applied to both the Shared Namespace and the Overlay Namespaces, it allows traffic in both directions.
 
-## Troubleshooting
+## Shared Namespaces Outside Okteto
 
-### Divert Not Working
+A Shared Namespace can be a namespace that Okteto doesn't manage, in the same cluster. Enable the service mesh in it, as in any Shared Namespace, and configure the following settings. The examples use a namespace named `staging`.
 
-1. **Check driver configuration**: Ensure the correct driver is installed and configured
-2. **Verify header propagation**: Test with `curl -H "baggage: okteto-divert=<namespace>"` to confirm routing works
-3. **Check namespace labels**: For Istio, verify `istio-injection: enabled` label exists
-4. **Review ingress configuration**: Ensure ingress rules are being created correctly
+### Access for Developers
 
-### VirtualServices Not Appearing (Istio)
+Developers need access to the objects of the Shared Namespace that Divert uses. Create a ClusterRole with access to them:
 
-1. Verify `virtualServices.enabled: true` in Helm values
-2. Check that Istio CRDs are installed
-3. Ensure the VirtualService is in a namespace managed by Okteto
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: okteto-divert-shared
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "grpcroutes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.istio.io"]
+    resources: ["virtualservices"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+```
 
-### Cross-Namespace Communication Failing
+Then bind it to every Okteto user in the Shared Namespace with [`serviceAccounts.extraRoleBindings`](self-hosted/helm-configuration.mdx#serviceaccounts) in your Okteto Helm values:
 
-1. Check network policies allow the traffic (see [Network Policies section](#network-policies))
-2. Verify DNS resolution works across namespaces
-3. Test direct pod-to-pod communication to isolate the issue
+```yaml
+serviceAccounts:
+  extraRoleBindings:
+    staging:
+      - okteto-divert-shared
+```
 
-## Next Steps
+### Network Policies
 
-- **[Linkerd Installation](linkerd-installation.mdx)** - Enhanced routing with Linkerd (nginx driver only)
-- **[Istio Installation](istio-installation.mdx)** - Full Istio setup guide (istio driver)
-- **[Using Divert](development/using-divert.mdx)** - Developer implementation guide
-- **[Divert Tutorial](/docs/tutorials/divert)** - Getting started guide for developers
-- **[Core Concepts](core/divert.mdx)** - Understanding Divert architecture
+Okteto doesn't apply its network policies to a namespace it doesn't manage, so allow ingress on both sides.
+
+In the Okteto Helm values, allow ingress from the Shared Namespace into the Overlay Namespaces:
+
+```yaml
+networkPolicies:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com: "true"
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: staging
+```
+
+In the Shared Namespace, add a `NetworkPolicy` that allows ingress from the Okteto Namespaces:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-okteto-namespaces
+  namespace: staging
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              dev.okteto.com: "true"
+```
+
+### Istio VirtualServices
+
+With Istio VirtualServices, also select the Shared Namespace with `virtualServices.namespaceSelector` in your Okteto Helm values. Okteto's mutating webhook only receives events from the namespaces it manages, and this setting adds the Shared Namespace, so Okteto can respond to changes in its VirtualServices:
+
+```yaml
+virtualServices:
+  enabled: true
+  namespaceSelector:
+    kubernetes.io/metadata.name: staging
+```

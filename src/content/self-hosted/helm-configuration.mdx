@@ -576,7 +576,13 @@ The jobs that deploy your [development environments from Git](development/deploy
 
 ### installerChecker
 
-The CronJob that reconciles Development Environment deploys and destroys stuck in a running state.
+The CronJob that reconciles Development Environment deploys and destroys stuck in a running state. On each run, it marks a deploy as `error` and deletes its installer Job when the Job failed, can't be scheduled, or disappeared without a status update for 5 minutes. This clears Development Environments that would otherwise stay in `progressing` in the Okteto UI.
+
+To inspect the latest run:
+
+```bash
+kubectl logs -l app.kubernetes.io/component=installer-checker --namespace=okteto
+```
 
 - `enabled`: Whether to run the installer checker. Defaults to `true`.
 - `schedule`: The cron schedule for the checker. Defaults to `*/5 * * * *` (every 5 minutes).
@@ -590,11 +596,17 @@ installerChecker:
 
 ### migration
 
-The Helm hook Job that applies the data and resource migrations required by the Okteto version you are installing. It runs automatically on every install and upgrade.
+The Helm hook Job that applies the data and resource migrations required by the Okteto version you are installing. It runs automatically on every install and upgrade, after the Okteto Webhook is ready. It updates existing Okteto resources (users, Namespaces, ingresses, Personal Access Tokens, Preview Environments, and Catalog items) to the schema of the new version. It doesn't install CRDs; those are managed by [`crds`](#crds).
 
 :::note
 This job is required for Okteto to work correctly and must not be disabled.
 :::
+
+The job is deleted when it succeeds. A failed job is kept so you can inspect it. If `helm upgrade` fails on the migration hook, the logs show the step that failed:
+
+```bash
+kubectl logs -l app.kubernetes.io/component=migration --namespace=okteto
+```
 
 - `annotations`: Annotations to add to the migration job pods.
 - `labels`: Labels to add to the migration job pods.
@@ -612,6 +624,14 @@ migration:
 ### namespaceDestroyAll
 
 The Job that destroys every resource in a Namespace, plus the CronJob that recovers Namespaces whose destroy-all Job did not finish.
+
+Okteto creates a destroy-all Job in the `okteto` namespace each time a Developer runs [`okteto destroy --all`](reference/okteto-cli.mdx#destroy) or uses **Destroy All** in the Okteto UI. The Job runs `okteto pipeline destroy` for Development Environments with a `destroy` section or a [Divert](development/divert/index.mdx) driver, uninstalls Helm releases, and deletes the remaining resources. It times out after 2 hours. To read its logs for a Namespace:
+
+```bash
+kubectl logs -l app.kubernetes.io/component=namespace-destroy-all,dev.okteto.com/namespace=<namespace> --namespace=okteto
+```
+
+If a destroy-all Job hangs, a resource with a blocked [finalizer](https://kubernetes.io/blog/2021/05/14/using-finalizers-to-control-deletion/) is the most likely cause. The checker CronJob resets Namespaces stuck in `DestroyingAll` or `DestroyAllFailed` for longer than 2 hours back to `Active`, so the Developer can retry.
 
 - `priorityClassName`: The priority class for the per-Namespace destroy-all job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `checker`: Configures the CronJob that recovers stuck Namespaces.

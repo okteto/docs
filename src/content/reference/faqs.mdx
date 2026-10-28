@@ -109,6 +109,30 @@ import Head from '@docusaurus/Head';
         "@type": "Answer",
         "text": "With okteto build --platform you can specify the platform (or architecture) for which you'd like to build the container images. For example, you could use a multiplatform image and the okteto build --platform command to deploy your web application on a Kubernetes cluster that consists of nodes running on both x86-64 and ARMv7 architectures. By using the multiplatform images built using this method, you can deploy the same images across the cluster without worrying about the underlying hardware differences.<br><br>Let's consider an example where you have a Node.js application that you want to build and deploy on both x86_64 and ARM-based platforms. You have a Dockerfile in your project directory that defines the build process. Here's how Okteto CLI can help you build multiplatform images for your application:<br><ol><li>Building the image for x86_64 architecture:</li><li>Building the image for ARMv7 architecture:</li><li>Building a multiarchitectural image:</li></ol><br>This command builds a multi-architecture Docker image named myapp with the latest tag for both x86_64 and ARM platforms.<br><br>By using these commands, you can easily build the application image for different platforms without needing to maintain separate Dockerfiles or perform manual modifications. This is particularly useful when you want to deploy your application to heterogeneous environments where you have both x86_64 and ARM-based devices, such as a mixed-cluster Kubernetes setup."
       }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I deploy several subsystems in the same Overlay Namespace?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. An Overlay Namespace can run several overlay services, deployed together or one after the other with another okteto deploy -f. Your overlay services call each other directly, because a service name resolves to your Overlay Namespace first, and they use the Shared Namespace for everything else.<br><br>For example, Cindy deploys the rentals subsystem with okteto deploy -f okteto.rentals.yaml, and later the catalog subsystem with okteto deploy -f okteto.catalog.yaml. Her rent service calls her catalog service, and the shared services for everything she didn't deploy. Requests with her divert header reach her rent service, and from there her catalog service. See Divert."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can several Overlay Namespaces use the same Shared Namespace?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Each Overlay Namespace has its own divert header, so each one only receives the requests with its header. Overlay Namespaces don't see each other's changes, and the Shared Namespace isn't affected by any of them."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do Overlay Namespaces need a service mesh to use Divert?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Only the Shared Namespace needs it. Your Overlay Namespace reaches the shared services through DNS, which Okteto configures when you deploy with a divert section. See Configure Divert in Your Cluster."
+      }
     }
   ]
 }
@@ -321,3 +345,17 @@ This command builds a multi-architecture Docker image named `myapp` with the lat
 
 By using these commands, you can easily build the application image for different platforms without needing to maintain separate Dockerfiles or perform manual modifications.
 This is particularly useful when you want to deploy your application to heterogeneous environments where you have both x86_64 and ARM-based devices, such as a mixed-cluster Kubernetes setup.
+
+## Can I deploy several subsystems in the same Overlay Namespace?
+
+Yes. An Overlay Namespace can run several overlay services, deployed together or one after the other with another `okteto deploy -f`. Your overlay services call each other directly, because a service name resolves to your Overlay Namespace first, and they use the Shared Namespace for everything else.
+
+For example, Cindy deploys the rentals subsystem with `okteto deploy -f okteto.rentals.yaml`, and later the catalog subsystem with `okteto deploy -f okteto.catalog.yaml`. Her rent service calls her catalog service, and the shared services for everything she didn't deploy. Requests with her divert header reach her rent service, and from there her catalog service. See [Divert](development/divert/index.mdx).
+
+## Can several Overlay Namespaces use the same Shared Namespace?
+
+Yes. Each Overlay Namespace has its own [divert header](development/divert/index.mdx#concepts), so each one only receives the requests with its header. Overlay Namespaces don't see each other's changes, and the Shared Namespace isn't affected by any of them.
+
+## Do Overlay Namespaces need a service mesh to use Divert?
+
+No. Only the Shared Namespace needs it. Your Overlay Namespace reaches the shared services through DNS, which Okteto configures when you deploy with a `divert` section. See [Configure Divert in Your Cluster](self-hosted/install/divert/index.mdx).

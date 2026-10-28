@@ -35,6 +35,8 @@ Okteto works with any Gateway controller that implements Gateway API. As of toda
 
 ## Installation Prerequisites
 
+Okteto requires the [Gateway API](https://gateway-api.sigs.k8s.io/) resource definitions, version 1.4 or later, installed in your cluster, and a Gateway controller that supports `BackendTLSPolicy`. Okteto doesn't install the Gateway API resource definitions for you. The Helm install fails if they're missing.
+
 Okteto creates HTTPRoutes but never creates the `Gateway`. Before you install or upgrade Okteto, install your Gateway controller and create a `Gateway` with an HTTPS listener for `*.$SUBDOMAIN` that accepts routes from every namespace. For example:
 
 ```yaml
@@ -76,7 +78,9 @@ To keep your applications off the public internet, we recommend a load balancer 
 
 [`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API. The Helm install fails if both are set.
 
-Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while a public certificate is served by the load balancer. With Gateway API, you create the certificate yourself. It only needs to be valid for the hostnames of the Okteto control plane:
+Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you create the certificate yourself and reference it from your `Gateway` listeners.
+
+The certificate must be valid for the hostnames served by each `Gateway` listener. At a minimum, the Okteto control plane requires these hostnames:
 
 | Hostname | Serves |
 |----------|--------|
@@ -84,7 +88,9 @@ Many installations set `wildcardCertificate.create: true` to get a self-signed c
 | `registry.$SUBDOMAIN` | The Okteto Registry |
 | `kubernetes.$SUBDOMAIN` | The Kubernetes API endpoint used by the Okteto CLI |
 
-If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`, so the certificate must be valid for the `publicOverride` hostname, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN`.
+When you don't use `publicOverride`, a wildcard certificate for `*.$SUBDOMAIN` covers these control plane hostnames and your Development Environment endpoints.
+
+If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`. The `publicOverride` hostname is a separate domain outside `*.$SUBDOMAIN`, so a `*.$SUBDOMAIN` wildcard certificate doesn't cover it. The certificate must list the `publicOverride` hostname as well, alongside `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`.
 
 To configure it:
 
