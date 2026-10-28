@@ -265,6 +265,22 @@ function warn(message) {
   warnings.set(key, (warnings.get(key) || 0) + 1);
 }
 
+// Sanity video files re-uploaded to youtube.com/@OktetoHQ as unlisted videos,
+// keyed by Sanity asset ref.
+const YOUTUBE_VIDEOS = {
+  'file-28c43c75a0b3e9e3d1a4d7648107c5495c9f62b0-mp4': 'giMCBnX9Mx0', // kubernetes-basics
+  'file-9516a3c80e94a816beb980424569ed2f24b89a1b-mp4': 'j8EuxB2t6eA', // kubernetes-containerization
+  'file-36509a0ac7c52c7208513d2bb68c2330d5b36496-mp4': 'ce-D-KdxGEI', // kubernetes-architecture
+  'file-ab688998932ca92a7d8583cb1621aef31669e904-mp4': 'upCoDA59mb8', // kubernetes-vs-docker
+  'file-5ef471e2fdf6e5394c6d39e7298081eceaeb9cb5-mp4': 'X8fdAb32HAA', // kubernetes-load-balancer-service
+  'file-31422695f66a635fbb2e593678540b64d3a4f115-mp4': 'VDo3pcQQ0Rw', // development-velocity
+  'file-543d9b61b922f17ee71efe18ea1afb42b882f29c-mp4': 'RjnIr28kEAI', // platform-engineering-devops
+  'file-a01b7556b741f3e93878c9aea4b24367fffb396f-mp4': 'AVCym56-twM', // platform-engineering-roadmap
+  'file-fc7fdcd6f1c81eb4a28999691b8cca4bfead6ac5-mp4': 'yainTjNYbgU', // platform-engineering-benefits
+  'file-a6acc0600672346da35c95ccddf3cfa66b85cc88-mp4': 'VBZZ0q1jUvQ', // the-build-vs-buy-software-debate-includes-development-platforms (part 1)
+  'file-776fe8af317ad87e45f2213b74995d9f8c219344-mp4': '1lHBqkDsTps', // the-build-vs-buy-software-debate-includes-development-platforms (part 2)
+};
+
 function renderBlocks(blocks, ctx) {
   const parts = [];
   let prevWasList = false;
@@ -327,8 +343,12 @@ function renderBlock(block, ctx) {
       ctx.components.add('YouTube');
       return `<YouTube id=${jsx(block.videoID)} />`;
     case 'videoFile':
-      // Videos stay on the Sanity CDN for now: ~98 MB in total is too heavy
-      // for git. See blog/README.md, "Open decisions".
+      // Videos moved to the Okteto YouTube channel (unlisted) instead of git,
+      // where ~98 MB would weigh on every clone and build.
+      if (YOUTUBE_VIDEOS[block.asset._ref]) {
+        ctx.components.add('YouTube');
+        return `<YouTube id=${jsx(YOUTUBE_VIDEOS[block.asset._ref])} />`;
+      }
       ctx.components.add('Video');
       return `<Video src=${jsx(fileUrl(block.asset._ref))} />`;
     case 'twitterEmbed':
