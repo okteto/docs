@@ -252,6 +252,8 @@ module.exports = {
           routeBasePath: '/',
           editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
+          // Also feeds dateModified in the page JSON-LD (src/theme/DocItem/Metadata).
+          showLastUpdateTime: true,
           sidebarPath: require.resolve('./sidebars.js'),
           lastVersion: '1.49',
           versions: {
@@ -312,6 +314,7 @@ module.exports = {
         routeBasePath: 'tutorials',
         sidebarPath: require.resolve('./sidebarTutorials.js'),
         breadcrumbs: false,
+        showLastUpdateTime: true,
       },
     ],
     [
