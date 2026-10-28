@@ -101,20 +101,35 @@ async function writeUnusedTagRedirects({ outDir, content, tagsFile, baseUrl }) {
   return unused.length;
 }
 
-// The image URL is read back from the built page's og:image, because
-// Docusaurus only knows the hashed asset path after webpack has run.
+// Reads one attribute from an HTML tag. The production build minifies HTML
+// and drops the quotes around attribute values that don't need them, so
+// both `src="x"` and `src=x` occur.
+function attribute(tag, name) {
+  const match = tag.match(new RegExp(`\\s${name}=(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`));
+  return match ? match[1] ?? match[2] ?? match[3] : null;
+}
+
+// The image URL is read back from the built page, because Docusaurus only
+// knows the hashed asset path after webpack has run. Cards use the featured
+// image (src/theme/BlogPostItem/Header) and fall back to the social card.
 async function writePostsIndex({ outDir, content, siteUrl }) {
   const posts = await Promise.all(
     content.blogPosts.map(async ({ metadata }) => {
       const html = await fs.readFile(path.join(outDir, metadata.permalink.replace(/^\/blog\//, ''), 'index.html'), 'utf8');
-      const image = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)?.[1] ?? null;
+      const featured = html.match(/<img\s[^>]*class=["']?featured_[^>]*>/)?.[0];
+      const ogImage = html.match(/<meta\s[^>]*property=["']?og:image["'\s][^>]*>/)?.[0];
+      const imagePath = (featured && attribute(featured, 'src')) || (ogImage && attribute(ogImage, 'content'));
+      const image = imagePath ? new URL(imagePath, siteUrl).href : null;
+      const absolute = (url) => (url && url.startsWith('/') ? `${siteUrl}${url}` : url || null);
       return {
+        slug: metadata.frontMatter.slug,
         title: metadata.title,
         url: `${siteUrl}${metadata.permalink.replace(/\/?$/, '/')}`,
         date: metadata.date,
         description: metadata.frontMatter.excerpt || metadata.description,
         image,
-        authors: metadata.authors.map((a) => a.name),
+        imageAlt: metadata.frontMatter.image_alt || '',
+        authors: metadata.authors.map((a) => ({ name: a.name, image: absolute(a.imageURL) })),
         tags: metadata.tags.map((t) => t.label),
       };
     }),
