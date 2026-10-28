@@ -114,8 +114,9 @@ function remarkLlmsIndexPointer() {
 // Site-level JSON-LD entity graph: who publishes these docs (Organization),
 // the docs site itself (WebSite), and the product they document (WebApplication).
 // Rendered into the <head> of every docs page so answer engines and search read
-// the publisher and product identity instead of inferring it. Page-level
-// TechArticle/BreadcrumbList blocks reference these @id values.
+// the publisher and product identity instead of inferring it. The page-level
+// TechArticle/BreadcrumbList block (src/theme/DocItem/Metadata) references
+// these @id values.
 const siteJsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -129,12 +130,16 @@ const siteJsonLd = {
       logo: {
         '@type': 'ImageObject',
         '@id': `${SITE_URL}/#logo`,
-        url: `${SITE_URL}${BASE_URL}img/logo.svg`,
+        // Google requires a raster logo (no SVG), at least 112x112 px.
+        url: `${SITE_URL}${BASE_URL}favicon/android-chrome-512x512.png`,
+        width: 512,
+        height: 512,
       },
       sameAs: [
         'https://github.com/okteto/okteto',
         'https://twitter.com/oktetohq',
         'https://www.youtube.com/@OktetoHQ',
+        'https://www.linkedin.com/company/okteto',
       ],
     },
     {
