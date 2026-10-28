@@ -188,20 +188,9 @@ module.exports = {
     tableOfContents: {
       maxHeadingLevel: 4,
     },
-    algolia: {
-      appId: 'RS9BKUCQCT',
-      apiKey: '9213a8b24b30e1994c4c8ff5f282cf6f',
-      indexName: 'okteto',
-      algoliaOptions: {},
-      position: 'left',
-    },
+    algolia: shared.algolia,
     navbar: shared.navbar('docs', {
-      start: [
-        {
-          type: 'search',
-          position: 'left',
-        },
-      ],
+      start: [shared.searchNavbarItem],
       end: [
         {
           type: 'docsVersionDropdown',

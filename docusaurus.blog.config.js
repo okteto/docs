@@ -32,7 +32,10 @@ module.exports = {
     // Fallback social card for list, tag and author pages. Posts use their
     // featured image.
     image: 'https://www.okteto.com/docs/okteto-meta-image.png',
-    navbar: shared.navbar('blog'),
+    // Searches blog posts only (see shared.algolia). Results depend on the
+    // Algolia crawler indexing https://www.okteto.com/blog/.
+    algolia: shared.algolia,
+    navbar: shared.navbar('blog', { start: [shared.searchNavbarItem] }),
     footer: shared.footer('blog', { llmsTxtUrl: LLMS_TXT_URL }),
   },
   presets: [
