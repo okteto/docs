@@ -32,6 +32,7 @@ const siteConfig = {
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
   onDuplicateRoutes: 'warn',
+  clientModules: [require.resolve('../src/clientModules/mixpanel.js')],
 };
 
 // shared/static holds the fonts, favicons and logo. Both sites include it, so
@@ -149,14 +150,6 @@ const plugins = [
     'docusaurus-gtm-plugin',
     {
       id: 'GTM-W6RQFNT',
-    },
-  ],
-  [
-    'posthog-docusaurus',
-    {
-      apiKey: 'phc_hABE2tLx6OC3RdADvVeFYfwtQQhYSE5swoqkQQscU6K',
-      appUrl: 'https://us.i.posthog.com', // optional, defaults to "https://us.i.posthog.com"
-      enableInDevelopment: false, // optional
     },
   ],
 ];
