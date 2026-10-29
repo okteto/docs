@@ -183,12 +183,12 @@ Each dependency supports the following fields:
 - `repository`: the URL of the git repository containing the dependency
 - `manifest`: the path to the Okteto Manifest within the repository. Defaults to `okteto.yaml` in the root of the repository
 - `branch`: the branch or tag to deploy. If not specified, it uses the default branch of the repository
-- `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands
-- `wait`: if `true`, Okteto waits for the dependency to be ready before starting the main deployment. If `false`, the main deployment starts without waiting for it (default: `false`). In both cases, `okteto deploy` waits for every dependency to finish before completing, and a dependency that fails makes the deploy fail
-- `timeout`: maximum time to wait for the dependency deployment to complete when `wait` is `true`. Uses duration format like `5m`, `1h`, etc. (default: `5m`)
+- `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands. They can use the [dynamic environment variables](reference/okteto-cli.mdx#dynamic-environment-variables) of the dependencies listed in its `depends_on`
+- `wait`: if `true`, the commands in the `deploy` section wait until this dependency and all the dependencies in its `depends_on` chain are ready. If `false`, they don't wait for it, unless it is in the `depends_on` chain of a dependency with `wait: true` (default: `false`). The commands in the `deploy` section get the dynamic environment variables of the dependencies they wait for
+- `timeout`: maximum time to wait for the dependency deployment to complete. Uses duration format like `5m`, `1h`, etc. It counts from when the dependency starts, so the time spent waiting for the dependencies in its `depends_on` isn't included. Defaults to the `--timeout` flag of `okteto deploy` (`5m`), with a minimum of `10m` for the dependencies that the `deploy` section doesn't wait for
 - `depends_on`: a dependency name, or a list of dependency names, that must deploy successfully before this one starts. Each name must match another entry in the `dependencies` section
 
-Okteto deploys dependencies in parallel. Use `depends_on` to order them: a dependency starts once all the dependencies it lists have deployed successfully.
+Okteto deploys dependencies in parallel. Use `depends_on` to order them: a dependency starts once all the dependencies it lists have deployed successfully. `okteto deploy` waits for every dependency to finish, including the ones with `wait: false`, and fails if any of them fails. When an Okteto Manifest is deployed as a dependency of another one, its dependencies that have `wait: false` and that no other dependency lists in `depends_on` are started but not waited for.
 
 ```yaml
 dependencies:
@@ -204,7 +204,7 @@ dependencies:
     wait: true
 ```
 
-In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
+In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. Because `backend` has `wait: true`, the commands in the `deploy` section wait for all three. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
 
 ### deploy ([string], optional)
 
