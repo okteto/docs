@@ -29,9 +29,6 @@ module.exports = {
   headTags: shared.headTags(BASE_URL),
   themeConfig: {
     ...shared.themeConfig,
-    // Fallback social card for list, tag and author pages. Posts use their
-    // featured image.
-    image: 'https://www.okteto.com/docs/okteto-meta-image.png',
     // Searches blog posts only (see shared.algolia). Results depend on the
     // Algolia crawler indexing https://www.okteto.com/blog/.
     algolia: shared.algolia,
