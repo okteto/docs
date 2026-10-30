@@ -184,11 +184,16 @@ Each dependency supports the following fields:
 - `manifest`: the path to the Okteto Manifest within the repository. Defaults to `okteto.yaml` in the root of the repository
 - `branch`: the branch or tag to deploy. If not specified, it uses the default branch of the repository
 - `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands. They can use the [dynamic environment variables](reference/okteto-cli.mdx#dynamic-environment-variables) of the dependencies listed in its `depends_on`
-- `wait`: if `true`, the commands in the `deploy` section wait until this dependency and all the dependencies in its `depends_on` chain are ready. If `false`, they don't wait for it, unless it is in the `depends_on` chain of a dependency with `wait: true` (default: `false`). The commands in the `deploy` section get the dynamic environment variables of the dependencies they wait for
+- `wait`: if `true`, the commands in the `deploy` section wait until this dependency and all the dependencies in its `depends_on` chain are ready (default: `false`). The commands in the `deploy` section get the dynamic environment variables of the dependencies they wait for
 - `timeout`: maximum time to wait for the dependency deployment to complete. Uses duration format like `5m`, `1h`, etc. It counts from when the dependency starts, so the time spent waiting for the dependencies in its `depends_on` isn't included. Defaults to the `--timeout` flag of `okteto deploy` (`5m`), with a minimum of `10m` for the dependencies that the `deploy` section doesn't wait for
 - `depends_on`: a dependency name, or a list of dependency names, that must deploy successfully before this one starts. Each name must match another entry in the `dependencies` section
 
-Okteto deploys dependencies in parallel. Use `depends_on` to order them: a dependency starts once all the dependencies it lists have deployed successfully. `okteto deploy` waits for every dependency to finish, including the ones with `wait: false`, and fails if any of them fails. When an Okteto Manifest is deployed as a dependency of another one, its dependencies that have `wait: false` and that no other dependency lists in `depends_on` are started but not waited for.
+Okteto deploys dependencies in parallel. Use `depends_on` to order them: a dependency starts once all the dependencies it lists have deployed successfully.
+
+- With `wait: true`, the commands in the `deploy` section don't start until the dependency, and every dependency in its `depends_on` chain, is deployed and healthy.
+- With `wait: false`, the commands in the `deploy` section start without waiting for it, unless a dependency with `wait: true` depends on it. `okteto deploy` waits for it to finish deploying before exiting.
+
+`okteto deploy` fails if any dependency fails. When an Okteto Manifest is deployed as a dependency of another one, its dependencies that have `wait: false` and that no other dependency lists in `depends_on` are started but not waited for.
 
 ```yaml
 dependencies:
@@ -202,9 +207,13 @@ dependencies:
       - database
       - messaging
     wait: true
+  frontend:
+    repository: https://github.com/okteto/frontend
+    depends_on: backend
+    wait: false
 ```
 
-In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. Because `backend` has `wait: true`, the commands in the `deploy` section wait for all three. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
+In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. Because `backend` has `wait: true`, the commands in the `deploy` section start once `database`, `messaging`, and `backend` are deployed and healthy. `frontend` has `wait: false`: it starts once `backend` has deployed, runs at the same time as the commands in the `deploy` section, and `okteto deploy` waits for it to finish before exiting. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
 
 ### deploy ([string], optional)
 
