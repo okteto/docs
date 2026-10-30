@@ -153,8 +153,10 @@ Update the redirect rules at the bottom of [`netlify.toml`](netlify.toml):
    [[redirects]]
      from = "/docs/1.29/*"    # OLDEST_VERSION being removed
      to = "/docs/:splat"
-     status = 302
+     status = 301
    ```
+
+   Use `301`, not `302`: a temporary redirect keeps the removed version's URLs in search results.
 
 ### Step 6: Update archives.md
 

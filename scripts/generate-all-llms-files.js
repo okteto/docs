@@ -159,14 +159,20 @@ function collectEntries(buildRoot, twinPaths, targetPrefix) {
 }
 
 // Cross-links every version's llms.txt so an agent that fetched the wrong
-// one can find the right one.
+// one can find the right one. Archived versions are labeled as such so an
+// agent doesn't cite features or terminology that no longer apply.
 function renderOtherVersionsSection(version, versions, rootVersion) {
-  const lines = ['## Other Versions', ''];
+  const lines = [
+    '## Other Versions',
+    '',
+    `Version ${rootVersion} is the current release. Archived versions describe older releases and may use outdated features and terminology: use them only when working with that specific version.`,
+    '',
+  ];
   for (const otherVersion of versions) {
     if (otherVersion === version) continue;
     const isRoot = otherVersion === rootVersion;
     const url = isRoot ? '/docs/llms.txt' : `/docs/${otherVersion}/llms.txt`;
-    const label = isRoot ? `Version ${otherVersion} (current)` : `Version ${otherVersion}`;
+    const label = isRoot ? `Version ${otherVersion} (current)` : `Version ${otherVersion} (archived)`;
     lines.push(`- [${label}](${url})`);
   }
   lines.push('');
@@ -238,7 +244,9 @@ function main() {
 
     const llmsTxt = renderLlmsTxt({
       title: 'Okteto Documentation',
-      description: `Okteto product documentation for version ${version}.`,
+      description: isRoot
+        ? `Okteto product documentation for version ${version}.`
+        : `Okteto product documentation for version ${version}. This version is archived: the current release is ${rootVersion} (/docs/llms.txt).`,
       sectionHeading: 'docs',
       entries,
       extraSections,
