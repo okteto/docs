@@ -31,7 +31,7 @@ All contributions — human or agent-authored — must follow the [Documentation
 - Capitalization for Okteto product names, environments, roles, and deployment models
 - Formatting for links, CLI commands, admonitions, and images
 
-Agents and automated tools working in this repository should also read [`CLAUDE.md`](CLAUDE.md) (also exposed as [`AGENTS.md`](AGENTS.md) for tools that follow that convention), which contains a quick-reference subset of the style guide and the pre-submit checklist.
+Agents and automated tools working in this repository should also read [`AGENTS.md`](AGENTS.md), which contains a quick-reference subset of the style guide and the pre-submit checklist.
 
 :::note
 
