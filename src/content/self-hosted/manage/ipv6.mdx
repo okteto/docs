@@ -26,11 +26,16 @@ buildkit:
     ipv6:
       enabled: true
 
-networkPolicies:
+kubeAPIServerProxy:
   ipv6:
     enabled: true
+```
 
-kubeAPIServerProxy:
+If you enabled [network policies](self-hosted/helm-configuration.mdx#networkpolicies) (`networkPolicies.enabled: true`), also enable IPv6 in them:
+
+```yaml
+networkPolicies:
+  enabled: true
   ipv6:
     enabled: true
 ```
@@ -59,7 +64,7 @@ When BuildKit runs in [rootless mode](self-hosted/helm-configuration.mdx#rootles
 
 ### Network Policies
 
-When [network policies](self-hosted/helm-configuration.mdx#networkpolicies) are enabled, Okteto allows egress traffic to `0.0.0.0/0`, except to `networkPolicies.blockedCIDRs`. Without `networkPolicies.ipv6.enabled`, the network policies block all IPv6 egress traffic of your Namespaces, the installer jobs, and BuildKit.
+This setting only applies when [network policies](self-hosted/helm-configuration.mdx#networkpolicies) are enabled. With network policies, Okteto allows egress traffic to `0.0.0.0/0`, except to `networkPolicies.blockedCIDRs`. Without `networkPolicies.ipv6.enabled`, the network policies block all IPv6 egress traffic of your Namespaces, the installer jobs, and BuildKit.
 
 `networkPolicies.ipv6.enabled` also allows egress traffic to `::/0`, except to `networkPolicies.ipv6.blockedCIDRs`. By default, it blocks the IPv6 address of the AWS instance metadata service:
 
@@ -79,14 +84,4 @@ networkPolicies:
 ### Kubernetes API Proxy
 
 When Okteto uses the [Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx), it exposes the Kubernetes API through an Envoy proxy. By default, the proxy only listens on IPv4 and resolves the Kubernetes API server over IPv4.
-`kubeAPIServerProxy.ipv6.enabled` makes the proxy listen on IPv6 and IPv4, and resolve the Kubernetes API server over IPv6 when it has no IPv4 address. This setting doesn't apply when Okteto uses ingresses.
-
-## Ingress Controller Services
-
-The Services of the Okteto ingress controllers use the default IP family of your cluster. In dual-stack clusters, that's the primary IP family of the cluster.
-
-Kubernetes doesn't allow changing the IP families of an existing Service, so changing them requires recreating the Service, which gets a new IP. Okteto components read the IP of the ingress controller when they start: restart them after recreating the Service, or builds and deploys time out trying to reach the old IP:
-
-```bash
-kubectl -n okteto rollout restart deployment statefulset daemonset
-```
+`kubeAPIServerProxy.ipv6.enabled` makes the proxy listen on IPv6 and IPv4, and resolve the Kubernetes API server over IPv6 when it has no IPv4 address. Set it even if your instance uses ingresses, so IPv6 keeps working when you migrate to the Gateway API.
