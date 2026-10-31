@@ -62,6 +62,11 @@ buildkit:
 
 When BuildKit runs in [rootless mode](self-hosted/helm-configuration.mdx#rootless), the `RUN` instructions use the network of the BuildKit pod, which already has IPv6 in IPv6 and dual-stack clusters. These settings don't apply in rootless mode.
 
+### Kubernetes API Proxy
+
+When Okteto uses the [Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx), it exposes the Kubernetes API through an Envoy proxy. By default, the proxy only listens on IPv4 and resolves the Kubernetes API server over IPv4.
+`kubeAPIServerProxy.ipv6.enabled` makes the proxy listen on IPv6 and IPv4, and resolve the Kubernetes API server over IPv6 when it has no IPv4 address. Set it even if your instance uses ingresses, so IPv6 keeps working when you migrate to the Gateway API.
+
 ### Network Policies
 
 This setting only applies when [network policies](self-hosted/helm-configuration.mdx#networkpolicies) are enabled. With network policies, Okteto allows egress traffic to `0.0.0.0/0`, except to `networkPolicies.blockedCIDRs`. Without `networkPolicies.ipv6.enabled`, the network policies block all IPv6 egress traffic of your Namespaces, the installer jobs, and BuildKit.
@@ -80,8 +85,3 @@ networkPolicies:
 ```
 
 `networkPolicies.blockedCIDRs` only accepts IPv4 CIDRs. Add IPv6 CIDRs to `networkPolicies.ipv6.blockedCIDRs`.
-
-### Kubernetes API Proxy
-
-When Okteto uses the [Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx), it exposes the Kubernetes API through an Envoy proxy. By default, the proxy only listens on IPv4 and resolves the Kubernetes API server over IPv4.
-`kubeAPIServerProxy.ipv6.enabled` makes the proxy listen on IPv6 and IPv4, and resolve the Kubernetes API server over IPv6 when it has no IPv4 address. Set it even if your instance uses ingresses, so IPv6 keeps working when you migrate to the Gateway API.
