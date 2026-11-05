@@ -47,6 +47,16 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
 
+## Confidential information — never publish
+
+This repo and its PRs are public. Never include in docs, commits, PR titles or PR descriptions:
+
+- Customer or prospect names, or details that identify them (domains, cluster names, IPs, support bundle contents)
+- Links to internal resources: Slack threads, Jira tickets, private GitHub repos or PRs (e.g. okteto/app), internal dashboards
+- Unreleased roadmap, pricing or contract details, license keys, tokens or credentials
+
+Describe the problem generically instead (e.g. "clusters where the ingress controller Service is IPv6-first").
+
 ## Where docs live
 
 - `src/content/` — the **current** unreleased version. **All new content goes here.**
@@ -63,11 +73,12 @@ Run through this before declaring any docs change complete:
 
 1. **Read the diff aloud.** Does any sentence start with preamble (`Before you start...`, `In this guide...`)? Cut it.
 2. **Grep your additions for banned words:** `powerful`, `seamless`, `intelligent`, `foundational`, `comprehensive`, `Learn more`, `Useful for`. None should appear.
-3. **Check every Okteto noun you introduced** against the capitalization canon above. `Self-Hosted` (not `self-hosted`), `BYOC` (not `byoc`), `okteto.yaml` in backticks, `Okteto CLI` (not `Okteto cli` or `okteto CLI`).
-4. **Verify links are inline**, not standalone "Learn more →" lines.
-5. **Confirm the frontmatter `description`** is a single functional sentence — no marketing copy.
-6. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
-7. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
+3. **Check for confidential information** in the docs, commit messages and PR description: no customer names, internal links or credentials (see [Confidential information](#confidential-information--never-publish)).
+4. **Check every Okteto noun you introduced** against the capitalization canon above. `Self-Hosted` (not `self-hosted`), `BYOC` (not `byoc`), `okteto.yaml` in backticks, `Okteto CLI` (not `Okteto cli` or `okteto CLI`).
+5. **Verify links are inline**, not standalone "Learn more →" lines.
+6. **Confirm the frontmatter `description`** is a single functional sentence — no marketing copy.
+7. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
+8. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
 
 ## Special workflows
 

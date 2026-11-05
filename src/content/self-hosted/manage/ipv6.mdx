@@ -1,0 +1,87 @@
+---
+title: IPv6 Networks
+description: Install Okteto in IPv6-only and dual-stack Kubernetes clusters.
+sidebar_label: IPv6 Networks
+id: ipv6
+---
+
+import TiersList from "@theme/TiersList";
+
+# IPv6 Networks<TiersList tiers="Enterprise Self-Hosted" />
+
+Okteto runs in IPv6-only and dual-stack Kubernetes clusters. IPv6 support is available in Okteto chart version 1.51 and above, and it's disabled by default: you enable it for each component in your Okteto Helm configuration.
+
+## Network Requirements
+
+The pods that Okteto runs in your cluster need to reach your Git provider and your container registries: the installer jobs clone your repositories, the Okteto Build Service pulls base images, and your Development Environments pull their images.
+Some providers, like Docker Hub and GitHub, don't have IPv6 addresses. In IPv6-only clusters, give your pods access to IPv4 destinations through NAT64 and DNS64, or through an HTTP proxy.
+
+## Helm Configuration
+
+Add the following to your Okteto Helm configuration to enable IPv6 in the components that need it:
+
+```yaml
+buildkit:
+  network:
+    ipv6:
+      enabled: true
+
+kubeAPIServerProxy:
+  ipv6:
+    enabled: true
+```
+
+If you enabled [network policies](self-hosted/helm-configuration.mdx#networkpolicies) (`networkPolicies.enabled: true`), also enable IPv6 in them:
+
+```yaml
+networkPolicies:
+  enabled: true
+  ipv6:
+    enabled: true
+```
+
+The sections below describe what each setting does.
+
+### BuildKit Network
+
+The [Okteto Build Service](core/build-service.mdx) runs the `RUN` instructions of your Dockerfiles in an isolated network, separate from the network of the BuildKit pod. This network is IPv4-only by default (`10.10.0.0/16`), so in IPv6-only clusters the `RUN` instructions can't reach your cluster DNS, the Okteto API, or the internet.
+This also affects [Remote Execution](core/remote-execution.mdx): the Okteto CLI runs your deploy and destroy commands inside a `RUN` instruction, and they fail with `Internal server error` if that network has no IPv6.
+
+`buildkit.network.ipv6.enabled` adds an IPv6 subnet (`fdbd:6b1d:2c0e::/64` by default) to the network of the `RUN` instructions.
+In IPv6-only clusters, you can also disable the IPv4 subnet. Change the subnets if they overlap with networks your builds need to reach:
+
+```yaml
+buildkit:
+  network:
+    ipv4:
+      enabled: false
+    ipv6:
+      enabled: true
+      subnet: fd12:3456:789a::/64
+```
+
+When BuildKit runs in [rootless mode](self-hosted/helm-configuration.mdx#rootless), the `RUN` instructions use the network of the BuildKit pod, which already has IPv6 in IPv6 and dual-stack clusters. These settings don't apply in rootless mode.
+
+### Kubernetes API Proxy
+
+When Okteto uses the [Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx), it exposes the Kubernetes API through an Envoy proxy. By default, the proxy only listens on IPv4 and resolves the Kubernetes API server over IPv4.
+`kubeAPIServerProxy.ipv6.enabled` makes the proxy listen on IPv6 and IPv4, and resolve the Kubernetes API server over IPv6 when it has no IPv4 address. Set it even if your instance uses ingresses, so IPv6 keeps working when you migrate to the Gateway API.
+
+### Network Policies
+
+This setting only applies when [network policies](self-hosted/helm-configuration.mdx#networkpolicies) are enabled. With network policies, Okteto allows egress traffic to `0.0.0.0/0`, except to `networkPolicies.blockedCIDRs`. Without `networkPolicies.ipv6.enabled`, the network policies block all IPv6 egress traffic of your Namespaces, the installer jobs, and BuildKit.
+
+`networkPolicies.ipv6.enabled` also allows egress traffic to `::/0`, except to `networkPolicies.ipv6.blockedCIDRs`. By default, it blocks the IPv6 address of the AWS instance metadata service:
+
+```yaml
+networkPolicies:
+  enabled: true
+  blockedCIDRs:
+    - "169.254.169.254/32"
+  ipv6:
+    enabled: true
+    blockedCIDRs:
+      - "fd00:ec2::254/128"
+```
+
+`networkPolicies.blockedCIDRs` only accepts IPv4 CIDRs. Add IPv6 CIDRs to `networkPolicies.ipv6.blockedCIDRs`.
