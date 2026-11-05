@@ -22,6 +22,13 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 ### Important Notes {#important-notes-1.50}
 
 - **Okteto Registry upgraded to distribution 3.1.2**: The Okteto Registry now runs [distribution](https://github.com/distribution/distribution) 3.1.2. Image pushes and pulls can fail for a few seconds during the upgrade. If you override `registry.image`, it must point to a distribution 3.x image <!-- PROD-541, app#10465 -->
+- **Helm 4 will become the default in Okteto 1.51**: When Okteto runs the `deploy` and `destroy` commands of your Okteto Manifest [remotely](reference/okteto-manifest.mdx#deploy-remotely), it injects the `helm`, `helm3` and `helm4` binaries into the deploy image. In this release, `helm` runs Helm 3. Starting with Okteto 1.51, it runs Helm 4. Helm 4 uses server-side apply (SSA) by default, which changes how Kubernetes resources are created and tracked. Most charts work without changes, but test your `deploy` and `destroy` commands with Helm 4 before upgrading to Okteto 1.51. You can enable Helm 4 in two ways:
+  - **For the whole cluster**: Set the `OKTETO_HELM_4_ENABLED` [Admin Variable](admin/dashboard.mdx#admin-variables) to `true`. The `helm` commands in the `deploy` and `destroy` sections of every Okteto Manifest then run Helm 4. To revert, set it to `false` or remove it
+  - **For a Development Environment**: Replace `helm` with `helm4` in the `deploy` and `destroy` commands of your Okteto Manifest. To revert, change `helm4` back to `helm`, or call `helm3` explicitly:
+    ```yaml
+    deploy:
+      - helm4 upgrade --install myapp ./chart
+    ```
 
 ### New Features {#new-features-1.50}
 
