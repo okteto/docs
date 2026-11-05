@@ -19,6 +19,10 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 
 - **Images in Azure Storage aren't found after the upgrade**: If the Okteto Registry uses Azure Storage, it no longer finds the images pushed before the upgrade, but they keep using space in your storage container ([distribution#4278](https://github.com/distribution/distribution/issues/4278)). Before upgrading, see the [upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-150x--okteto-registry-images-in-azure-storage) to start with a new storage container or keep specific images <!-- PROD-541, app#10465 -->
 
+### Deprecation Notice {#deprecation-notice-1.50}
+
+- ⚠️ Important: **The [Okteto Autoscaler](self-hosted/helm-configuration.mdx#autoscaler-deprecated) will be removed in the next release** (1.51). It has been deprecated since 1.21. If you set `autoscaler.enabled` to `true`, rely on the CPU and memory requests of your workloads to autoscale your cluster. Please plan this change before upgrading to 1.51.
+
 ### Important Notes {#important-notes-1.50}
 
 - **Okteto Registry upgraded to distribution 3.1.2**: The Okteto Registry now runs [distribution](https://github.com/distribution/distribution) 3.1.2. Image pushes and pulls can fail for a few seconds during the upgrade. If you override `registry.image`, it must point to a distribution 3.x image <!-- PROD-541, app#10465 -->
@@ -37,6 +41,7 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 ### Bug Fixes {#bug-fixes-1.50}
 
 - Fixed the Okteto Registry with [DigitalOcean Spaces](self-hosted/install/okteto-registry-storage/digitalocean-spaces.mdx) not working when `registry.storage.provider.digitalocean.region` isn't set: the default region was `SFO1`, which isn't a Spaces region. It now defaults to `nyc3` <!-- PROD-541, app#10465 -->
+- Fixed the cluster role binding that grants the cluster role set in [`serviceAccounts.clusterRoleBinding`](self-hosted/helm-configuration.mdx#serviceaccounts) to the `default` service account of a Namespace being left behind when the Namespace was deleted outside the regular Okteto deletion flow, for example when the Garbage Collector removed a Namespace whose owner no longer exists, or with `kubectl delete namespace`. The binding is now owned by its Namespace and deleted with it, so new bindings are no longer orphaned. Bindings already orphaned by previous versions aren't deleted, because there is no reliable way to identify them. If you'd like guidance on ways to detect them in your cluster, [reach out to support](https://okteto.com/support) <!-- PROD-529, app#10531 -->
 
 ## 1.49.1
 
