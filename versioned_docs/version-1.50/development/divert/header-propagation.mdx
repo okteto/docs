@@ -1,0 +1,39 @@
+---
+title: Header Propagation
+description: Forward the baggage header between your services so Divert can route calls deep in the call chain to your overlay services.
+sidebar_label: Header Propagation
+id: header-propagation
+---
+
+Header propagation is forwarding the `baggage` header of an incoming request to every outgoing request or message that the request triggers. Divert routes a request by its divert header: the `baggage` header with the key `okteto-divert=<namespace>`. The header is set by the client, such as the Okteto UI, a browser extension, or `curl`, but when a service calls another service, it makes a new request, and the header is only there if your service copied it. Propagating the header is up to your application, not Okteto.
+
+## When You Need Header Propagation
+
+In the Movies application, requests enter through an API gateway, which calls the rent service, which calls the catalog service. Cindy deploys the catalog service in her Overlay Namespace and opens the application with `baggage: okteto-divert=cindy`.
+
+Without propagation, the rent service receives the header, but its call to the catalog service is a new request without it, so the call reaches the shared catalog service:
+
+![The rent service receives the baggage header but calls the catalog service without it, so the request reaches the shared catalog service instead of Cindy's](@site/static/img/divert-propagation-missing.svg)
+
+With propagation, the rent service forwards the header, and the call reaches Cindy's catalog service:
+
+![The rent service forwards the baggage header to the catalog call, and the request reaches Cindy's catalog service](@site/static/img/divert-propagation.svg)
+
+The same applies to messages. The producer copies the `baggage` header into the message metadata, and the consumer reads it back and forwards it on the requests it makes to other services while processing the message.
+
+You don't need header propagation when:
+
+- Your overlay service is the one that receives the request first, such as the API gateway
+- Every service between the entry point and your overlay service runs in your Overlay Namespace. Calls from your Overlay Namespace reach your overlay services without the header
+
+In any other case, every service in the call chain needs to propagate the header, including services you never deploy or change. Add propagation to every service of the application, not only to the ones you are working on.
+
+:::warning Gateways and proxies
+API gateways, CDNs, and WAFs in front of your services can drop headers they don't recognize. If requests reach your first service without the `baggage` header, check the configuration of the components between the client and your services.
+:::
+
+## Propagating the Header
+
+`baggage` is the [W3C standard header](https://www.w3.org/TR/baggage/) for propagating context between services, and part of [OpenTelemetry](https://opentelemetry.io/docs/concepts/context-propagation/). If your services use OpenTelemetry, they probably propagate it already. If they don't, most languages have libraries that propagate it automatically for your HTTP and gRPC clients and servers.
+
+`baggage` is a list of `key=value` entries separated by commas, such as `okteto-divert=cindy,user-id=42`. If you add your own entries, always append them to the value you receive. If you replace it, you remove the `okteto-divert` entry and the request doesn't reach your overlay services.

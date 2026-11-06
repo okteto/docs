@@ -1,0 +1,98 @@
+---
+title: Endpoints for Docker Compose
+description: Create HTTPS endpoints for the services of your Docker Compose files.
+sidebar_label: Docker Compose
+id: docker-compose
+---
+
+Okteto creates HTTPS endpoints for the applications you deploy with [Docker Compose](reference/docker-compose.mdx). There are two ways to define them: public ports and the `endpoints` section.
+
+## Public Ports
+
+The [`ports`](reference/docker-compose.mdx#ports-int-optional) of a service are only accessible from the private network of the cluster by default:
+
+```yaml
+services:
+  api:
+    build: api
+    ports:
+      - 8080
+```
+
+To make a port public, use the `HOST:CONTAINER` notation. Okteto creates an endpoint for it:
+
+```yaml
+services:
+  api:
+    build: api
+    ports:
+      - 8080:8080
+```
+
+The hostname of the endpoint is `<service>-<namespace>.<okteto-subdomain>`, for example `api-<namespace>.<okteto-subdomain>`. If a service has more than one public port, Okteto creates one endpoint per port, with the hostname `<service>-<port>-<namespace>.<okteto-subdomain>`.
+
+Okteto never makes public the default ports of databases and debuggers, such as `5432` for PostgreSQL or `6379` for Redis, even with the `HOST:CONTAINER` notation. The [Docker Compose reference](reference/docker-compose.mdx#ports-int-optional) lists every port. To expose one of these ports, use the `endpoints` section.
+
+## The `endpoints` Section
+
+Use the [`endpoints`](reference/docker-compose.mdx#endpoints-object-optional) section to route several paths to different services under one hostname:
+
+```yaml
+services:
+  frontend:
+    build: frontend
+  api:
+    build: api
+endpoints:
+  - path: /
+    service: frontend
+    port: 80
+  - path: /api
+    service: api
+    port: 8080
+```
+
+The hostname is `<name>-<namespace>.<okteto-subdomain>`, where `<name>` is the name of your Development Environment.
+
+To create several endpoints, use a map with the name of each endpoint:
+
+```yaml
+endpoints:
+  landing:
+    - path: /
+      service: nginx
+      port: 80
+  web:
+    - path: /
+      service: frontend
+      port: 80
+    - path: /api
+      service: api
+      port: 8080
+```
+
+This example creates the hostnames `landing-<namespace>.<okteto-subdomain>` and `web-<namespace>.<okteto-subdomain>`.
+
+To add `labels` or `annotations` to an endpoint, use the extended notation with `rules`. For example, to apply a [Custom Endpoints](core/endpoints/custom-endpoints.mdx) annotation:
+
+```yaml
+endpoints:
+  annotations:
+    dev.okteto.com/hide-from-ui: "true"
+  rules:
+    - path: /
+      service: frontend
+      port: 3000
+    - path: /api
+      service: api
+      port: 8080
+```
+
+## Ingress or HTTPRoute
+
+Okteto creates an [Ingress](core/endpoints/ingress.mdx) or an [HTTPRoute](core/endpoints/httproutes.mdx) for each endpoint. You don't need to change your Docker Compose file: the variable `OKTETO_DEFAULT_GATEWAY_TYPE` selects the type, with the value `ingress` or `gateway`. You can set it as:
+
+- An [Okteto Variable](core/okteto-variables.mdx), which applies to your deployments.
+- An [Admin Variable](admin/dashboard.mdx#admin-variables), which changes the default for every user of your Okteto instance.
+
+An Okteto Variable takes precedence over an Admin Variable. If neither is set, Okteto uses the Helm value [`unsupported.defaultGateway.type`](self-hosted/manage/migrate-to-gateway-api.mdx#docker-compose-endpoints) of your Okteto instance, which defaults to `ingress`.

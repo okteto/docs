@@ -198,6 +198,7 @@ yarn build
 
 Fix any errors before proceeding. Common issues:
 - Broken anchor links from moved release notes
+- Broken links or anchors in the tutorials (`src/tutorials/`). Tutorials aren't versioned and link to the official version, so a page or heading that moved in `src/content` during the release cycle breaks them only when the new version becomes official. Point them to the new paths
 - Missing redirects
 - Invalid configuration in docusaurus.config.js
 
