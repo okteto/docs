@@ -26,6 +26,13 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 ### Important Notes {#important-notes-1.50}
 
 - **Okteto Registry upgraded to distribution 3.1.2**: The Okteto Registry now runs [distribution](https://github.com/distribution/distribution) 3.1.2. Image pushes and pulls can fail for a few seconds during the upgrade. If you override `registry.image`, it must point to a distribution 3.x image <!-- PROD-541, app#10465 -->
+- **Helm 4 will become the default in Okteto 1.51**: When Okteto runs the `deploy` and `destroy` commands of your Okteto Manifest [remotely](reference/okteto-manifest.mdx#deploy-remotely), it injects the `helm`, `helm3` and `helm4` binaries into the deploy image. In this release, `helm` runs Helm 3. Starting with Okteto 1.51, it runs Helm 4. Helm 4 uses server-side apply (SSA) by default, which changes how Kubernetes resources are created and tracked. Most charts work without changes, but test your `deploy` and `destroy` commands with Helm 4 before upgrading to Okteto 1.51. You can enable Helm 4 in two ways:
+  - **For the whole cluster**: Set the `OKTETO_HELM_4_ENABLED` [Admin Variable](admin/dashboard.mdx#admin-variables) to `true`. The `helm` commands in the `deploy` and `destroy` sections of every Okteto Manifest then run Helm 4. To revert, set it to `false` or remove it
+  - **For a Development Environment**: Replace `helm` with `helm4` in the `deploy` and `destroy` commands of your Okteto Manifest. To revert, change `helm4` back to `helm`, or call `helm3` explicitly:
+    ```yaml
+    deploy:
+      - helm4 upgrade --install myapp ./chart
+    ```
 
 ### New Features {#new-features-1.50}
 
@@ -33,15 +40,25 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 - **Azure Cloud Credentials**: [Cloud Credentials](admin/cloud-credentials/azure.mdx) now support Microsoft Azure. The commands in your Okteto Manifests authenticate to Azure with workload identity federation, without client secrets: Okteto injects `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_AUTHORITY_HOST` and `AZURE_FEDERATED_TOKEN_FILE`, the variables used by the Azure SDKs. Requires Okteto CLI 3.25.0 or later <!-- PROD-532, app#10437, okteto#5174 -->
 - **Microsoft Entra Workload ID for the Okteto Registry**: The Okteto Registry can access [Azure Storage with Microsoft Entra Workload ID](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx#microsoft-entra-workload-id) instead of a storage account access key (`registry.storage.provider.azure.workloadIdentity.enabled`) <!-- PROD-541, app#10465 -->
 - **Image pulls from Google Cloud Storage with Workload Identity**: With [Google Cloud Storage and Workload Identity](self-hosted/install/okteto-registry-storage/google-cloud-storage.mdx), `registry.storage.provider.gcp.workloadIdentity.redirect` redirects image pulls to signed Cloud Storage URLs instead of serving image layers through the Okteto Registry. We strongly recommend enabling it: clients download image layers directly from Cloud Storage, which takes that traffic off the Okteto Registry, and it will become the default in an upcoming release. It needs the `iam.serviceAccounts.signBlob` permission described in the guide <!-- PROD-541, app#10465 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): `okteto deploy` now deploys the [dependencies](reference/okteto-manifest.mdx#dependencies-string-optional) of an Okteto Manifest in parallel. Use `depends_on` to set which dependencies must deploy first. Their output is shown under one `Deploying dependencies` step, with each line prefixed with the dependency name <!-- PROD-533, okteto#5200, okteto#5245 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): The new [`x-okteto-service-account`](reference/docker-compose.mdx#x-okteto-service-account-string-optional) Docker Compose field sets the Kubernetes ServiceAccount a service runs under. Combine it with [`x-okteto-identity-token`](reference/docker-compose.mdx#x-okteto-identity-token-object-optional) so your cloud provider can trust a single service <!-- DEV-1489, PROD-531, okteto#5184, okteto#5188 -->
 
 ### Improvements {#improvements-1.50}
 
 - **Developers can wake Global Preview Environments**: Any Developer can now wake a sleeping Global Preview Environment from the [Okteto Dashboard](core/user-roles-and-permissions.mdx#access-to-global-preview-environments). Only the owner and Admins can put it to sleep manually <!-- DEV-1307, app#10450 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Improved compatibility with modern proxies and gateways: `okteto up`, builds and remote execution now use WebSockets for port forwarding, improving connectivity in environments where the legacy SPDY protocol is unsupported. The CLI automatically falls back to SPDY for backward compatibility <!-- okteto#5190 -->
 
 ### Bug Fixes {#bug-fixes-1.50}
 
 - Fixed the Okteto Registry with [DigitalOcean Spaces](self-hosted/install/okteto-registry-storage/digitalocean-spaces.mdx) not working when `registry.storage.provider.digitalocean.region` isn't set: the default region was `SFO1`, which isn't a Spaces region. It now defaults to `nyc3` <!-- PROD-541, app#10465 -->
 - Fixed the cluster role binding that grants the cluster role set in [`serviceAccounts.clusterRoleBinding`](self-hosted/helm-configuration.mdx#serviceaccounts) to the `default` service account of a Namespace being left behind when the Namespace was deleted outside the regular Okteto deletion flow, for example when the Garbage Collector removed a Namespace whose owner no longer exists, or with `kubectl delete namespace`. The binding is now owned by its Namespace and deleted with it, so new bindings are no longer orphaned. Bindings already orphaned by previous versions aren't deleted, because there is no reliable way to identify them. If you'd like guidance on ways to detect them in your cluster, [reach out to support](https://okteto.com/support) <!-- PROD-529, app#10531 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Fixed builds failing with `port forward creation to BuildKit has failed` when the [BuildKit autoscaler](self-hosted/manage/buildkit-high-performance.mdx#4-enable-hpa-to-optimize-performance-and-costs) removed the pod between builds <!-- okteto#5189 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Returns a clearer error when a registry answers a build with a 5xx error. Previously, it was reported as `buildkit service is not available at the moment` <!-- okteto#5198 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Fixed Development Environments with `dependencies` but no `deploy` section staying in progressing status after deploying <!-- DEV-1500, okteto#5205 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Fixed a failed `okteto destroy` losing the Okteto Manifest, so a retry skipped the `destroy` commands <!-- okteto#5171 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Fixed [`okteto namespace delete`](reference/okteto-cli.mdx#delete-1) sometimes returning before the Namespace was deleted. The new `--wait` and `--timeout` flags control the wait <!-- PROD-494, okteto#5187 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Fixed `okteto up` hanging when an init container fails <!-- okteto#5181 -->
+- [Okteto CLI 3.25.0](https://github.com/okteto/okteto/releases/tag/3.25.0): Fixed Docker Compose port ranges with a protocol, such as `5000-5010/udp`, being deployed as TCP <!-- okteto#5178 -->
 
 ## 1.49.1
 
