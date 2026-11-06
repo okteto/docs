@@ -1,0 +1,80 @@
+---
+title: Divert
+description: Divert lets you deploy only the services you change in an Overlay Namespace and reuse a Shared Namespace for the rest of the application.
+sidebar_label: Divert
+id: index
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Divert lets you deploy only the services you are changing and reuse a Shared Namespace for every other service of the application. A request with your divert header reaches your version of the services you deployed, and the shared version of everything else.
+
+## When to Use Divert
+
+A namespace with a full replica of your application is the simplest setup, and it's the right choice for many teams: every service runs the version you deploy, and nothing you do affects anyone else.
+
+As your application grows, usually around 30 to 50 services, deploying a full replica of it for every feature starts to have tradeoffs:
+
+- **Longer deploy times**: every namespace waits for services nobody is changing to build, start, and become healthy
+- **Less reliability**: a deploy fails when any service fails, even one owned by another team that nobody in the namespace is touching
+- **Higher infrastructure costs**: every namespace reserves the resources of the whole application
+
+That's where Divert comes in. The full application runs once in a Shared Namespace, and each developer, CI job, or AI agent deploys only the services it changes in an Overlay Namespace. An Overlay Namespace starts in the time it takes to deploy those services, and uses only what those services need.
+
+A full replica is still the better fit when you need control over every service, such as reproducing a bug that depends on specific versions of several services, or working on a change that touches most of the application.
+
+## How Divert Works
+
+Divert routes each request by the divert header it carries: the `baggage` header with the key `okteto-divert=<namespace>`. The diagram below shows the Movies application with Cindy working on the rent service:
+
+![Requests to the API gateway of staging go to the shared services. Requests with baggage okteto-divert=cindy reach Cindy's rent service, which uses its own MongoDB database and calls the shared catalog service](@site/static/img/divert-overview.svg)
+
+1. The Shared Namespace, `staging`, runs the complete application. Requests enter through the API gateway.
+2. Cindy deploys the rent service and its MongoDB database in her Overlay Namespace, `cindy`.
+3. When the API gateway calls the rent service, requests with Cindy's divert header (`baggage: okteto-divert=cindy`) reach her rent service.
+4. Cindy's rent service calls the catalog service. She didn't deploy it, so the call reaches the shared catalog service.
+5. Every other service, and every request without Cindy's divert header, is served by the Shared Namespace.
+
+Several Overlay Namespaces can use the same Shared Namespace at the same time. Each one only sees its own changes, and the Shared Namespace is not affected by any of them. An Overlay Namespace can also run several overlay services: they call each other directly, and use the Shared Namespace for everything else.
+
+## Concepts
+
+- **Shared Namespace**: the namespace that runs the complete application. It serves every service that an Overlay Namespace doesn't deploy. It's usually a namespace that your CI redeploys on every merge. If Okteto manages your Shared Namespace, make it [persistent](core/namespaces.mdx#mark-a-namespace-as-persistent-to-prevent-it-from-sleeping-and-deletion) so it never goes to sleep.
+- **Overlay Namespace**: a namespace where a developer, a CI job, or an AI agent deploys only the services it is changing, on top of a Shared Namespace.
+- **Shared services** and **overlay services**: the services deployed in the Shared Namespace and in an Overlay Namespace.
+- **Subsystem**: a group of services that belong together and that you deploy as a unit, such as an API, its workers, its queues, and its databases.
+- **Divert header**: the [`baggage`](https://www.w3.org/TR/baggage/) header with the key `okteto-divert=<namespace>`, where `<namespace>` is the Overlay Namespace. Requests with the divert header reach the overlay service when one exists, and the shared service otherwise.
+- **Header Propagation**: forwarding the `baggage` header from each incoming request to the requests and messages it triggers, so the divert header reaches every service in the call chain, including the consumers of your queues.
+- **Queue Splitting**: making sure each message is consumed by the namespace it belongs to.
+- **Data Cloning**: giving an Overlay Namespace its own copy of a database, instead of writing to the shared one.
+
+## Cluster Requirements
+
+<Tabs
+  defaultValue="self-hosted"
+  values={[
+    { label: 'Self-Hosted', value: 'self-hosted', },
+    { label: 'BYOC', value: 'byoc', },
+  ]}
+>
+<TabItem value="self-hosted">
+
+On Self-Hosted instances, Divert requires a service mesh in each Shared Namespace and enabling Divert in your Okteto Helm values. Follow [Configure Divert in Your Cluster](self-hosted/install/divert/index.mdx) to set it up.
+
+</TabItem>
+
+<TabItem value="byoc">
+
+On Bring Your Own Cloud (BYOC) instances, contact Okteto support to enable Divert in your cluster.
+
+</TabItem>
+</Tabs>
+
+## Divert Guides
+
+- [Shared Namespace](development/divert/shared-namespace.mdx): create and maintain the namespace that runs the complete application
+- [Overlay Namespace](development/divert/overlay-namespace.mdx): enable Divert in your Okteto Manifest, how it works, and how to access your overlay service endpoints
+- [Header Propagation](development/divert/header-propagation.mdx): forward the divert header between your services
+- [Queue Splitting](development/divert/queue-splitting.mdx): keep each message in the namespace it belongs to
+- [Data Cloning](development/divert/data-cloning.mdx): give your Overlay Namespace its own copy of the databases it writes to

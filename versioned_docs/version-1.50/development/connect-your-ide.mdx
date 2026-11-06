@@ -1,0 +1,174 @@
+---
+title: Connecting your IDE over SSH
+description: Clone a repository inside a Development Container and open it from any IDE that supports remote development over SSH.
+sidebar_label: Connecting your IDE
+id: connect-your-ide
+---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">
+  {`
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "@id": "https://www.okteto.com/docs/development/connect-your-ide/#article",
+  "headline": "Connecting your IDE over SSH",
+  "description": "Clone a repository inside a Development Container and open it from any IDE that supports remote development over SSH.",
+  "url": "https://www.okteto.com/docs/development/connect-your-ide",
+  "proficiencyLevel": "Beginner",
+  "publisher": { "@id": "https://www.okteto.com/#organization" }
+}
+`}
+  </script>
+  <script type="application/ld+json">
+  {`
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Docs", "item": "https://www.okteto.com/docs" },
+    { "@type": "ListItem", "position": 2, "name": "Development Environments", "item": "https://www.okteto.com/docs/development" },
+    { "@type": "ListItem", "position": 3, "name": "Connecting your IDE", "item": "https://www.okteto.com/docs/development/connect-your-ide" }
+  ]
+}
+`}
+  </script>
+</Head>
+
+`okteto up` runs an SSH server inside your Development Container and adds a host entry for it to your local SSH configuration. Any IDE that supports remote development over SSH can open a project through that host. In this setup the source code lives only in the container: you clone the repository there instead of synchronizing it from your machine, so the IDE's Git integration, language server, terminal, and debugger all work against the same copy.
+
+This tutorial creates a Development Container, clones [okteto/go-getting-started](https://github.com/okteto/go-getting-started) into it, deploys the application with `okteto deploy` from inside the container, and connects your IDE.
+
+## Prerequisites
+
+- The [Okteto CLI](development/using-okteto-cli.mdx) installed and configured against your Okteto instance.
+- An IDE with SSH remote development, such as Visual Studio Code with the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension or a JetBrains IDE with [JetBrains Gateway](https://www.jetbrains.com/remote-development/gateway/).
+
+## Okteto Manifest for the remote workspace
+
+Create an empty folder for the workspace configuration:
+
+```console
+mkdir remote-workspace
+cd remote-workspace
+```
+
+Add an `okteto.yaml` file:
+
+```yaml title="okteto.yaml"
+dev:
+  workspace:
+    autocreate: true
+    metadata:
+      annotations:
+        dev.okteto.com/inject-token: "true"
+    image: ghcr.io/okteto/golang:1
+    command: bash
+    remote: 2222
+    workdir: /workspace
+    sync:
+      - .:/workspace
+```
+
+Add a `.stignore` file that excludes every file from [File Sync](reference/file-synchronization.mdx):
+
+```text title=".stignore"
+*
+```
+
+Each field configures one part of the workspace:
+
+- [`autocreate`](reference/okteto-manifest.mdx#autocreate-bool-optional) makes `okteto up` create a Deployment named `workspace`, so the manifest needs no `deploy` section.
+- The `dev.okteto.com/inject-token` annotation, set under [`metadata`](reference/okteto-manifest.mdx#metadata-object-optional), makes Okteto inject the `OKTETO_CONTEXT` and `OKTETO_TOKEN` environment variables into the container. The Okteto CLI inside the container uses them to authenticate against your Okteto instance as the owner of the Namespace, with no `okteto context` setup.
+- [`remote`](reference/okteto-manifest.mdx#remote-integer-optional) fixes the local SSH port to `2222`. Without it, `okteto up` picks a random port on every run.
+- [`workdir`](reference/okteto-manifest.mdx#workdir-string-optional) sets the working directory of the container to `/workspace`, where `okteto up` opens its shell.
+- [`sync`](reference/okteto-manifest.mdx#sync-string-required) is mandatory. Combined with the `.stignore` above, it transfers no files, but `/workspace` is still backed by the Development Container's persistent volume, so the repository you clone there survives `okteto down` and later `okteto up` sessions. `okteto down -v` deletes it.
+
+## Starting the Development Container
+
+Start the Development Container from the `remote-workspace` folder:
+
+```console
+okteto up
+```
+
+`okteto up` opens a shell in the container. Leave it running: it keeps the SSH tunnel to the container open. Run the commands in the next sections in that shell.
+
+## Installing the Okteto CLI
+
+Install the Okteto CLI in the container:
+
+```bash
+curl https://get.okteto.com -sSfL | sh
+```
+
+:::tip Build your dependencies into the dev image
+Everything installed outside `/workspace` is lost when the Development Container restarts, so you would install the Okteto CLI again on every `okteto up`. Build it into a custom image and set it in the `image` field of your Okteto Manifest instead:
+
+```dockerfile
+FROM ghcr.io/okteto/golang:1
+RUN curl https://get.okteto.com -sSfL | sh
+```
+
+Add any other tooling your remote session needs in the same image: language runtimes, debuggers such as Delve, linters, `kubectl` or `helm`, your Git configuration, and the backend of your remote IDE, so it isn't downloaded on the first connection. Keep your repositories in `/workspace` instead: it lives on the persistent volume and keeps your uncommitted changes across sessions.
+:::
+
+## Cloning and deploying the repository
+
+Clone the repository:
+
+```bash
+git clone https://github.com/okteto/go-getting-started.git
+```
+
+:::note
+To clone private repositories over SSH, mount your SSH key with the [`secrets`](reference/okteto-manifest.mdx#secrets-string-optional) field and trust GitHub's host key before cloning:
+
+```yaml
+secrets:
+  - $HOME/.ssh/id_ed25519:/root/.ssh/id_ed25519:400
+```
+
+```bash
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+git clone git@github.com:<org>/<repo>.git
+```
+
+Okteto stores the files listed under `secrets` as a Kubernetes Secret in your Namespace, so use a key you are comfortable storing in the cluster.
+:::
+
+Deploy the application from the cloned repository:
+
+```bash
+cd go-getting-started
+okteto deploy
+```
+
+`okteto deploy` uses the injected credentials and deploys the application to your Namespace.
+
+## Connecting your IDE
+
+`okteto up` adds this entry to your `~/.ssh/config` file:
+
+```
+Host workspace.okteto
+  HostName localhost
+  Port 2222
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+```
+
+The host is named `<dev-name>.okteto`, where `<dev-name>` is the name under the `dev` section of your Okteto Manifest. Okteto generates the key pair for this connection at `~/.okteto/id_rsa_okteto` the first time you run `okteto up`. Confirm the connection from a separate terminal:
+
+```console
+ssh workspace.okteto
+```
+
+Point your IDE at the same host and open `/workspace/go-getting-started`:
+
+- **Visual Studio Code**: install the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension, run **Remote-SSH: Connect to Host** from the Command Palette, and select `workspace.okteto`.
+- **JetBrains IDEs**: open [JetBrains Gateway](https://www.jetbrains.com/remote-development/gateway/), select **Connect via SSH**, and create a connection with user `root`, host `localhost`, port `2222`, and the private key `~/.okteto/id_rsa_okteto`. Gateway installs the IDE backend you select inside the container.
+
+The connection stays up while `okteto up` is running. If you stop it, run `okteto up` again and reconnect. The [SSH Server reference](reference/ssh-server.mdx) describes the SSH setup in full.
