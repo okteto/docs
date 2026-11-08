@@ -1,5 +1,5 @@
-// Swizzled (wrapped): adds "Related content" below the stock footer (tags and
-// edit link) on post pages.
+// Swizzled (wrapped): on post pages, adds a newsletter signup above the stock
+// footer (tags and edit link) and "Related content" below it.
 
 import React from 'react';
 import Link from '@docusaurus/Link';
@@ -7,6 +7,7 @@ import { usePluginData } from '@docusaurus/useGlobalData';
 import { useBlogPost } from '@docusaurus/plugin-content-blog/client';
 import Footer from '@theme-original/BlogPostItem/Footer';
 
+import Newsletter from './Newsletter';
 import styles from './styles.module.scss';
 
 export default function FooterWrapper(props) {
@@ -16,6 +17,7 @@ export default function FooterWrapper(props) {
 
   return (
     <>
+      {isBlogPostPage && <Newsletter />}
       <Footer {...props} />
       {related.length > 0 && (
         <section className={styles.related}>
