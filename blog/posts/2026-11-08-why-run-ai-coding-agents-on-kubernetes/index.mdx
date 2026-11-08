@@ -1,0 +1,66 @@
+---
+title: "Why Your Coding Agents Should Run on Kubernetes, Not on Laptops"
+title_meta: "Why Run AI Coding Agents on Kubernetes Instead of Laptops"
+description: "Coding agents on laptops inherit developer credentials and drift from each other. On Kubernetes, platform teams get agents that are secure, reproducible, scalable, and observable."
+slug: why-run-ai-coding-agents-on-kubernetes
+date: 2026-11-08
+authors: ["pablo-chico-de-guzman"]
+tags: ["ai", "kubernetes", "security", "platform-engineering", "compliance"]
+image: ./img/cover.jpg
+image_alt: "AI coding agents running on Kubernetes, with four benefits: secure, reproducible, scale, and observability"
+---
+
+AI is an amplifier. Coding agents multiply speed where your engineering platform has structure, and they multiply risk where it doesn't. That is why the most important question about agents is no longer which one your developers use. It is where those agents run.
+
+{/* truncate */}
+
+In many companies, the answer today is "on every developer's laptop". Someone installs Claude Code, Codex, or Cursor, points it at a repository, and gives it a terminal. It works well enough for one developer and one agent. It stops working when the platform team is asked to roll agents out to hundreds of developers, each running several agents at once, in a company that has to answer to auditors.
+
+## The premise: agents run on your infrastructure
+
+For regulated companies, hosted agent services are not an option. Source code, data, and every tool result the agent produces have to stay inside the company's infrastructure, and the models are often self-hosted or reached through an internal AI gateway.
+
+So the real choice is between two places: the developer's laptop, or infrastructure the company runs and governs. For most companies, that infrastructure is Kubernetes. It is already where the platform team enforces how workloads are built, deployed, isolated, observed, and audited. Running agents there means treating them as one more kind of workload, governed by the same platform, secrets management, and compliance controls as everything else, instead of building a second platform for agents.
+
+The rest of this post compares the two options on four points: security, reproducibility, scale, and observability.
+
+## Secure
+
+An agent on a laptop runs as the developer. It can read `~/.aws/credentials`, the kubeconfig, SSH keys, and `.env` files, and it reaches whatever the VPN reaches. That is Simon Willison's ["lethal trifecta"](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) on every laptop: private data, untrusted content, and a way to send data out. It has already been exploited. The [s1ngularity attack](https://orca.security/resources/blog/s1ngularity-supply-chain-attack/) in August 2025 ran locally installed AI coding CLIs with `--yolo` to steal 2,349 credentials, and in April 2026, according to the founder of PocketOS, [a coding agent found an API token in a file](https://oecd.ai/en/incidents/2026-04-27-6153) and deleted the production database and its backups in nine seconds. In both cases, the credentials were on the machine and the agent could reach them.
+
+On Kubernetes, each agent gets its own scope. The agent pod gets a ServiceAccount token that expires when the agent finishes its task, and workload identity (EKS Pod Identity, GKE Workload Identity, Azure Workload Identity) replaces static cloud keys.
+
+Each agent task runs in its own pod, and RBAC limits what it can do. Pod Security Standards keep agent pods non-root and unprivileged, and for a stronger boundary than the shared kernel, a RuntimeClass runs them under [gVisor](https://gvisor.dev/), [Kata Containers](https://katacontainers.io/), or [Firecracker](https://firecracker-microvm.github.io/) microVMs. NetworkPolicies limit egress to your Git server, your registry, and your AI gateway. [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/), a Kubernetes SIG Apps subproject, packages this pattern as a `Sandbox` API: one isolated, stateful pod per agent on the runtime you choose, with warm pools for fast startup.
+
+## Reproducible
+
+Each developer configures their own agent: their own toolchain versions, their own MCP servers, their own permission settings, their own `CLAUDE.md` or `AGENTS.md`. Over time, these configurations diverge. Security researchers call this [posture drift](https://www.pillar.security/sail/posture-drift-configuration-drift-over-time): an agent that starts with three approved tools ends up with eleven after developers add servers one at a time, and nobody reviews the result. As a result, the same task, given to the same agent, behaves differently depending on whose laptop it runs on. When an agent's change fails in CI, you can't tell whether the change is wrong or the agent's environment was.
+
+On Kubernetes, the agent's runtime is a container image and a manifest in Git. Every agent, for every developer and every team, starts from the same image with the same toolchain, the same tools, and the same permissions. When the platform team updates the image or the policy, every agent gets the change, and the change is reviewed like any other code.
+
+## Scale
+
+Agents are most useful on long tasks and in parallel. A laptop is bad at both. An agent that runs for hours or days takes the machine with it: it runs tests, compiles, and competes with the developer for CPU and memory, and the task dies when the laptop sleeps, hangs, or loses its connection. The laptop's resources also set a hard ceiling on how many agents can run at once. As a principal engineer at Faire put it, [there are ways to parallelize agents on your local machine, "but it's much more complicated"](https://cursor.com/blog/faire).
+
+On Kubernetes, agents run as pods or Jobs, scheduled across the cluster, with the cluster autoscaler or Karpenter adding nodes when demand grows. A developer can start ten agents and close the laptop. `activeDeadlineSeconds` stops runaway tasks, `ttlSecondsAfterFinished` cleans up finished ones, and ResourceQuotas cap how much compute each team's agents can use.
+
+## Observability
+
+When agents run on laptops, the platform team has no inventory of which agents exist, what they can reach, what they run, or what they cost. In most organizations, there are already agents running things that nobody notices. You can't govern what you can't see, and you can't enforce governance through prompts and process documents on hundreds of machines you don't control.
+
+On Kubernetes, agent pods produce the same logs, metrics, events, and audit records as any other workload, in the observability stack the platform team already runs. You can answer which agents ran, under which identity, what they accessed, and how much they cost, per team and per task.
+
+## Laptops and Kubernetes side by side
+
+|  | Laptops | Kubernetes |
+| --- | --- | --- |
+| **Secure** | The developer's long-lived credentials, no isolation from the developer's access | Short-lived credentials scoped per workload, RBAC, Pod Security Standards, NetworkPolicies, and optional sandboxed runtimes |
+| **Reproducible** | One configuration per laptop | One image and one manifest in Git |
+| **Scale** | Limited by one machine | Scheduler, autoscaling, and quotas |
+| **Observability** | None for the platform team | Logs, metrics, and audit records in the existing stack |
+
+## Agents belong where your workloads already live
+
+Agents amplify whatever structure your platform has. On laptops, there is no structure to amplify: every agent runs with a developer's credentials, in its own configuration, out of sight of the platform team. On Kubernetes, every agent runs in an isolated, unprivileged pod with short-lived credentials, from one reviewed definition, under the same policies and observability as the rest of your workloads.
+
+Running the agent is only half of the problem, though. A coding agent also needs to build, deploy, and test the changes it makes, and there are several ways to do that on Kubernetes. We will cover that in an upcoming post on how to run AI coding agents on Kubernetes.
