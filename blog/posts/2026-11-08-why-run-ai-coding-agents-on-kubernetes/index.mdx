@@ -1,7 +1,7 @@
 ---
-title: "Why Your Coding Agents Should Run on Kubernetes, Not on Laptops"
-title_meta: "Why Run AI Coding Agents on Kubernetes Instead of Laptops"
-description: "Coding agents on laptops inherit developer credentials and drift from each other. On Kubernetes, platform teams get agents that are secure, reproducible, scalable, and observable."
+title: "Why Run AI Coding Agents on Kubernetes?"
+title_meta: "AI Coding Agents on Kubernetes: Security, Scale, and Control"
+description: "Why platform teams run AI coding agents on Kubernetes: scoped access, versioned environments, parallel execution, and centralized visibility."
 slug: why-run-ai-coding-agents-on-kubernetes
 date: 2026-11-08
 authors: ["pablo-chico-de-guzman"]
@@ -18,49 +18,57 @@ In many companies, the answer today is "on every developer's laptop". Someone in
 
 ## The premise: agents run on your infrastructure
 
-For regulated companies, hosted agent services are not an option. Source code, data, and every tool result the agent produces have to stay inside the company's infrastructure, and the models are often self-hosted or reached through an internal AI gateway.
+For organizations that require agent execution to stay within infrastructure they control, the question is how to provide that execution environment consistently across teams. Running the agent on your infrastructure and choosing where model inference happens are separate architectural decisions: an internal AI gateway, by itself, doesn't guarantee that prompts and tool outputs stay within your infrastructure.
 
-So the real choice is between two places: the developer's laptop, or infrastructure the company runs and governs. For most companies, that infrastructure is Kubernetes. It is already where the platform team enforces how workloads are built, deployed, isolated, observed, and audited. Running agents there means treating them as one more kind of workload, governed by the same platform, secrets management, and compliance controls as everything else, instead of building a second platform for agents.
+Developer laptops can be secured, but they shouldn't have to serve as the execution platform for every autonomous task. For teams already operating Kubernetes, the cluster provides a familiar foundation for centrally managed agent workloads, with explicit identities, resource limits, network policies, and lifecycle controls. These controls are not automatic. The advantage is having a platform where they can be defined, enforced, and reviewed consistently, instead of building a second platform for agents.
 
-The rest of this post compares the two options on four points: security, reproducibility, scale, and observability.
+The rest of this post compares the two operating models on four points: security, reproducibility, scale, and observability.
 
 ## Secure
 
-An agent on a laptop runs as the developer. It can read `~/.aws/credentials`, the kubeconfig, SSH keys, and `.env` files, and it reaches whatever the VPN reaches. That is Simon Willison's ["lethal trifecta"](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) on every laptop: private data, untrusted content, and a way to send data out. It has already been exploited. The [s1ngularity attack](https://orca.security/resources/blog/s1ngularity-supply-chain-attack/) in August 2025 ran locally installed AI coding CLIs with `--yolo` to steal 2,349 credentials, and in April 2026, according to the founder of PocketOS, [a coding agent found an API token in a file](https://oecd.ai/en/incidents/2026-04-27-6153) and deleted the production database and its backups in nine seconds. In both cases, the credentials were on the machine and the agent could reach them.
+On a laptop, the agent's scope is whatever the developer configures. Agent harnesses offer [file system and network sandboxing](https://code.claude.com/docs/en/sandboxing), but each developer has to set it up, keep it on, and keep it current. Without it, the agent runs as the developer: it can read `~/.aws/credentials`, the kubeconfig, SSH keys, and `.env` files, and it reaches whatever the VPN reaches. That is Simon Willison's ["lethal trifecta"](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/): private data, untrusted content, and a way to send data out.
 
-On Kubernetes, each agent gets its own scope. The agent pod gets a ServiceAccount token that expires when the agent finishes its task, and workload identity (EKS Pod Identity, GKE Workload Identity, Azure Workload Identity) replaces static cloud keys.
+This has already been exploited. In August 2025, the s1ngularity attack published malicious versions of the Nx build system that scanned developer machines for secrets and tried to use locally installed AI coding CLIs to find more; GitGuardian [counted 2,349 credentials leaked from 1,079 systems](https://blog.gitguardian.com/the-nx-s1ngularity-attack-inside-the-credential-leak/). In April 2026, according to the founder of PocketOS, [a coding agent found an infrastructure API token in an unrelated file](https://decrypt.co/365897/ai-agent-deletes-startup-database-9-seconds-founder-says) and used it to delete the production database and its backups. The lesson is not that moving an agent to Kubernetes prevents credential theft. It is that agent execution should have access only to the credentials and destinations its task requires.
 
-Each agent task runs in its own pod, and RBAC limits what it can do. Pod Security Standards keep agent pods non-root and unprivileged, and for a stronger boundary than the shared kernel, a RuntimeClass runs them under [gVisor](https://gvisor.dev/), [Kata Containers](https://katacontainers.io/), or [Firecracker](https://firecracker-microvm.github.io/) microVMs. NetworkPolicies limit egress to your Git server, your registry, and your AI gateway. [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/), a Kubernetes SIG Apps subproject, packages this pattern as a `Sandbox` API: one isolated, stateful pod per agent on the runtime you choose, with warm pools for fast startup.
+Kubernetes gives the platform team the controls to enforce that. Each agent pod can get a short-lived, projected ServiceAccount token bound to the pod, or no token at all when the agent doesn't need the Kubernetes API, and workload identity (EKS Pod Identity, GKE Workload Identity, Azure Workload Identity) replaces static cloud keys. RBAC limits what the agent can do against the Kubernetes API.
+
+Each agent task runs in its own pod. Enforcing the Pod Security Standards Restricted profile keeps agent pods non-root and unprivileged, and for a stronger boundary than the shared kernel, a RuntimeClass can run them under a sandboxed runtime such as [gVisor](https://gvisor.dev/) or [Kata Containers](https://katacontainers.io/), including Kata with [Firecracker](https://firecracker-microvm.github.io/) microVMs, once the nodes support it. NetworkPolicies, with a network plugin that enforces them, can limit egress to DNS and the destinations the agent's tools need, such as your Git server, your registry, and your AI gateway. [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/), a Kubernetes SIG Apps subproject, packages this pattern as a `Sandbox` API: one isolated, stateful pod per agent on the runtime you choose, with warm pools for fast startup.
 
 ## Reproducible
 
-Each developer configures their own agent: their own toolchain versions, their own MCP servers, their own permission settings, their own `CLAUDE.md` or `AGENTS.md`. Over time, these configurations diverge. Security researchers call this [posture drift](https://www.pillar.security/sail/posture-drift-configuration-drift-over-time): an agent that starts with three approved tools ends up with eleven after developers add servers one at a time, and nobody reviews the result. As a result, the same task, given to the same agent, behaves differently depending on whose laptop it runs on. When an agent's change fails in CI, you can't tell whether the change is wrong or the agent's environment was.
+Each developer configures their own agent: their own toolchain versions, their own MCP servers, their own permission settings, their own `CLAUDE.md` or `AGENTS.md`. Over time, these configurations diverge. Security researchers call this [posture drift](https://www.pillar.security/sail/posture-drift-configuration-drift-over-time): an agent that starts with three approved tools ends up with eleven after developers add servers one at a time, and nobody reviews the result. So the same task, given to the same agent, behaves differently depending on whose laptop it runs on. When an agent's change fails in CI, you can't tell whether the change is wrong or the agent's environment was.
 
-On Kubernetes, the agent's runtime is a container image and a manifest in Git. Every agent, for every developer and every team, starts from the same image with the same toolchain, the same tools, and the same permissions. When the platform team updates the image or the policy, every agent gets the change, and the change is reviewed like any other code.
+On Kubernetes, the agent's runtime is a versioned definition in Git: a container image pinned by digest, so it can't change under a moving tag, and a manifest with the permissions each kind of task needs. When the platform team updates the image or the policy, the change is reviewed like any other code, and every agent that uses that definition gets it.
 
 ## Scale
 
 Agents are most useful on long tasks and in parallel. A laptop is bad at both. An agent that runs for hours or days takes the machine with it: it runs tests, compiles, and competes with the developer for CPU and memory, and the task dies when the laptop sleeps, hangs, or loses its connection. The laptop's resources also set a hard ceiling on how many agents can run at once. As a principal engineer at Faire put it, [there are ways to parallelize agents on your local machine, "but it's much more complicated"](https://cursor.com/blog/faire).
 
-On Kubernetes, agents run as pods or Jobs, scheduled across the cluster, with the cluster autoscaler or Karpenter adding nodes when demand grows. A developer can start ten agents and close the laptop. `activeDeadlineSeconds` stops runaway tasks, `ttlSecondsAfterFinished` cleans up finished ones, and ResourceQuotas cap how much compute each team's agents can use.
+On Kubernetes, agent tasks can run as Jobs, scheduled across the cluster, with the cluster autoscaler or Karpenter adding nodes when demand grows. A developer can start ten agents and close the laptop. `activeDeadlineSeconds` stops runaway tasks, `ttlSecondsAfterFinished` deletes finished Jobs and their pods, and ResourceQuotas cap how much compute each team's agents can use.
 
 ## Observability
 
 When agents run on laptops, the platform team has no inventory of which agents exist, what they can reach, what they run, or what they cost. In most organizations, there are already agents running things that nobody notices. You can't govern what you can't see, and you can't enforce governance through prompts and process documents on hundreds of machines you don't control.
 
-On Kubernetes, agent pods produce the same logs, metrics, events, and audit records as any other workload, in the observability stack the platform team already runs. You can answer which agents ran, under which identity, what they accessed, and how much they cost, per team and per task.
+Kubernetes provides a foundation for collecting workload logs, resource metrics, and API audit events. To understand an agent's actions, correlate that infrastructure telemetry with agent-level records: task identifiers, tool calls, execution results, and model usage. Together, these records help platform teams investigate failures, review access, and attribute costs.
 
-## Laptops and Kubernetes side by side
+## Local and Kubernetes execution side by side
 
-|  | Laptops | Kubernetes |
+|  | Developer-managed local execution | Platform-managed Kubernetes execution |
 | --- | --- | --- |
-| **Secure** | The developer's long-lived credentials, no isolation from the developer's access | Short-lived credentials scoped per workload, RBAC, Pod Security Standards, NetworkPolicies, and optional sandboxed runtimes |
-| **Reproducible** | One configuration per laptop | One image and one manifest in Git |
-| **Scale** | Limited by one machine | Scheduler, autoscaling, and quotas |
-| **Observability** | None for the platform team | Logs, metrics, and audit records in the existing stack |
+| **Secure** | Depends on each developer's sandbox settings and credentials | Pod-bound tokens, workload identity, RBAC, enforced Pod Security Standards, NetworkPolicies, and optional sandboxed runtimes |
+| **Reproducible** | One configuration per laptop | Versioned definitions with images pinned by digest |
+| **Scale** | Limited by one machine | Jobs, autoscaling, and quotas |
+| **Observability** | None for the platform team | Workload logs, metrics, and API audit events, correlated with agent-level records |
+
+## A runtime is not the whole environment
+
+For a coding agent working on a Kubernetes application, an execution container is only part of the environment. To validate a change, the agent may also need to build images, deploy services, run migrations, reach dependencies, and exercise the application through its real endpoints.
+
+The goal should be a versioned application environment that developers, agents, and CI can use consistently, with configuration, data, and permissions appropriate to each use case. That gives the agent a way to test its changes against a running system, and gives a human reviewer an environment in which to inspect the result. Isolating the agent's execution and giving it an environment to validate the application are related problems, but they are different problems.
 
 ## Agents belong where your workloads already live
 
-Agents amplify whatever structure your platform has. On laptops, there is no structure to amplify: every agent runs with a developer's credentials, in its own configuration, out of sight of the platform team. On Kubernetes, every agent runs in an isolated, unprivileged pod with short-lived credentials, from one reviewed definition, under the same policies and observability as the rest of your workloads.
+Kubernetes doesn't make agents secure by default. It gives platform teams a foundation to provide governed execution for agents, under the same identities, policies, and observability as the rest of their workloads, and application environments where agents can validate their work.
 
-Running the agent is only half of the problem, though. A coding agent also needs to build, deploy, and test the changes it makes, and there are several ways to do that on Kubernetes. We will cover that in an upcoming post on how to run AI coding agents on Kubernetes.
+There are several ways to give agents those environments on Kubernetes. We will cover them in an upcoming post on how to run AI coding agents on Kubernetes.
