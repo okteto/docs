@@ -5,7 +5,7 @@ sidebar_label: Migrate to Gateway API
 id: migrate-to-gateway-api
 ---
 
-Okteto Chart 2.0, planned for Q1 2027, makes [Gateway API](https://gateway-api.sigs.k8s.io/) the default installation mode. We recommend moving your instance to Gateway API before upgrading to Chart 2.0. Migrating ahead of time spreads the work and reduces the breaking changes you have to handle during the 2.0 upgrade.
+Okteto Chart 2.0 will make [Gateway API](https://gateway-api.sigs.k8s.io/) the default installation mode. We recommend moving your instance to Gateway API before upgrading to Chart 2.0. Migrating ahead of time spreads the work and reduces the breaking changes you have to handle during the 2.0 upgrade.
 
 :::warning Draft
 This guide is a draft. Its content, including the configuration it describes, may change in breaking ways before the release of Chart 2.0.
@@ -13,31 +13,133 @@ This guide is a draft. Its content, including the configuration it describes, ma
 
 ## Breaking Changes in Chart 2.0
 
-1. **No NGINX annotations.** Okteto doesn't process `nginx.ingress.kubernetes.io/*` annotations. If your applications depend on them, see [Application Changes](#application-changes).
-2. **No bundled controllers.** The chart no longer packages the NGINX Ingress controllers (`ingress-nginx` and `okteto-nginx`). You install and operate your Gateway controller outside of the Okteto installation. Okteto works with any Gateway API controller.
-3. **No auto-generated certificate.** Okteto no longer generates an internal wildcard certificate. If you set `wildcardCertificate.create: true`, change it to `false` and manage the certificate yourself, as described in [Wildcard Certificate](#wildcard-certificate).
-4. **No Private Endpoints.** [Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported. See [Private Endpoints](#private-endpoints) for the alternative.
+1. **No bundled controllers.** The chart no longer packages the NGINX Ingress controllers (`ingress-nginx` and `okteto-nginx`). Your applications must be served by a Gateway controller or an Ingress controller that you install and operate outside of the Okteto installation.
+2. **No NGINX annotations.** Okteto doesn't process `nginx.ingress.kubernetes.io/*` annotations. They only work if an NGINX Ingress controller that you operate serves your Ingress objects. But note that the NGINX Ingress controller is [deprecated](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/).
+3. **No auto-generated certificate.** Okteto no longer generates an internal wildcard certificate. If you set `wildcardCertificate.create: true`, change it to `false` and manage the certificate yourself, as described in the [Certificate Configuration](#certificate-configuration) section of this guide.
+4. **No Private Endpoints.** [Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported. See the [Private Endpoints](#private-endpoints) section of this guide for the alternative.
 
-The control plane is always exposed through HTTPRoutes. Development Environment endpoints can use HTTPRoutes, Ingress objects, or both.
-
-We recommend moving all your applications to Gateway API. The [Ingress NGINX project was retired](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) in March 2026 and no longer receives releases or security fixes. The [Ingress API](https://kubernetes.io/docs/concepts/services-networking/ingress/) is frozen: it is still supported, but new features are only added to Gateway API.
-
-## Application Changes
-
-Before you migrate, make sure your applications don't depend on the Okteto NGINX Ingress controller. In practice, this means reviewing the NGINX annotations (`nginx.ingress.kubernetes.io/*`) on your Ingress objects: they only work while an NGINX Ingress controller serves them. For each application that depends on them:
-
-- **Move the logic to your Gateway controller.** This is the recommended option, and the right one for settings that apply to all your applications. Standard Gateway API covers common cases. For example, an HTTPRoute `URLRewrite` filter replaces `rewrite-target`, and HTTPRoute `timeouts` replace `proxy-read-timeout`. Other annotations map to features or policies of your Gateway controller.
-- **Run NGINX in front of your application.** Reserve this option for very specific cases that your Gateway controller can't cover. Deploy NGINX as a reverse proxy, either as a sidecar container in the pod of your application or as a separate container with its own Service. Point the HTTPRoute to NGINX, and configure NGINX to forward the traffic to your application and to implement the logic of the annotations.
+We recommend moving all your applications to Gateway API. The [Ingress NGINX project was retired](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) in March 2026 and no longer receives releases or security fixes. Okteto maintains a fork of Ingress NGINX to ship security patches for the Okteto NGINX Ingress controllers, but maintaining it takes significant effort, and we'll stop doing it at some point. The [Ingress API](https://kubernetes.io/docs/concepts/services-networking/ingress/) is frozen: it is still supported, but new features are only added to Gateway API.
 
 ## Supported Gateway Controllers
 
 Okteto works with any Gateway controller that implements Gateway API. As of today, we run our end-to-end tests against Envoy Gateway, Istio, and Kong. If you use a different Gateway controller, [let us know](https://okteto.com/support) so we can add it to our release tests.
 
+## Migration Steps
+
+The migration has two phases:
+
+1. **Application migration.** While Okteto keeps running with its NGINX Ingress controllers, move your applications, one at a time or all at once, to a Gateway controller or an Ingress controller that you operate. Your developers keep working during this phase, and each application keeps its hostname.
+2. **Control plane migration.** Once no application depends on the Okteto NGINX Ingress controllers, upgrade your Okteto installation to expose the control plane through HTTPRoutes, disable the Okteto NGINX Ingress controllers, and point your DNS records to your `Gateway`.
+
+## Application Migration
+
+Today, Okteto serves the Ingress objects of your applications with the `okteto-nginx` Ingress controller. Before the control plane migration, every application must be served by a controller that you operate. We recommend moving your applications to a Gateway controller, but moving them to an Ingress controller is also supported.
+
+### Wildcard Ingress
+
+During the application migration, the DNS record for `*.$SUBDOMAIN` keeps pointing to the Okteto NGINX Ingress controllers, and your new controller serves hostnames under the same subdomain. To send traffic to it, create a wildcard Ingress for `*.$SUBDOMAIN` in `okteto-nginx` that forwards the traffic to your new controller.
+
+NGINX gives precedence to exact hostnames over wildcards. Applications that still have an Ingress in `okteto-nginx` are served there, and the rest fall through to your new controller. This lets you move your applications one at a time, and each application keeps its hostname.
+
+Create the wildcard Ingress in the namespace of the Service it forwards to, since an Ingress can only reference Services and secrets in its own namespace. For example:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wildcard-to-gateway
+  namespace: <your-gateway-service-namespace>
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+spec:
+  ingressClassName: okteto-nginx
+  tls:
+    - hosts:
+        - "*.okteto.example.com"
+      secretName: <your-wildcard-certificate-secret>
+  rules:
+    - host: "*.okteto.example.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: <your-gateway-service>
+                port:
+                  number: 80
+```
+
+- Set `ingressClassName` to the ingress class of your Development Environment Ingress objects, usually `okteto-nginx`.
+- Set `secretName` to the secret of your Okteto wildcard certificate, the value of [`wildcardCertificate.name`](self-hosted/helm-configuration.mdx#wildcardcertificate). The secret must be in the same namespace as the Ingress, so copy it there if the Service is not in the `okteto` namespace.
+- We recommend terminating TLS in the Okteto NGINX Ingress controller and sending plain HTTP to the backend Service, as in the example. You can also forward HTTPS: set `nginx.ingress.kubernetes.io/backend-protocol` to `HTTPS` and point the backend to the HTTPS port of the Service.
+
+If you move your applications to a Gateway controller, set the backend Service to the Service of the `Gateway` that serves your Okteto applications. If you move them to an Ingress controller, set it to the Service of your Ingress controller.
+
+### NGINX Annotations
+
+Review the NGINX annotations (`nginx.ingress.kubernetes.io/*`) on your Ingress objects. They only work while an NGINX Ingress controller serves them. For each application that depends on them:
+
+- **Move the logic to your Gateway controller.** This is the recommended option, and the right one for settings that apply to all your applications. Standard Gateway API covers common cases. For example, an HTTPRoute `URLRewrite` filter replaces `rewrite-target`, and HTTPRoute `timeouts` replace `proxy-read-timeout`. Other annotations map to features or policies of your Gateway controller.
+- **Run NGINX in front of your application.** Reserve this option for very specific cases that your Gateway controller can't cover. Deploy NGINX as a reverse proxy, either as a sidecar container in the pod of your application or as a separate container with its own Service. Point the HTTPRoute to NGINX, and configure NGINX to forward the traffic to your application and to implement the logic of the annotations.
+
+### Moving Your Applications
+
+Move your applications one at a time. For each application, replace its Ingress objects with HTTPRoutes and redeploy it. Once the application has no Ingress in `okteto-nginx`, the wildcard Ingress forwards its traffic to your `Gateway`. See [HTTPRoutes](core/endpoints/httproutes.mdx) for how Okteto attaches HTTPRoutes to your `Gateway` and generates their hostnames.
+
+For Okteto to manage your HTTPRoutes during the application migration, enable `endpoints.dev.gatewayAPI` in your Helm configuration with the `Gateway` that serves your applications, keep everything else as it is, and run `helm upgrade`:
+
+```yaml
+endpoints:
+  dev:
+    gatewayAPI:
+      enabled: true
+      gateway:
+        name: okteto
+        namespace: okteto
+```
+
+If you move your applications to an Ingress controller instead, set `ingressClassName` in their Ingress objects to the ingress class of your Ingress controller and redeploy them.
+
+### Docker Compose Endpoints
+
+Endpoints generated from [Docker Compose files](reference/docker-compose.mdx) don't require changes in your applications: Okteto creates the HTTPRoutes for you. Today, Docker Compose endpoints create Ingress objects by default, and HTTPRoutes will become the default in Chart 2.0. To create HTTPRoutes today, use one of these settings:
+
+- The Helm value `unsupported.defaultGateway.type`:
+
+  ```yaml
+  unsupported:
+    defaultGateway:
+      type: gateway
+  ```
+
+- The [Admin Variable](admin/dashboard.mdx#admin-variables) `OKTETO_DEFAULT_GATEWAY_TYPE` with the value `gateway`.
+
+The Admin Variable takes precedence over the Helm value. Both accept `ingress` and `gateway`.
+
 ## Installation Prerequisites
+
+This section describes what you need before you install or upgrade Okteto to expose the Okteto control plane through Gateway API.
 
 Okteto requires the [Gateway API](https://gateway-api.sigs.k8s.io/) resource definitions, version 1.4 or later, installed in your cluster, and a Gateway controller that supports `BackendTLSPolicy`. Okteto doesn't install the Gateway API resource definitions for you. The Helm install fails if they're missing.
 
-Okteto creates HTTPRoutes but never creates the `Gateway`. Before you install or upgrade Okteto, install your Gateway controller and create a `Gateway` with an HTTPS listener for `*.$SUBDOMAIN` that accepts routes from every namespace. For example:
+### Gateway
+
+Okteto creates HTTPRoutes but never creates the `Gateway`. Before you upgrade Okteto, install your Gateway controller and create the `Gateway` that serves the Okteto control plane and your applications. The control plane and your applications can share a single `Gateway`, or use one `Gateway` each.
+
+The Okteto control plane serves these hostnames:
+
+| Hostname | Serves |
+|----------|--------|
+| `okteto.$SUBDOMAIN` | The Okteto UI and the Okteto API |
+| `registry.$SUBDOMAIN` | The Okteto Registry |
+| `kubernetes.$SUBDOMAIN` | The Kubernetes API endpoint used by the Okteto CLI |
+
+A wildcard certificate for `*.$SUBDOMAIN` covers these control plane hostnames and your Development Environment endpoints.
+
+#### Single Gateway
+
+Set the same `Gateway` in `endpoints.okteto.gatewayAPI.gateway` and `endpoints.dev.gatewayAPI.gateway`. Create it with an HTTPS listener for `*.$SUBDOMAIN` that accepts routes from every namespace and terminates TLS with your wildcard certificate. For example:
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -61,41 +163,41 @@ spec:
           from: All
 ```
 
-### Single or Separate Gateways
+If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`. The `publicOverride` hostname is a separate domain outside `*.$SUBDOMAIN`, so the `*.$SUBDOMAIN` listener doesn't match it, and a `*.$SUBDOMAIN` wildcard certificate doesn't cover it. Use a certificate valid for both `*.$SUBDOMAIN` and the `publicOverride` hostname, and add a listener for the `publicOverride` hostname:
 
-The control plane and the Development Environment endpoints can share the same `Gateway`, or use one `Gateway` each:
+```yaml
+    - name: https-public
+      protocol: HTTPS
+      port: 443
+      hostname: "okteto.example.org"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: okteto-wildcard-certificate
+      allowedRoutes:
+        namespaces:
+          from: All
+```
 
-- **Single Gateway.** Set the same `Gateway` in `endpoints.okteto.gatewayAPI.gateway` and `endpoints.dev.gatewayAPI.gateway`, and point the DNS record for `*.$SUBDOMAIN` to its load balancer.
-- **Separate Gateways.** Set a different `Gateway` in each section. Use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride) to serve the Okteto UI and API on a dedicated domain, and point that domain, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN` to the load balancer of the control plane `Gateway`. Point the wildcard record `*.$SUBDOMAIN` to the load balancer of the Development Environment `Gateway`.
+#### Separate Gateways
+
+Set the `Gateway` of the control plane in `endpoints.okteto.gatewayAPI.gateway`, and the `Gateway` of your applications in `endpoints.dev.gatewayAPI.gateway`. The `Gateway` of your applications has an HTTPS listener for `*.$SUBDOMAIN` with your wildcard certificate, like the one in [Single Gateway](#single-gateway).
+
+- **Without `publicOverride`.** The `Gateway` of the control plane can also use an HTTPS listener for `*.$SUBDOMAIN` with your wildcard certificate. DNS records decide which `Gateway` receives each hostname: point `okteto.$SUBDOMAIN`, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN` to the load balancer of the control plane `Gateway`, and `*.$SUBDOMAIN` to the load balancer of the `Gateway` of your applications. DNS records for specific hostnames take precedence over the wildcard record.
+- **With `publicOverride`.** The `Gateway` of the control plane needs a listener for the `publicOverride` hostname, and a listener for `*.$SUBDOMAIN` that serves `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`. Use a certificate valid for `*.$SUBDOMAIN` and the `publicOverride` hostname, as in [Single Gateway](#single-gateway). Point the `publicOverride` domain, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN` to the load balancer of the control plane `Gateway`, and `*.$SUBDOMAIN` to the load balancer of the `Gateway` of your applications.
+
+#### Certificate Configuration
+
+[`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API. The Helm install fails if both are set. Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you create the certificate yourself and reference it from the `certificateRefs` of your `Gateway` listeners:
+
+1. Create a TLS secret in the `okteto` namespace with your certificate. You can reuse the public certificate served by your load balancer. See [bring your own certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) and [cert-manager](self-hosted/install/certificates/cert-manager.mdx) for ways to create it.
+2. Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret.
 
 ### Private Endpoints
 
 [Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported with Gateway API. Endpoints marked as private are exposed like any other endpoint.
 
 To keep your applications off the public internet, we recommend a load balancer with a private IP dedicated to your applications: use separate Gateways for the control plane and the Development Environment endpoints, and expose the Development Environment `Gateway` through an internal load balancer. Only clients with access to your private network can reach the applications.
-
-### Wildcard Certificate
-
-[`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API. The Helm install fails if both are set.
-
-Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you create the certificate yourself and reference it from your `Gateway` listeners.
-
-The certificate must be valid for the hostnames served by each `Gateway` listener. At a minimum, the Okteto control plane requires these hostnames:
-
-| Hostname | Serves |
-|----------|--------|
-| `okteto.$SUBDOMAIN` | The Okteto UI and the Okteto API |
-| `registry.$SUBDOMAIN` | The Okteto Registry |
-| `kubernetes.$SUBDOMAIN` | The Kubernetes API endpoint used by the Okteto CLI |
-
-When you don't use `publicOverride`, a wildcard certificate for `*.$SUBDOMAIN` covers these control plane hostnames and your Development Environment endpoints.
-
-If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), the Okteto UI and the Okteto API are served on the `publicOverride` hostname instead of `okteto.$SUBDOMAIN`. The `publicOverride` hostname is a separate domain outside `*.$SUBDOMAIN`, so a `*.$SUBDOMAIN` wildcard certificate doesn't cover it. The certificate must list the `publicOverride` hostname as well, alongside `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`.
-
-To configure it:
-
-1. Create a TLS secret in the `okteto` namespace with a certificate valid for these hostnames. A wildcard certificate for `*.$SUBDOMAIN` also works, and you can reuse the public certificate served by your load balancer. See [bring your own certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) and [cert-manager](self-hosted/install/certificates/cert-manager.mdx) for ways to create it.
-2. Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret.
 
 ### Gateway Controller IP
 
@@ -154,39 +256,16 @@ cluster:
 
 We don't recommend this option as a long-term solution. Instead, [ask us](https://okteto.com/support) to add the configuration your Gateway controller needs to the Okteto chart. However, it's a valid temporary solution to test your migration to Gateway API, especially if you already use `cluster.endpoint`.
 
-### Docker Compose Endpoints
+## Installation
 
-Endpoints generated from [Docker Compose files](reference/docker-compose.mdx) don't require changes in your applications: Okteto creates the HTTPRoutes for you. Today, Docker Compose endpoints create Ingress objects by default, and HTTPRoutes will become the default in Chart 2.0. To create HTTPRoutes today, use one of these settings:
-
-- The Helm value `unsupported.defaultGateway.type`:
-
-  ```yaml
-  unsupported:
-    defaultGateway:
-      type: gateway
-  ```
-
-- The [Admin Variable](admin/dashboard.mdx#admin-variables) `OKTETO_DEFAULT_GATEWAY_TYPE` with the value `gateway`.
-
-The Admin Variable takes precedence over the Helm value. Both accept `ingress` and `gateway`.
-
-## Helm Configuration
+### Helm Values
 
 Okteto handles two kinds of traffic:
 
 - **Control plane** (`endpoints.okteto`): the Okteto UI, the Okteto API, the Okteto Registry, and the Kubernetes API endpoint used by the Okteto CLI.
 - **Development Environment endpoints** (`endpoints.dev`): the endpoints of the applications deployed in your Namespaces.
 
-| Mode | Control plane | Development Environment endpoints |
-|------|---------------|-----------------------------------|
-| [Gateway only](#gateway-only-mode) (recommended) | HTTPRoutes | HTTPRoutes |
-| [Gateway and Ingress](#gateway-and-ingress-mode) | HTTPRoutes | HTTPRoutes and Ingress objects |
-
-Okteto exposes the control plane through HTTPRoutes. For Development Environment endpoints, Okteto also supports Ingress objects to help you migrate your applications, but we recommend moving all of them to HTTPRoutes.
-
-### Gateway Only Mode
-
-The control plane and every Development Environment endpoint use HTTPRoutes. Ingress objects deployed in your Namespaces are not managed by Okteto: Okteto doesn't generate their hostnames or set their certificates. If you need them, configure the hostname and the certificate yourself in the manifests of your Ingress objects.
+This configuration exposes both through HTTPRoutes:
 
 ```yaml
 subdomain: okteto.example.com
@@ -230,40 +309,18 @@ unsupported:
     type: gateway
 ```
 
+If you moved your applications to a Gateway controller, reuse the `Gateway` that serves them. The wildcard Ingress you created in `okteto-nginx` is no longer used once `okteto-nginx` is disabled, and you can delete it.
+
 When `endpoints.dev.gatewayAPI.enabled` is `true`, Okteto attaches the HTTPRoutes deployed in your Namespaces to the configured `Gateway` and generates their hostnames. Add the annotation `dev.okteto.com/gateway: "false"` to an HTTPRoute to opt it out.
 
-### Gateway and Ingress Mode
+#### Keeping Ingress Objects
 
-The control plane uses HTTPRoutes. Development Environment endpoints can use HTTPRoutes or Ingress objects. Use this mode while you migrate your Ingress objects to HTTPRoutes.
+With `endpoints.dev.ingress.enabled: false`, Ingress objects deployed in your Namespaces are not managed by Okteto: Okteto doesn't generate their hostnames or set their certificates.
+
+If some of your applications still use Ingress objects, enable `endpoints.dev.ingress` with the ingress class of your Ingress controller, and disable the default backend HTTPRoute:
 
 ```yaml
-subdomain: okteto.example.com
-
-wildcardCertificate:
-  create: false
-  name: okteto-wildcard-certificate
-
-ingress-nginx:
-  enabled: false
-
-okteto-nginx:
-  enabled: false
-
-buildkit:
-  ingress:
-    enabled: false
-
 endpoints:
-  okteto:
-    ingress:
-      enabled: false
-    gatewayAPI:
-      enabled: true
-      gateway:
-        name: okteto
-        namespace: okteto
-      controller:
-        ip: 10.0.12.34 # ClusterIP of your Gateway Service
   dev:
     ingress:
       enabled: true
@@ -273,14 +330,11 @@ endpoints:
       gateway:
         name: okteto
         namespace: okteto
+      defaultBackendHTTPRoute:
+        enabled: false
 ```
 
-To serve HTTPRoutes and Ingress objects at the same time, the `Gateway` of `endpoints.dev` receives all the traffic of your Development Environment endpoints, and you install an Ingress controller that serves your Ingress objects. Connect them with a wildcard HTTPRoute for `*.$SUBDOMAIN` that forwards all the traffic to the Service of your Ingress controller:
-
-- If the hostname of an application has its own HTTPRoute, the `Gateway` sends the traffic to that HTTPRoute. Gateway API gives precedence to exact hostnames over wildcards.
-- If the hostname of an application doesn't have an HTTPRoute, the traffic falls back to the wildcard HTTPRoute, which forwards it to your Ingress controller. Your Ingress controller then routes it according to your Ingress objects.
-
-For example:
+Your `Gateway` now receives all the traffic for `*.$SUBDOMAIN`. Create a wildcard HTTPRoute for `*.$SUBDOMAIN` that forwards it to the Service of your Ingress controller. Gateway API gives precedence to exact hostnames over wildcards: applications with their own HTTPRoute are served by your `Gateway`, and the rest fall through to your Ingress controller. For example:
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -308,11 +362,23 @@ spec:
                 value: https
 ```
 
-The `Gateway` terminates TLS and sends plain HTTP to the Ingress controller. The `X-Forwarded-Proto` header tells the Ingress controller that the original request used HTTPS. If the Service of your Ingress controller is in a different namespace than the HTTPRoute, create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/api-types/referencegrant/) in that namespace.
+- The `Gateway` terminates TLS and sends plain HTTP to the Ingress controller. The `X-Forwarded-Proto` header tells the Ingress controller that the original request used HTTPS.
+- If the Service of your Ingress controller is in a different namespace than the HTTPRoute, create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/api-types/referencegrant/) in that namespace.
+- By default, Okteto creates its own wildcard HTTPRoute for `*.$SUBDOMAIN` that sends unmatched traffic to the Okteto default backend. Set `endpoints.dev.gatewayAPI.defaultBackendHTTPRoute.enabled: false` so that it doesn't compete with your wildcard HTTPRoute.
+- Your applications may open WebSocket or other connection upgrades through the wildcard HTTPRoute. Configure your Gateway controller so that it supports them. With Envoy Gateway, set `endpoints.dev.gatewayAPI.wildcardHTTPRoute.backendTrafficPolicy.enabled: true`, and Okteto attaches a `BackendTrafficPolicy` that allows `websocket` and `spdy/3.1` upgrades to the HTTPRoute named in `endpoints.dev.gatewayAPI.wildcardHTTPRoute.name` (`wildcard-to-ingress` by default).
 
-Your applications may open WebSocket or other connection upgrades through this wildcard HTTPRoute. Configure your Gateway controller so that the wildcard HTTPRoute supports them.
+We recommend serving all your applications with your Gateway controller and removing the Ingress controller. Combining both is useful during the migration, so that you can move your applications one at a time.
 
-## DNS Configuration
+### Helm Upgrade
+
+Run `helm upgrade` with your updated Helm values, as described in [Upgrade Okteto](self-hosted/manage/upgrade.mdx):
+
+```bash
+helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version <chart-version>
+```
+
+### DNS Configuration
 
 After you run `helm upgrade`, point your DNS records to the load balancer of your `Gateway`, for both the Okteto control plane and your applications. Until you update them, traffic keeps reaching the load balancer of your previous ingress controller.
 
@@ -322,7 +388,9 @@ Get the address of the load balancer of a `Gateway` with:
 kubectl get gateway okteto -n okteto -o jsonpath='{.status.addresses[*].value}'
 ```
 
-Update your DNS records according to your [Gateway topology](#single-or-separate-gateways):
+Update your DNS records according to your [Gateway topology](#gateway):
 
-- **Single Gateway.** Point `*.$SUBDOMAIN` to the load balancer of the `Gateway`. If you use [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride), point that domain to the same load balancer.
-- **Separate Gateways.** Point the `publicOverride` domain, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN` to the load balancer of the control plane `Gateway`, and point `*.$SUBDOMAIN` to the load balancer of the Development Environment `Gateway`.
+- **Single Gateway.** Point `*.$SUBDOMAIN` to the load balancer of the `Gateway`.
+- **Separate Gateways.** Point `okteto.$SUBDOMAIN`, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN` to the load balancer of the control plane `Gateway`, and point `*.$SUBDOMAIN` to the load balancer of the Development Environment `Gateway`.
+
+If you use [`publicOverride`](#single-gateway), also point that domain to the load balancer of the control plane `Gateway`.
