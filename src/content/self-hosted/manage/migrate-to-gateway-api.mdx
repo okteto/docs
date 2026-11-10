@@ -50,7 +50,7 @@ metadata:
   name: wildcard-to-gateway
   namespace: <your-gateway-service-namespace>
   annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
 spec:
   ingressClassName: okteto-nginx
   tls:
@@ -67,12 +67,12 @@ spec:
               service:
                 name: <your-gateway-service>
                 port:
-                  number: 80
+                  number: 443
 ```
 
 - Set `ingressClassName` to the ingress class of your Development Environment Ingress objects, usually `okteto-nginx`.
 - Set `secretName` to the secret of your Okteto wildcard certificate, the value of [`wildcardCertificate.name`](self-hosted/helm-configuration.mdx#wildcardcertificate). The secret must be in the same namespace as the Ingress, so copy it there if the Service is not in the `okteto` namespace.
-- We recommend terminating TLS in the Okteto NGINX Ingress controller and sending plain HTTP to the backend Service, as in the example. You can also forward HTTPS: set `nginx.ingress.kubernetes.io/backend-protocol` to `HTTPS` and point the backend to the HTTPS port of the Service.
+- Set `nginx.ingress.kubernetes.io/backend-protocol` to `HTTPS` and point the backend to the HTTPS port of the Service. Your new controller then serves HTTPS with its own certificate, as it will when the DNS record points to it, so its configuration doesn't change at the end of the migration.
 
 If you move your applications to a Gateway controller, set the backend Service to the Service of the `Gateway` that serves your Okteto applications. If you move them to an Ingress controller, set it to the Service of your Ingress controller.
 
