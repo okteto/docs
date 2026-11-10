@@ -362,7 +362,7 @@ spec:
                 value: https
 ```
 
-- The `Gateway` terminates TLS and sends plain HTTP to the Ingress controller. The `X-Forwarded-Proto` header tells the Ingress controller that the original request used HTTPS.
+- The `Gateway` terminates TLS and sends plain HTTP to the Ingress controller. The `X-Forwarded-Proto` header tells the Ingress controller that the original request used HTTPS. Configure your Ingress controller to trust it, or it redirects every request to HTTPS in an endless loop. With ingress-nginx, set `use-forwarded-headers: "true"` in its configuration (`controller.config` in its Helm values, or `okteto-nginx.controller.config` if you use `okteto-nginx`). Make sure your Ingress controller only receives traffic from your `Gateway`, so that clients can't set these headers themselves.
 - If the Service of your Ingress controller is in a different namespace than the HTTPRoute, create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/api-types/referencegrant/) in that namespace.
 - By default, Okteto creates its own wildcard HTTPRoute for `*.$SUBDOMAIN` that sends unmatched traffic to the Okteto default backend. Set `endpoints.dev.gatewayAPI.defaultBackendHTTPRoute.enabled: false` so that it doesn't compete with your wildcard HTTPRoute.
 - Your applications may open WebSocket or other connection upgrades through the wildcard HTTPRoute. Configure your Gateway controller so that it supports them. With Envoy Gateway, set `endpoints.dev.gatewayAPI.wildcardHTTPRoute.backendTrafficPolicy.enabled: true`, and Okteto attaches a `BackendTrafficPolicy` that allows `websocket` and `spdy/3.1` upgrades to the HTTPRoute named in `endpoints.dev.gatewayAPI.wildcardHTTPRoute.name` (`wildcard-to-ingress` by default).
