@@ -1,0 +1,234 @@
+---
+title: Parallel AI agents with git worktrees
+description: Run several AI coding agents on the same repository at once, each in its own git worktree and Okteto Namespace
+id: parallel-agents-with-worktrees
+sidebar_custom_props: { logo: "claude" }
+---
+
+Okteto gives each AI coding agent its own Namespace, so several agents can work on the same repository at the same time without overwriting each other's environments. Each agent gets its own git worktree for code and its own Namespace for the running application, and verifies its change against its own live endpoints.
+
+The example runs two agents in parallel on the [Movies](https://github.com/okteto/movies) sample application. One agent adds an endpoint to the `catalog` service while the other adds an endpoint to the `api` service. At the end you have two live environments, each running exactly one of the two changes.
+
+## Isolation model
+
+A git worktree isolates the code: each one is a separate directory on its own branch, so agents never edit the same files. It doesn't isolate the running application. Every worktree shares the same `okteto.yaml`, so every `okteto deploy` installs the same Helm releases (`frontend`, `catalog`, `rent`, `worker`, `api`) under the same names.
+
+The Namespace is what keeps those environments apart. Okteto reads the active Namespace from the Okteto context, and the context is global to your machine, not to a directory. Two worktrees that rely on the active Namespace deploy into the same place: the second `okteto deploy` replaces the first agent's services, and an `okteto destroy` in one worktree tears down the other's environment.
+
+The pattern this guide follows is one worktree per task, one Namespace per worktree, and an explicit `-n <namespace>` on every Okteto command.
+
+## Prerequisites
+
+- Access to an Okteto instance with permission to create [Namespaces](/docs/core/namespaces/). The Developer role includes it.
+- The [Okteto CLI](/docs/get-started/install-okteto-cli/) installed and configured with your instance
+- Claude Code with the [Okteto plugin](/docs/agentic/) installed, or another agent that supports the [Agent Skills](https://agentskills.io) format
+- `git` and two terminal windows
+
+The examples use `cindy` as the Okteto username and `okteto.example.com` as the instance domain. Replace both with your own.
+
+## Step 1: Creating a worktree per task
+
+Clone the Movies repository and create one worktree for each agent. Each `git worktree add` command creates a new branch and checks it out in a sibling directory:
+
+```bash
+git clone https://github.com/okteto/movies
+cd movies
+git worktree add -b catalog-count ../movies-catalog-count
+git worktree add -b rentals-count ../movies-rentals-count
+```
+
+Confirm both worktrees exist:
+
+```bash
+git worktree list
+```
+
+```console
+/home/cindy/movies                  19dd1b6 [main]
+/home/cindy/movies-catalog-count    19dd1b6 [catalog-count]
+/home/cindy/movies-rentals-count    19dd1b6 [rentals-count]
+```
+
+Each worktree has its own copy of `okteto.yaml`. The Okteto CLI names the Development Environment after the Git repository, so both deploy as `movies`, which is why each one needs its own Namespace.
+
+## Step 2: Creating a Namespace per worktree
+
+Create one Namespace for each worktree. Name it after the branch, prefixed with your username so it doesn't collide with a teammate's Namespace. Namespace names use lowercase letters, numbers, and `-`, and start and end with a letter or number.
+
+```bash
+okteto namespace create cindy-catalog-count --use=false
+okteto namespace create cindy-rentals-count --use=false
+```
+
+```console
+ ✓  Namespace 'cindy-catalog-count' created
+ ✓  Namespace 'cindy-rentals-count' created
+```
+
+The `--use=false` flag matters. By default, `okteto namespace create` also switches the active Namespace in your Okteto context. Every terminal and agent on your machine shares that context, so switching it silently redirects any command that doesn't pass `-n`. With `--use=false`, your active Namespace stays where it was.
+
+Confirm that the active Namespace didn't change:
+
+```bash
+okteto context show
+```
+
+The `namespace` field still shows your original Namespace, not either of the new ones.
+
+:::tip
+You create the Namespaces yourself so that each agent receives a known name. When an agent works in a worktree without one, the Okteto plugin's `okteto` skill tells it to create a Namespace derived from the branch name.
+:::
+
+## Step 3: Starting the first agent
+
+In the first terminal, from the `movies` directory, open your agent in the `catalog-count` worktree:
+
+```bash
+cd ../movies-catalog-count
+claude
+```
+
+Give it a task that names its Namespace and requires live verification:
+
+```
+You are working in a git worktree. Use the Okteto Namespace cindy-catalog-count
+for this task: pass -n cindy-catalog-count on every okteto command and never
+run okteto namespace use.
+
+Add a /catalog/count endpoint to the catalog service that returns the number
+of movies. Deploy it, verify it against the live environment, and confirm the
+e2e tests still pass.
+```
+
+Naming the Namespace in the prompt makes the isolation explicit instead of leaving it for the agent to infer. The agent writes the handler and runs the deploy-test loop against its own Namespace:
+
+```bash
+okteto deploy --wait -n cindy-catalog-count
+okteto endpoints -n cindy-catalog-count
+curl -s https://movies-cindy-catalog-count.okteto.example.com/catalog/count
+okteto test e2e -n cindy-catalog-count
+```
+
+Leave this agent running and continue to the next step.
+
+## Step 4: Starting the second agent
+
+In the second terminal, also from the `movies` directory, open your agent in the `rentals-count` worktree:
+
+```bash
+cd ../movies-rentals-count
+claude
+```
+
+Give the second agent its own task and its own Namespace:
+
+```
+You are working in a git worktree. Use the Okteto Namespace cindy-rentals-count
+for this task: pass -n cindy-rentals-count on every okteto command and never
+run okteto namespace use.
+
+Add a /rentals/count endpoint to the api service that returns the number of
+rental records. Deploy it, verify it against the live environment, and confirm
+the e2e tests still pass.
+```
+
+The second agent builds and deploys at the same time as the first. Each `okteto deploy` builds its images with the Okteto Build Service and installs the Helm releases into its own Namespace, so neither run touches the other's services.
+
+The `/rentals/count` path needs no chart change: the `api` ingress already routes the `/rentals` prefix to the `api` service.
+
+## Step 5: Verifying that the environments are isolated
+
+When both agents report that their tests pass, list the endpoints of each environment:
+
+```bash
+okteto endpoints -n cindy-catalog-count
+okteto endpoints -n cindy-rentals-count
+```
+
+The two environments have separate hosts, because Okteto adds the Namespace to every generated hostname:
+
+```console
+ i  Endpoints available:
+  - https://movies-cindy-catalog-count.okteto.example.com/
+  ...
+ i  Endpoints available:
+  - https://movies-cindy-rentals-count.okteto.example.com/
+  ...
+```
+
+Request both new endpoints from both environments:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://movies-cindy-catalog-count.okteto.example.com/catalog/count
+curl -s -o /dev/null -w "%{http_code}\n" https://movies-cindy-catalog-count.okteto.example.com/rentals/count
+curl -s -o /dev/null -w "%{http_code}\n" https://movies-cindy-rentals-count.okteto.example.com/catalog/count
+curl -s -o /dev/null -w "%{http_code}\n" https://movies-cindy-rentals-count.okteto.example.com/rentals/count
+```
+
+Each environment returns `200` for its own endpoint and `404` for the other agent's endpoint:
+
+```console
+200
+404
+404
+200
+```
+
+Each environment runs only the change made in its worktree. You can open both URLs side by side in your browser to review the two changes before either branch is merged.
+
+To work alongside one of the agents instead of only reviewing its result, start a dev session on its service from that worktree, passing the same Namespace:
+
+```bash
+okteto up catalog -n cindy-catalog-count
+```
+
+`okteto up` is interactive, so you run it yourself. The agent keeps working inside that session with `okteto exec` and `okteto test`, as described in [Collaborative Workflows](/docs/agentic/collaborative-workflows/).
+
+## Step 6: Cleaning up
+
+When you merge or abandon a branch, remove its environment, its Namespace, and its worktree. Run these commands from the `movies` directory for each task:
+
+```bash
+okteto destroy -n cindy-catalog-count
+okteto namespace delete cindy-catalog-count
+git worktree remove ../movies-catalog-count
+```
+
+`okteto destroy` runs the destroy steps for everything `okteto deploy` created, and `okteto namespace delete` removes the now-empty Namespace. If an agent runs these commands, the Okteto plugin for Claude Code asks you to confirm them first, unless the session sets `OKTETO_ALLOW_AGENT_DESTROY=1`.
+
+:::caution
+`okteto destroy` and `okteto namespace delete` can't be undone. Only delete a Namespace that was created for the worktree, never a shared or pre-existing one. See [Cleanup and teardown](/docs/agentic/best-practices/#cleanup-and-teardown).
+:::
+
+A Namespace you forget to delete is still subject to the [Garbage Collector](/docs/admin/cleanup/). It's enabled by default and sleeps, then deletes, inactive Namespaces based on the periods your Admin configures.
+
+## Troubleshooting
+
+### One agent's deploy replaced the other's services
+
+One of the agents ran an Okteto command without `-n`, so it targeted the active Namespace from the shared context. Check which Namespace is active:
+
+```bash
+okteto context show
+```
+
+Then redeploy the affected worktree into its own Namespace with `okteto deploy --wait -n <namespace>`, and add the Namespace instruction to that agent's prompt or to the repository's `CLAUDE.md`.
+
+### The active Namespace changed unexpectedly
+
+Something ran `okteto namespace use` or `okteto namespace create` without `--use=false`. Both commands update the shared Okteto context, which affects every terminal and agent on your machine. When no agents are running, switch back to your Namespace with `okteto namespace use <namespace>`.
+
+### `okteto namespace create` fails
+
+Namespace names are unique across your Okteto instance, so another user may already own the name. Choose a different name, for example by adding your username or a ticket number. A name must be at most 63 characters and use only lowercase letters, numbers, and `-`.
+
+### An agent stops responding
+
+The agent probably ran `okteto up`, which is interactive and waits for input. See [Agent hangs and becomes unresponsive](/docs/agentic/best-practices/#agent-hangs-and-becomes-unresponsive).
+
+## Next steps
+
+- [Ticket to pull request with an autonomous agent](/docs/tutorials/agent-ticket-to-pr): the same per-run Namespace pattern in a GitHub Actions pipeline
+- [Worktree isolation](/docs/agentic/best-practices/#worktree-isolation): the rules the Okteto plugin follows when it detects a worktree
+- [Autonomous Workflows](/docs/agentic/autonomous-workflows/): the deploy-test loop each agent runs
+- [Namespaces](/docs/core/namespaces/): sharing a Namespace with teammates who review an agent's work
