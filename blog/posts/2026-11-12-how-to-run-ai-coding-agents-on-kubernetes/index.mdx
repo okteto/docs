@@ -39,7 +39,7 @@ The problems show up at scale, with many agents and many teams that have differe
 
 - **Privileges.** Running Docker inside the sandbox, known as Docker-in-Docker, takes a privileged container. The [documentation of the Docker image](https://hub.docker.com/_/docker) says that `--privileged` "is required for Docker-in-Docker to function properly" and that it "provides full access to the host environment". That is not an option for untrusted code, so the sandbox needs stronger isolation than a container: a sandboxed runtime such as Kata Containers, which runs each pod in a (micro) virtual machine, or gVisor, which puts a user-space kernel between the container and the host. Either way, it is one more component to install and maintain in the cluster.
 - **A black box.** The containers that Docker starts inside the sandbox are not Kubernetes objects, so the cluster sees one pod and nothing inside it. Admission policies don't check their images, the logging and monitoring stack doesn't collect their logs and metrics, and audit events don't record what was deployed. The platform team can't govern or track what runs in there.
-- **Configuration drift.** An application started with Docker Compose inside a (micro) virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
+- **Drift from production.** An application started with Docker Compose inside a (micro) virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
 - **Size and startup.** The sandbox is sized for the whole application plus the agent, and it pulls the images of every service before the agent can test anything. Most of that capacity sits idle while the agent thinks.
 - **Harder to maintain.** The sandbox has to be able to compile the application and run its unit tests, so each application or stack needs its own sandbox image, with its toolchains and dependencies. The platform team maintains many images instead of one, and rebuilds all of them every time the agent or a toolchain is updated.
 
@@ -101,7 +101,7 @@ The design has one more advantage, which shows at scale. Every application envir
 | --- | --- | --- |
 | **Privileges** | A sandboxed runtime is a hard requirement to run untrusted code | Unprivileged pod; a sandboxed runtime is optional |
 | **Observability** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring |
-| **Configuration drift** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
+| **Production parity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
 | **Sandbox images** | One per application or stack | One for every application |
 | **Sharing** | Every sandbox runs the whole application | Environments can share services and deploy only what changes |
