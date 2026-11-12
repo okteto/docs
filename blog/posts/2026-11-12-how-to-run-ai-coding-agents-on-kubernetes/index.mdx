@@ -105,16 +105,7 @@ Developers and CI can use the same definition and the same remote execution. Whe
 
 ## A namespace per agent at scale
 
-A namespace per agent means a copy of the application per agent, and with hundreds of agents that adds up. Here, running every environment in the same cluster and on the same network becomes an advantage: environments can share services. A shared environment runs the whole application once, each agent's namespace deploys only the services the agent changes, and requests are routed between the two. An agent that changes one service out of forty deploys one service. A fat agent sandbox can't do this: each one is closed, and has to run everything.
-
-What is shared has to tolerate several agents at once. Databases and queues are where parallel agents collide, so they are usually the first services to give each agent a copy of.
-
-Hundreds of environments also turn four chores into platform work:
-
-- **Cleanup.** Namespaces outlive the work they were created for unless something deletes them: the end of the pull request, and a time limit for the ones nobody closed.
-- **Cost.** Idle environments still hold the CPU and memory they requested, and requests set by hand are usually far above real usage. A ResourceQuota per namespace keeps one agent from taking the cluster.
-- **Build load.** A hundred agents working on the same repository shouldn't build the same image a hundred times. Builds need a shared cache, and a queue for when they arrive at once.
-- **Test load.** Tests now run in the cluster, in parallel, next to the applications they exercise. They need resource requests and autoscaling like any other workload.
+A namespace per agent means a copy of the application per agent, and with hundreds of agents that adds up. Here, running every environment in the same cluster and on the same network becomes an advantage: environments can share services, so each agent's namespace deploys only the services the agent changes and uses a shared environment for the rest, which a closed fat agent sandbox can't do. At that scale, cleaning up namespaces, keeping their cost down, and absorbing the load of builds and tests become work for the platform team.
 
 ## Fat agent sandbox and decoupled design side by side
 
