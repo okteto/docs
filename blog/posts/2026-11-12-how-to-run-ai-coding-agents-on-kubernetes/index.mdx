@@ -60,17 +60,6 @@ This changes the sandbox in five ways:
 - **The same for every application.** The sandbox doesn't carry the dependencies of any application, so one image, pinned by digest, serves every repository.
 - **Replaceable.** The contract between the two layers is "deploy this definition and run these tests". You can change the agent, the model, the sandbox runtime, the orchestrator, or your whole software factory, and they all reuse the same application environment definition. How the application is deployed doesn't change.
 
-## Requirements for the application environment
-
-For this design to work, an agent has to be able to request an application environment with no human in the loop. That takes six things:
-
-- **A definition in the repository.** A versioned file that describes how to build, deploy, and test the application, written on top of the Helm charts, Kubernetes manifests, or Docker Compose files that already describe it. Developers, CI, and agents use the same definition, so when an agent's change fails in CI, the cause is the change and not the environment.
-- **One namespace per agent.** The namespace gives each agent its own copy of the application, with RBAC scoped to that namespace, a ResourceQuota, and NetworkPolicies. Agents that work in parallel on the same repository don't share a database or overwrite each other's deployments.
-- **Remote builds, deployments, and tests.** Images are built in the cluster with a shared cache, so a hundred agents don't build the same image a hundred times. Tests run as containers next to the services they exercise, and reach them through the cluster DNS.
-- **Credentials injected where they are used.** Workload identity gives the deployment access to cloud resources, and secrets are available to the deploy and test steps, not to the agent.
-- **A lifecycle tied to the work.** The environment is created when the agent starts and deleted, namespace and all, when the pull request is merged or closed. A time limit removes the environments that nobody cleaned up.
-- **Only what changes, for large applications.** Deploying every service for every agent doesn't scale. The environment deploys the services the agent modifies and routes the rest to a shared baseline.
-
 ## An agent's work from start to finish
 
 With the two layers in place, the work of one agent looks like this:
