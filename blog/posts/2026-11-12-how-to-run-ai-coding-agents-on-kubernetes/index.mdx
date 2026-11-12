@@ -25,7 +25,7 @@ The two concepts tend to get mixed up:
 
 It is common to assume that the application environment runs inside the agent sandbox. It doesn't have to. As in the illustration above, the application environment can live outside the sandbox: the agent deploys it, exercises it through its endpoints and its tests, reads the results, and destroys it. The next two sections cover both options, starting with the application inside the sandbox.
 
-## The fat sandbox
+## The fat agent sandbox
 
 The usual first design puts both in the same place. Each agent gets a large sandbox, often a virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change.
 
@@ -88,16 +88,16 @@ Step 6 is the checkpoint between the agent and a person. The agent does the work
 
 ## Two isolation boundaries
 
-Decoupling also separates two kinds of risk that the fat sandbox mixes:
+Decoupling also separates two kinds of risk that the fat agent sandbox mixes:
 
 - **The code the agent runs directly**, such as shell commands, scripts, and package installs, runs in the agent sandbox. In the decoupled design that sandbox has no container runtime, no privileges, and no infrastructure credentials, so it can be a standard unprivileged container with a short-lived, scoped token and a NetworkPolicy that limits egress to the repository, the model endpoint, and the Kubernetes API.
 - **The application the agent modified** runs in its own namespace as ordinary Kubernetes workloads, under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
 
 How much isolation the sandbox needs depends on what the agent is allowed to run. Sandboxed runtimes such as [gVisor](https://gvisor.dev/) and [Kata Containers](https://katacontainers.io/) are still available: a RuntimeClass adds one to the same pod, and [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/) packages the pattern. They are complementary to this design, not a requirement for it.
 
-## Fat sandbox and decoupled design side by side
+## Fat agent sandbox and decoupled design side by side
 
-|  | Fat sandbox | Agent sandbox and application environment |
+|  | Fat agent sandbox | Agent sandbox and application environment |
 | --- | --- | --- |
 | **Privileges** | Privileged container or nested virtualization, to run a container runtime | Unprivileged pod; a sandboxed runtime is optional |
 | **Credentials** | Registry, cloud, and database credentials inside the sandbox | A scoped token in the sandbox; the rest is injected at deploy and test time |
