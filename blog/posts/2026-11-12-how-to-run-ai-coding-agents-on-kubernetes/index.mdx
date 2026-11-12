@@ -93,7 +93,7 @@ With the two layers in place, the work of one agent looks like this:
 7. The agent opens a pull request.
 8. The namespace is deleted, right away or once the pull request is validated.
 
-A namespace per agent means a copy of the application per agent, and with hundreds of agents that adds up. Here, running every environment in the same cluster and on the same network becomes an advantage: environments can share services, so each agent's namespace deploys only the services the agent changes and uses a shared environment for the rest, which a closed fat agent sandbox can't easily do.
+The design has one more advantage, which shows at scale. Every application environment runs in the same cluster and on the same network, so environments can call each other, which a closed fat agent sandbox can't easily do. An agent's namespace doesn't need a full copy of the application: it deploys only the services the agent changes and uses a shared environment for the rest. Routing by header makes it work: requests made for an agent carry a header that names its namespace, the services forward it on the calls they make, and a [Gateway API](https://gateway-api.sigs.k8s.io/guides/user-guides/http-routing/) `HTTPRoute` matches on it to send each call to the agent's version of a service when there is one, and to the shared version when there isn't.
 
 ## Fat agent sandbox and decoupled design side by side
 
