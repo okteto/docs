@@ -63,10 +63,11 @@ Everything else, the application itself included, moves to the application envir
 
 ![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png)
 
-The split changes five things:
+The split changes six things:
 
 - **Secure.** Without Docker-in-Docker, the sandbox needs no privileges and runs as a standard unprivileged pod. A sandboxed runtime is no longer required, although you may still want one for other reasons. The application runs under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
 - **Observable.** The application runs in its namespace as ordinary Kubernetes workloads, so its logs, events, and metrics are collected like those of any other workload. The platform team can see what each agent deploys, and the agent can read the same information to debug its change.
+- **Production parity.** The application runs on Kubernetes, deployed from the same definition as production, with its ingress rules, service accounts, and network policies. The agent validates its change against a realistic copy of what ships, and produces higher-quality code with fewer bugs.
 - **Light and fast.** The sandbox holds a process, not an application, and its image can be pulled in advance on every node.
 - **Easier to maintain.** Compilation and tests run remotely, so the sandbox doesn't carry the toolchain or the dependencies of any application. One image, pinned by digest, serves every repository, and it is the only one to update when the agent changes.
 - **Swappable.** The contract between the two layers is "deploy this definition and run these tests". You can change the agent, the model, the sandbox runtime, the orchestrator, or your whole software factory, and they all reuse the same application environment definition. How the application is deployed doesn't change.
