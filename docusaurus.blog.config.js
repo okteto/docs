@@ -30,8 +30,15 @@ module.exports = {
   themeConfig: {
     ...shared.themeConfig,
     // Searches blog posts only (see shared.algolia). Results depend on the
-    // Algolia crawler indexing https://www.okteto.com/blog/.
-    algolia: shared.algolia,
+    // Algolia crawler indexing https://www.okteto.com/blog/. The labels say so:
+    // the defaults ("Search", "Search docs") are the ones of the docs site.
+    algolia: {
+      ...shared.algolia,
+      translations: {
+        button: { buttonText: 'Search the blog', buttonAriaLabel: 'Search the blog' },
+        modal: { searchBox: { placeholderText: 'Search blog posts' } },
+      },
+    },
     navbar: shared.navbar('blog', { start: [shared.searchNavbarItem] }),
     footer: shared.footer('blog', { llmsTxtUrl: LLMS_TXT_URL }),
   },
