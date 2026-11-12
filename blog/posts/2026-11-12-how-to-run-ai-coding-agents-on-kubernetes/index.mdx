@@ -1,7 +1,7 @@
 ---
 title: "How to Run AI Coding Agents on Kubernetes"
-title_meta: "AI Coding Agents on Kubernetes: Sandbox and Environment"
-description: "How to run AI coding agents on Kubernetes: keep the agent sandbox small and give each agent a separate application environment to deploy and test its changes."
+title_meta: "How to Run AI Coding Agents on Kubernetes: Sandbox vs. Environment"
+description: "How to run AI coding agents on Kubernetes: a light agent sandbox for the agent, a namespace per agent for the application, and remote execution between them."
 slug: how-to-run-ai-coding-agents-on-kubernetes
 date: 2026-11-12
 authors: ["pablo-chico-de-guzman"]
@@ -16,31 +16,37 @@ A coding agent that can't run the application it changes is guessing. So a platf
 
 [Why Run AI Coding Agents on Kubernetes?](https://www.okteto.com/blog/why-run-ai-coding-agents-on-kubernetes/) covered the first question: why a cluster is a better place for agents than a laptop. This post covers the second one, and argues that the two answers should be different places: an agent sandbox for the agent, and an application environment for the application.
 
+The short version: run the agent in a light, unprivileged pod, run the application in a namespace per agent, and connect the two with remote execution, so the agent asks the cluster to build, deploy, and test its change and reads the results.
+
 ## Agent sandbox and application environment
 
 The two concepts tend to get mixed up:
 
-- **The agent sandbox is the agent's runtime.** It holds the agent process, a checkout of the repository, and the tools the agent calls directly. This is where the agent reads code, queries the model, edits files, and opens the pull request. It is also where untrusted input lands: issue text, web pages, and the code the agent itself generates.
-- **The application environment is the application, deployed.** Frontend, backend, databases, queues, and the cloud resources they depend on: a complete, isolated instance of the application running the code the agent just wrote. Each agent needs its own, and Kubernetes already has the construct for that: the namespace. Resource names only have to be unique within a namespace, so many copies of the same application can run in one cluster, each with the same Deployment, Service, and PVC names, without colliding. Each agent gets a namespace that is created for its work and deleted when the work is done.
+- **The agent sandbox is the agent's runtime.** It holds the agent process (Claude Code, Codex, or any other agent that runs from a command line), a checkout of the repository, and the tools the agent calls directly. This is where the agent reads code, queries the model, edits files, and opens the pull request. It is also where untrusted input lands: issue text, web pages, and the code the agent itself generates.
+- **The application environment is the application, deployed.** Frontend, backend, databases, queues, and the cloud resources they depend on: a complete, isolated instance of the application running the code the agent just wrote. Each agent needs its own, and Kubernetes already has the construct for that: the namespace. [Resource names only have to be unique within a namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/), so many copies of the same application can run in one cluster, each with the same Deployment, Service, and PVC names, without colliding. Each agent gets an ephemeral namespace, created for its work and deleted when the work is done.
 
-It is common to assume that the application environment runs inside the agent sandbox. It doesn't have to. As in the illustration above, the application environment can live outside the sandbox: the agent deploys it, exercises it through its endpoints and its tests, reads the results, and destroys it. The next two sections cover both options, starting with the application inside the sandbox.
+It is common to assume that the application environment runs inside the agent sandbox. It doesn't have to. The application environment can live outside the sandbox, in the cluster: the agent deploys it, exercises it through its endpoints and its tests, reads the results, and destroys it. The next two sections cover both options, starting with the application inside the sandbox.
 
 ## The fat agent sandbox
 
-The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large sandbox, often a virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change.
+The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large sandbox, often a virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change. Hosted agents start from the same idea: [Codex cloud](https://developers.openai.com/codex/cloud/environments) creates a container for each task and runs a setup script in it, and [GitHub Copilot's coding agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment) prepares its environment with a setup workflow.
 
 ![A fat agent sandbox: one virtual machine that holds the agent, its credentials and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
 
 The problems show up as soon as there are more than a few agents:
 
-- **Privileges.** Running a container runtime inside the sandbox takes a privileged container, and a privileged container is not an option for untrusted code. That forces you to install a sandboxed runtime such as [Kata Containers](https://katacontainers.io/) or [gVisor](https://gvisor.dev/) in the cluster, which is one more component to maintain.
+- **Privileges.** Running Docker inside the sandbox, known as Docker-in-Docker, takes a privileged container. The [documentation of the Docker image](https://hub.docker.com/_/docker) says that `--privileged` "is required for Docker-in-Docker to function properly" and that it "provides full access to the host environment". That is not an option for untrusted code, so the sandbox has to be a virtual machine or run on a sandboxed runtime such as [Kata Containers](https://katacontainers.io/) or [gVisor](https://gvisor.dev/), which is one more component to install and maintain in the cluster.
 - **Credentials.** To build and run the application, the sandbox needs registry credentials, cloud keys, and database passwords, next to an agent that reads untrusted content.
 - **A black box.** The containers that Docker starts inside the sandbox are not Kubernetes objects, so the cluster sees one pod and nothing inside it. Admission policies don't check their images, the logging and monitoring stack doesn't collect their logs and metrics, and audit events don't record what was deployed. The platform team can't govern or track what runs in there.
 - **Drift.** An application started with Docker Compose inside a virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
 - **Size and startup.** The sandbox is sized for the whole application plus the agent, and it pulls the images of every service before the agent can test anything. Most of that capacity sits idle while the agent thinks.
 - **One sandbox image per application or stack.** The sandbox has to be able to compile the application and run its unit tests, so each application or stack needs an image with its own toolchains and dependencies. The platform team maintains many images instead of one.
 
-## The decoupled design
+### When a fat agent sandbox is enough
+
+A fat agent sandbox is still a valid option, and the simplest one, when the application is small, when it isn't tied to Kubernetes, or when its tests run against mocks and don't need the real services. The problems above grow with the number of services, the number of agents, and how much of the application's behavior depends on the cluster it runs in.
+
+## Decoupling the agent sandbox from the application environment
 
 The alternative is to split the two. The sandbox keeps only what the agent needs to do its own job:
 
@@ -48,52 +54,103 @@ The alternative is to split the two. The sandbox keeps only what the agent needs
 - Git access to the repository.
 - Kubernetes credentials scoped to the agent's namespace, to deploy and test the application there.
 
-Everything else, the application itself included, moves to the application environment. Builds, deployments, and tests run remotely in the cluster: the agent asks for them and reads the result.
+Everything else, the application itself included, moves to the application environment. Builds, deployments, and tests run remotely in the cluster, compilation and unit tests included: the agent asks for them and reads the result.
 
 ![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png)
 
 This changes the sandbox in five ways:
 
-- **No privileges.** Without a container runtime inside, the sandbox runs as a standard unprivileged pod.
-- **No infrastructure credentials.** The sandbox only needs Kubernetes credentials for one namespace, where it deploys and tests the application. Registry, cloud, and database credentials are resolved in the cluster, at deploy and test time. The agent never sees them.
-- **Small, and it starts fast.** The sandbox is a light process. Its image can be pulled in advance, so a new agent doesn't wait for the application to come up before it starts working.
-- **The same for every application.** The sandbox doesn't carry the dependencies of any application, so one image, pinned by digest, serves every repository.
+- **No privileges.** Without Docker-in-Docker, the sandbox runs as a standard unprivileged pod.
+- **No infrastructure credentials.** The sandbox only needs Kubernetes credentials for one namespace. Registry, cloud, and database credentials stay in the cluster, where the builds, the deployment, and the tests use them.
+- **Light, and it starts fast.** The sandbox holds a process, not an application, and its image can be pulled in advance on every node.
+- **The same for every application.** Compilation and tests run remotely, so the sandbox doesn't carry the toolchain or the dependencies of any application. One image, pinned by digest, serves every repository.
 - **Replaceable.** The contract between the two layers is "deploy this definition and run these tests". You can change the agent, the model, the sandbox runtime, the orchestrator, or your whole software factory, and they all reuse the same application environment definition. How the application is deployed doesn't change.
+
+The application changes too. It runs in its namespace as ordinary Kubernetes workloads, under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards. Its logs, events, and metrics are collected like those of any other workload, and the agent can read them to debug its change.
+
+### Sandboxed runtimes and Agent Sandbox
+
+With nothing privileged inside, the agent sandbox no longer needs a sandboxed runtime such as Kata Containers or gVisor. You may still want one for other reasons, for example to contain the commands and scripts that the agent runs directly, and this design doesn't get in the way: a RuntimeClass adds it to the same pod.
+
+[Agent Sandbox](https://agent-sandbox.sigs.k8s.io/), a Kubernetes SIG Apps project, is built for the agent side of this design. Deployments and StatefulSets were made for replicated services, not for one long-running, stateful pod per agent, so the project adds a `Sandbox` resource with a stable identity, persistent storage, and lifecycle operations such as pausing, resuming, and scheduled deletion. Templates and warm pools make a new sandbox start fast. It doesn't isolate workloads by itself: it runs each sandbox on the runtime you choose, gVisor and Kata Containers included. Agent Sandbox manages where the agent runs. Where the application runs is a separate question, and a namespace per agent answers it, so the two fit together.
+
+## Remote execution from the agent sandbox
+
+Remote execution is what connects the two layers: the agent changes code in the sandbox, and the build, the deployment, and the tests of that change run in the cluster, in the agent's namespace. There are two ways to get it:
+
+- **Push the code and let CI run it.** The agent commits, pushes, and waits for the pipeline. There is nothing new to install, but every iteration costs a commit and a full pipeline run, and the agent only sees what the pipeline reports. The drift also stays if the pipeline doesn't deploy to Kubernetes.
+- **Use a tool that runs the work in the cluster on request.** The agent calls a command from the sandbox, the work runs as pods in its namespace, and the output comes back to the agent. [Dagger](https://docs.dagger.io/self-hosting) runs pipelines written as code on an engine you can host in your own cluster. [Garden](https://docs.garden.io/using-garden-with/kubernetes) runs the tests and tasks of a repository as pods in a remote cluster, and [Okteto](https://www.okteto.com/docs/core/remote-execution/) runs its deploy and test commands there. [Skaffold](https://skaffold.dev/docs/verify/) runs verification containers as Kubernetes Jobs, and [Testkube](https://docs.testkube.io/) runs tests as workloads inside the cluster. [Tekton](https://tekton.dev/) and [Argo Workflows](https://argoproj.github.io/workflows/) run whole pipelines as Kubernetes resources. For image builds alone, BuildKit has a [Kubernetes driver](https://docs.docker.com/build/builders/drivers/kubernetes/).
+
+Whatever the tool, three things have to be true. Images are built in the cluster, not in the sandbox. The application is deployed from the definition that is already in the repository: the Helm chart, the Kubernetes manifests, or the Docker Compose file. And tests run as pods next to the services they exercise, and reach them through the cluster DNS.
 
 ## An agent's work from start to finish
 
 With the two layers in place, the work of one agent looks like this:
 
-1. The orchestrator starts a sandbox pod with the repository and the task.
+1. The orchestrator creates a namespace for the agent, gives the sandbox credentials for that namespace only, and starts the sandbox pod with the repository and the task.
 2. The agent edits the code.
-3. The agent requests an application environment. A namespace is created, the images are built, and the application is deployed from the definition in the repository.
-4. The agent runs the tests against the running services, and reads the results and the logs.
+3. The agent asks for a build and a deployment. The images are built in the cluster, and the application is deployed to the namespace from the definition in the repository.
+4. The agent runs the tests remotely, against the running services, and reads the results and the logs.
 5. The agent repeats steps 2 to 4 until the tests pass.
 6. The agent opens a pull request.
 7. The namespace is deleted, right away or once the pull request is validated.
 
-Steps 3 to 5 are what changes the result. The agent tests its change against a realistic copy of the application, running on Kubernetes with all its services, not against a simplified version of it. That lets the agent find the problems a simplified version hides, and produce higher-quality code with fewer bugs.
+Step 1 needs nothing beyond stock Kubernetes. The orchestrator creates the namespace and binds the ServiceAccount of the sandbox pod to a role in it:
 
-## Two isolation boundaries
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent
+  namespace: agent-1
+subjects:
+  - kind: ServiceAccount
+    name: agent-1
+    namespace: agent-sandboxes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-environment
+```
 
-Decoupling also separates two kinds of risk that the fat agent sandbox mixes:
+`agent-environment` is a ClusterRole that the platform team defines with what an agent may do in its own namespace. Bound with a RoleBinding, it applies in `agent-1` and in no other namespace.
 
-- **The code the agent runs directly**, such as shell commands, scripts, and package installs, runs in the agent sandbox. In the decoupled design that sandbox has no container runtime, no privileges, and no infrastructure credentials, so it can be a standard unprivileged container with a short-lived, scoped token and a NetworkPolicy that limits egress to the repository, the model endpoint, and the Kubernetes API.
-- **The application the agent modified** runs in its own namespace as ordinary Kubernetes workloads, under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
+Steps 3 to 5 are what changes the result. The agent tests its change against a realistic copy of the application, running on Kubernetes with all its services, not against a simplified version of it. The more of its output an agent can validate, the better that output is. Anthropic's [guide to building agents](https://www.anthropic.com/engineering/building-effective-agents) calls it "crucial for the agents to gain 'ground truth' from the environment at each step", and the [Claude Code documentation](https://code.claude.com/docs/en/best-practices) describes the alternative: when the agent has nothing to run that tells it whether the work is done, "'looks done' is all it has to go on". Tested against the real services, the agent finds the problems a simplified version hides, and produces higher-quality code with fewer bugs.
+
+Developers and CI can use the same definition and the same remote execution. When an agent's change then fails in CI, the cause is the change, not the environment.
+
+## A namespace per agent at scale
+
+A namespace per agent means a copy of the application per agent, and with hundreds of agents that adds up. Here, running every environment in the same cluster and on the same network becomes an advantage: environments can share services. A shared environment runs the whole application once, each agent's namespace deploys only the services the agent changes, and requests are routed between the two. An agent that changes one service out of forty deploys one service. A fat agent sandbox can't do this: each one is closed, and has to run everything.
+
+What is shared has to tolerate several agents at once. Databases and queues are where parallel agents collide, so they are usually the first services to give each agent a copy of.
+
+Hundreds of environments also turn four chores into platform work:
+
+- **Cleanup.** Namespaces outlive the work they were created for unless something deletes them: the end of the pull request, and a time limit for the ones nobody closed.
+- **Cost.** Idle environments still hold the CPU and memory they requested, and requests set by hand are usually far above real usage. A ResourceQuota per namespace keeps one agent from taking the cluster.
+- **Build load.** A hundred agents working on the same repository shouldn't build the same image a hundred times. Builds need a shared cache, and a queue for when they arrive at once.
+- **Test load.** Tests now run in the cluster, in parallel, next to the applications they exercise. They need resource requests and autoscaling like any other workload.
 
 ## Fat agent sandbox and decoupled design side by side
 
 |  | Fat agent sandbox | Agent sandbox and application environment |
 | --- | --- | --- |
-| **Privileges** | Privileged container, inside a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
-| **Credentials** | Registry, cloud, and database credentials inside the sandbox | A scoped token in the sandbox; the rest is injected at deploy and test time |
+| **Privileges** | Privileged container, inside a virtual machine or a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
+| **Credentials** | Registry, cloud, and database credentials inside the sandbox | Kubernetes credentials for one namespace; the rest stays in the cluster |
 | **Visibility** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring. The same information is available to the agent for debugging and troubleshooting |
 | **Fidelity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
 | **Sandbox images** | One per application or stack | One for every application |
+| **Sharing** | Every sandbox runs the whole application | Environments share services and deploy only what changes |
 
-## Two layers, kept independent
+## Two independent layers: agent sandbox and application environment
 
 Agents, models, and the tools that orchestrate them change every few months. How your application is built, deployed, and tested shouldn't have to change with them.
 
-Keep the agent sandbox small and replaceable, and keep the application environment as a layer of its own: defined in the repository, running in your cluster, and shared by developers, CI, and agents. That separation is what lets the sandbox stay small and unprivileged, and what makes any agent platform easy to adopt today and easy to replace tomorrow.
+Keep the agent sandbox light and replaceable, and keep the application environment as a layer of its own: defined in the repository, running in your cluster, and shared by developers, CI, and agents. That separation is what lets the sandbox stay light and unprivileged, and what makes any agent platform easy to adopt today and easy to replace tomorrow.
