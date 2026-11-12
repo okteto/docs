@@ -88,15 +88,10 @@ A developer writes code and then runs it to see what happens. With the two layer
 1. The orchestrator creates a namespace for the agent, gives the sandbox credentials for that namespace only, and starts the sandbox pod with the repository and the task.
 2. The agent edits the code.
 3. The agent asks for a build and a deployment. The application is deployed to the namespace from the definition in the repository.
-4. The agent runs the tests remotely, against the running services, and reads the results.
-5. The agent validates the change in the running application. It calls the endpoints and checks what happened in the logs, the events, and the metrics of its namespace, which it reads through the Kubernetes API.
-6. The agent repeats steps 2 to 5 until the tests pass and the application behaves as expected.
-7. The agent opens a pull request.
-8. The namespace is deleted, right away or once the pull request is validated.
-
-What comes out of this loop is verified output: code that comes with evidence of how it behaves when it runs. An agent without a running application can't tell code that compiles from code that works. It generates the change, runs the unit tests, submits it, and the problems show up later, in CI or after the deployment.
-
-With the loop, the question changes from "does this code look right?" to "what happened when it ran?". By the time the agent opens the pull request, the change has been built, deployed, and tested on Kubernetes, in a realistic copy of the application, and the agent has fixed its own mistakes while it still had the context of the task. The result is higher-quality code with fewer bugs.
+4. The agent verifies its output against the running application: it runs the tests, exercises the endpoints, and troubleshoots with the Kubernetes API, the logs, and the metrics of its namespace. This is how the agent makes sure that the change works, and it makes the quality of its output much higher.
+5. The agent repeats steps 2 to 4 until the tests pass and the application behaves as expected.
+6. The agent opens a pull request.
+7. The namespace is deleted, right away or once the pull request is validated.
 
 The design has one more advantage, which shows at scale. Every application environment runs in the same cluster and on the same network, so environments can call each other, which a closed fat agent sandbox can't easily do. An agent's namespace doesn't need a full copy of the application: it can deploy only the services the agent changes and use a shared environment for the rest. Routing by header makes it work: requests made for an agent carry a header that names its namespace, the services forward it on the calls they make, and a [Gateway API](https://gateway-api.sigs.k8s.io/guides/user-guides/http-routing/) `HTTPRoute` matches on it to send each call to the agent's version of a service when there is one, and to the shared version when there isn't.
 
