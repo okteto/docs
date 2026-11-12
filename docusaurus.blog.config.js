@@ -64,7 +64,9 @@ module.exports = {
         blogTitle: 'Okteto Blog',
         blogDescription:
           'Posts from the Okteto team on development environments, platform engineering, Kubernetes, and AI coding agents.',
-        postsPerPage: 30,
+        // Twelve fill complete rows at four, three and two columns (the card grid
+        // in src/theme/BlogPostItems never shows more than four).
+        postsPerPage: 12,
         blogSidebarCount: 0,
         // Posts are ordered by `date`, but dates are not shown anywhere on the
         // blog, so there is no by-year archive page either.

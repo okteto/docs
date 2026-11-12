@@ -7,8 +7,8 @@
 //   1. Legacy pagination URLs. Docusaurus paginates as /blog/page/2/, the old
 //      blog used /blog/page-2/. Routes and paginator links are rewritten as
 //      they are registered, so the old URLs keep working with no redirects.
-//   2. Series and related posts, computed once from all posts and exposed as
-//      global data (see src/theme/BlogPostItem/Footer).
+//   2. Series, computed once from all posts and exposed as global data (see
+//      src/theme/BlogPostItem/Header).
 //   3. Tag pages for tags no post uses. The old blog rendered an (empty) page
 //      for every tag; Docusaurus only creates pages for tags in use. Unused
 //      tags from tags.yml get a redirect page to /blog/tags/ instead of a 404.
@@ -22,11 +22,6 @@ const yaml = require('js-yaml');
 const blogPluginModule = require('@docusaurus/plugin-content-blog');
 
 const pluginContentBlog = blogPluginModule.default;
-
-// How many related posts a post shows: hand-picked ones (`related:` front
-// matter) first, then the most recent posts sharing a tag. Same rule the
-// Gatsby blog used.
-const RELATED_COUNT = 2;
 
 function legacyPageUrl(url) {
   return typeof url === 'string' ? url.replace(/\/page\/(\d+)(\/?)$/, '/page-$1$2') : url;
@@ -51,13 +46,7 @@ function rewriteRoute(route) {
   return { ...route, path: legacyPageUrl(route.path), props };
 }
 
-function summarize(post) {
-  const { title, permalink, date, description, frontMatter } = post.metadata;
-  return { title, permalink, date, description: frontMatter.excerpt || description };
-}
-
 function buildIndex(blogPosts) {
-  const bySlug = new Map(blogPosts.map((p) => [p.metadata.frontMatter.slug, p]));
   // blogPosts arrive sorted newest first.
   const series = {};
   for (const post of [...blogPosts].reverse()) {
@@ -67,14 +56,8 @@ function buildIndex(blogPosts) {
 
   const posts = {};
   for (const post of blogPosts) {
-    const { permalink, tags, frontMatter } = post.metadata;
-    const picked = (frontMatter.related || []).map((slug) => bySlug.get(slug)).filter(Boolean);
-    const tagSet = new Set(tags.map((t) => t.label));
-    const automatic = blogPosts.filter(
-      (other) => other !== post && other.metadata.tags.some((t) => tagSet.has(t.label)),
-    );
-    const related = [...new Set([...picked, ...automatic])].slice(0, RELATED_COUNT).map(summarize);
-    posts[permalink] = { series: frontMatter.series || null, related };
+    const { permalink, frontMatter } = post.metadata;
+    posts[permalink] = { series: frontMatter.series || null };
   }
   return { series, posts };
 }

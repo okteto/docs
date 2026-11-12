@@ -52,7 +52,6 @@ To work on a post without publishing it, add `draft: true`. Drafts show up in
 | `social_image` | Social card when it should differ from the featured image. Absolute path into `blog/static`, e.g. `/img/social/<slug>.jpg` |
 | `hide_featured_image` | `true` keeps `image` as the social card but doesn't show it on the page |
 | `series` | Series name. Posts with the same series get a "Part N of M" box, ordered by date |
-| `related` | Up to two post slugs to show as "Related content". Filled up with recent posts that share a tag |
 
 ### Components
 
@@ -96,8 +95,8 @@ Docusaurus applies `baseUrl` to the whole site:
   holds the fonts, favicons and logo. The React theme in `src/theme` and
   `src/styles` is shared too.
 - `src/plugins/okteto-blog` wraps the stock blog plugin to keep the old URLs
-  (`/blog/page-2/`, tag pages for unused tags), compute series and related
-  posts, and write `/blog/posts.json` for okteto.com pages that list posts.
+  (`/blog/page-2/`, tag pages for unused tags), compute series, and write
+  `/blog/posts.json` for okteto.com pages that list posts.
 
 `yarn build` builds both. `yarn build:blog` ends with
 `scripts/blog-migrate/verify-urls.mjs`, which fails the build if any URL the

@@ -1,5 +1,5 @@
-// Newsletter signup shown at the end of every blog post. Embeds the same
-// HubSpot form as the footer of okteto.com.
+// Newsletter signup, one half of the callout shown at the end of every blog
+// post and post list. Embeds the same HubSpot form as the footer of okteto.com.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -102,9 +102,9 @@ export default function Newsletter() {
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   return (
-    <section className={styles.newsletter}>
-      <p className={styles.newsletterTitle}>Subscribe to our newsletter</p>
-      <p className={styles.newsletterText}>Get new posts about Kubernetes, platform engineering, and AI agents in your inbox.</p>
+    <div className={styles.half}>
+      <p className={styles.title}>Subscribe to our newsletter</p>
+      <p className={styles.text}>Get new posts about Kubernetes, platform engineering, and AI agents in your inbox.</p>
       <div id={TARGET_ID} ref={container} className={styles.newsletterForm} hidden={status === 'error'} />
       {status === 'error' && (
         <p className={styles.newsletterError} role="alert">
@@ -114,6 +114,6 @@ export default function Newsletter() {
           </button>
         </p>
       )}
-    </section>
+    </div>
   );
 }
