@@ -69,12 +69,10 @@ With the two layers in place, the work of one agent looks like this:
 3. The agent requests an application environment. A namespace is created, the images are built, and the application is deployed from the definition in the repository.
 4. The agent runs the tests against the running services, and reads the results and the logs.
 5. The agent repeats steps 2 to 4 until the tests pass.
-6. The agent opens a pull request. The reviewer gets the diff and a URL to the running application.
-7. When the pull request is merged or closed, the environment is deleted.
+6. The agent opens a pull request.
+7. The namespace is deleted, right away or once the pull request is validated.
 
-![The work of an agent: the agent builds, deploys, and tests its change in an application environment, then opens a pull request whose preview URL is shared with developers, product, and customers](./img/agent-work-from-start-to-finish.png)
-
-Step 6 is the checkpoint between the agent and a person. The agent does the work, and the reviewer verifies it in a running application instead of reading only a diff. That reviewer doesn't have to be a developer: anyone with the URL and access to it can try the change.
+Steps 3 to 5 are what changes the result. The agent tests its change against a realistic copy of the application, running on Kubernetes with all its services, not against a simplified version of it. That lets the agent find the problems a simplified version hides, and produce higher-quality code with fewer bugs.
 
 ## Two isolation boundaries
 
@@ -93,7 +91,6 @@ Decoupling also separates two kinds of risk that the fat agent sandbox mixes:
 | **Fidelity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
 | **Sandbox images** | One per application or stack | One for every application |
-| **Review** | A diff | A diff and a running application |
 
 ## Two layers, kept independent
 
