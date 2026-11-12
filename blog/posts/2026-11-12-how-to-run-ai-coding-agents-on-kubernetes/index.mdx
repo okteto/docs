@@ -31,7 +31,7 @@ It is common to assume that the application environment runs inside the agent sa
 
 The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large sandbox, often a (micro) virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change.
 
-![A fat agent sandbox: one (micro) virtual machine that holds the agent, its credentials and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
+![A fat agent sandbox: one (micro) virtual machine that holds the agent, its tools and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
 
 The problems show up at scale, with many agents and many teams that have different requirements:
 
@@ -61,10 +61,9 @@ Everything else, the application itself included, moves to the application envir
 
 ![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png)
 
-This changes the sandbox in five ways:
+This changes the sandbox in four ways:
 
 - **No privileges.** Without Docker-in-Docker, the sandbox runs as a standard unprivileged pod.
-- **No infrastructure credentials.** The sandbox only needs Kubernetes credentials for one namespace. Registry, cloud, and database credentials stay in the cluster, where the builds, the deployment, and the tests use them.
 - **Light, and it starts fast.** The sandbox holds a process, not an application, and its image can be pulled in advance on every node.
 - **The same for every application.** Compilation and tests run remotely, so the sandbox doesn't carry the toolchain or the dependencies of any application. One image, pinned by digest, serves every repository.
 - **Replaceable.** The contract between the two layers is "deploy this definition and run these tests". You can change the agent, the model, the sandbox runtime, the orchestrator, or your whole software factory, and they all reuse the same application environment definition. How the application is deployed doesn't change.
@@ -145,7 +144,6 @@ Hundreds of environments also turn four chores into platform work:
 |  | Fat agent sandbox | Agent sandbox and application environment |
 | --- | --- | --- |
 | **Privileges** | Privileged container, on a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
-| **Credentials** | Registry, cloud, and database credentials inside the sandbox | Kubernetes credentials for one namespace; the rest stays in the cluster |
 | **Visibility** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring. The same information is available to the agent for debugging and troubleshooting |
 | **Fidelity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
