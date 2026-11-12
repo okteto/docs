@@ -29,16 +29,16 @@ It is common to assume that the application environment runs inside the agent sa
 
 ## The fat agent sandbox
 
-The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large sandbox, often a virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change. Hosted agents start from the same idea: [Codex cloud](https://developers.openai.com/codex/cloud/environments) creates a container for each task and runs a setup script in it, and [GitHub Copilot's coding agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment) prepares its environment with a setup workflow.
+The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large sandbox, often a (micro) virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change.
 
-![A fat agent sandbox: one virtual machine that holds the agent, its credentials and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
+![A fat agent sandbox: one (micro) virtual machine that holds the agent, its credentials and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
 
 The problems show up as soon as there are more than a few agents:
 
-- **Privileges.** Running Docker inside the sandbox, known as Docker-in-Docker, takes a privileged container. The [documentation of the Docker image](https://hub.docker.com/_/docker) says that `--privileged` "is required for Docker-in-Docker to function properly" and that it "provides full access to the host environment". That is not an option for untrusted code, so the sandbox has to be a virtual machine or run on a sandboxed runtime such as [Kata Containers](https://katacontainers.io/) or [gVisor](https://gvisor.dev/), which is one more component to install and maintain in the cluster.
+- **Privileges.** Running Docker inside the sandbox, known as Docker-in-Docker, takes a privileged container. The [documentation of the Docker image](https://hub.docker.com/_/docker) says that `--privileged` "is required for Docker-in-Docker to function properly" and that it "provides full access to the host environment". That is not an option for untrusted code, so the sandbox needs stronger isolation than a container: a sandboxed runtime such as [Kata Containers](https://katacontainers.io/), which runs each pod in a (micro) virtual machine, or [gVisor](https://gvisor.dev/), which puts a user-space kernel between the container and the host. Either way, it is one more component to install and maintain in the cluster.
 - **Credentials.** To build and run the application, the sandbox needs registry credentials, cloud keys, and database passwords, next to an agent that reads untrusted content.
 - **A black box.** The containers that Docker starts inside the sandbox are not Kubernetes objects, so the cluster sees one pod and nothing inside it. Admission policies don't check their images, the logging and monitoring stack doesn't collect their logs and metrics, and audit events don't record what was deployed. The platform team can't govern or track what runs in there.
-- **Drift.** An application started with Docker Compose inside a virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
+- **Drift.** An application started with Docker Compose inside a (micro) virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
 - **Size and startup.** The sandbox is sized for the whole application plus the agent, and it pulls the images of every service before the agent can test anything. Most of that capacity sits idle while the agent thinks.
 - **One sandbox image per application or stack.** The sandbox has to be able to compile the application and run its unit tests, so each application or stack needs an image with its own toolchains and dependencies. The platform team maintains many images instead of one.
 
@@ -145,7 +145,7 @@ Hundreds of environments also turn four chores into platform work:
 
 |  | Fat agent sandbox | Agent sandbox and application environment |
 | --- | --- | --- |
-| **Privileges** | Privileged container, inside a virtual machine or a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
+| **Privileges** | Privileged container, on a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
 | **Credentials** | Registry, cloud, and database credentials inside the sandbox | Kubernetes credentials for one namespace; the rest stays in the cluster |
 | **Visibility** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring. The same information is available to the agent for debugging and troubleshooting |
 | **Fidelity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
