@@ -10,7 +10,7 @@ import styles from './styles.module.scss';
 
 export default function Callout() {
   return (
-    <section className={styles.callout}>
+    <section id="newsletter" className={styles.callout}>
       <Newsletter />
       <div className={styles.half}>
         <p className={styles.title}>About Okteto</p>
