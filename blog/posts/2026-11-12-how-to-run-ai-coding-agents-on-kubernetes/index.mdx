@@ -33,7 +33,7 @@ The usual first design puts the agent sandbox and the application environment in
 
 ![A fat agent sandbox: one (micro) virtual machine that holds the agent, its credentials and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
 
-The problems show up as soon as there are more than a few agents:
+The problems show up at scale, with many agents and many teams that have different requirements:
 
 - **Privileges.** Running Docker inside the sandbox, known as Docker-in-Docker, takes a privileged container. The [documentation of the Docker image](https://hub.docker.com/_/docker) says that `--privileged` "is required for Docker-in-Docker to function properly" and that it "provides full access to the host environment". That is not an option for untrusted code, so the sandbox needs stronger isolation than a container: a sandboxed runtime such as [Kata Containers](https://katacontainers.io/), which runs each pod in a (micro) virtual machine, or [gVisor](https://gvisor.dev/), which puts a user-space kernel between the container and the host. Either way, it is one more component to install and maintain in the cluster.
 - **A black box.** The containers that Docker starts inside the sandbox are not Kubernetes objects, so the cluster sees one pod and nothing inside it. Admission policies don't check their images, the logging and monitoring stack doesn't collect their logs and metrics, and audit events don't record what was deployed. The platform team can't govern or track what runs in there.
