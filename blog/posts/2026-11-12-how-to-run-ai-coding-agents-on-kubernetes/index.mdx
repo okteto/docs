@@ -83,7 +83,7 @@ Whatever the tool, two things have to be true. Images are built outside the sand
 
 ## The agent loop with verified output
 
-With the two layers in place, the agent can verify its output before anyone else sees it. Its work looks like this:
+A developer writes code and then runs it to see what happens. With the two layers in place, an agent works the same way: it generates a change, runs it, observes the result, and refines it. The loop looks like this:
 
 1. The orchestrator creates a namespace for the agent, gives the sandbox credentials for that namespace only, and starts the sandbox pod with the repository and the task.
 2. The agent edits the code.
@@ -94,7 +94,9 @@ With the two layers in place, the agent can verify its output before anyone else
 7. The agent opens a pull request.
 8. The namespace is deleted, right away or once the pull request is validated.
 
-What comes out of this loop is verified output. By the time the agent opens the pull request, the change has been built, deployed, and tested on Kubernetes, in a realistic copy of the application. The agent finds its own mistakes in steps 4 and 5 and fixes them while it still has the context of the task, so they don't reach CI or the people who validate the pull request. The result is higher-quality code with fewer bugs.
+What comes out of this loop is verified output: code that comes with evidence of how it behaves when it runs. An agent without a running application can't tell code that compiles from code that works. It generates the change, runs the unit tests, submits it, and the problems show up later, in CI or after the deployment.
+
+With the loop, the question changes from "does this code look right?" to "what happened when it ran?". By the time the agent opens the pull request, the change has been built, deployed, and tested on Kubernetes, in a realistic copy of the application, and the agent has fixed its own mistakes while it still had the context of the task. The result is higher-quality code with fewer bugs.
 
 The design has one more advantage, which shows at scale. Every application environment runs in the same cluster and on the same network, so environments can call each other, which a closed fat agent sandbox can't easily do. An agent's namespace doesn't need a full copy of the application: it can deploy only the services the agent changes and use a shared environment for the rest. Routing by header makes it work: requests made for an agent carry a header that names its namespace, the services forward it on the calls they make, and a [Gateway API](https://gateway-api.sigs.k8s.io/guides/user-guides/http-routing/) `HTTPRoute` matches on it to send each call to the agent's version of a service when there is one, and to the shared version when there isn't.
 
