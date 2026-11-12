@@ -81,17 +81,9 @@ Whatever the tool, images are built outside the sandbox, and the application is 
 
 ## The agent loop with verified output
 
-With the two layers in place, an agent works the way a developer does: it writes a change, runs it, and looks at what happened. The loop looks like this:
-
-1. The orchestrator creates a namespace for the agent, gives the sandbox credentials for that namespace only, and starts the sandbox pod with the repository and the task.
-2. The agent edits the code.
-3. The agent asks for a build and a deployment. The application is deployed to the namespace from the definition in the repository.
-4. The agent **verifies its output** against a realistic copy of the application, not a simplified version of it. It runs the tests, exercises the endpoints, and troubleshoots with the Kubernetes API, the logs, and the metrics of its namespace. The verification is much more rigorous this way, and the quality of the agent's output is much higher.
-5. The agent repeats steps 2 to 4 until the tests pass and the application behaves as expected.
-6. The agent opens a pull request.
-7. The namespace is deleted, right away or once the pull request is validated.
-
 ![The agent loop: the agent edits code in the light agent sandbox, builds and deploys the application to its Kubernetes namespace, and verifies its output there with tests, endpoints, logs, and metrics. It repeats until the change works, and then opens a pull request](./img/agent-loop-with-verified-output.png#narrow)
+
+With the two layers in place, an agent works the way a developer does: it writes a change, runs it, and looks at what happened. The orchestrator creates a namespace for the agent and starts the sandbox pod with the task, the repository, and credentials for that namespace only. The agent edits the code and asks for a build and a deployment of the application, from the definition in the repository. Then it **verifies its output** against a realistic copy of the application, not a simplified version of it: it runs the tests, exercises the endpoints, and troubleshoots with the Kubernetes API, the logs, and the metrics of its namespace. It repeats until the tests pass and the application behaves as expected, and then it opens a pull request. The verification is much more rigorous this way, and the quality of the agent's output is much higher.
 
 ## Fat agent sandbox and decoupled design side by side
 
