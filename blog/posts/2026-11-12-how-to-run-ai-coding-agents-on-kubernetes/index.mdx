@@ -91,12 +91,6 @@ With the two layers in place, an agent works the way a developer does: it writes
 6. The agent opens a pull request.
 7. The namespace is deleted, right away or once the pull request is validated.
 
-## Shared services at scale
-
-A namespace per agent means a copy of the application per agent, and that adds up: 100 agents working on an application of 40 services are 4,000 workloads, most of them unchanged. But every application environment runs in the same cluster and on the same network, so environments can call each other, which a closed fat agent sandbox can't easily do. An agent that changes the `payments` service can deploy only `payments` in its namespace and use a shared environment for the other 39 services.
-
-Routing by header makes it work: requests made for an agent carry a header that names its namespace, the services forward it on the calls they make, and a [Gateway API](https://gateway-api.sigs.k8s.io/guides/user-guides/http-routing/) `HTTPRoute` matches on it to send each call to the agent's version of a service when there is one, and to the shared version when there isn't.
-
 ## Fat agent sandbox and decoupled design side by side
 
 |  | Fat agent sandbox | Agent sandbox and application environment |
@@ -106,12 +100,9 @@ Routing by header makes it work: requests made for an agent carry a header that 
 | **Production parity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
 | **Sandbox images** | One per application or stack | A standard base image |
-| **Sharing** | Every sandbox runs the whole application | Environments can share services and deploy only what changes |
 
 ## Two independent layers: agent sandbox and application environment
 
-A coding agent that can't run the application it changes is guessing, so a secure place to write code solves only half of the problem: the agent also needs a realistic place to run its changes. Agents, models, and the tools that orchestrate them change every few months, and how your application is built, deployed, and tested shouldn't have to change with them. Keep the agent sandbox light and swappable, and make the application environment a layer of its own: defined in the repository, running in your cluster, and shared by developers, CI, pull requests, and agents. Every agent then gets what developers have always needed: a fast feedback loop against the application that ships.
-
-![One application environment definition in the repository, a Helm chart or Kubernetes manifests, used by developers, CI, pull requests, and coding agents to deploy the same application to separate Kubernetes namespaces](./img/one-application-environment-definition.png)
+A coding agent that can't run the application it changes is guessing, so a secure place to write code solves only half of the problem: the agent also needs a realistic place to run its changes. Agents, models, and the tools that orchestrate them change every few months, and how your application is built, deployed, and tested shouldn't have to change with them. Keep the agent sandbox light and swappable, and make the application environment a layer of its own: defined in the repository, running in your cluster, and shared by developers, pull requests, and agents. Every agent then gets what developers have always needed: a fast feedback loop against the application that ships.
 
 A follow-up post will cover how Okteto implements this architecture.
