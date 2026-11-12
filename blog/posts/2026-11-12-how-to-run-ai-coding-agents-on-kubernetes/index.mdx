@@ -7,7 +7,7 @@ date: 2026-11-12
 authors: ["pablo-chico-de-guzman"]
 tags: ["ai-agents", "kubernetes", "platform-engineering", "security"]
 image: ./img/cover.jpg
-image_alt: "A light agent sandbox with the agent binary, Git access, and an environment client, creating application environments on Kubernetes"
+image_alt: "Two agent sandboxes, each with the agent binary, Git access, and Kubernetes credentials, and each mapped to its own Kubernetes namespace running an HTTPRoute, a Deployment with its pods, and a PVC"
 ---
 
 A coding agent that can't run the application it changes is guessing. So a platform team that moves agents from laptops to Kubernetes has two questions to answer, not one: where does the agent run, and where does the application it is changing run?
@@ -45,11 +45,11 @@ The alternative is to split the two. The sandbox keeps only what the agent needs
 
 - The agent process.
 - Git access to the repository.
-- A client and a scoped token to request, deploy, and test an application environment.
+- Kubernetes credentials scoped to the agent's namespace, to deploy and test the application there.
 
 Everything heavy and everything sensitive moves to the application environment. Builds, deployments, and tests run remotely in the cluster: the agent asks for them and reads the result.
 
-![The decoupled design: a light agent sandbox with the agent binary, Git access, and an environment client, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png)
+![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png)
 
 This changes the sandbox in five ways:
 
@@ -90,7 +90,7 @@ Step 6 is the checkpoint between the agent and a person. The agent does the work
 
 Decoupling also separates two kinds of risk that the fat sandbox mixes:
 
-- **The code the agent runs directly**, such as shell commands, scripts, and package installs, runs in the agent sandbox. In the decoupled design that sandbox has no container runtime, no privileges, and no infrastructure credentials, so it can be a standard unprivileged container with a short-lived, scoped token and a NetworkPolicy that limits egress to the repository, the model endpoint, and the API that manages environments.
+- **The code the agent runs directly**, such as shell commands, scripts, and package installs, runs in the agent sandbox. In the decoupled design that sandbox has no container runtime, no privileges, and no infrastructure credentials, so it can be a standard unprivileged container with a short-lived, scoped token and a NetworkPolicy that limits egress to the repository, the model endpoint, and the Kubernetes API.
 - **The application the agent modified** runs in its own namespace as ordinary Kubernetes workloads, under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
 
 How much isolation the sandbox needs depends on what the agent is allowed to run. Sandboxed runtimes such as [gVisor](https://gvisor.dev/) and [Kata Containers](https://katacontainers.io/) are still available: a RuntimeClass adds one to the same pod, and [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/) packages the pattern. They are complementary to this design, not a requirement for it.
