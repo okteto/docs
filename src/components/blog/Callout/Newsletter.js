@@ -104,7 +104,9 @@ export default function Newsletter() {
   return (
     <div className={styles.half}>
       <p className={styles.title}>Subscribe to our newsletter</p>
-      <p className={styles.text}>Get new posts about Kubernetes, platform engineering, and AI agents in your inbox.</p>
+      <p className={styles.text}>
+        What we learn running development environments and coding agents on Kubernetes, in your inbox.
+      </p>
       <div id={TARGET_ID} ref={container} className={styles.newsletterForm} hidden={status === 'error'} />
       {status === 'error' && (
         <p className={styles.newsletterError} role="alert">
