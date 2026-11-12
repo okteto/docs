@@ -93,18 +93,18 @@ With the two layers in place, the work of one agent looks like this:
 7. The agent opens a pull request.
 8. The namespace is deleted, right away or once the pull request is validated.
 
-The design has one more advantage, which shows at scale. Every application environment runs in the same cluster and on the same network, so environments can call each other, which a closed fat agent sandbox can't easily do. An agent's namespace doesn't need a full copy of the application: it deploys only the services the agent changes and uses a shared environment for the rest. Routing by header makes it work: requests made for an agent carry a header that names its namespace, the services forward it on the calls they make, and a [Gateway API](https://gateway-api.sigs.k8s.io/guides/user-guides/http-routing/) `HTTPRoute` matches on it to send each call to the agent's version of a service when there is one, and to the shared version when there isn't.
+The design has one more advantage, which shows at scale. Every application environment runs in the same cluster and on the same network, so environments can call each other, which a closed fat agent sandbox can't easily do. An agent's namespace doesn't need a full copy of the application: it can deploy only the services the agent changes and use a shared environment for the rest. Routing by header makes it work: requests made for an agent carry a header that names its namespace, the services forward it on the calls they make, and a [Gateway API](https://gateway-api.sigs.k8s.io/guides/user-guides/http-routing/) `HTTPRoute` matches on it to send each call to the agent's version of a service when there is one, and to the shared version when there isn't.
 
 ## Fat agent sandbox and decoupled design side by side
 
 |  | Fat agent sandbox | Agent sandbox and application environment |
 | --- | --- | --- |
 | **Privileges** | Privileged container, on a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
-| **Visibility** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring. The same information is available to the agent for debugging and troubleshooting |
+| **Observability** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring. The same information is available to the agent for debugging and troubleshooting |
 | **Configuration drift** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
 | **Sandbox images** | One per application or stack | One for every application |
-| **Sharing** | Every sandbox runs the whole application | Environments share services and deploy only what changes |
+| **Sharing** | Every sandbox runs the whole application | Environments can share services and deploy only what changes |
 
 ## Two independent layers: agent sandbox and application environment
 
