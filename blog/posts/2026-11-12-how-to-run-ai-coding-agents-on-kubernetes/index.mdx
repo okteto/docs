@@ -27,16 +27,16 @@ It is common to assume that the application environment runs inside the agent sa
 
 ## The fat agent sandbox
 
-The usual first design puts both in the same place. Each agent gets a large sandbox, often a virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change.
+The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large sandbox, often a virtual machine, with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against. It is the laptop model moved to the cluster, and it is attractive because nothing about the application setup has to change.
 
 ![A fat agent sandbox: one virtual machine that holds the agent, its credentials and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
 
 It gets expensive as soon as there are more than a few agents:
 
-- **Privileges.** Running a container runtime inside the sandbox takes a privileged container or nested virtualization, the capabilities a sandbox for untrusted code should not have.
+- **Privileges.** Running a container runtime inside the sandbox takes a privileged container, and a privileged container is not an option for untrusted code. That forces you to install a sandboxed runtime such as [Kata Containers](https://katacontainers.io/) or [gVisor](https://gvisor.dev/) in the cluster, which is one more component to maintain.
 - **Credentials.** To build and run the application, the sandbox needs registry credentials, cloud keys, and database passwords, next to an agent that reads untrusted content.
 - **Size and startup.** The sandbox is sized for the whole application plus the agent, and it pulls the images of every service before the agent can test anything. Most of that capacity sits idle while the agent thinks.
-- **One image per application.** Each repository needs a sandbox image with its own toolchains and dependencies, so the platform team maintains many images instead of one.
+- **One sandbox image per application or stack.** The sandbox has to be able to compile the application and run its unit tests, so each application or stack needs an image with its own toolchains and dependencies. The platform team maintains many images instead of one.
 - **Drift.** An application started with Docker Compose inside a virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
 
 ## The decoupled design
@@ -93,16 +93,16 @@ Decoupling also separates two kinds of risk that the fat agent sandbox mixes:
 - **The code the agent runs directly**, such as shell commands, scripts, and package installs, runs in the agent sandbox. In the decoupled design that sandbox has no container runtime, no privileges, and no infrastructure credentials, so it can be a standard unprivileged container with a short-lived, scoped token and a NetworkPolicy that limits egress to the repository, the model endpoint, and the Kubernetes API.
 - **The application the agent modified** runs in its own namespace as ordinary Kubernetes workloads, under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
 
-How much isolation the sandbox needs depends on what the agent is allowed to run. Sandboxed runtimes such as [gVisor](https://gvisor.dev/) and [Kata Containers](https://katacontainers.io/) are still available: a RuntimeClass adds one to the same pod, and [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/) packages the pattern. They are complementary to this design, not a requirement for it.
+How much isolation the sandbox needs depends on what the agent is allowed to run. Sandboxed runtimes such as Kata Containers and gVisor are still available: a RuntimeClass adds one to the same pod, and [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/) packages the pattern. They are complementary to this design, not a requirement for it.
 
 ## Fat agent sandbox and decoupled design side by side
 
 |  | Fat agent sandbox | Agent sandbox and application environment |
 | --- | --- | --- |
-| **Privileges** | Privileged container or nested virtualization, to run a container runtime | Unprivileged pod; a sandboxed runtime is optional |
+| **Privileges** | Privileged container, inside a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
 | **Credentials** | Registry, cloud, and database credentials inside the sandbox | A scoped token in the sandbox; the rest is injected at deploy and test time |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
-| **Sandbox images** | One per application | One for every application |
+| **Sandbox images** | One per application or stack | One for every application |
 | **Fidelity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
 | **Review** | A diff | A diff and a running application |
 
