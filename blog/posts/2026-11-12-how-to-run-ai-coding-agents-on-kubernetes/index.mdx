@@ -35,6 +35,7 @@ It gets expensive as soon as there are more than a few agents:
 
 - **Privileges.** Running a container runtime inside the sandbox takes a privileged container, and a privileged container is not an option for untrusted code. That forces you to install a sandboxed runtime such as [Kata Containers](https://katacontainers.io/) or [gVisor](https://gvisor.dev/) in the cluster, which is one more component to maintain.
 - **Credentials.** To build and run the application, the sandbox needs registry credentials, cloud keys, and database passwords, next to an agent that reads untrusted content.
+- **A black box.** The containers that Docker starts inside the sandbox are not Kubernetes objects, so the cluster sees one pod and nothing inside it. Admission policies don't check their images, the logging and monitoring stack doesn't collect their logs and metrics, alerts don't fire for them, and audit events don't record what was deployed. The platform team can't govern or track what runs in there.
 - **Size and startup.** The sandbox is sized for the whole application plus the agent, and it pulls the images of every service before the agent can test anything. Most of that capacity sits idle while the agent thinks.
 - **One sandbox image per application or stack.** The sandbox has to be able to compile the application and run its unit tests, so each application or stack needs an image with its own toolchains and dependencies. The platform team maintains many images instead of one.
 - **Drift.** An application started with Docker Compose inside a virtual machine is not the application that runs on Kubernetes, with its ingress rules, service accounts, and network policies. The agent validates its change against something that is not what ships, which limits how well it can check its own work.
@@ -101,6 +102,7 @@ How much isolation the sandbox needs depends on what the agent is allowed to run
 | --- | --- | --- |
 | **Privileges** | Privileged container, inside a sandboxed runtime that the cluster has to add | Unprivileged pod; a sandboxed runtime is optional |
 | **Credentials** | Registry, cloud, and database credentials inside the sandbox | A scoped token in the sandbox; the rest is injected at deploy and test time |
+| **Visibility** | The application is a black box for the cluster | Ordinary Kubernetes workloads, under the cluster's policies, logging, and monitoring |
 | **Size and startup** | Sized for the whole application | A light process with an image pulled in advance |
 | **Sandbox images** | One per application or stack | One for every application |
 | **Fidelity** | The application runs differently from how it is deployed | The application runs on Kubernetes from its real definition |
