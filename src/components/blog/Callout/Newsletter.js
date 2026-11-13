@@ -1,5 +1,7 @@
-// Newsletter signup shown at the end of every blog post. Embeds the same
-// HubSpot form as the footer of okteto.com.
+// Newsletter signup. Embeds the same HubSpot form as the footer of okteto.com.
+// The default export is one half of the callout shown at the end of every blog
+// post and post list; NewsletterForm is the form alone, which the right column
+// of a post also shows (src/theme/BlogPostPage).
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -7,7 +9,6 @@ import styles from './styles.module.scss';
 
 const PORTAL_ID = '5418301';
 const FORM_ID = '832002da-f018-426d-8b6f-45ac98caaf06';
-const TARGET_ID = 'newsletter-form';
 const EMBED_SRC = 'https://js.hsforms.net/forms/embed/v2.js';
 const LOAD_TIMEOUT_MS = 15000;
 
@@ -65,7 +66,10 @@ function loadEmbedScript() {
   });
 }
 
-export default function Newsletter() {
+// `instance` tells apart the copies of the form on one page: it names the
+// element HubSpot renders into and the form instance.
+export function NewsletterForm({ instance = 'callout', className }) {
+  const targetId = `newsletter-form-${instance}`;
   const container = useRef(null);
   const [status, setStatus] = useState('loading');
   const [attempt, setAttempt] = useState(0);
@@ -83,7 +87,8 @@ export default function Newsletter() {
         window.hbspt.forms.create({
           portalId: PORTAL_ID,
           formId: FORM_ID,
-          target: `#${TARGET_ID}`,
+          formInstanceId: instance,
+          target: `#${targetId}`,
           css: '',
         });
         setStatus('ready');
@@ -97,15 +102,18 @@ export default function Newsletter() {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, instance, targetId]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   return (
-    <section className={styles.newsletter}>
-      <p className={styles.newsletterTitle}>Subscribe to our newsletter</p>
-      <p className={styles.newsletterText}>Get new posts about Kubernetes, platform engineering, and AI agents in your inbox.</p>
-      <div id={TARGET_ID} ref={container} className={styles.newsletterForm} hidden={status === 'error'} />
+    <>
+      <div
+        id={targetId}
+        ref={container}
+        className={`${styles.newsletterForm} ${className || ''}`}
+        hidden={status === 'error'}
+      />
       {status === 'error' && (
         <p className={styles.newsletterError} role="alert">
           The signup form couldn't load.{' '}
@@ -114,6 +122,18 @@ export default function Newsletter() {
           </button>
         </p>
       )}
-    </section>
+    </>
+  );
+}
+
+export default function Newsletter() {
+  return (
+    <div className={styles.half}>
+      <p className={styles.title}>Subscribe to our newsletter</p>
+      <p className={styles.text}>
+        What we learn running development environments and coding agents on Kubernetes, in your inbox.
+      </p>
+      <NewsletterForm />
+    </div>
   );
 }

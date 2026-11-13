@@ -1,37 +1,15 @@
-// Swizzled (wrapped): on post pages, adds a newsletter signup above the stock
-// footer (tags and edit link) and "Related content" below it.
+// Swizzled (wrapped): a post page ends with the callout (the newsletter signup
+// and what Okteto is). Its tags and edit link, which the stock footer shows,
+// are in the right column instead (see src/theme/BlogPostPage).
 
 import React from 'react';
-import Link from '@docusaurus/Link';
-import { usePluginData } from '@docusaurus/useGlobalData';
 import { useBlogPost } from '@docusaurus/plugin-content-blog/client';
 import Footer from '@theme-original/BlogPostItem/Footer';
 
-import Newsletter from './Newsletter';
-import styles from './styles.module.scss';
+import Callout from '@site/src/components/blog/Callout';
 
 export default function FooterWrapper(props) {
-  const { metadata, isBlogPostPage } = useBlogPost();
-  const { posts } = usePluginData('docusaurus-plugin-content-blog');
-  const related = isBlogPostPage ? posts[metadata.permalink]?.related ?? [] : [];
+  const { isBlogPostPage } = useBlogPost();
 
-  return (
-    <>
-      {isBlogPostPage && <Newsletter />}
-      <Footer {...props} />
-      {related.length > 0 && (
-        <section className={styles.related}>
-          <h2>Related content</h2>
-          <div className={styles.relatedGrid}>
-            {related.map((post) => (
-              <Link key={post.permalink} to={post.permalink} className={styles.relatedCard}>
-                <strong>{post.title}</strong>
-                {post.description && <span>{post.description}</span>}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-    </>
-  );
+  return isBlogPostPage ? <Callout /> : <Footer {...props} />;
 }
