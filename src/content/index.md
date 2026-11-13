@@ -1,6 +1,6 @@
 ---
 title: "Okteto: the environment platform for agentic development"
-description: Okteto gives every AI agent task and developer an isolated, production-like environment on your own infrastructure to build, test, and verify against real services and data.
+description: Okteto gives every developer, coding agent and pull request an on-demand application environment on your Kubernetes infrastructure, built from a single definition.
 ---
 
 ## The environment platform for agentic development

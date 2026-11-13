@@ -95,7 +95,7 @@ function remarkLlmsIndexPointer() {
 }
 
 // Site-level JSON-LD entity graph: who publishes these docs (Organization),
-// the docs site itself (WebSite), and the product they document (WebApplication).
+// the docs site itself (WebSite), and the product they document (SoftwareApplication).
 // Rendered into the <head> of every docs page so answer engines and search read
 // the publisher and product identity instead of inferring it. The page-level
 // TechArticle/BreadcrumbList block (src/theme/DocItem/Metadata) references
@@ -109,7 +109,7 @@ const siteJsonLd = {
       name: 'Okteto, Inc.',
       url: `${SITE_URL}/`,
       description:
-        'Okteto gives coding agents production-like environments to verify their work.',
+        'Okteto runs coding agents and application environments on your Kubernetes infrastructure.',
       logo: {
         '@type': 'ImageObject',
         '@id': `${SITE_URL}/#logo`,
@@ -134,10 +134,11 @@ const siteJsonLd = {
       inLanguage: 'en-US',
     },
     {
-      '@type': 'WebApplication',
+      '@type': 'SoftwareApplication',
       '@id': `${SITE_URL}/#product`,
       name: 'Okteto Platform',
-      description: 'Okteto is the environment platform for agentic development.',
+      description:
+        'Okteto launches coding agents on your Kubernetes cluster and gives every developer, coding agent and pull request an on-demand application environment, built from a single definition.',
       url: `${SITE_URL}/`,
       applicationCategory: 'DeveloperApplication',
       publisher: { '@id': `${SITE_URL}/#organization` },
@@ -162,7 +163,7 @@ module.exports = {
   headTags: [
     ...shared.headTags(BASE_URL),
     {
-      // Site-level entity graph (Organization, WebSite, WebApplication).
+      // Site-level entity graph (Organization, WebSite, SoftwareApplication).
       tagName: 'script',
       attributes: {
         type: 'application/ld+json',
