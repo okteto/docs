@@ -1,0 +1,79 @@
+---
+title: Data Cloning
+description: Give your Overlay Namespace its own copy of the databases it writes to, or use database multitenancy to isolate every write of your requests.
+sidebar_label: Data Cloning
+id: data-cloning
+---
+
+Data cloning is giving an Overlay Namespace its own copy of a database, so its writes don't reach the data of the Shared Namespace. Divert doesn't split databases: a service connects to whatever database its connection string resolves to, and every write to the shared database is visible to everyone using the Shared Namespace.
+
+There are three approaches, from simplest to most isolated:
+
+| Approach | What is isolated | Effort |
+|---|---|---|
+| [Shared database](#shared-database) | Nothing | None |
+| [Database clone per subsystem](#database-clone-per-subsystem) | The writes of the subsystems you deploy | Deploy the database with the subsystem |
+| [Database multitenancy](#database-multitenancy) | Every write of your requests, in any subsystem | Database selection in your code, and templates |
+
+## Shared Database
+
+If the services you change don't modify the data of the Shared Namespace, they can use its database. It's the simplest approach: don't deploy a database in your Overlay Namespace, and a connection string with a short service name, such as `mongodb://mongodb:27017/catalog`, resolves to the database of the Shared Namespace.
+
+![Cindy's catalog API runs in her Overlay Namespace and only reads the MongoDB database of the Shared Namespace](@site/static/img/divert-data-shared.svg)
+
+## Database Clone per Subsystem
+
+Deploy each subsystem you change with its own database, in your Overlay Namespace. Because of DNS resolution, the same connection string, such as `postgresql://postgresql:5432/rentals`, now resolves to your copy, without changing the configuration of your services.
+
+![Cindy's rent service uses its own PostgreSQL database, cloned from the PostgreSQL database of the Shared Namespace with a Volume Snapshot](@site/static/img/divert-data-clone.svg)
+
+For example, a chart that deploys the rent service and its PostgreSQL database:
+
+```yaml
+deploy:
+  commands:
+    - name: Deploy the rent service and its database
+      command: helm upgrade --install rentals rentals/chart --set image=${OKTETO_BUILD_RENT_IMAGE}
+  divert:
+    namespace: staging
+```
+
+There are two ways to fill your copy:
+
+- **Empty**: your services run their migrations and load fixtures at startup.
+- **Cloned**: restore the database volume from a [Volume Snapshot](core/use-volume-snapshots.mdx) of the Shared Namespace's database:
+
+  ```yaml
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: postgresql-data
+    annotations:
+      dev.okteto.com/from-snapshot-name: postgresql-snapshot
+      dev.okteto.com/from-snapshot-namespace: staging
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  ```
+
+This approach works best when each subsystem owns its tables or its database. Its limit is the shared services: while handling one of your requests, a shared service writes to the shared databases, and those writes can reference data that only exists in your copy. If that's a problem, use [database multitenancy](#database-multitenancy).
+
+## Database Multitenancy
+
+With database multitenancy, each Overlay Namespace is a tenant with its own databases, and every service, shared or not, selects its database by the divert header of each request. All the data written while handling your requests ends up in your databases, in every subsystem. Okteto doesn't provide this selection: you implement it in your application, and create the databases from your Okteto Manifests.
+
+![The PostgreSQL and MongoDB containers of the Shared Namespace hold a full database for each divert header. The shared rent API writes to rentals__cindy for requests with Cindy's divert header, and Cindy's catalog API writes to catalog__cindy](@site/static/img/divert-data-multitenancy.svg)
+
+### Selecting the Database in Your Code
+
+Every service applies the same rule in its data access layer, usually in a shared internal library:
+
+```
+key = okteto-divert value in the baggage of the request
+database = key ? "<database>__<key>" : "<database>"
+```
+
+Requests without the divert header use the regular database.

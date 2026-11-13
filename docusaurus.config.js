@@ -224,20 +224,25 @@ module.exports = {
           // Also feeds dateModified in the page JSON-LD (src/theme/DocItem/Metadata).
           showLastUpdateTime: true,
           sidebarPath: require.resolve('./sidebars.js'),
-          lastVersion: '1.49',
+          lastVersion: '1.50',
           versions: {
             current: {
               // aka unreleased version in development
               // Remember to also update "unreleased" redirect if changing the value!
-              label: '1.50',
-              path: '1.50',
+              label: '1.51',
+              path: '1.51',
             },
-            '1.49': {
+            '1.50': {
               // aka latest/official version
               // Remember to also update docs root redirect if changing the value!
-              label: '1.49',
+              label: '1.50',
               path: '/',
               banner: 'none',
+            },
+            '1.49': {
+              label: '1.49',
+              path: '1.49',
+              banner: 'unmaintained',
             },
             '1.48': {
               label: '1.48',
@@ -257,11 +262,6 @@ module.exports = {
             '1.45': {
               label: '1.45',
               path: '1.45',
-              banner: 'unmaintained',
-            },
-            '1.44': {
-              label: '1.44',
-              path: '1.44',
               banner: 'unmaintained',
             },
           },

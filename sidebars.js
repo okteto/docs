@@ -322,13 +322,8 @@ module.exports = {
       label: 'Tutorials',
       href: '/tutorials',
     },
-    'reference/faqs',
     'release-notes',
-    {
-      type: 'link',
-      label: 'Community forum',
-      href: 'https://community.okteto.com/',
-    },
+    'community-forum',
     {
       type: 'link',
       label: 'Archives',

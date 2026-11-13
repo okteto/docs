@@ -183,9 +183,37 @@ Each dependency supports the following fields:
 - `repository`: the URL of the git repository containing the dependency
 - `manifest`: the path to the Okteto Manifest within the repository. Defaults to `okteto.yaml` in the root of the repository
 - `branch`: the branch or tag to deploy. If not specified, it uses the default branch of the repository
-- `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands
-- `wait`: if `true`, Okteto waits for the dependency deployment to complete before continuing with the main deployment. If `false`, the dependency deploys asynchronously (default: `false`)
-- `timeout`: maximum time to wait for the dependency deployment to complete when `wait` is `true`. Uses duration format like `5m`, `1h`, etc. (default: `5m`)
+- `variables`: environment variables to set during the dependency deployment. These are passed to the dependency's deploy commands. They can use the [dynamic environment variables](reference/okteto-cli.mdx#dynamic-environment-variables) of the dependencies listed in its `depends_on`
+- `wait`: if `true`, the commands in the `deploy` section wait until this dependency and all the dependencies in its `depends_on` chain are ready (default: `false`). The commands in the `deploy` section get the dynamic environment variables of these dependencies
+- `timeout`: maximum time to wait for the dependency deployment to complete. Uses duration format like `5m`, `1h`, etc. It counts from when the dependency starts, so the time spent waiting for the dependencies in its `depends_on` isn't included. Defaults to the `--timeout` flag of `okteto deploy` (`5m`)
+- `depends_on`: a dependency name, or a list of dependency names, that must deploy successfully before this one starts. Each name must match another entry in the `dependencies` section
+
+Okteto deploys dependencies in parallel. Use `depends_on` to order them: a dependency starts once all the dependencies it lists have deployed successfully.
+
+- With `wait: true`, the commands in the `deploy` section don't start until the dependency, and every dependency in its `depends_on` chain, is deployed and healthy.
+- With `wait: false`, Okteto only schedules the dependency, and it runs at the same time as the commands in the `deploy` section. If it fails, `okteto deploy` doesn't fail. If another dependency lists it in `depends_on`, the commands in the `deploy` section wait for it as if it had `wait: true`.
+
+If a dependency that the `deploy` section waits for fails, or a dependency can't be scheduled, the commands in the `deploy` section don't run and `okteto deploy` fails.
+
+```yaml
+dependencies:
+  database:
+    repository: https://github.com/okteto/database
+  messaging:
+    repository: https://github.com/okteto/messaging
+  backend:
+    repository: https://github.com/okteto/backend
+    depends_on:
+      - database
+      - messaging
+    wait: true
+  frontend:
+    repository: https://github.com/okteto/frontend
+    depends_on: backend
+    wait: false
+```
+
+In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. Because `backend` has `wait: true`, the commands in the `deploy` section start once `database`, `messaging`, and `backend` are deployed and healthy. `frontend` has `wait: false`: Okteto schedules it once `backend` has deployed, and it runs at the same time as the commands in the `deploy` section. `okteto deploy` doesn't wait for it. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
 
 ### deploy ([string], optional)
 
@@ -591,7 +619,7 @@ You can use an environment variable to replace the image, or any part of it:
 image: ghcr.io/okteto/dev:$USER
 ```
 
-> See [how to use private images](reference/faqs.mdx#how-to-use-private-images) for your Development Container.
+> To use private images for your Development Container, see [Registry Credentials](admin/registry-credentials/index.mdx).
 
 #### imagePullPolicy (string, optional)
 

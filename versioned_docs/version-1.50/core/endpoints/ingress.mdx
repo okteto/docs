@@ -1,0 +1,59 @@
+---
+title: Endpoints for Ingress
+description: Create HTTPS endpoints with your own Ingress objects.
+sidebar_label: Ingress
+id: ingress
+---
+
+Okteto serves the Ingress objects deployed in your Namespaces as HTTPS endpoints. Use your own Ingress objects when you need several paths, specific routing rules, or specific URLs.
+
+All the hosts of your Ingress objects must end with `-<namespace>.<okteto-subdomain>`.
+
+## Generated Hostnames
+
+Okteto injects the hostname of your Ingress objects when you add the `dev.okteto.com/generate-host` annotation, and leaves the rest of the configuration intact:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-world
+  annotations:
+    dev.okteto.com/generate-host: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-world
+                port:
+                  number: 8080
+```
+
+We recommend this option, so the same Ingress object works in any Namespace managed by Okteto. The value of the annotation controls the generated hostname:
+
+| Value | Hostname |
+|-------|----------|
+| `"true"` | `<ingress-name>-<namespace>.<okteto-subdomain>` |
+| A custom name, such as `"api"` | `api-<namespace>.<okteto-subdomain>` |
+| `"domain"` | `<namespace>.<okteto-subdomain>` |
+
+When Okteto generates the hostname, it uses the paths of the first rule of your Ingress object.
+
+## HTTPS Backends
+
+If your application serves HTTPS instead of HTTP, create your own Ingress object and add this annotation to it:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+...
+```
+
+This annotation only works when your Ingress objects are served by an NGINX Ingress controller. The certificate served by your application isn't passed through to the requester: the requester gets the wildcard certificate of your Okteto instance.
