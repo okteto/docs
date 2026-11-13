@@ -84,7 +84,6 @@ module.exports = {
         onInlineTags: 'throw',
         onInlineAuthors: 'throw',
         onUntruncatedBlogPosts: 'ignore',
-        editUrl: 'https://github.com/okteto/docs/edit/main/',
         feedOptions: {
           // Published at /blog/rss.xml; okteto.com proxies the old /rss.xml
           // URL to it.
