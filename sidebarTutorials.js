@@ -26,6 +26,7 @@ module.exports = {
         'agentic-workflows',
         'preview-environments',
         'agent-ticket-to-pr',
+        'parallel-agents-with-worktrees',
         'aws-lambda',
         'compose-getting-started',
         'external-resources',
