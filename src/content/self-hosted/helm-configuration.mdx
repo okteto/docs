@@ -105,8 +105,8 @@ Additionally, Okteto provides a single user authentication method based on a [To
 Use this property to customize the logo and the colors of the sidebar to match your team's identity or your favorite colors.
 
 - `logo`: The logo displayed at the far top left of the Okteto UI. The value can be a url or a Base64 encoded image.
-- `primary`: The primary color of the sidebar. This is used for the color of the sidebar. The value can be a [HTML color name](https://en.wikipedia.org/wiki/Web_colors#HTML_color_names) (e.g. blue, red) or a hexadecimal code.
-- `secondary`: The secondary color of the sidebar. This is used for the icons and the text displayed in the sidebar. The value can be a [HTML color name](https://en.wikipedia.org/wiki/Web_colors#HTML_color_names) (e.g. blue, red) or a hexadecimal code.
+- `primary`: The primary color of the sidebar. This is used for the color of the sidebar. The value can be a [HTML color name](https://en.wikipedia.org/wiki/Web_colors#HTML_color_names) (for example, blue, red) or a hexadecimal code.
+- `secondary`: The secondary color of the sidebar. This is used for the icons and the text displayed in the sidebar. The value can be a [HTML color name](https://en.wikipedia.org/wiki/Web_colors#HTML_color_names) (for example, blue, red) or a hexadecimal code.
 
 ```yaml
 theme:
@@ -119,7 +119,7 @@ theme:
 
 ### api
 
-The API service. Account and Kubernetes credentials management, namespace creation, and sharing, deployment via the catalog, etc...
+The API service. Account and Kubernetes credentials management, namespace creation, and sharing, deployment via the catalog, etc.
 
 - `annotations`: Annotations to add to the API pods.
 - `extraEnv`: Environment variables to be set on the API containers.
@@ -155,7 +155,7 @@ Use [`globals.nodeSelectors.dev`](self-hosted/helm-configuration.mdx#nodeselecto
 - `labels`: Labels to add to the autoscaler pods.
 - `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
 - `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
-- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
+- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. For example, if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
 - `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
 - `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
 - `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
@@ -235,7 +235,7 @@ The build service. It's used in combination with `okteto build` to build contain
 - `readinessProbe.successThreshold`: Consecutive successful checks before the pod is marked ready. Defaults to `1`.
 - `tolerations`: List of tolerations to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the tolerations list set in [`globals.tolerations.okteto`](self-hosted/helm-configuration.mdx#tolerations).
 - `nodeSelectors`: Dictionary of node selectors to be added to the Buildkit pods. If not set, the Buildkit pods will inherit the node selectors dictionary set in [`globals.nodeSelectors.okteto`](self-hosted/helm-configuration.mdx#nodeselectors).
-- `network.mode`: Controls the networking environment for containers during the build process. Defaults to `auto` but can be set to `host`, `none`, or `bridge`. Bridge mode can be useful for preventing port collisions in concurrent builds by isolating network environments. Bridge mode is not compatible with [rootless mode](#rootless).
+- `network.mode`: Controls the networking environment for containers during the build process. Defaults to `auto` but can be set to `host`, `none`, or `bridge`. Bridge mode prevents port collisions in concurrent builds by isolating network environments. Bridge mode is not compatible with [rootless mode](#rootless).
 - `rootless.enabled`: Runs BuildKit in [rootless mode](#rootless), without a privileged container. Defaults to `false`.
 - `rootless.image.repository`: Image repository used when rootless mode is enabled. Defaults to `okteto/buildkit`, pulled from the registry defined in `globals.registry`.
 - `rootless.image.tag`: Image tag used when rootless mode is enabled. Defaults to the `-rootless` tag that matches your chart version, for example <code>{variables.chartVersion}-rootless</code>.
@@ -361,10 +361,9 @@ cli:
     repository: "okteto/cli"
 ```
 :::note
-Please Note:
-	- Modifying these settings will change the image used globally by all users of the Okteto CLI in the cluster
-	- The hosted CLI version must match the original version to ensure compatibility with the remote. For example, if your cluster supports `ghcr.io/okteto/okteto:3.2.0`, the hosted image should be `myregistry/okteto:3.2.0`
-  - This configuration is separate from the initContainer setting in the okteto.yaml manifest. While the CLI settings apply globally to all users and operations, the initContainer setting is specific to a Development Environment or application and can be customized for pre-startup tasks
+- Modifying these settings will change the image used globally by all users of the Okteto CLI in the cluster
+- The hosted CLI version must match the original version to ensure compatibility with the remote. For example, if your cluster supports `ghcr.io/okteto/okteto:3.2.0`, the hosted image should be `myregistry/okteto:3.2.0`
+- This configuration is separate from the initContainer setting in the okteto.yaml manifest. While the CLI settings apply globally to all users and operations, the initContainer setting is specific to a Development Environment or application and can be customized for pre-startup tasks
 :::
 
 ### daemonset
@@ -637,7 +636,7 @@ If a destroy-all Job hangs, a resource with a blocked [finalizer](https://kubern
 - `checker`: Configures the CronJob that recovers stuck Namespaces.
   - `schedule`: The cron schedule for the checker. Defaults to `*/3 * * * *` (every 3 minutes).
   - `timeoutInSeconds`: Maximum duration of each checker run in seconds. Defaults to `120`.
-  - `priorityClassName`: The priority class for the checker pods, following the same precedence rules as above.
+  - `priorityClassName`: The priority class for the checker pods, following the same precedence rules as the destroy-all job `priorityClassName`.
 
 ```yaml
 namespaceDestroyAll:
@@ -836,7 +835,7 @@ If this configuration is disabled, Okteto CLI analytics are automatically disabl
 
 ### webhook
 
-The webhook service. Ingress creation, generation of hostnames, enforcement of policies, etc...
+The webhook service. Ingress creation, generation of hostnames, enforcement of policies, etc.
 
 - `annotations`: Annotations to add to the webhook pods.
 - `extraEnv`: Environment variables to be set on the webhook containers.
@@ -866,7 +865,7 @@ The annotation controls whether the Kubernetes cluster autoscaler may evict a po
 
 - `enabled: true`, `value: false` (default): marks Okteto pods as not safe to evict. The autoscaler will not scale down a node that runs one of these pods, regardless of the pod's shape. This keeps active development sessions stable, at the cost of slower node scale-down and potentially higher infrastructure cost. We recommend keeping this default. Development clusters already scale down aggressively outside working hours and over the weekend, so the stability of active development sessions matters more than aggressive scale-down during the working day.
 - `enabled: true`, `value: true`: marks Okteto pods as safe to evict, even when the autoscaler would otherwise protect them (for example, pods with local storage). This favors aggressive scale-down and cost savings, at the cost of development sessions restarting during scale-down.
-- `enabled: false`: Okteto does not add the annotation. Pods that already carry it keep their value; for the rest, the autoscaler falls back to its own default heuristics. This does not reliably prevent eviction — for many pod shapes it behaves like `value: true` — so it is not equivalent to `value: false`. Use it when you want the cluster to decide.
+- `enabled: false`: Okteto does not add the annotation. Pods that already carry it keep their value; for the rest, the autoscaler falls back to its own default heuristics. This does not reliably prevent eviction: for many pod shapes it behaves like `value: true`, so it is not equivalent to `value: false`. Use it when you want the cluster to decide.
 
 :::note
 Before Okteto Chart 1.49, this annotation defaulted to `value: true`. To keep that behavior after upgrading, set `addSafeToEvictAnnotation.value` to `true`.
@@ -1061,7 +1060,7 @@ The older `tolerations.oktetoPool`, `tolerations.buildPool` and `tolerations.dev
 :::
 
 :::note
-If the nodes selected by [`globals.nodeSelectors.dev`](#nodeselectors) are tainted, define a matching toleration under `dev` above so that user workloads can schedule onto them.
+If the nodes selected by [`globals.nodeSelectors.dev`](#nodeselectors) are tainted, define a matching toleration under `globals.tolerations.dev` so that user workloads can schedule onto them.
 
 These tolerations do not apply to the ingress controllers or Reloader. See [Node selectors and tolerations](#node-selectors-and-tolerations).
 :::
@@ -1284,7 +1283,7 @@ Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-qu
     - `cpu`: Default CPU resource limits.
     - `memory`: Default memory resource limits.
 
-The default configuration values are shown below.
+The following example shows the default configuration values.
 A value of "-1" indicates that no quota is enforced for that specific resource:
 
 ```yaml
@@ -1467,7 +1466,7 @@ volumeSnapshots:
   storageClass: ebs-sc
 ```
 
-Add the `dev.okteto.com/from-snapshot-id` annotation to any persistent volume claim to tell Okteto to initialize your persistent volume claim, as shown below:
+Add the `dev.okteto.com/from-snapshot-id` annotation to any persistent volume claim to tell Okteto to initialize your persistent volume claim, as shown in the following example:
 
 ```yaml
 apiVersion: v1
@@ -1531,11 +1530,11 @@ Each instance has an specific role:
 
 ### Okteto Ingress Controllers
 
-Okteto has two nginx-related keys you can define in your configuration file (e.g. `config.yaml` or any other config file where you specify these keys): `ingress-nginx` and `okteto-nginx`. These each serve a different function.
+Okteto has two nginx-related keys you can define in your configuration file (for example, `config.yaml` or any other config file where you specify these keys): `ingress-nginx` and `okteto-nginx`. These each serve a different function.
 
 #### ingress-nginx
 
-This key is used to specify ingress behavior for Okteto's platform components (e.g. api, buildkit, registry) and supports passthrough/proxy behavior to `okteto-nginx`. This configuration will serve through a `*.$subdomain` internal ingress pointing to `okteto-nginx`. This ingress controller resides within the control plane of the Okteto cluster.
+This key is used to specify ingress behavior for Okteto's platform components (for example, api, buildkit, registry) and supports passthrough/proxy behavior to `okteto-nginx`. This configuration will serve through a `*.$subdomain` internal ingress pointing to `okteto-nginx`. This ingress controller resides within the control plane of the Okteto cluster.
 
 #### okteto-nginx
 
