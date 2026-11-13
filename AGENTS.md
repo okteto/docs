@@ -58,7 +58,7 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 ## Where docs live
 
 - `src/content/`: the **current** unreleased version. **All new content goes here.**
-- `versioned_docs/version-X.Y/`: frozen snapshots of past versions. Don't edit unless backporting an explicit fix.
+- `versioned_docs/version-X.Y/`: frozen snapshots of released versions. By default, changes go only to `src/content/` (the next version), because most of them document features that ship in it. Copy a change to the official version (`lastVersion` in `docusaurus.config.js`) or older ones only when the user asks.
 - `src/pages/`: top-level pages (archives, etc.).
 - `static/`: images and assets. Use the `+X.Y` filename suffix when an image only applies to specific versions (see [`README.md`](README.md#image)).
 - `src/content/variables.json`: version variables (`cliVersion`, `chartVersion`, etc.), imported in MDX. Never hardcode a version.
