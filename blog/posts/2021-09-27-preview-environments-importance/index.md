@@ -105,8 +105,3 @@ Now, how can you start using them?
 If you are already an Okteto user then preview environments are already [available](https://www.okteto.com/docs/previews) for you!
 Go ahead and set up a repo and see how it works.
 We have a [video walkthrough](https://www.okteto.com/videos/how-to-set-up-preview-environments-with-okteto/) as well as [further reading](/blog/preview-environments-for-kubernetes/) on why Kubernetes, in particular, is a good fit for preview environments.
-
-If you aren't yet using Okteto now is a good time to check us out!
-Preview environments are just one of many ways in which Okteto assists with the development cycle, and it's [free to get started](https://www.okteto.com/signup/).
-
-If you have any questions about getting started with Okteto or preview environments, feel free to [book a call](https://www.okteto.com/contact) or reach out in our [community forum](https://community.okteto.com/).
