@@ -70,7 +70,7 @@ File extension is `.mdx` for content pages. Frontmatter requires a `description`
 Every blog post has a cover image. The covers of the new posts share one style, defined in `scripts/covers/style.mjs` (older posts keep the cover they had until it is redrawn):
 
 - **Subject:** what the article is about, never its title (the title is already next to the image). Draw a schematic of the idea (a flow, a box with its parts, a comparison), or big logos when the article is about an integration (`Okteto + Argo`, `Helm to Kubernetes`).
-- **Look:** neon lines on a night-blue background, with a faint 80s grid along the bottom edge. Nothing else goes in the background: no sun, stars, or patterns behind the subject.
+- **Look:** neon lines on the navy background of the older blog covers (`#1a2640`), with halftone dots fading from two corners (bottom left and top right). Nothing goes behind the subject: no grid, sun, stars, or patterns.
 - **Simplicity:** one idea, a handful of shapes, and few labels of one to three words, in Circular Bold. The image has to read at the width of a card (about 300px).
 - **Colors:** teal (`#00d1ca`) for Okteto and for environments, blue (`#4d8dff`) for Kubernetes boxes, purple (`#b44cff`) for agents, and amber (`#ffb13b`) or red (`#ff5c7a`) for warnings, cost, and blocked paths.
 
@@ -80,7 +80,7 @@ When you draw the subject:
 - Draw only what the article covers. Don't add related concepts to fill the image.
 - Don't wrap elements in extra boxes or layers. A control over a connection, such as RBAC, is a label on the arrow, not a box around one of its ends.
 - An application looks like a real one: its Kubernetes resources by name (HTTPRoute, Service, Pods, Volume) in a short chain, not generic shapes.
-- Leave a margin of about 80px on each side: the blog cards crop the sides of the image.
+- Leave a margin of about 80px on each side: the blog cards crop the sides of the image. Keep labels away from the two dotted corners.
 - Draw one or two covers first and iterate on them with the user before applying a change of style to many.
 
 ### Logos and icons

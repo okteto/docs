@@ -1,10 +1,10 @@
 // The visual system of the blog and tutorial covers: a schematic drawn with
-// neon lines on a night-blue background, with a faint 80s grid at the bottom.
-// No titles: the image shows what the article is about.
+// neon lines on the navy background of the blog, with halftone dots fading
+// from two corners. No titles: the image shows what the article is about.
 //
 // A cover is an SVG string built with the helpers of this file, on a
-// 1200x630 canvas. Keep the subject between y=60 and y=500 (the grid starts
-// at y=520) and use few, short labels.
+// 1200x630 canvas. Keep the subject clear of the two dotted corners (bottom
+// left and top right) and use few, short labels.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,11 +20,13 @@ export const H = 630;
 // The palette. Teal is Okteto's; blue is Kubernetes'; purple is for agents.
 export const C = {
   text: '#ffffff',
-  ink: '#100c26', // fill of boxes
+  background: '#1a2640',
+  ink: '#0f172d', // fill of boxes
+  row: '#141e39', // fill of rows inside a box
+  halftone: '#1d7f8c', // the dots of the background
   teal: '#00d1ca',
   purple: '#b44cff',
   blue: '#4d8dff',
-  pink: '#ff4fd8',
   amber: '#ffb13b',
   red: '#ff5c7a',
   dim: '#6b6590',
@@ -36,23 +38,22 @@ const estimate = (string, size) => string.length * size * 0.56;
 const escape = (string) => String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 // ---------------------------------------------------------------------------
-// The page: background, grid and the subject.
+// The page: background, halftone corners and the subject.
 
-function floor() {
-  const top = 520;
-  const vx = 600;
-  const vy = 380;
-  let lines = '';
-  for (let i = -14; i <= 14; i++) {
-    const x2 = 600 + i * 120;
-    const t = (top - vy) / (H + 40 - vy);
-    lines += `<line x1="${vx + (x2 - vx) * t}" y1="${top}" x2="${x2}" y2="${H + 40}"/>`;
+// Dots that shrink away from a corner, as in the older covers of the blog.
+function halftone(right, bottom) {
+  const step = 17;
+  const reach = 330;
+  let dots = '';
+  for (let row = 0; row * step * 0.87 <= reach; row++) {
+    for (let column = 0; column * step <= reach; column++) {
+      const x = column * step + (row % 2 ? step / 2 : 0);
+      const y = row * step * 0.87;
+      const r = 6.4 * (1 - Math.hypot(x, y) / reach);
+      if (r >= 0.7) dots += `<circle cx="${right ? W - x : x}" cy="${bottom ? H - y : y}" r="${r.toFixed(2)}"/>`;
+    }
   }
-  for (let k = 1; k <= 5; k++) {
-    const y = top + 110 * Math.pow(k / 5, 1.8);
-    lines += `<line x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
-  }
-  return `<g stroke="${C.pink}" stroke-width="1.5" mask="url(#floormask)">${lines}</g>`;
+  return `<g fill="${C.halftone}" opacity="0.55">${dots}</g>`;
 }
 
 export function page(subject) {
@@ -74,12 +75,10 @@ text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
     <feGaussianBlur stdDeviation="0.7" result="b"/><feComponentTransfer in="b" result="c"><feFuncA type="linear" slope="0.6"/></feComponentTransfer><feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
   <filter id="halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
-  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141a38"/><stop offset="1" stop-color="#1b1540"/></linearGradient>
-  <linearGradient id="floorfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.75"/></linearGradient>
-  <mask id="floormask"><rect y="520" width="${W}" height="110" fill="url(#floorfade)"/></mask>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.background}"/><stop offset="1" stop-color="#1b203d"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#bg)"/>
-${floor()}
+${halftone(false, true)}${halftone(true, false)}
 ${subject}
 </svg></body></html>`;
 }
@@ -147,7 +146,7 @@ export function arrow(x1, y1, x2, y2, { color = C.teal, dashed = false, both = f
 }
 
 /** Scales a drawing around a point, to make a hand-placed subject fill the cover. */
-export function scaled(svg, factor, cx = W / 2, cy = 280) {
+export function scaled(svg, factor, cx = W / 2, cy = H / 2) {
   return `<g transform="translate(${cx} ${cy}) scale(${factor}) translate(${-cx} ${-cy})">${svg}</g>`;
 }
 
@@ -224,7 +223,7 @@ export function stack(rows, { color = C.teal } = {}) {
   const height = rows.length * rowHeight + (rows.length - 1) * gap;
   return node(width, height, null, (cx, cy) => rows.map((r, i) => {
     const y = cy - height / 2 + i * (rowHeight + gap);
-    return box(cx - width / 2, y, width, rowHeight, { color, radius: 14, strokeWidth: 3, fill: '#150f30' })
+    return box(cx - width / 2, y, width, rowHeight, { color, radius: 14, strokeWidth: 3, fill: C.row })
       + icon(r.icon, cx - width / 2 + 40, y + rowHeight / 2, 36, color)
       + text(r.text, cx - width / 2 + 76, y + rowHeight / 2 + 9, 26, { anchor: 'start' });
   }).join(''));
@@ -238,7 +237,7 @@ const CONNECTORS = { arrow: 120, dots: 120, both: 120, plus: 120, vs: 150, none:
  * arrow), 'plus', 'vs', 'none', or { icon: 'zap' } (an arrow with an icon
  * over it).
  */
-export function row(parts, { cy = 285, cx = W / 2, maxWidth = 1000, maxHeight = 390, maxScale = 1.9 } = {}) {
+export function row(parts, { cy = 315, cx = W / 2, maxWidth = 1000, maxHeight = 390, maxScale = 1.9 } = {}) {
   const isNode = (part) => typeof part !== 'string' && !part.icon;
   const width = (part) => (typeof part === 'string' ? CONNECTORS[part] : part.icon ? 150 : part.w);
   const total = parts.reduce((sum, part) => sum + width(part), 0);
@@ -265,7 +264,7 @@ function rowAt(parts, width, total, cx, cy) {
       } else if (kind === 'plus') {
         out += `<g stroke="${C.text}" stroke-width="7" stroke-linecap="round" ${GLOW}><path d="M${mid - 22} ${cy} H${mid + 22} M${mid} ${cy - 22} V${cy + 22}"/></g>`;
       } else if (kind === 'vs') {
-        out += `<g ${GLOW}>${text('vs', mid, cy + 18, 58, { color: C.pink })}</g>`;
+        out += `<g ${GLOW}>${text('vs', mid, cy + 18, 58, { color: C.teal })}</g>`;
       }
     } else {
       out += part.draw(mid, cy);
@@ -288,17 +287,17 @@ export function hub({ title = 'Kubernetes', top = 'kubernetes', rows = [], left 
   const rowHeight = 78;
   const rowGap = 14;
   const height = head + rows.length * (rowHeight + rowGap) + 12;
-  const y0 = 285 - height / 2;
+  const y0 = H / 2 - height / 2 + (top ? 20 : 0);
   let out = box(x0, y0, width, height) + (top ? logo(top, 600, y0 + 2, 96) : '') + text(title, 600, y0 + head - 28, 32);
   rows.forEach((r, i) => {
     const y = y0 + head + i * (rowHeight + rowGap);
-    out += box(x0 + 25, y, width - 50, rowHeight, { color: rowColor, radius: 14, strokeWidth: 3.5, fill: '#150f30' });
+    out += box(x0 + 25, y, width - 50, rowHeight, { color: rowColor, radius: 14, strokeWidth: 3.5, fill: C.row });
     out += icon(r.icon, x0 + 72, y + rowHeight / 2, 44, rowColor);
     out += text(r.text, x0 + 118, y + rowHeight / 2 + 10, 28, { anchor: 'start' });
   });
   const side = (points, sign) => points.forEach((p, i) => {
     const x = 600 + sign * 425;
-    const y = points.length === 1 ? 270 : 190 + i * 180;
+    const y = y0 + height / 2 + (points.length === 1 ? 0 : -95 + i * 180);
     const edge = sign < 0 ? x0 : x0 + width;
     const from = x - sign * 52;
     const mid = (from + edge) / 2;
@@ -317,10 +316,10 @@ export function terminal(lines, { x = 230, y = 95, width = 740 } = {}) {
   const height = 96 + lines.length * 62;
   let out = box(x, y, width, height, { color: C.teal });
   out += `<path d="M${x} ${y + 62} H${x + width}" stroke="${C.teal}" stroke-width="3" opacity="0.6"/>`;
-  [C.pink, C.amber, C.teal].forEach((color, i) => { out += `<circle cx="${x + 38 + i * 30}" cy="${y + 32}" r="9" fill="${color}"/>`; });
+  [C.red, C.amber, C.teal].forEach((color, i) => { out += `<circle cx="${x + 38 + i * 30}" cy="${y + 32}" r="9" fill="${color}"/>`; });
   lines.forEach((line, i) => {
     const ly = y + 122 + i * 62;
-    out += text('$', x + 40, ly, 32, { color: C.pink, anchor: 'start', mono: true });
+    out += text('$', x + 40, ly, 32, { color: C.teal, anchor: 'start', mono: true });
     out += text(line, x + 76, ly, 32, { anchor: 'start', mono: true });
   });
   return out;

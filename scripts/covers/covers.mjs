@@ -37,15 +37,16 @@ export default [
   {
     out: post('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes'),
     alt: 'An agent sandbox with the agent binary and Git access, connected through RBAC to the Kubernetes namespace that runs the application: an HTTPRoute, a Service, Pods and a Volume',
-    // Scaled down a little: the blog's cards crop the sides of the image.
-    svg: scaled(
+    // Scaled down a little (the blog's cards crop the sides of the image) and
+    // moved down to the center of the cover.
+    svg: `<g transform="translate(0 35)">${scaled(
       // The agent sandbox and what it carries.
       box(34, 162, 364, 236, { color: C.purple })
       + circle(216, 162, 33, { color: C.purple }) + icon('bot', 216, 162, 36, C.purple)
       + text('Agent sandbox', 216, 234)
       + [['cpu', 'Agent binary'], ['git-branch', 'Git access']].map(([name, label], i) => {
         const y = 254 + i * 64;
-        return box(54, y, 324, 54, { color: C.purple, radius: 12, strokeWidth: 3, fill: '#150f30' })
+        return box(54, y, 324, 54, { color: C.purple, radius: 12, strokeWidth: 3, fill: C.row })
           + icon(name, 82, y + 27, 28, C.purple) + text(label, 106, y + 35, 21, { anchor: 'start' });
       }).join('')
       // What the sandbox can do in the namespace is limited by RBAC.
@@ -58,6 +59,6 @@ export default [
         return box(x - 48, 252, 96, 96, { color: C.teal, radius: 18, strokeWidth: 3.5 })
           + icon(name, x, 300, 52) + text(label, x, 384, 21)
           + (i < 3 ? arrow(x + 58, 300, x + 86, 300) : '');
-      }).join(''), 0.93, 594, 285),
+      }).join(''), 0.93, 594, 285)}</g>`,
   },
 ];
