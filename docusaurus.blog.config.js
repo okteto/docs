@@ -30,8 +30,15 @@ module.exports = {
   themeConfig: {
     ...shared.themeConfig,
     // Searches blog posts only (see shared.algolia). Results depend on the
-    // Algolia crawler indexing https://www.okteto.com/blog/.
-    algolia: shared.algolia,
+    // Algolia crawler indexing https://www.okteto.com/blog/. The labels say so:
+    // the defaults ("Search", "Search docs") are the ones of the docs site.
+    algolia: {
+      ...shared.algolia,
+      translations: {
+        button: { buttonText: 'Search the blog', buttonAriaLabel: 'Search the blog' },
+        modal: { searchBox: { placeholderText: 'Search blog posts' } },
+      },
+    },
     navbar: shared.navbar('blog', { start: [shared.searchNavbarItem] }),
     footer: shared.footer('blog', { llmsTxtUrl: LLMS_TXT_URL }),
   },
@@ -64,7 +71,9 @@ module.exports = {
         blogTitle: 'Okteto Blog',
         blogDescription:
           'Posts from the Okteto team on development environments, platform engineering, Kubernetes, and AI coding agents.',
-        postsPerPage: 30,
+        // Twelve fill complete rows at four, three and two columns (the card grid
+        // in src/theme/BlogPostItems never shows more than four).
+        postsPerPage: 12,
         blogSidebarCount: 0,
         // Posts are ordered by `date`, but dates are not shown anywhere on the
         // blog, so there is no by-year archive page either.
@@ -75,7 +84,6 @@ module.exports = {
         onInlineTags: 'throw',
         onInlineAuthors: 'throw',
         onUntruncatedBlogPosts: 'ignore',
-        editUrl: 'https://github.com/okteto/docs/edit/main/',
         feedOptions: {
           // Published at /blog/rss.xml; okteto.com proxies the old /rss.xml
           // URL to it.
