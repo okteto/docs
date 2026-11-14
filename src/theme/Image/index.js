@@ -17,15 +17,28 @@ function Image(props) {
     src: source,
     loading: loading || "lazy",
     center: undefined,
-    borderless: undefined
+    borderless: undefined,
+    mobileSrc: undefined
   };
 
-  return (
+  const image = (
     <img {...imageProps} className={classnames(styles.Image, {
         [styles.ImageCenter]: props.center,
         [styles.ImageBorderless]: props.borderless
       })}
     />
+  );
+
+  // mobileSrc: an alternative image (for example, a diagram stacked
+  // vertically) served on narrow screens instead of src.
+  if (!props.mobileSrc) {
+    return image;
+  }
+  return (
+    <picture>
+      <source media="(max-width: 600px)" srcSet={props.mobileSrc} />
+      {image}
+    </picture>
   );
 }
 
