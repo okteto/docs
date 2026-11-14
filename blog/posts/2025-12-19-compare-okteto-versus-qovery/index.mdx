@@ -1,7 +1,7 @@
 ---
 title: "Okteto vs Qovery: Choosing the Right Kubernetes Development Platform for Your Team"
 title_meta: "Okteto vs Qovery: Comparing Kubernetes Development Platforms"
-description: "Okteto and Qovery take different approaches to Kubernetes development environments. This guide explains the key differences to help you choose."
+description: "Okteto and Qovery take different approaches to environments on Kubernetes. This guide explains the key differences to help you choose."
 slug: compare-okteto-versus-qovery
 date: 2025-12-19
 authors: ["ashlynn-pericacho"]
@@ -10,15 +10,13 @@ image_alt: "Graphic with okteto versus qovery logos"
 social_image: /img/social/compare-okteto-versus-qovery.jpg
 ---
 
-import { Figure } from '@site/src/components/blog';
-
-The development platform you choose shapes how your entire engineering organization works, not just today, but as you scale. So the question isn't just which platform has the right features. It's which platform is built around the right philosophy for how your team works. Do you need infrastructure automation, or developer velocity? Deployment simplicity, or faster iteration? Okteto and Qovery answer these questions differently. This guide explains how.
+The development platform you choose shapes how your entire engineering organization works, not just today, but as you scale. So the question isn't just which platform has the right features. It's which platform is built around the right philosophy for how your team works. Do you need a platform that deploys your application for you, production included? Or one that gives every developer and every coding agent a realistic environment to build, deploy, and test a change before they open a pull request? Okteto and Qovery answer these questions differently. This guide explains how.
 
 {/* truncate */}
 
 ## Understanding the Shared Challenge
 
-Modern cloud-native development is complex. Your applications aren't just code anymore. They're code plus configuration, runtime dependencies, network policies, secrets, and interactions across dozens of microservices. Developers can't gain real confidence that their changes work by running unit tests on a laptop. They need access to realistic environments that reflect production complexity.
+Modern cloud-native development is complex. Your applications aren't just code anymore. They're code plus configuration, runtime dependencies, network policies, secrets, and interactions across dozens of microservices. Developers can't gain real confidence that their changes work by running unit tests on a laptop, and neither can coding agents. Both need access to realistic environments that reflect production complexity.
 
 Both Okteto and Qovery recognize this challenge. Both aim to give developers better environments than local development that can't match production's complexity. But they approach the problem from different starting points, and those starting points shape everything about how each platform works.
 
@@ -34,39 +32,40 @@ The focus is on deployment automation and infrastructure abstraction. Qovery aim
 
 ## How Okteto Works
 
-Okteto takes a different architectural approach, starting from a different premise about what developers actually need.
+Okteto starts from a different premise: the team already runs Kubernetes, and what it lacks is a standard way to get the application running for everyone who changes it.
 
-Instead of creating infrastructure copies, Okteto runs your development process directly in Kubernetes, in actual pods within your cluster. When you develop with Okteto, your code executes in the same runtime environment where it will eventually run in production: same service accounts, same environment variables, same security configurations, same volumes, same sidecars. Changes sync in real-time, with feedback loops measured in seconds rather than minutes.
+Okteto installs in your own cluster. An [Okteto Manifest](https://www.okteto.com/docs/reference/okteto-manifest/) in the repository defines how to build, deploy, develop, and test the application, on top of the Helm charts, Kubernetes manifests, or Docker Compose files you already have. From that one definition, Okteto creates an application environment in its own namespace: your services with their real configuration, running in pods of your cluster.
 
-But the deeper difference isn't just architecture. It's philosophy.
+That environment isn't reserved for the end of the process. A developer or a coding agent gets one for the change they are working on, tries the change against the real application, and opens the pull request when it already works. Each pull request then gets its own [Preview Environment](https://www.okteto.com/docs/previews/), with a URL that product managers, designers, and QA can open, and the automated tests run against it too.
 
-Okteto is built on the premise that different environment types exist to serve different workflows and use cases, and a platform should be optimized for each workflow's specific job. A dev environment isn't a small staging environment. A preview environment isn't a temporary production replica. Each environment class has a distinct purpose and requires distinct capabilities.
-
-This "environments have different jobs" philosophy shapes everything about how Okteto works:
-
-**Dev Environments** are optimized for iteration speed. Real-time file sync, hot reload, bidirectional synchronization, remote debugging, port forwarding for IDE integration, and volume snapshots to quickly restore state. The job is all about helping individual developers move fast.
-
-**Preview Environments** are optimized for collaboration and validation with auto-deploy on pull requests, shareable URLs and automatic cleanup on merge. The job is enabling PMs, designers, QA, and stakeholders to validate changes before they're merged, without any technical setup required.
-
-**Test Environments** are optimized for consistency and reliability. Tests run inside the Kubernetes cluster, not on a separate CI virtual machine. They have the same runtime as production, access to private services and reduced latency. The job is ensuring your entire pipeline, from dev through CI, runs on Kubernetes to eliminate "works in CI but not in prod" surprises.
-
-**Agent Environments** give AI coding agents a place to build, test, and validate code. AI agents need production context the same way developers do. They need safe, secure, production-like environments to build, deploy, and verify code end-to-end, not just suggest changes. Each agent gets its own isolated, ephemeral environment with full access to code, infrastructure, and tests. The job is enabling teams to run fleets of agents in parallel, each working independently on different tasks, with the security and observability enterprise teams require.
+Okteto also includes the infrastructure to [run the agents themselves](https://www.okteto.com/agents-on-kubernetes/). Its built-in orchestrator launches coding agents on your cluster, each in a [light agent sandbox](https://www.okteto.com/blog/how-to-run-ai-coding-agents-on-kubernetes/) that holds the agent and its access to Git, under the access, quotas, and policies the platform team defines. The application doesn't run in the sandbox: each agent gets its own application environment, the same one a developer gets. That is what lets a team run many agents in parallel and trust what they produce.
 
 ## Quick Comparison
 
-*The table shows what each solution offers. The rest of this guide explains why those differences matter for your decision.*
+The table shows what each solution offers. The rest of this guide explains why those differences matter for your decision.
 
-<Figure src={require("./img/b4d572a23306.webp").default} alt={""} float={"center"} />
+| | Okteto | Qovery |
+|---|---|---|
+| **Core idea** | One definition of the application environment for developers, pull requests, tests, and agents | Environments are infrastructure configurations |
+| **Where code runs** | In pods of your Kubernetes cluster | Deployed containers in infrastructure copies |
+| **Feedback loop** | Changes synchronized in seconds | Minutes per deployment |
+| **Preview Environments** | Automatic per pull request, shareable URLs, automatic cleanup | Similar offering |
+| **Testing** | Okteto Test, in the cluster | No dedicated product |
+| **AI** | Runs coding agents on your cluster, each with a realistic application environment | AI Copilot for assisted DevOps tasks |
+| **Production deployment** | Integrates with existing pipelines (ArgoCD, Flux, and others) | Core platform capability |
+| **Primary value** | Standardized environments for the development cycle | DevOps automation, deployment management |
+| **Assumes** | Kubernetes expertise exists on the platform team | Kubernetes expertise is scarce |
+| **Best for** | Organizations committed to Kubernetes that want developers and agents to ship tested changes | Organizations that want the benefits of Kubernetes without Kubernetes expertise |
 
 ## The Philosophical Divide
 
-Here's the core distinction that explains most of the differences between these platforms:
+Here's the core distinction that explains most of the differences between these platforms.
 
-Qovery takes a generic approach to environments. Every environment is an infrastructure copy with different sizing and lifecycle rules. This works if your needs are straightforward, but it means the platform can't optimize for what each workflow actually requires.
+Qovery manages the infrastructure for you. An environment is a copy of that infrastructure, with different sizing and lifecycle rules, and the same platform takes the application to production. That works when deploying is your main problem.
 
-Okteto takes a purpose-built approach. Each environment type is designed around its specific job because those jobs are fundamentally different.
+Okteto standardizes the environments of the development cycle. Developers, pull requests, tests, and coding agents all run the application from the same definition, on the cluster you already operate, so a bug found by one of them reproduces for the others. Production stays on the pipeline you already trust.
 
-The result isn't more complexity for developers. It’s that developers (and PMs, QA, agents, etc.) get better outcomes because the environment is optimized for what they're actually trying to accomplish, rather than forcing everyone to use a generic infrastructure copy.
+The result isn't more complexity for developers. Developers, PMs, QA, and agents get an environment that behaves like production before a change is merged, not after.
 
 ## Architecture Matters: Where Your Code Actually Runs
 
@@ -88,11 +87,11 @@ Code changes sync in under 3 seconds. You write code, save the file, and see res
 
 ### You Debug Directly in Kubernetes
 
-Attach your IDE's debugger directly to code running in Kubernetes, setting breakpoints, inspecting variables, and stepping through execution against realistic services and data. Instead of adding log statements, redeploying, and waiting, you can pause execution and inspect state in real time. You're debugging against actual dependencies, actual data flows, and actual network conditions. For complex bugs that only manifest in production-like environments, this cuts investigation time dramatically.
+Attach a debugger directly to code running in Kubernetes, setting breakpoints, inspecting variables, and stepping through execution against realistic services and data. Instead of adding log statements, redeploying, and waiting, you can pause execution and inspect state in real time. You're debugging against actual dependencies, actual data flows, and actual network conditions. For complex bugs that only manifest in production-like environments, this cuts investigation time dramatically.
 
 ### Your Costs Don't Scale Linearly
 
-Environments share cluster resources intelligently, so costs don't scale linearly with team size. With infrastructure-copy approaches, ten developers mean ten full environment replicas, and fifty developers mean fifty. Okteto's architecture lets teams share baseline resources while isolating only what each developer is actively changing. The result is predictable costs that don't balloon as your team grows.
+Environments share cluster resources intelligently, so costs don't scale linearly with team size. With infrastructure-copy approaches, ten developers mean ten full environment replicas, fifty developers mean fifty, and every coding agent adds one more. With [Divert](https://www.okteto.com/docs/development/divert/), Okteto lets teams share baseline resources while isolating only what each developer or agent is actively changing. The result is predictable costs that don't balloon as your team grows.
 
 ## Platform Engineering Enablements
 
@@ -106,7 +105,7 @@ Okteto provides the infrastructure platform teams need:
 
 **Resource Manager** provides cost visibility and optimization across namespaces, while **Garbage Collector** sets sleep and delete policies for automatic cleanup. Know what you're spending, where to optimize, and let smart policies handle the rest.
 
-**Unified manifest** with `build`, `dev`, `test`, and `deploy` sections provides consistent governance across all environment types. One configuration model for your entire development lifecycle.
+**Unified manifest** with `build`, `dev`, `test`, and `deploy` sections provides consistent governance across every environment. One configuration model for your entire development lifecycle.
 
 **Enterprise readiness**: SSO, RBAC, audit logs, and the compliance features (SOC 2 Type 2) that enterprise organizations require.
 
@@ -118,7 +117,9 @@ Both platforms solve real problems. The right choice depends on your organizatio
 
 - Your organization has already committed to Kubernetes and is experiencing developer productivity pain
 - You want developers working in environments that truly mirror production to eliminate environment skew
-- You need to support different workflows for different teams (dev velocity, stakeholder review, test reliability)
+- You want developers and coding agents to build, deploy, and test their changes in a realistic environment before they open a pull request
+- You want one definition of the environment for development, pull requests, tests, and agents
+- You are putting coding agents to work and want them running on your cluster, under your policies
 - You're building or scaling a platform engineering function
 - You have existing production deployment pipelines and need a solution that integrates rather than replaces
 - You care about enabling your entire product team, not just developers
@@ -136,6 +137,6 @@ If you're a platform engineering leader evaluating these solutions, here's the s
 
 Qovery answers the first question. It automates DevOps so you don't have to hire for it. That's valuable for organizations at a certain stage.
 
-Okteto answers the second question. It gives developers sub-3-second feedback loops, gives PMs and designers shareable preview URLs, gives QA on-demand test environments, and gives you the visibility to continuously improve. It treats each workflow stage as a distinct problem worth solving well.
+Okteto answers the second question. It gives developers and coding agents a realistic environment to build, deploy, and test a change before the pull request, gives PMs and designers shareable preview URLs, runs the tests in the cluster, and gives you the visibility to continuously improve. One definition of the environment serves all of them.
 
-If your organization has committed to Kubernetes and your constraint is developer velocity, not deployment automation, Okteto is purpose-built for that outcome.
+If your organization has committed to Kubernetes and your constraint is how fast developers and agents ship tested changes, not deployment automation, Okteto is purpose-built for that outcome.
