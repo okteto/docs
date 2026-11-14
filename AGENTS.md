@@ -90,6 +90,15 @@ Every blog post and every tutorial has a cover image. The covers of the tutorial
 - **Simplicity:** one idea, a handful of shapes, and few labels of one to three words, in Circular Bold. The image has to read at the width of a card (about 300px).
 - **Colors:** teal (`#00d1ca`) for Okteto and for environments, blue (`#4d8dff`) for Kubernetes boxes, purple (`#b44cff`) for agents, and amber (`#ffb13b`) or red (`#ff5c7a`) for warnings, cost, and blocked paths.
 
+When you draw the subject:
+
+- Show each idea once. If two elements say the same thing (for example, "Kubernetes credentials" in a box and RBAC next to it), keep one.
+- Draw only what the article covers. Don't add related concepts to fill the image.
+- Don't wrap elements in extra boxes or layers. A control over a connection, such as RBAC, is a label on the arrow, not a box around one of its ends.
+- An application looks like a real one: its Kubernetes resources by name (HTTPRoute, Service, Pods, Volume) in a short chain, not generic shapes.
+- Leave a margin of about 80px on each side: the blog cards crop the sides of the image.
+- Draw one or two covers first and iterate on them with the user before applying a change of style to many.
+
 ### Logos and icons
 
 - **Okteto:** `mark('okteto')` draws the symbol (`static/img/logos/okteto.svg`) and `mark('okteto-wordmark')` draws the symbol with the name (`shared/static/img/logo.svg`). Use those files as they are: don't redraw or recolor them.
