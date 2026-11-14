@@ -17,8 +17,9 @@ import './styles.scss';
 function CardsList({ searchPlaceholder, pageSize }) {
   const category = useCurrentSidebarCategory();
   const { docs } = useDocsVersion();
-  // Base URL of the logos folder, resolved once (hooks can't run inside the loop below).
+  // Base URLs resolved once (hooks can't run inside the loop below).
   const logosBaseUrl = useBaseUrl('/img/logos/');
+  const siteBaseUrl = useBaseUrl('/');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
 
@@ -56,20 +57,22 @@ function CardsList({ searchPlaceholder, pageSize }) {
       {visible.length > 0 ? (
         <div className="CardsListGrid">
           {visible.map((item) => {
-            /** The logo is opt-in per doc via front matter:
-             *    sidebar_custom_props:
-             *      logo: "aws"
+            /** A cover image or a logo, opt-in per doc via front matter:
+             *    sidebar_custom_props: { image: "/img/tutorials/covers/helm.jpg" }
+             *    sidebar_custom_props: { logo: "aws" }
              *  Docusaurus surfaces `sidebar_custom_props` as the sidebar item's
-             *  `customProps`, so we read it here without any title-string hacks.
-             *  Drop the matching `<name>.svg` in `static/img/logos/` to add one.
+             *  `customProps`. Logos are `<name>.svg` files in `static/img/logos/`;
+             *  tutorial covers come from scripts/tutorial-covers.
              **/
             const logo = item.customProps?.logo;
+            const image = item.customProps?.image;
 
             return (
               <Card
                 title={item.label}
                 url={item.href}
                 logo={logo ? `${logosBaseUrl}${logo}.svg` : null}
+                image={image ? `${siteBaseUrl}${image.replace(/^\//, '')}` : null}
                 key={item.docId}
               >
                 {docs[item.docId]?.description}
