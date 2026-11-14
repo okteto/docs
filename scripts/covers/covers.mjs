@@ -45,19 +45,19 @@ export default [
   },
   {
     out: post('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes'),
-    alt: 'An agent sandbox with the agent binary, Git access and Kubernetes credentials, wrapped by a Kubernetes security layer of RBAC and network policies, and connected to the namespace that runs the application: an HTTPRoute, a Service, Pods and a Volume',
+    alt: 'An agent sandbox with the agent binary and Git access, wrapped by a Kubernetes security layer of RBAC and network policies, and connected to the namespace that runs the application: an HTTPRoute, a Service, Pods and a Volume',
     // Scaled down a little: the blog's cards crop the sides of the image.
     svg: scaled(
       // The security layer that Kubernetes puts around the sandbox.
-      box(46, 54, 428, 452, { color: C.teal })
-      + circle(84, 54, 25) + icon('shield-check', 84, 54, 28)
-      + pills(260, 461, ['RBAC', 'Network policies'], { size: 20, gap: 14 })
+      box(46, 86, 428, 388, { color: C.teal })
+      + circle(84, 86, 25) + icon('shield-check', 84, 86, 28)
+      + pills(260, 429, ['RBAC', 'Network policies'], { size: 20, gap: 14 })
       // The agent sandbox and what it carries.
-      + box(78, 112, 364, 300, { color: C.purple })
-      + circle(260, 112, 33, { color: C.purple }) + icon('bot', 260, 112, 36, C.purple)
-      + text('Agent sandbox', 260, 184)
-      + [['cpu', 'Agent binary'], ['git-branch', 'Git access'], ['key', 'Kubernetes credentials']].map(([name, label], i) => {
-        const y = 204 + i * 64;
+      + box(78, 144, 364, 236, { color: C.purple })
+      + circle(260, 144, 33, { color: C.purple }) + icon('bot', 260, 144, 36, C.purple)
+      + text('Agent sandbox', 260, 216)
+      + [['cpu', 'Agent binary'], ['git-branch', 'Git access']].map(([name, label], i) => {
+        const y = 236 + i * 64;
         return box(98, y, 324, 54, { color: C.purple, radius: 12, strokeWidth: 3, fill: '#150f30' })
           + icon(name, 126, y + 27, 28, C.purple) + text(label, 150, y + 35, 21, { anchor: 'start' });
       }).join('')
