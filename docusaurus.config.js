@@ -186,7 +186,21 @@ module.exports = {
     tableOfContents: {
       maxHeadingLevel: 4,
     },
-    algolia: shared.algolia,
+    // Docs and tutorials only, without the blog posts that contextual search
+    // would add (their tag is `default`, see shared.algolia). The index holds
+    // the docs of the latest version.
+    algolia: {
+      ...shared.algolia,
+      contextualSearch: false,
+      searchParameters: {
+        facetFilters: [
+          [
+            `docusaurus_tag:docs-default-${require('./versions.json')[0]}`,
+            'docusaurus_tag:docs-tutorials-current',
+          ],
+        ],
+      },
+    },
     navbar: shared.navbar('docs', {
       start: [shared.searchNavbarItem],
       end: [
