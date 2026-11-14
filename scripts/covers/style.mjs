@@ -1,10 +1,9 @@
 // The visual system of the blog and tutorial covers: a schematic drawn with
-// neon lines on the navy background of the blog, with halftone dots fading
-// from two corners. No titles: the image shows what the article is about.
+// neon lines on the navy of the blog, over one of four backgrounds (dots,
+// weave, rings or grid). No titles: the image shows what the article is about.
 //
 // A cover is an SVG string built with the helpers of this file, on a
-// 1200x630 canvas. Keep the subject clear of the two dotted corners (bottom
-// left and top right) and use few, short labels.
+// 1200x630 canvas. Use few, short labels.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,10 +37,10 @@ const estimate = (string, size) => string.length * size * 0.56;
 const escape = (string) => String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 // ---------------------------------------------------------------------------
-// The page: background, halftone corners and the subject.
+// The page: one of the backgrounds, and the subject on it.
 
-// Dots that shrink away from a corner, as in the older covers of the blog.
-function halftone(right, bottom) {
+// Dots that shrink away from a corner.
+function corner(right, bottom) {
   const step = 17;
   const reach = 330;
   let dots = '';
@@ -53,10 +52,61 @@ function halftone(right, bottom) {
       if (r >= 0.7) dots += `<circle cx="${right ? W - x : x}" cy="${bottom ? H - y : y}" r="${r.toFixed(2)}"/>`;
     }
   }
-  return `<g fill="${C.halftone}" opacity="0.55">${dots}</g>`;
+  return dots;
 }
 
-export function page(subject) {
+// The backgrounds of the blog covers, all on the same navy. Vary them from
+// one cover to the next.
+const BACKGROUNDS = {
+  // Halftone dots fading from the bottom-left and top-right corners.
+  dots: () => `<g fill="${C.halftone}" opacity="0.55">${corner(false, true)}${corner(true, false)}</g>`,
+
+  // A band of halftone dots across the cover, lighter in the middle.
+  weave: () => {
+    const step = 15;
+    let dots = '';
+    for (let row = -2; row * step <= H + 30; row++) {
+      for (let column = -2; column * step <= W + 30; column++) {
+        const x = column * step + (row % 2 ? step / 2 : 0);
+        const y = row * step;
+        // Distance to the diagonal that goes from the bottom left to the top right.
+        const band = Math.abs((x / W) * 0.9 + (y / H) - 0.95);
+        const r = 5.2 * (1 - band / 0.62) * (1 - 0.55 * (x / W));
+        if (r >= 0.6) dots += `<circle cx="${x}" cy="${y}" r="${r.toFixed(2)}"/>`;
+      }
+    }
+    return `<rect width="${W}" height="${H}" fill="url(#weaveglow)"/><g fill="#3d5680" opacity="0.5">${dots}</g>`;
+  },
+
+  // Wide concentric rings from the top-left and bottom-right corners.
+  rings: () => {
+    const ring = (cx, cy, radii) => radii.map((r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`).join('');
+    return `<g fill="none" stroke="#141d33" stroke-width="64">${ring(-40, 60, [150, 290, 430])}${ring(W - 150, H + 190, [240, 380, 520])}</g>`;
+  },
+
+  // A faint grid in perspective along the bottom edge.
+  grid: () => {
+    const top = 520;
+    const vx = 600;
+    const vy = 380;
+    let lines = '';
+    for (let i = -14; i <= 14; i++) {
+      const x2 = 600 + i * 120;
+      const t = (top - vy) / (H + 40 - vy);
+      lines += `<line x1="${vx + (x2 - vx) * t}" y1="${top}" x2="${x2}" y2="${H + 40}"/>`;
+    }
+    for (let k = 1; k <= 5; k++) {
+      const y = top + 110 * Math.pow(k / 5, 1.8);
+      lines += `<line x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
+    }
+    return `<g stroke="${C.teal}" stroke-width="1.5" mask="url(#gridmask)">${lines}</g>`;
+  },
+};
+
+export const backgrounds = Object.keys(BACKGROUNDS);
+
+export function page(subject, background = 'dots') {
+  if (!BACKGROUNDS[background]) throw new Error(`Unknown background: ${background}. Use one of: ${backgrounds.join(', ')}`);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: Circular; font-weight: 700; src: url('${fileUrl('shared/static/fonts/CircularXXWeb-Bold.woff2')}') format('woff2'); }
 html, body { margin: 0; }
@@ -76,9 +126,12 @@ text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
   </filter>
   <filter id="halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.background}"/><stop offset="1" stop-color="#1b203d"/></linearGradient>
+  <radialGradient id="weaveglow" cx="0.3" cy="0.55" r="0.75"><stop offset="0" stop-color="#2a3b5e"/><stop offset="0.6" stop-color="${C.background}"/><stop offset="1" stop-color="#121a2e"/></radialGradient>
+  <linearGradient id="gridfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.5"/></linearGradient>
+  <mask id="gridmask"><rect y="520" width="${W}" height="110" fill="url(#gridfade)"/></mask>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#bg)"/>
-${halftone(false, true)}${halftone(true, false)}
+${BACKGROUNDS[background]()}
 ${subject}
 </svg></body></html>`;
 }

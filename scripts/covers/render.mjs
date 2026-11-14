@@ -67,7 +67,7 @@ for (const [index, cover] of selected.entries()) {
     await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: scale, mobile: false }, sessionId);
   }
   const html = path.join(tmp, `${index}.html`);
-  fs.writeFileSync(html, page(cover.svg));
+  fs.writeFileSync(html, page(cover.svg, cover.background));
   await send('Page.navigate', { url: `file://${html}` }, sessionId);
   // Wait for the font and the logo files.
   await send('Runtime.evaluate', {

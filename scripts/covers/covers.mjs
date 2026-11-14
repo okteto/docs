@@ -1,5 +1,7 @@
 // The covers drawn in the style of style.mjs. Each entry has:
 //   out: where the JPEG goes (the post's img/cover.jpg)
+//   background: 'dots', 'weave', 'rings' or 'grid'. Vary it from one cover
+//        to the next, so consecutive posts don't look the same.
 //   alt: what the image shows (the post's `image_alt`)
 //   svg: the subject, built with the helpers of style.mjs
 //
@@ -27,6 +29,7 @@ function pills(cx, cy, labels, { color = C.teal, size = 18, gap = 10 } = {}) {
 export default [
   {
     out: post('2026-11-08-why-run-ai-coding-agents-on-kubernetes'),
+    background: 'rings',
     alt: 'AI coding agents working on separate issues inside Kubernetes, with four benefits: secure, reproducible, scale, and observability',
     svg: hub({
       rows: [{ icon: 'bot', text: '#142 fix login' }, { icon: 'bot', text: '#157 add export' }, { icon: 'bot', text: '#163 bump deps' }],
@@ -36,6 +39,7 @@ export default [
   },
   {
     out: post('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes'),
+    background: 'weave',
     alt: 'An agent sandbox with the agent binary and Git access, connected through RBAC to the Kubernetes namespace that runs the application: an HTTPRoute, a Service, Pods and a Volume',
     // Scaled down a little (the blog's cards crop the sides of the image) and
     // moved down to the center of the cover.
