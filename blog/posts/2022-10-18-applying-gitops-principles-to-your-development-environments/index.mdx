@@ -1,56 +1,76 @@
 ---
 title: "Applying GitOps Principles to Your Development Environments"
+description: "GitOps made Git the source of truth for production. Apply the same principles to the environments where developers, pull requests, and coding agents run your application."
 slug: applying-gitops-principles-to-your-development-environments
 date: 2022-10-18
 authors: ["arsh-sharma"]
 tags: ["gitops", "dev-environments"]
 image: ./img/5c2064a54ecd.jpg
+image_alt: "The title \"Applying GitOps Principles to Your Development Environments\" in white on a dark blue background, with the Okteto logo at the bottom right"
 ---
 
-import { Tweet } from '@site/src/components/blog';
-
-GitOps refers to the practice of using Git repositories as the single source of truth for provisioning and managing your infrastructure. Everyone in the industry agrees upon how much more convenient GitOps principles have made [continuous delivery](https://en.wikipedia.org/wiki/Continuous_delivery). Wouldn’t it be great if we could apply those very same principles to our development environments too?
+GitOps is the practice of using a Git repository as the single source of truth for your infrastructure: you declare the state you want, you version it, and automation makes the cluster match it. It changed how teams do [continuous delivery](https://en.wikipedia.org/wiki/Continuous_delivery). The same principles work just as well for the environments where your application runs before production.
 
 {/* truncate */}
 
-## The Challenge Kubernetes Created
+## The Problem: Environments Built by Hand
 
-GitOps emphasizes a declarative state for your infrastructure stored in a version control system. But why would we need to apply this to development environments? Why can’t we simply just continue writing code the way we did before?
+A modern application has many parts: several services, databases, queues, and cloud resources. Getting all of it running to work on a change is hard, and most teams solve it in one of two ways:
 
-One reason is that the modern applications we work on these days have multiple components. Because of this, developers now have a really hard time setting up their development environment. They have to go through numerous READMEs, full of instructions about setting up dev infrastructure, which they might not even fully understand or run hacky bash scripts, which might fail and are tough to maintain. All of this leads to developers spending hours of pre-work to get to the “code writing” phase. This makes for a terrible developer experience in teams. It is not fair to expect developers to configure and debug things in “Kubernetes land” instead of writing code.
+- **Run it locally.** Developers follow long READMEs or run scripts that somebody wrote years ago. The result is a simplified copy of the application that doesn't behave like production, so the feedback it gives isn't reliable.
+- **Build a production-like environment by hand.** It works, but it takes hours, it requires knowing Kubernetes and the tools around it, and every environment ends up slightly different from the others.
 
-Today’s reality is that developers have two options:
+In both cases, the knowledge of how to run the application lives in documents, scripts, and people's heads, not in a definition that a tool can apply. That is the problem GitOps solved for production.
 
-- To continue developing locally. Which meant they would not get genuine feedback when developing since locally bringing up applications is impossible to reflect production of microservice applications.
-- Or to spend hours configuring a production-like development environment for themselves. This is not only wasted dev time but also requires developers to keep up with the ever-growing cloud native ecosystem of tools.
+## GitOps Principles, Applied to Environments
 
-<Tweet id={"1303858170155081728"} />
+The [OpenGitOps principles](https://opengitops.dev/) say that the desired state of a system is declarative, versioned, pulled automatically, and continuously reconciled. For an environment where you develop, test, or review a change, this translates to:
 
-## GitOps to the Rescue
+- **Declarative.** A file describes how to build, deploy, and develop the application. Nobody follows steps by hand.
+- **Versioned.** The file lives in the repository, next to the code it runs. A change to the environment is a pull request, with its review and its history.
+- **Applied automatically.** A command or a pipeline creates the environment from the file, and the result is the same for everyone.
 
-Okteto solves the problems we discussed above by leveraging GitOps principles. Using Okteto, you can have all the configuration required to set up a **production-like** development environment defined, as code, **in a version control system**. Once that is done, any developer on your team can simply run a single command to get right to the “code writing” phase without worrying about the nuts and bolts of configuring Kubernetes.
+With Okteto, that file is the [Okteto Manifest](https://www.okteto.com/docs/reference/okteto-manifest/). It reuses the Helm charts, Kubernetes manifests, or Docker Compose files you already deploy with:
 
-Okteto deploys your application to an actual Kubernetes cluster using the same manifests you use in production and then allows you to [develop it there directly](https://www.okteto.com/docs/development/). The best part is that just like GitOps advocates, the entire configuration for your dev environment is stored in Git. Okteto leverages the idea of “development environments as code” by allowing you to specify all the configuration needed to spin up a dev environment in a single file: [the Okteto manifest](https://www.okteto.com/docs/reference/manifest/). This file is committed along with the application source code to a version control system. Once that is done, any developer on your team can simply clone the repository, run `okteto up`, and have a production-like environment ready for them to develop in.
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+  frontend:
+    context: frontend
+deploy:
+  - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+dev:
+  api:
+    command: ["bash"]
+    sync:
+      - api:/usr/src/app
+```
 
-Utilizing GitOps principles for your dev environments significantly improves developer experience by making things simple for everyone:
+Anyone who clones the repository runs `okteto up` and gets the application running in their own namespace of a Kubernetes cluster, built from the current code, with the changes they make locally synchronized to it.
 
-- The infrastructure team now only has to manage a single file per application where all the configuration for development environments lives
-- Updating the dev environment is now as simple as making a change in your Okteto manifest and sending a PR
-- Developers have to spend ZERO time configuring things and can have the dev environment launched in one command
+## One Definition for Every Environment
+
+The manifest isn't only for developers. Because the definition is in Git, everything that needs the application running starts from the same one:
+
+- **Developers** create a [Development Environment](https://www.okteto.com/docs/development/) and code locally against it.
+- **Pull requests** get a [Preview Environment](https://www.okteto.com/docs/previews/) with a URL that reviewers can open.
+- **Coding agents** [deploy their changes to an environment](https://www.okteto.com/docs/agentic/) and test them there before they open a pull request.
+
+A bug found in one of them reproduces in the others, and nobody maintains a separate setup for each case.
 
 ## Benefits
 
-With Okteto, just like in GitOps, a single source of truth can power development environments for all developers on your team. This approach has numerous benefits which make working on cloud native applications a lot easier than before:
+1. **Developer experience.** Nobody spends the start of a task setting up an environment. One command gets a developer to the point of writing code, and new team members contribute much sooner.
+1. **Consistency.** Every environment comes from the same file, so they don't drift apart. When something fails, the team debugs the application, not the differences between two setups.
+1. **Reliability.** The definition has the history of every change and who made it. If a change breaks the environments, you revert a commit.
+1. **Security.** Fixing a problem for everyone is one pull request. For example, when the image of a Development Container has a vulnerability, you change one line, and every environment created from then on uses the fixed image:
 
-1. **Developer Experience** 
-   When the entire configuration needed to spin up a development environment has been defined as code, developers on your team don’t have to spend hours with configuration or spent cognitive load. A single command gets you right to the code writing phase. This also enables new developers on your team to get up to speed much more quickly than possible before!
-1. **Consistency**
-   Having a single file power every developer’s dev environment ensures that there is consistency in workflows across your entire team. This leads to easier debugging and more effective collaboration because the focus can now be shifted to the actual application problems instead of worrying about infrastructure and configuration related issues.
-1. **Reliability**
-   Since your development environment is defined as code and stored in Git, you can leverage all the benefits of working with a version control system. From having a log of all the changes made to being able to easily revert back in case of things going wrong, this approach ensures you always have a safety net to fall back on.
-1. **Security** 
-   Having developers write code in secure environments is very important. Using vulnerable container images during development can be a huge risk compromising the security of your organization. With Okteto, you can periodically check the committed manifest for vulnerabilities and ensure that your mean time to recovery is minutes and not hours in case of an incident. Fixing things for everyone on your team is as simple as raising a pull request which updates your Okteto manifest!
+   ```diff title="okteto.yaml"
+    dev:
+      api:
+   -    image: registry.example.com/dev/api:1.4.1
+   +    image: registry.example.com/dev/api:1.4.2
+   ```
 
-![](./img/0ef4c010f276.webp)
-
-A couple of years ago, the benefits you would get from “GitOpsifying” your development environments wouldn’t have been that significant. But now, I would say that if you’re looking to unblock dev productivity, it’s absolutely essential for you to have your development environments as code in a version control system. Go try our [Getting Started Guide](https://www.okteto.com/docs/getting-started/) to see how Okteto helps with this!
+Platform teams already manage production this way. Applying it to the rest of the development cycle is a small step: write the manifest once, commit it, and let every developer, pull request, and agent start from it. The [Deploy your app](https://www.okteto.com/docs/get-started/deploy-your-app/) guide shows how.
