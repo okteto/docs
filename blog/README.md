@@ -34,6 +34,9 @@ blog/
    ---
    ```
 
+   The cover (`img/cover.jpg`) follows the style of the blog's covers and is
+   rendered with `scripts/covers`: see "Cover images" in
+   [`AGENTS.md`](../AGENTS.md#cover-images).
 3. Write the post in Markdown. Put `{/* truncate */}` after the first
    paragraph: everything above it is the excerpt.
 4. Run `yarn develop:blog` and open http://localhost:8081/blog/.
