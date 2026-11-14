@@ -12,7 +12,7 @@ Have you ever wanted to test the changes in one of your teammate's pull requests
 
 <!-- truncate -->
 
-Preview environments are the answer. A preview environment is an ephemeral environment associated to the life cycle of a pull request. Preview environments make it super simple to validate the changes in a pull request by anyone in your team. These changes are tested in isolation before merging the branch to master and without polluting other integration environments.
+Preview environments are the answer. A preview environment is an ephemeral environment associated to the life cycle of a pull request. Preview environments make it super simple to validate the changes in a pull request by anyone in your team. These changes are tested in isolation before merging the branch to main and without polluting other integration environments.
 
 In this blog post, you'll learn how preview environments can increase your team productivity and why Kubernetes is the perfect place to deploy your preview environments.
 
@@ -20,9 +20,9 @@ In this blog post, you'll learn how preview environments can increase your team 
 
 ## What is a preview environment
 
-Code reviews are a powerful tool to catch issues before code gets merged to master. But some issues are hard to discover from just reading code. Think about design changes, user onboarding workflows, or performance improvements. If you want to see the code of a pull request in action you will need to clone the branch in your local machine, redeploy your local environment, probably reconfigure your data, and then validate the changes. This is a lot of friction. And it could be hard to do by people from the product team, for example. Luckily, preview environments are here to help!
+Code reviews are a powerful tool to catch issues before code gets merged to main. But some issues are hard to discover from just reading code. Think about design changes, user onboarding workflows, or performance improvements. If you want to see the code of a pull request in action you will need to clone the branch in your local machine, redeploy your local environment, probably reconfigure your data, and then validate the changes. This is a lot of friction. And it could be hard to do by people from the product team, for example. Luckily, preview environments are here to help!
 
-A **preview environment** is an ephemeral environment created with the code of your pull requests. It provides a realistic environment to see your changes live before merging to master. A link to the preview environment is added to the pull request, so everyone in your team can see your changes live with just one click. The preview environment will be updated on each commit, and finally destroyed when the pull request is closed. They help to catch errors before bad code is merged to master and breaks your staging environments for everyone.
+A **preview environment** is an ephemeral environment created with the code of your pull requests. It provides a realistic environment to see your changes live before merging to main. A link to the preview environment is added to the pull request, so everyone in your team can see your changes live with just one click. The preview environment will be updated on each commit, and finally destroyed when the pull request is closed. It is also where your CI tests run, whether the pull request comes from a developer or from a coding agent. Preview environments help to catch errors before bad code is merged to main and breaks your staging environments for everyone.
 
 What is the best way to create your preview environments? Do you need a lot of scripts and automations? No, you don't. You can leverage Kubernetes to simplify the management of your preview environments.
 
@@ -50,7 +50,7 @@ Let's get into each of them in detail!
 A namespace is similar to a virtual cluster inside your Kubernetes cluster. You can have multiple namespaces inside a single Kubernetes cluster, and they are all logically isolated from each other.
 
 Namespaces are the perfect boundary for preview environments. Namespaces are easy to create and dispose.
-Deploy each preview environment on a different namespace to make sure you don't have name collisions and incompatibilities between your different environments. When your pull request is closed, remove the associated namespace and eveything created by your preview environment will be destroyed in seconds.
+Deploy each preview environment on a different namespace to make sure you don't have name collisions and incompatibilities between your different environments. When your pull request is closed, remove the associated namespace and everything created by your preview environment will be destroyed in seconds.
 
 ### Fast application startup times
 
@@ -82,4 +82,4 @@ Finally, running your preview environments in Kubernetes gives you a much more r
 
 ## Next steps
 
-Kubernetes has the right building blocks to manage preview environments on each pull request, but it requires you to glue a few pieces together. At [Okteto](https://okteto.com/) we have done this for you to make it super easy to configure preview environments on your Git repositories. Okteto supports your favorite application formats: Helm, Kustomize, Kubectl, or Docker Compose. Head over to our getting started guides to configure preview environments with [GitHub Actions](https://www.okteto.com/docs/cloud/preview-environments/preview-environments-github/) or [Gitlab](https://www.okteto.com/docs/cloud/preview-environments/preview-environments-gitlab/) and start enjoying the benefits of preview environments today.
+Kubernetes has the right building blocks to manage preview environments on each pull request, but it requires you to glue a few pieces together. At [Okteto](https://okteto.com/) we have done this for you to make it super easy to configure preview environments on your Git repositories. Okteto supports your favorite application formats: Helm, Kustomize, kubectl, or Docker Compose. Head over to our getting started guides to configure preview environments with [GitHub Actions](https://www.okteto.com/docs/previews/using-github-actions/) or [GitLab](https://www.okteto.com/docs/previews/using-gitlab-cicd/) and start enjoying the benefits of preview environments today.
