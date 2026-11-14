@@ -65,6 +65,22 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 
 File extension is `.mdx` for content pages. Frontmatter requires a `description` field. Write it per [`STYLE_GUIDE.md`](STYLE_GUIDE.md#frontmatter-description).
 
+## Tutorials
+
+Tutorials are step-by-step guides to do something with Okteto that have to keep working as the product changes. They live in `src/content/tutorials/` (and in the official version's copy, so they're served at `/docs/tutorials/`), and are listed on the tutorials index page, not in the sidebar. Ideas, opinion, comparisons, and news go to the blog instead.
+
+Every tutorial has a cover image, like a blog post:
+
+1. Add its `id`, `title`, and logo (a file of `static/img/logos/`) to `scripts/tutorial-covers/covers.json`, and run `node scripts/tutorial-covers/render.mjs <id>`. It writes `static/img/tutorials/covers/<id>.jpg` (1200x630).
+2. Set the cover in the tutorial's frontmatter, for the card on the index page and for link previews:
+
+   ```yaml
+   sidebar_custom_props: { image: "/img/tutorials/covers/<id>.jpg" }
+   image: /img/tutorials/covers/<id>.jpg
+   ```
+
+3. Add the tutorial to the `Tutorials` category in `sidebars.js`.
+
 ## Pre-submit checklist
 
 Run through this before declaring any docs change complete:
