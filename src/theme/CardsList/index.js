@@ -81,26 +81,28 @@ function CardsList({ searchPlaceholder, pageSize }) {
         query && <p className="CardsListEmpty">Nothing matches “{query}”.</p>
       )}
       {pages > 1 && (
-        <nav className="CardsListPagination" aria-label="Pages">
-          <button
-            type="button"
-            className="button button--secondary"
-            disabled={current === 0}
-            onClick={() => setPage(current - 1)}
-          >
-            Previous
-          </button>
-          <span>
-            Page {current + 1} of {pages}
-          </span>
-          <button
-            type="button"
-            className="button button--secondary"
-            disabled={current === pages - 1}
-            onClick={() => setPage(current + 1)}
-          >
-            Next
-          </button>
+        // Same markup as the blog's and the docs' Previous / Next links.
+        <nav className="pagination-nav CardsListPagination" aria-label="Pages">
+          {current > 0 && (
+            <button
+              type="button"
+              className="pagination-nav__link pagination-nav__link--prev"
+              onClick={() => setPage(current - 1)}
+            >
+              <div className="pagination-nav__sublabel">Previous</div>
+              <div className="pagination-nav__label">Page {current}</div>
+            </button>
+          )}
+          {current < pages - 1 && (
+            <button
+              type="button"
+              className="pagination-nav__link pagination-nav__link--next"
+              onClick={() => setPage(current + 1)}
+            >
+              <div className="pagination-nav__sublabel">Next</div>
+              <div className="pagination-nav__label">Page {current + 2}</div>
+            </button>
+          )}
         </nav>
       )}
     </>
