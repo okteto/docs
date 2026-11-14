@@ -1,0 +1,118 @@
+---
+title: Develop a Helm application with Okteto
+description: Create Development Environments for an application packaged as Helm charts, reusing the charts you deploy to production.
+id: helm
+sidebar_custom_props: { logo: "helm" }
+---
+
+Okteto deploys an application packaged as Helm charts with the same charts you use in production, and then lets you develop each service in that environment. This tutorial uses [Oktetodo](https://github.com/okteto/oktetodo), a to-do list application, to show the three sections of the [Okteto Manifest](/docs/reference/okteto-manifest) you need: `build`, `deploy`, and `dev`.
+
+## Prerequisites
+
+- Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli#context) configured.
+- The [Okteto CLI](/docs/get-started/install-okteto-cli) installed on your machine.
+- A local copy of the sample application:
+
+```bash
+git clone https://github.com/okteto/oktetodo
+cd oktetodo
+```
+
+## The Sample Application
+
+Oktetodo has three services, each one in its own folder:
+
+- `client`: a React frontend.
+- `server`: a Node.js backend that serves the API under `/todos`.
+- `db`: a PostgreSQL database that stores the to-dos.
+
+Each folder has a `chart` directory with the Helm chart that deploys the service. Two details of these charts make them work with Okteto.
+
+The container image of the `client` and `server` Deployments is a value, not a hardcoded tag:
+
+```yaml title="client/chart/templates/client-deployment.yaml"
+spec:
+  containers:
+    - name: client
+      image: {{ .Values.image }}
+      ports:
+        - containerPort: 3000
+```
+
+This lets Okteto pass the image it builds from your code, so every environment runs the code of its branch instead of an image pushed weeks ago.
+
+The Ingress has the `dev.okteto.com/generate-host` annotation, so Okteto creates a public HTTPS endpoint for the application in each environment:
+
+```yaml title="client/chart/templates/ingress.yaml"
+metadata:
+  name: todolist
+  annotations:
+    dev.okteto.com/generate-host: "true"
+```
+
+The [Ingress endpoints](/docs/core/endpoints/ingress) docs explain the options for endpoints.
+
+## The Okteto Manifest
+
+The `okteto.yaml` file at the root of the repository tells Okteto how to build, deploy, and develop the application:
+
+```yaml title="okteto.yaml"
+build:
+  server:
+    context: server
+  client:
+    context: client
+
+deploy:
+  - name: Deploy the DB
+    command: helm upgrade --install db db/chart
+  - name: Deploy the Node.js Backend
+    command: helm upgrade --install server server/chart --set image=${OKTETO_BUILD_SERVER_IMAGE}
+  - name: Deploy the React Frontend
+    command: helm upgrade --install client client/chart --set image=${OKTETO_BUILD_CLIENT_IMAGE}
+
+dev:
+  server:
+    command: bash
+    sync:
+      - server:/app
+  client:
+    command: bash
+    sync:
+      - client:/app
+```
+
+- **`build`** defines the images to build. `context` is the folder with the Dockerfile of each service. The [Okteto Build Service](/docs/core/build-service) builds them in your cluster, and skips the ones whose code didn't change.
+- **`deploy`** runs the same `helm upgrade --install` commands you would run against production. `${OKTETO_BUILD_SERVER_IMAGE}` and `${OKTETO_BUILD_CLIENT_IMAGE}` hold the images built in the `build` section, and `--set image=` passes them to the charts. The commands run in your cluster with [Remote Execution](/docs/core/remote-execution), so you don't need Helm on your machine.
+- **`dev`** defines a Development Container for each service: the command to run when it starts and the folders to synchronize between your machine and the container.
+
+## Deploying the Application
+
+Deploy the application from the root of the repository:
+
+```bash
+okteto deploy
+```
+
+Okteto builds the `client` and `server` images, runs the three Helm commands, and prints the endpoint of the application when the deployment finishes. Open it to see the to-do list, and add a few items.
+
+## Developing a Service
+
+Start a Development Container for the backend:
+
+```bash
+okteto up server
+```
+
+Okteto replaces the `server` Deployment with a Development Container, synchronizes the `server` folder of your machine to `/app`, and opens a shell in it. Start the backend:
+
+```bash
+node index.js
+```
+
+Edit `server/index.js` on your machine: your changes are synchronized to the container right away. Restart the process to load them and check the result through the same endpoint. Press `Ctrl+C` and run `okteto down` when you're done to restore the original Deployment.
+
+## Next Steps
+
+- [Preview Environments](/docs/tutorials/preview-environments) deploy the same application for every pull request.
+- [Optimize your Development Environment](/docs/tutorials/optimize-your-development-environment) explains how to make builds and file synchronization faster.
