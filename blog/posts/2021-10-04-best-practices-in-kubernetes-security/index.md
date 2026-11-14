@@ -1,6 +1,6 @@
 ---
 title: "Best Practices in Kubernetes Security"
-description: "Learn how you can include preview environments and automate your CI/CD process using GitHub Actions and Okteto."
+description: "Best practices to secure a Kubernetes cluster: RBAC, Pod Security Standards, network policies, etcd encryption, audit logging, and least privilege."
 slug: best-practices-in-kubernetes-security
 date: 2021-10-04
 authors: ["joydip-kanjilal"]
@@ -8,207 +8,116 @@ tags: ["kubernetes", "security", "cloud-native"]
 image: ./img/7934a32b2260.jpg
 ---
 
-> Joydip is a Microsoft Most Valuable Professional in ASP.NET, speaker, and author of several books and articles. He has more than 25 years of experience in IT, and more than 18 years in Microsoft .NET and its related technologies. He has authored more than 500 articles in some of the most reputed sites worldwide, including MSDN, InfoWorld, CodeMag, Tech Beacon, Auth0, MSSQLTips, Tech Target, etc.
+Kubernetes is great at orchestrating containers, but a cluster isn't secure by default: every new workload, user, and integration adds to its attack surface. This guide explains which parts of a cluster attackers target, and the best practices that protect them, from access control and pod security to etcd encryption and audit logging.
 
 <!-- truncate -->
 
-## Introduction
+## The Kubernetes Control Plane and Its Components
 
-There has been a surge in the adoption of containers such as Docker over the past few years. These containers offer lightweight virtualization and encapsulation for packing, deploying, and scaling microservices.
+The control plane is the brain of the cluster: it manages the worker nodes and the workloads that run on them, and it's the main point of access for administrators and users. It runs on one or more control plane nodes, and its main components are:
 
-Containers are small, portable, executable application components that comprise source code and the operating system libraries and dependencies required for the code to run in any environment. You can quickly and effortlessly start new services, run several instances on the same host to save resources, and scale up and down as needed.
+- **etcd**: the key-value store that holds the configuration and state of every object in the cluster.
+- **kube-apiserver**: the REST API that every operation in the cluster goes through.
+- **kube-controller-manager**: the controllers that watch the state of the cluster and move it toward the desired state.
+- **kube-scheduler**: the component that decides which node runs each new pod.
 
-Containers are becoming more popular, driving the need for tools to manage and orchestrate them on a larger scale. With the introduction of containers came the expansion of the size of clusters and the diversification of microservices. As a result, container orchestration has become more crucial.
+An attacker who gains access to the API server or the control plane can compromise the entire cluster: deploy new pods, modify the existing ones, or delete them. That's why most of the practices below are about who can reach the control plane and what they can do with it.
 
-This is exactly where Kubernetes comes to the rescue. Over the past few years, Kubernetes' acceptance has grown leaps and bounds. This exponential growth is predominantly because of its ability to improve efficiency and agility in an organization.
+## Kubernetes Security Challenges
 
-## What is Kubernetes?
-
-Kubernetes, also known as K8s, is a portable, open-source, extensible, vendor and cloud-agnostic container orchestration platform designed to automate container scaling, deployment, and management. Although Kubernetes is excellent at orchestration, it's not adept at handling security. As a result, you must use the appropriate deployment architecture and security best practices to eliminate security flaws and thwart any security attacks.
-
-Here are a few reasons why you should use Kubernetes:
-
-**Open-Source:** Kubernetes is an open-source container orchestration system and a community-led initiative governed by Certified Kubernetes Conformance Program (CNCF).
-
-**Portability and Flexibility:** You can use Kubernetes with any container runtime and any underlying infrastructure provided that the host operating system is either Windows or Linux.
-
-**Multi-cloud support:** Kubernetes can host workloads that are executed both on a single cloud as well as distributed across several clouds.
-
-**Load balancing:** To guarantee that the deployment is reliable, Kubernetes supports load balancing and network traffic distribution.
-
-**Scalability:** Kubernetes enables your application to be scaled both vertically and horizontally. Since containers are lightweight by design, you can build them at the drop of a hat and then scale your application quickly.
-
-**Vendor and Cloud agnostic:** Kubernetes is Cloud and Vendor neutral. It can run on Amazon Web Services (AWS), Microsoft Azure, Google Cloud Platform (GCP), or even on premise.
-
-## The Kubernetes Control Plane and its Components
-
-The Kubernetes Control Plane, a.k.a. the Master Node, serves as the brain of the cluster that manages the worker nodes. It's responsible for ensuring that the system is up and running and is in perfect working order. For administrators and users, it acts as the main point of access for managing the various nodes in the cluster. The control plane comprises the Kubernetes API server, etcd, and several controllers.
-
-The following are the purposes of each of the components of the control plane:
-
--   etcd - This is the fundamental component of a Kubernetes cluster used to store configuration data such that it's accessible to each node in a Kubernetes cluster.
--   kube-apiserver - This is a REST-based interface through which all communications pass and controls all management and operational functions in Kubernetes.
--   kube-controller-manager - This is a service that is responsible for keeping a close eye on the state of a cluster.
--   kube-scheduler - This component is accountable for scheduling cluster workloads.
-
-Malicious attackers might try to gain access to the Kubernetes API Server and Control Plane. Once they have been hacked, the attackers may compromise the entire cluster by altering the pods. They can deploy new ones or modify or even delete the existing pods from the cluster.
-
-## Kubernetes Security: Understanding the Challenges
-
-While Kubernetes is a popular technology for delivering containerized apps, scaling Kubernetes environments is challenging. Each new container increases the attack surface. To effectively deal with Kubernetes security, you must have complete visibility into every managed container and application request.
-Kubernetes is great at orchestration but not as adept at security. For all deployments, it's imperative to employ the appropriate deployment architecture and security best practices. We'll take a deep dive into some of the Kubernetes security best practices in the following sections.
+Each new container increases the attack surface, so securing Kubernetes requires visibility into every workload and every request to the API. Kubernetes gives you the building blocks, but you have to configure them.
 
 ### Securing the Control Plane
 
-Integrity monitoring on the most critical Kubernetes files is a vital first step to securing the control plane. This way, you'll get an instant notification if the settings of your Kubernetes environment are altered in any way. Note that critical files are those that, if hacked or compromised, might cause the whole cluster to fail.
-
-This can be achieved by implementing detection policies to monitor any suspicious filesystem changes on critical Kubernetes files such as the following:
+Monitor the integrity of the critical Kubernetes files, so you get notified as soon as the configuration of the cluster changes. Critical files are the ones that, if compromised, could bring down the whole cluster. Watch for:
 
 - Creation or removal of files or directories
 - Renaming of files or directories
-- Changes to the security settings of a file or directory, such as permissions, ownership, and so on
-- Changes made to the files pertaining a container
+- Changes to the security settings of a file or directory, such as permissions or ownership
+- Changes to the files of a container
 
-You can read more on this [here](https://www.trendmicro.com/vinfo/us/security/news/virtualization-and-cloud/the-basics-of-keeping-your-kubernetes-cluster-secure-part-1).
+You can read more about it in [this guide from Trend Micro](https://www.trendmicro.com/vinfo/us/security/news/virtualization-and-cloud/the-basics-of-keeping-your-kubernetes-cluster-secure-part-1).
 
 ### Securing the Kubernetes API Server
 
-To safeguard your Kubernetes API server, ensure it's on an authorized network and in a private cluster. To restrict unauthorized access to the Kubernetes API server, you should utilize Kubernetes Role-Based Access Control (RBAC).
+The API server is the gateway to the control plane. Give it a private IP address, keep the cluster private, and disable access to the API server from public IP addresses, so attackers can't reach it from the internet. Expose your services through a load balancer or an API gateway that opens only the ports you need, and use Role-Based Access Control (RBAC) to restrict what authenticated users can do.
 
-Considered the Kubernetes control plane gateway, you should allocate a private IP address to the Kubernetes API server to protect it. Access to the Kubernetes API server from any public IP address should be disabled.
+## Kubernetes Security Best Practices
 
-What then is the need to disable access from a public IP? The objective should always be to work with private nodes by disabling public access to prevent attackers from gaining control of the control plane. You should use a load balancer or an API gateway to expose a service on the web and enable the ports you require. The essence is that we should always strive to apply the least-privileged concept and ensure that everything is closed as a preventative measure.
-
-## What is Kubernetes Monitoring?
-
-Traditional monitoring no longer works for Kubernetes environments. However, you can adhere to the Kubernetes monitoring best practices to gain a deep insight into your system availability, performance, and the proper context to troubleshoot any problem if need be.
-
-When you use Kubernetes monitoring, you may get insight into the current health of your cluster by looking at performance indicators such as resource counts, performance metrics, and a high-level overview of what is going on within your containerized application. It will help if you're notified when errors occur so that you may take appropriate action and resolve the issues.
-
-Some of the popular Kubernetes monitoring tools include Prometheus, Grafana, Dashboard, Jaeger, etc.
-
-## Kubernetes Security: The Best Practices
-
-Since Kubernetes is completely API-driven, your first strategy should be managing and restricting who has access to the cluster and what activities they can do. To help you in this pursuit, take a look at these Kubernetes security best practices and guidelines you should adhere to protect your infrastructure.
+Kubernetes is completely API-driven, so the first strategy is to control who can access the cluster and what they can do. These are the practices to follow.
 
 ### Enable Role-Based Access Control (RBAC)
 
-Role-Based Access Control (RBAC) allows you to control who has access to the Kubernetes API and their actions, such as creating, editing, and deleting resources. Since the authorization controllers in Kubernetes are combined, you must activate RBAC and disable traditional Attribute-Based Access Control. Once RBAC has been implemented, you must ensure that it's used properly. For example, it's usually recommended to avoid using cluster-wide permissions in favor of namespace-specific permissions. If possible, avoid granting anybody cluster-admin rights, even for debugging purposes. It's far more secure to give access only when it's needed.
+[RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) controls who can access the Kubernetes API and which actions they can perform, such as creating, editing, or deleting resources. Most distributions enable it by default, but it still has to be used well:
 
-### Enforce Resource Management using Policy-as-Code
+- Prefer namespace-scoped permissions (Roles and RoleBindings) over cluster-wide ones (ClusterRoles and ClusterRoleBindings).
+- Don't grant cluster-admin rights, not even for debugging. Grant access only when it's needed.
+- Remove duplicated, inactive, and unused roles, so every permission that exists is one that's in use.
+- Disable the legacy Attribute-Based Access Control (ABAC) authorizer.
 
-You need proactive resource management to establish predefined limitations on the resources used by both pods and containerized workloads. For DevOps teams, it's the most effective method to manage the production environment and to improve both operations and security at the same time. You can take advantage of policy-as-code tools to scan configuration data and check if it conforms to the codified policies.
+Tools like [audit2rbac](https://github.com/liggitt/audit2rbac), which generates roles from the requests in your audit logs, and [rbac-tool](https://github.com/alcideio/rbac-tool), which analyzes and visualizes your RBAC configuration, help you keep permissions to the minimum. [Demystifying RBAC in Kubernetes](https://www.cncf.io/blog/2018/08/01/demystifying-rbac-in-kubernetes/), from the CNCF, is a good introduction.
 
-In the absence of limitations on the resources that your containers and pods may use, you might find yourself in a position where they need more resources than are available. It would help if you created a policy that would make it imperative for Kubernetes configurations to specify resource limits to prevent such issues in the future. You might want to use policy-as-code tools like Terrascan to scan configurations and flag as soon as there is any non-conformance to the predefined codified policies.
+### Enforce Pod Security Standards
 
-### Always Keep Kubernetes Updated
+The [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/) define three levels of restrictions for pods: Privileged, Baseline, and Restricted. Pod Security Admission, built into Kubernetes, enforces them per namespace with a label. Use the Restricted level wherever you can: it prevents privileged containers, running as root, host namespaces, and privilege escalation. Pod Security Admission replaced PodSecurityPolicy, which was removed in Kubernetes 1.25.
 
-Keeping your Kubernetes cluster up to date with the most current version is one of the most important security best practices you can follow. The old version of Kubernetes might be susceptible to attackers since they might get access to your Kubernetes cluster if you don't update Kubernetes with its most recent version. This activity must be performed regularly so that you have a most recent copy of Kubernetes.
+### Enforce Resource Limits With Policy as Code
+
+Without limits, a container or a pod can consume more resources than the node has, and a compromised workload can starve the rest of the cluster. Require every workload to set resource requests and limits, and enforce it with policy-as-code tools such as [Kyverno](https://kyverno.io/), [OPA Gatekeeper](https://open-policy-agent.github.io/gatekeeper/), or [Terrascan](https://github.com/tenable/terrascan), which check configurations against your policies and flag any violation.
+
+### Keep Kubernetes Updated
+
+Older Kubernetes versions have known vulnerabilities that attackers can exploit. The Kubernetes project maintains only the three most recent minor releases, so upgrade your clusters regularly to stay on a supported version and get its security patches.
 
 ### Restrict API Access
 
-Most cloud-based Kubernetes implementations already limit access to the Kubernetes API of your cluster via the use of Identity and Access Management (IAM), Role-Based Access Control (RBAC), or Active Directory (AD). If your cluster doesn't already use one of these methods, you can typically configure one by using open-source projects to deal with different authentication methods. Additionally, access to the API should also be limited by the IP address, and access should only be provided to the trustworthy IPs.
+Most managed Kubernetes services already integrate access to the API with Identity and Access Management (IAM) or a directory service like Active Directory. If your cluster doesn't, configure an authentication method, for example with OpenID Connect. Also restrict access to the API by IP address, so only trusted networks can reach it.
 
-The following open-source projects can help in this regard:
+### Restrict SSH Access to the Nodes
 
-- [Audti2rbac](https://github.com/liggitt/audit2rbac)
-- [Kubernetes RBAC](https://github.com/alcideio/rbac-tool)
-- [StrongDM](https://www.strongdm.com/)
+Disable SSH access to the Kubernetes nodes to reduce the risk of unauthorized access to their resources. Users who need to inspect a container can use `kubectl exec`, which goes through the API server and its access controls, instead of connecting to the host.
 
-### Restrict SSH Access
+### Isolate the Kubernetes Nodes
 
-It's an excellent practice to disallow SSH access to the Kubernetes nodes. This will lower the risk of unauthorized access to host resources on the cluster. Instead, it would help to ask the users to use the "kubectl exec" command to access the container environment without directly connecting to the host. You can also take advantage of Kubernetes Authorization Plugins to restrict user access to resources. You can even define access control rules for containers, namespaces, and operations.
+Put the Kubernetes nodes on a dedicated network that isn't reachable from the corporate network, keep control plane traffic and data traffic separate, and configure the nodes to accept connections only from the control plane.
 
-### Isolate Kubernetes Nodes
+### Apply Network Policies and Monitor Network Traffic
 
-You should ensure that a distinct network is dedicated to Kubernetes nodes. Additionally, it would help ensure that Kubernetes nodes are not accessible to the corporate network. Hence, Kubernetes control and data traffic should be kept separate. You should configure nodes in such a way that they allow connections from the master node only.
+By default, every pod can talk to every other pod. [Network policies](https://www.okteto.com/blog/kubernetes-network-policies/) restrict that traffic: start by denying all traffic in a namespace and then allow only the connections each workload needs. Monitor network activity, compare it to the traffic your policies allow, and remove the connections that are no longer needed to keep the attack surface small.
 
-### Use Process Whitelisting
+### Allowlist Processes
 
-Process whitelisting is an efficient Kubernetes security technique that provides zero-trust guarantee as far as process security is concerned. You should create a list of processes that are allowed to run on each pod. Next, you should use this list as your application's whitelist.
+Define the list of processes that are allowed to run in each pod. If an attacker gets into the cluster and starts a malicious process, it isn't on the allowlist, so you can detect it and report it immediately. [AppArmor](https://kubernetes.io/docs/tutorials/security/apparmor/), a Linux security module that Kubernetes supports, can restrict what each container is allowed to run.
 
-Suppose an attacker succeeds in getting access to your cluster and begins running a malicious process. In that case, you'll easily identify the user since it's a new non-whitelisted process. If it isn't on the whitelist and isn't part of the pod's normal behavior either, it should be reported immediately.
+### Monitor the Cluster
 
-The user can do process Whitelisting with admin privileges. [AppArmor](https://www.alcide.io/whitelisting-processes-on-kubernetes-using-apparmor/) is a popular security module for Linux that can be used for implementing process whitelisting in Kubernetes. [Here](https://www.alcide.io/securing-kubernetes-clusters-using-process-whitelisting/) is a good read on process whitelisting.
+Monitoring tells you about the health of your cluster and its workloads, and it gives you the context to investigate suspicious behavior: unusual resource usage, pods that restart, or traffic that doesn't match the usual patterns. Tools like Prometheus, Grafana, and Jaeger collect metrics and traces, and alerts let you act as soon as something goes wrong.
 
-### Deploy Additional Controls
+### Protect etcd With TLS, a Firewall, and Encryption
 
-If you're using Kubernetes in a production environment, it's imperative that you deploy additional security controls. The reason is that you need complete visibility into the Kubernetes environment and the activities going on there. 
+etcd holds every object in the cluster, Secrets included. An attacker with access to etcd controls the whole cluster, and even read access is dangerous, because it can be used to escalate privileges. Protect etcd with TLS and a firewall, so only the API server can reach it, and [encrypt its data at rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/).
 
-This would help you to avoid potential downtimes when deploying mission-critical applications. These controls exist as policies to enable you to restrict access to resources in the cluster.
+### Turn On Audit Logging
 
-Here are the security best practices for Kubernetes in production:
+[Audit logs](https://kubernetes.io/docs/tasks/debug/debug-cluster/audit/) record the sequence of requests to the Kubernetes API: who did what, when, and how. They help you investigate incidents and detect misconfigurations or misuse before sensitive data is compromised.
 
-- Enable Kubelet authentication and authorization
-- Establish security boundaries and isolate Kubernetes Nodes
-- Monitoring network traffic to be able to limit communications
-- Implement network security policies
-- Create security policy for pods
-- Use Process Whitelisting
-- Images should be scanned for any security vulnerabilities
-- Apply security updates on a regular basis
-- Log extensively
+Enable audit logging and watch for unusual requests, particularly authorization failures, which are logged with the status "Forbidden": an attacker may be trying to use stolen credentials. An audit policy file defines which events to record and at which level: None, Metadata, Request, or RequestResponse.
 
-### Monitor Network Traffic
+### Secure Every Layer
 
-Ideally, you should keep an eye on network activity and compare it to authorized traffic and traffic permitted by the Kubernetes network policy. The goal is to eliminate connections that are no longer required in order to minimize the attack surface. Additionally, you may strengthen the permitted network policy by removing any connections that aren't required.
+Kubernetes security goes beyond the cluster. The [Kubernetes documentation](https://kubernetes.io/docs/concepts/security/overview/) describes four layers, the 4Cs of cloud native security, and each one needs its own controls:
 
-### Adopt a Multi-Layered Security Approach
+- **Cloud**: the cloud or data center infrastructure the cluster runs on.
+- **Cluster**: the Kubernetes components and the workloads that run on them.
+- **Container**: the container images and runtimes. Scan images for vulnerabilities and use images from trusted registries.
+- **Code**: the source code of your applications and their dependencies.
 
-Cloud-native applications have diverse components and elements, making it imperative to look beyond containerized workloads to safeguard your Kubernetes deployments. Hence to secure your Kubernetes environment, you should adopt a multi-layered security strategy. The Kubernetes documentation recommends a multi-layered approach called 4C (Cloud, Container, Cluster, and Cloud) for securing your Kubernetes environments.
+No single tool protects every layer, so combine the right tools for each one.
 
--   Cloud and data center infrastructure and other resources required to create Kubernetes environments
--   Container clusters that comprise the workloads that run on a particular cluster
--   Individual Containers, i.e., the software images used to instantiate workloads.
--   Source Code and container images
+### Apply Least Privilege and Defense in Depth
 
-It would help if you took advantage of recommended tools to secure and protect each of these layers. However, you should know that you don't have one tool that can help protect all these layers.
-
-### Enable Kubernetes Role-Based Access Control
-
-Role-Based Access Control or RBAC is a critical security component of Kubernetes and one of the Kubernetes Deployment best practices. It enables you to implement access control rules to your Kube API; you may specify the permissions granted to users through RBAC.
-
-Although RBAC is enabled by default, starting with Kubernetes 1.6, it should be used appropriately. It would be best if you took appropriate measures to minimize permission duplication and deactivate inactive and unused roles so that you can concentrate only on active components and avoid providing unnecessary permissions to a user.
-
-If you want to specify who has access to the Kubernetes API and what rights they have, RBAC may assist you in doing so. When you activate RBAC, you must also disable the old Attribute-Based Access Control (ABAC) mechanism.
-
-When implementing RBAC, you should prefer namespace-specific rights over cluster-wide permissions. Even while debugging, don't give cluster administrator access. It's safer to provide access only when required.
-
-[Here]( https://www.strongdm.com/blog/kubernetes-rbac-role-based-access-control) is a good read on working with RBAC in Kubernetes. Here are some additional references that might help:
-
-- https://docs.giantswarm.io/getting-started/rbac-and-psp/
-- https://www.cncf.io/blog/2018/08/01/demystifying-rbac-in-kubernetes/
-- https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/authentication_and_authorization/using-rbac
-- https://thenewstack.io/three-realistic-approaches-to-kubernetes-rbac/
-
-### Protect etcd with TLS, Firewall and Encryption
-
-The etcd database is the primary source of data within a Kubernetes cluster and contains all cluster objects. It's where all your cluster objects are kept safe and secure. If the etcd database is exposed, sensitive data can be compromised. This will enable an attacker to gain access and control on your cluster in its entirety. You should take advantage of both encryptions for the data in transit and at rest to secure your data.
-
-Note that even read access is not safe since it would enable an attacker to elevate privileges. You can protect etcd using TLS encryption and Firewall. Once you've secured the data in transit, you can encrypt the entire etcd data at rest so that the data residing inside your clusters are secure.
-
-### Turn on Audit Logging
-
-Audit logging keeps track of the sequence of events in a Kubernetes cluster. It helps the administrators investigate a potential issue by keeping a close eye on the activities performed by the users and the Kubernetes API and examine the sequence of events that caused the problem.
-
-You can take advantage of Kubernetes audit logs to keep track of everything that happens in your Kubernetes control plane, including who, what, when, and how it happened. It may be very beneficial to keep an eye on your audit logs since it can assist you in detecting and mitigating misconfigurations or misuse of Kubernetes resources before sensitive data is compromised.
-
-Ensure that audit logging is enabled and that you monitor API requests that are unusual or unwanted, particularly authentication failures. These log entries are marked with the status message "Forbidden." An attacker may be attempting to use stolen credentials if an authorization request is denied.
-
-You can take advantage of the audit policy file to enable audit logging while specifying which events should be captured in the logs. You may choose from four different logging levels: None, Metadata only, Request, and RequestResponse.
-
-### Leverage the Principle of Least Privilege and Defense-in-Depth
-
-Take advantage of the principles of least privilege and defense-in-depth to protect your Kubernetes environments. As a result, even if the attacker has breached one component, i.e., one of the components has been compromised, the attacker will still not have complete access to the system. In essence, the attacker will have to penetrate several additional layers to cause any substantial damage or gain access to the sensitive data.
-
-## What’s Next?
-
-Keeping up with security concerns may be difficult. Just keep in mind that adopting several levels of protection will significantly decrease your organization's risk. Kubernetes has a vibrant community that shares many of your organization's issues; consider using this community and contribute back when you can to help make Kubernetes more secure for everyone.
-
-Use these recommendations to protect your Kubernetes cluster. Even if you follow these guidelines to protect your Kubernetes cluster, you must still secure your container configurations and runtime operations. Look for solutions that provide centralized governance, continuous monitoring, and security for containers and cloud-native applications.
+Give every user, workload, and component only the permissions it needs, and layer your controls. If an attacker compromises one component, they still have to get through several more layers before they can cause real damage or reach sensitive data.
 
 ## Conclusion
 
-Because of its complexity, cloud-native systems such as Kubernetes offer rapidly growing challenges in adopting security best practices and fulfilling corporate security policy and compliance objectives. Securing your Kubernetes deployments can be excruciatingly difficult but not impossible.
-
-Start by implementing the recommendations provided here as a starting point for securing your Kubernetes environment and decreasing the number of attack surfaces. The use of robust security guidelines will empower you to have complete transparency into and control over every layer of your Kubernetes deployment.
+Securing Kubernetes is hard, but not impossible. Start with the practices in this guide to reduce the attack surface of your clusters, and keep in mind that securing the cluster is only part of the job: your container images, configurations, and runtime operations need the same attention. Kubernetes has a large community that faces the same problems, so learn from it, and contribute back when you can.
