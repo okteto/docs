@@ -188,7 +188,8 @@ module.exports = {
     },
     // Docs and tutorials only, without the blog posts that contextual search
     // would add (their tag is `default`, see shared.algolia). The index holds
-    // the docs of the latest version.
+    // the docs of the latest version, tutorials included. `docs-tutorials-current`
+    // is the tag tutorials had as a separate plugin, until the crawler re-indexes.
     algolia: {
       ...shared.algolia,
       contextualSearch: false,
@@ -290,17 +291,6 @@ module.exports = {
     ],
   ],
   plugins: [
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'tutorials',
-        path: 'src/tutorials',
-        routeBasePath: 'tutorials',
-        sidebarPath: require.resolve('./sidebarTutorials.js'),
-        breadcrumbs: false,
-        showLastUpdateTime: true,
-      },
-    ],
     [
       '@signalwire/docusaurus-plugin-llms-txt',
       {
