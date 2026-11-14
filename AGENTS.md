@@ -76,6 +76,7 @@ Run through this before declaring any docs change complete:
 5. **Confirm the frontmatter `description`** is a single functional sentence, with no marketing copy.
 6. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
 7. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
+8. **Check every image or table you added at phone width** (390px, an iPhone). Text inside images must stay readable (about 11px or more on screen): give wide diagrams a stacked version with the `mobileSrc` prop of `Image`. Tables must fit the screen without scrolling sideways. Headless Chrome can't make its window narrower than about 500px, so emulate the device (Chrome DevTools, or `Emulation.setDeviceMetricsOverride` over the DevTools protocol) instead of resizing the window.
 
 ## Special workflows
 
