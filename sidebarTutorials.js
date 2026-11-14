@@ -29,7 +29,6 @@ module.exports = {
         'compose-getting-started',
         'helm',
         'cloud-infrastructure',
-        'external-resources',
         'webpack',
         'optimize-your-development-environment',
         'create-and-use-volume-snapshots',
