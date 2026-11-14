@@ -69,9 +69,9 @@ File extension is `.mdx` for content pages. Frontmatter requires a `description`
 
 Tutorials are step-by-step guides to do something with Okteto that have to keep working as the product changes. They live in `src/content/tutorials/` (and in the official version's copy, so they're served at `/docs/tutorials/`), and are listed on the tutorials index page, not in the sidebar. Ideas, opinion, comparisons, and news go to the blog instead.
 
-Every tutorial has a cover image, like a blog post:
+Every tutorial has a cover image, like a blog post. To add a tutorial:
 
-1. Add its `id`, `title`, and logo (a file of `static/img/logos/`) to `scripts/tutorial-covers/covers.json`, and run `node scripts/tutorial-covers/render.mjs <id>`. It writes `static/img/tutorials/covers/<id>.jpg` (1200x630).
+1. Create its cover, as described in [Cover images](#cover-images). It goes to `static/img/tutorials/covers/<id>.jpg`.
 2. Set the cover in the tutorial's frontmatter, for the card on the index page and for link previews:
 
    ```yaml
@@ -80,6 +80,34 @@ Every tutorial has a cover image, like a blog post:
    ```
 
 3. Add the tutorial to the `Tutorials` category in `sidebars.js`.
+
+## Cover images
+
+Every blog post and every tutorial has a cover image. The covers of the tutorials and of the new blog posts share one style, defined in `scripts/covers/style.mjs` (older posts keep the cover they had until it is redrawn):
+
+- **Subject:** what the article is about, never its title (the title is already next to the image). Draw a schematic of the idea (a flow, a box with its parts, a comparison), or big logos when the article is about an integration (`Okteto + Argo`, `Helm to Kubernetes`).
+- **Look:** neon lines on a night-blue background, with a faint 80s grid along the bottom edge. Nothing else goes in the background: no sun, stars, or patterns behind the subject.
+- **Simplicity:** one idea, a handful of shapes, and few labels of one to three words, in Circular Bold. The image has to read at the width of a card (about 300px).
+- **Colors:** teal (`#00d1ca`) for Okteto and for environments, blue (`#4d8dff`) for Kubernetes boxes, purple (`#b44cff`) for agents, and amber (`#ffb13b`) or red (`#ff5c7a`) for warnings, cost, and blocked paths.
+
+### Logos and icons
+
+- **Okteto:** `mark('okteto')` draws the symbol (`static/img/logos/okteto.svg`) and `mark('okteto-wordmark')` draws the symbol with the name (`shared/static/img/logo.svg`). Use those files as they are: don't redraw or recolor them.
+- **Kubernetes:** `mark('kubernetes')` draws the official mark, the white wheel on the blue (`#326ce5`) heptagon, with one corner up. Never put the wheel on a circle or on any other shape.
+- **Other brands:** single-color marks from `scripts/covers/logos/` (from [Simple Icons](https://simpleicons.org)), in a brand color that reads on the dark background (the `BRANDS` table of `style.mjs`). To add one, save its SVG in that folder and add its color to the table. If a brand has no mark there, write its name with `word()`.
+- **Icons:** line icons from `scripts/covers/icons/` (from [Lucide](https://lucide.dev)). To add one, save its SVG in that folder.
+
+### Adding or changing a cover
+
+1. Add or edit the entry in `scripts/covers/covers.mjs`: the output path, the `alt` text, and the subject, built with the helpers of `style.mjs` (`row`, `group`, `hub`, `badge`, `tile`, `mark`, and others). Start from the closest existing cover.
+2. Run `node scripts/covers/render.mjs <filter>`. The filter is a part of the output path, such as the tutorial id or the post's folder; without it, the script renders every cover. It needs Google Chrome. Blog covers are 2400x1260 and tutorial covers are 1200x630.
+3. Look at the image, also at the size of a card, and simplify it until it reads at a glance.
+4. In a blog post, set the cover and its alternative text (the `alt` of the entry) in the frontmatter:
+
+   ```yaml
+   image: ./img/cover.jpg
+   image_alt: "The Okteto logo plus the Argo logo"
+   ```
 
 ## Pre-submit checklist
 
