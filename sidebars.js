@@ -319,6 +319,9 @@ module.exports = {
     {
       type: 'category',
       label: 'Tutorials',
+      // The tutorials are listed, with a search box, on their index page;
+      // the sidebar only shows this entry (see main.scss).
+      className: 'sidebarCategoryHideLinks',
       link: { type: 'doc', id: 'tutorials/index' },
       items: [
         'tutorials/agentic-workflows',
