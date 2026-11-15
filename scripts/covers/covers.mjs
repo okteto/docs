@@ -611,11 +611,6 @@ const covers = [
   // -------------------------------------------------------------------------
   // Tutorials
   {
-    out: tutorial('2026-09-17-agentic-workflows'),
-    alt: 'An AI coding agent connected to an Okteto environment with its services and database',
-    svg: row([badge('bot', 'Agent', { color: C.purple, r: 74 }), 'both', group('Okteto environment', [item('globe'), item('box'), item('database')], { dashed: true, color: C.teal })]),
-  },
-  {
     out: 'tutorials/posts/2026-09-18-agent-ticket-to-pr/img/ticket-to-pr.webp',
     background: 'white',
     alt: 'The agent label on a GitHub issue starts a GitHub Actions runner with Claude Code and the Okteto plugin. The agent deploys and tests the application in the Namespace agent-issue-42 and opens a pull request with the live URL. When the pull request closes, the cleanup job destroys the Namespace',
