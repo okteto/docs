@@ -225,7 +225,7 @@ module.exports = {
           // Also feeds dateModified in the page JSON-LD (src/theme/DocItem/Metadata).
           showLastUpdateTime: true,
           sidebarPath: require.resolve('./sidebars.js'),
-          // Links to the tutorials (/docs/tutorials/...) and the blog are
+          // Links to the tutorials (/tutorials/...) and the blog are
           // links to other sites (see config/shared.js).
           remarkPlugins: [shared.remarkCrossSiteLinks('docs')],
           lastVersion: '1.50',

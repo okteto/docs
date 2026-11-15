@@ -1,7 +1,7 @@
 // Configuration shared by the three Docusaurus sites built from this repo:
 //
 //   docusaurus.config.js            -> https://www.okteto.com/docs/
-//   docusaurus.tutorials.config.js  -> https://www.okteto.com/docs/tutorials/
+//   docusaurus.tutorials.config.js  -> https://www.okteto.com/tutorials/
 //   docusaurus.blog.config.js       -> https://www.okteto.com/blog/
 //
 // Docusaurus applies `baseUrl` to the whole site, so serving them from one
@@ -11,19 +11,16 @@
 
 const SITE_URL = 'https://www.okteto.com';
 
-// The base URL of each site. The tutorials are served inside /docs/, so the
-// longest base that matches a path tells which site serves it.
+// The base URL of each site.
 const SITES = {
   docs: '/docs/',
-  tutorials: '/docs/tutorials/',
+  tutorials: '/tutorials/',
   blog: '/blog/',
 };
 
 function siteOf(path) {
   const withSlash = path.endsWith('/') ? path : `${path}/`;
-  return Object.keys(SITES)
-    .filter((site) => withSlash.startsWith(SITES[site]))
-    .sort((a, b) => SITES[b].length - SITES[a].length)[0];
+  return Object.keys(SITES).find((site) => withSlash.startsWith(SITES[site]));
 }
 
 // Links between the sites are root-relative (/docs/..., /blog/...), so they
@@ -41,12 +38,12 @@ function linkTo(site, target, path, label) {
 }
 
 // Remark plugin for the Markdown of a site: a root-relative link to a page of
-// another site (in the docs, `/docs/tutorials/helm/`; in a tutorial,
+// another site (in the docs, `/tutorials/helm/`; in a tutorial,
 // `/docs/reference/okteto-cli/`) becomes the same plain link as linkTo above,
 // written as `<a href="pathname://..." autoAddBaseUrl={false} target="_self">`.
 // Without it, Docusaurus looks for the page among the routes of the current
 // site and fails the build, or prefixes the link with the current site's
-// baseUrl (/docs/tutorials/docs/...). The build doesn't check these links.
+// baseUrl (/tutorials/docs/...). The build doesn't check these links.
 const FALSE = {
   type: 'mdxJsxAttributeValueExpression',
   value: 'false',

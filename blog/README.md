@@ -93,8 +93,8 @@ The docs, the tutorials and the blog are three Docusaurus sites in one repo,
 because Docusaurus applies `baseUrl` to the whole site:
 
 - `docusaurus.config.js` builds `/docs/` into `build/docs`.
-- `docusaurus.tutorials.config.js` builds `/docs/tutorials/` into
-  `build/docs/tutorials`, with the plugin and the theme of the blog (see
+- `docusaurus.tutorials.config.js` builds `/tutorials/` into
+  `build/tutorials`, with the plugin and the theme of the blog (see
   [`tutorials/README.md`](../tutorials/README.md)).
 - `docusaurus.blog.config.js` builds `/blog/` into `build/blog`.
 - `config/shared.js` holds what the three share: navbar, footer, favicons, Prism

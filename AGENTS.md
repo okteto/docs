@@ -60,9 +60,10 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 - `src/content/`: the **current** unreleased version. **All new content goes here.**
 - `versioned_docs/version-X.Y/`: frozen snapshots of released versions. By default, changes go only to `src/content/` (the next version), because most of them document features that ship in it. Copy a change to the official version (`lastVersion` in `docusaurus.config.js`) or older ones only when the user asks.
 - `src/pages/`: top-level pages (archives, etc.).
-- `tutorials/`: the tutorials, served at `/docs/tutorials/` as a site of their own with the look of the blog (`docusaurus.tutorials.config.js`). One folder per tutorial in `tutorials/posts/`, with its images. They aren't versioned. See [`tutorials/README.md`](tutorials/README.md).
+- `tutorials/`: the tutorials, served at `/tutorials/` as a site of their own with the look of the blog (`docusaurus.tutorials.config.js`). One folder per tutorial in `tutorials/posts/`, with its images. They aren't versioned. See [`tutorials/README.md`](tutorials/README.md).
 - `blog/`: the blog, served at `/blog/` (`docusaurus.blog.config.js`). See [`blog/README.md`](blog/README.md).
-- `config/shared.js`: what the three sites share (navbar, footer, search, analytics, styles), and the links between them. A page links to a page of another site with a root-relative URL (`/docs/tutorials/helm/` from the docs, `/docs/reference/okteto-cli/` from a tutorial): the build turns it into a plain link and doesn't check it.
+- `config/shared.js`: what the three sites share (navbar, footer, search, analytics, styles), and the links between them. A page links to a page of another site with a root-relative URL (`/tutorials/helm/` from the docs, `/docs/reference/okteto-cli/` from a tutorial): the build turns it into a plain link and doesn't check it.
+- `src/clientModules/mixpanel.js`: analytics for the three sites, in the Mixpanel "Website" project that okteto.com uses too. Page views, clicks, and scrolls are captured automatically; calls to action send `Click <label>`, the event name of okteto.com. To send a new event, call its `track()` with an event name in the style of the existing ones (`404 Page Viewed`, `Newsletter Subscribed`, `Docs Feedback Submitted`).
 - `static/`: images and assets. Use the `+X.Y` filename suffix when an image only applies to specific versions (see [`README.md`](README.md#image)).
 - `src/content/variables.json`: version variables (`cliVersion`, `chartVersion`, etc.), imported in MDX. Never hardcode a version.
 
@@ -134,7 +135,7 @@ If the user asks you to release a new version of the docs, follow the [Quick Ref
 ```
 yarn install
 yarn start                # docs dev server: http://localhost:8080/docs/
-yarn develop:tutorials    # tutorials dev server: http://localhost:8082/docs/tutorials/
+yarn develop:tutorials    # tutorials dev server: http://localhost:8082/tutorials/
 yarn develop:blog         # blog dev server: http://localhost:8081/blog/
 yarn build                # production build of the three sites, used to catch broken links
 ```

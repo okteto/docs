@@ -110,7 +110,7 @@ Okteto uses [role-based access control (RBAC)](core/user-roles-and-permissions.m
 [Learn more about roles and permissions →](core/user-roles-and-permissions.mdx)
 ```
 
-Inside the docs, link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Between the docs, the tutorials, and the blog, link with a root-relative URL: `/docs/tutorials/<slug>/` for a tutorial, `/docs/<path>/` for a docs page, and `/blog/<slug>/` for a post. Don't link to `https://www.okteto.com/...` for a page of one of the three. The build doesn't check links between them, so when you move a page, update the pages of the other two that link to it.
+Inside the docs, link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Between the docs, the tutorials, and the blog, link with a root-relative URL: `/tutorials/<slug>/` for a tutorial, `/docs/<path>/` for a docs page, and `/blog/<slug>/` for a post. Don't link to `https://www.okteto.com/...` for a page of one of the three. The build doesn't check links between them, so when you move a page, update the pages of the other two that link to it.
 
 ### Code and CLI
 

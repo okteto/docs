@@ -1,13 +1,10 @@
-// The Okteto tutorials, served at https://www.okteto.com/docs/tutorials/.
+// The Okteto tutorials, served at https://www.okteto.com/tutorials/.
 //
 // A third Docusaurus site built from this repo, with the same configuration
 // (config/shared.js) and the same look as the blog: tutorials are written and
 // rendered as blog posts (src/plugins/okteto-blog and the Blog* components of
 // src/theme). Content lives in ./tutorials: one folder per tutorial. See
 // tutorials/README.md for how to write one.
-//
-// The build goes to build/docs/tutorials, inside the output of the docs site,
-// so it runs after `build:docs` (which empties build/docs).
 
 const shared = require('./config/shared');
 
@@ -60,7 +57,7 @@ module.exports = {
         pages: false,
         sitemap: {
           filename: 'sitemap-tutorials.xml',
-          ignorePatterns: ['/docs/tutorials/tags/**', '/docs/tutorials/authors/', '/docs/tutorials/search/'],
+          ignorePatterns: ['/tutorials/tags/**', '/tutorials/authors/', '/tutorials/search/'],
         },
         ...shared.presetOptions,
         theme: {
@@ -95,8 +92,8 @@ module.exports = {
       },
     ],
     [
-      // Markdown twin of every tutorial (/docs/tutorials/<slug>.md) and
-      // /docs/tutorials/llms.txt, which the llms.txt of the docs links to.
+      // Markdown twin of every tutorial (/tutorials/<slug>.md) and
+      // /tutorials/llms.txt, which the llms.txt of the docs links to.
       '@signalwire/docusaurus-plugin-llms-txt',
       {
         siteTitle: 'Okteto Tutorials',

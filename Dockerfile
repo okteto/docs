@@ -36,6 +36,6 @@ RUN --mount=type=cache,target=/app/node_modules/.cache/webpack \
 
 FROM bitnami/nginx AS prod
 COPY nginx/index.html /app
-# build/docs holds the tutorials too (build/docs/tutorials).
 COPY --from=build /app/build/docs /app/docs
+COPY --from=build /app/build/tutorials /app/tutorials
 COPY --from=build /app/build/blog /app/blog

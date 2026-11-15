@@ -3,7 +3,7 @@
  * Writes llms.txt and llms-full.txt into the build output for every version
  * in versions.json. The tutorials are a separate site
  * (docusaurus.tutorials.config.js) that writes its own
- * /docs/tutorials/llms.txt, and every version links to it.
+ * /tutorials/llms.txt, and every version links to it.
  * Everything is assembled from the per-page Markdown twins Docusaurus
  * already writes for every version (docusaurus.config.js keeps
  * includeVersionedDocs + enableMarkdownFiles on unconditionally). We build
@@ -62,14 +62,13 @@ function listTwins(buildRoot, matchName) {
 }
 
 // The root version's pages sit at buildRoot unprefixed, alongside sibling
-// dirs for every other version and the tutorials site (build/docs/tutorials,
-// when it's built) - both excluded; `search` is an
+// dirs for every other version - excluded; `search` is an
 // interactive widget, not indexable content, excluded everywhere. An
 // archived version's pages are its landing page `V.md` plus everything
 // under `V/`.
 function listVersionTwins(buildRoot, version, rootVersion) {
   if (version !== rootVersion) return listTwins(buildRoot, (name) => name === version);
-  return listTwins(buildRoot, (name) => name !== 'search' && name !== 'tutorials' && !VERSION_LIKE_REGEX.test(name));
+  return listTwins(buildRoot, (name) => name !== 'search' && !VERSION_LIKE_REGEX.test(name));
 }
 
 // Points at the twin itself ("/docs/foo/bar.md"), not the HTML page, so an
@@ -179,7 +178,7 @@ function renderOtherVersionsSection(version, versions, rootVersion) {
 // Tutorials aren't tied to any version: the tutorials site writes its own
 // llms.txt, and every version links to it.
 function renderTutorialsSection() {
-  return ['## Tutorials', '', '- [Okteto Tutorials](/docs/tutorials/llms.txt)', ''];
+  return ['## Tutorials', '', '- [Okteto Tutorials](/tutorials/llms.txt)', ''];
 }
 
 function renderLlmsTxt({ title, description, sectionHeading, entries, extraSections = [] }) {

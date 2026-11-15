@@ -2,7 +2,7 @@
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/9727b18a-8038-4a4e-91ff-95315bf76ead/deploy-status)](https://app.netlify.com/sites/okteto-docs/deploys)
 
-This repository is the source for the docs (https://okteto.com/docs), the tutorials (https://okteto.com/docs/tutorials, in [`tutorials/`](tutorials/README.md)), and the blog (https://okteto.com/blog, in [`blog/`](blog/README.md)). The three share one style guide ([`STYLE_GUIDE.md`](STYLE_GUIDE.md)) and one image generator (`scripts/covers`, see [`AGENTS.md`](AGENTS.md#images)). If you'd like to contribute to the documentation, please first check out our [contributing guide](CONTRIBUTING.md) for info on how to get started.
+This repository is the source for the docs (https://okteto.com/docs), the tutorials (https://okteto.com/tutorials, in [`tutorials/`](tutorials/README.md)), and the blog (https://okteto.com/blog, in [`blog/`](blog/README.md)). The three share one style guide ([`STYLE_GUIDE.md`](STYLE_GUIDE.md)) and one image generator (`scripts/covers`, see [`AGENTS.md`](AGENTS.md#images)). If you'd like to contribute to the documentation, please first check out our [contributing guide](CONTRIBUTING.md) for info on how to get started.
 
 ## Development
 
@@ -16,7 +16,7 @@ Clone the repo and then run:
 ```console
 yarn
 yarn start                # docs: http://localhost:8080/docs/
-yarn develop:tutorials    # tutorials: http://localhost:8082/docs/tutorials/
+yarn develop:tutorials    # tutorials: http://localhost:8082/tutorials/
 yarn develop:blog         # blog: http://localhost:8081/blog/
 ```
 
@@ -203,7 +203,7 @@ Fix any errors before proceeding. The build doesn't check the links from the tut
 - Missing redirects
 - Invalid configuration in docusaurus.config.js
 
-This same command also writes `llms.txt` and `llms-full.txt` into `build/docs/` for the root/latest version, `build/docs/{VERSION}/` for each other version in `versions.json` (see `scripts/generate-all-llms-files.js`). Every version's `llms.txt` links to `build/docs/tutorials/llms.txt`, which the tutorials site writes for the unversioned tutorials. Docusaurus's own versioning already renders every version's HTML on every build regardless of which one is the last version, so reading that output back out as clean per-page Markdown (via `enableMarkdownFiles`, always on) and assembling it into each version's own index and full-text dump adds only a few seconds, cheap enough to fully regenerate from `versioned_docs/` on every single build instead of persisting the result.
+This same command also writes `llms.txt` and `llms-full.txt` into `build/docs/` for the root/latest version, `build/docs/{VERSION}/` for each other version in `versions.json` (see `scripts/generate-all-llms-files.js`). Every version's `llms.txt` links to `build/tutorials/llms.txt`, which the tutorials site writes for the unversioned tutorials. Docusaurus's own versioning already renders every version's HTML on every build regardless of which one is the last version, so reading that output back out as clean per-page Markdown (via `enableMarkdownFiles`, always on) and assembling it into each version's own index and full-text dump adds only a few seconds, cheap enough to fully regenerate from `versioned_docs/` on every single build instead of persisting the result.
 
 ### Step 9: Commit and Create Pull Request
 

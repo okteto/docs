@@ -14,7 +14,7 @@
 //      for every tag; Docusaurus only creates pages for tags in use. Unused
 //      tags from tags.yml get a redirect page to /blog/tags/ instead of a 404.
 //      Sites without a tags file (the tutorials) skip it.
-//   4. /blog/posts.json (and /docs/tutorials/posts.json), a machine-readable
+//   4. /blog/posts.json (and /tutorials/posts.json), a machine-readable
 //      index of every post. okteto.com pages that list blog posts
 //      (BlogPostsListing in okteto/website) read it instead of querying Sanity.
 
