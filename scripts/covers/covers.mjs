@@ -19,6 +19,7 @@ import {
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
 const figure = (dir, name) => `blog/posts/${dir}/img/${name}.webp`;
 const LB = '2023-02-28-kubernetes-load-balancer-service';
+const BASICS = '2022-07-27-kubernetes-basics';
 
 // A row of small labels in rounded boxes, centered on (cx, cy).
 function pills(cx, cy, labels, { color = C.teal, size = 18, gap = 10, fill = C.pill } = {}) {
@@ -86,6 +87,44 @@ export default [
       'arrow',
       group('Kubernetes', [item('bot', { color: C.purple }), item('shield-check', { color: C.amber }), item('key-round'), item('eye')], { top: 'kubernetes' }),
     ]),
+  },
+  // The two diagrams of Kubernetes Basics.
+  {
+    out: figure(BASICS, 'architecture'),
+    background: 'white',
+    alt: 'A Kubernetes cluster: the control plane runs kube-apiserver, kube-scheduler, kube-controller-manager, and etcd, and each worker node runs the kubelet, kube-proxy, a container runtime, and pods',
+    svg: () => {
+      const part = (label, x, y, w, color = C.blue) => box(x, y, w, 56, { color, radius: 12, strokeWidth: 3 }) + text(label, x + w / 2, y + 37, 24);
+      let out = box(40, 70, 1120, 530, { dashed: true }) + logo('kubernetes', 600, 70, 80);
+      out += box(80, 140, 480, 420, { color: C.blue }) + text('Control plane', 320, 195);
+      out += part('kube-apiserver', 120, 225, 400) + part('kube-scheduler', 120, 296, 400) + part('kube-controller-manager', 120, 367, 400);
+      out += icon('database', 292, 466, 44, C.blue) + text('etcd', 324, 475, 26, { anchor: 'start' });
+      out += box(652, 152, 480, 420, { color: C.teal, fill: '#ffffff' }) + box(640, 140, 480, 420, { color: C.teal }) + text('Worker nodes', 880, 195);
+      out += part('kubelet', 680, 225, 400, C.teal) + part('kube-proxy', 680, 296, 400, C.teal) + part('container runtime', 680, 367, 400, C.teal);
+      [700, 830, 960].forEach((x) => { out += part('Pod', x, 455, 100, C.purple); });
+      return out;
+    },
+  },
+  {
+    out: figure(BASICS, 'gateway-routing'),
+    background: 'white',
+    alt: 'Users reach a load balancer, which sends the requests to a Gateway in the cluster; HTTPRoutes send the requests for / to the frontend Service and the requests for /api to the api Service, and each Service sends them to its pods',
+    svg: () => {
+      const node = (label, x, y, w, color = C.blue) => box(x, y - 35, w, 70, { color, radius: 14, strokeWidth: 3.5 }) + text(label, x + w / 2, y + 10);
+      let out = node('Users', 20, 330, 120, C.dim);
+      out += arrow(148, 330, 190, 330) + node('Load balancer', 198, 330, 230, C.dim);
+      out += box(450, 60, 730, 540, { dashed: true }) + text('Cluster', 815, 115, 28, { color: C.blue });
+      out += arrow(436, 330, 480, 330) + node('Gateway', 490, 330, 150, C.teal);
+      out += curve('M650 310 C700 220 720 190 765 190') + arrow(757, 190, 767, 190) + pills(705, 230, ['/'], { size: 20 });
+      out += curve('M650 350 C700 440 720 470 765 470') + arrow(757, 470, 767, 470) + pills(705, 430, ['/api'], { size: 20 });
+      out += node('frontend', 775, 190, 170) + node('api', 775, 470, 170);
+      [190, 470].forEach((y) => {
+        out += arrow(955, y, 995, y);
+        [1005, 1060, 1115].forEach((x) => { out += box(x, y - 22, 44, 44, { color: C.purple, radius: 10, strokeWidth: 3 }); });
+      });
+      out += text('Pods', 1082, 252, 22, { color: C.dim }) + text('Pods', 1082, 532, 22, { color: C.dim });
+      return out;
+    },
   },
   // The four diagrams of the Load Balancer Service guide.
   {
