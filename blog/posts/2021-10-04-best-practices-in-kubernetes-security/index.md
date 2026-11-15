@@ -5,7 +5,8 @@ slug: best-practices-in-kubernetes-security
 date: 2021-10-04
 authors: ["joydip-kanjilal"]
 tags: ["kubernetes", "security", "cloud-native"]
-image: ./img/7934a32b2260.jpg
+image: ./img/cover.jpg
+image_alt: "The Kubernetes logo inside a shield"
 ---
 
 Kubernetes is great at orchestrating containers, but a cluster isn't secure by default: every new workload, user, and integration adds to its attack surface. This guide explains which parts of a cluster attackers target, and the best practices that protect them, from access control and pod security to etcd encryption and audit logging.

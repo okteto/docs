@@ -1,6 +1,7 @@
 // The visual system of the blog and tutorial covers: a schematic drawn with
-// neon lines on the navy of the blog, over one of four backgrounds (dots,
-// weave, rings or grid). No titles: the image shows what the article is about.
+// neon lines on the navy of the blog, over one of six backgrounds (dots,
+// weave, grid, sun, beams or stars). No titles: the image shows what the
+// article is about.
 // The images inside an article use the same shapes on a white background.
 //
 // A cover is an SVG string built with the helpers of this file, on a
@@ -82,8 +83,8 @@ function corner(right, bottom) {
   return dots;
 }
 
-// The backgrounds of the blog covers, all on the same navy. Vary them from
-// one cover to the next.
+// The six backgrounds of the blog covers, all on the same navy and in the
+// colors of Okteto. covers.mjs rotates them by the date order of the posts.
 const BACKGROUNDS = {
   // Plain white, for the images inside an article. Rendered with the light theme.
   white: () => '',
@@ -108,12 +109,6 @@ const BACKGROUNDS = {
     return `<rect width="${W}" height="${H}" fill="url(#weaveglow)"/><g fill="#3d5680" opacity="0.5">${dots}</g>`;
   },
 
-  // Wide concentric rings from the top-left and bottom-right corners.
-  rings: () => {
-    const ring = (cx, cy, radii) => radii.map((r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`).join('');
-    return `<g fill="none" stroke="#141d33" stroke-width="64">${ring(-40, 60, [150, 290, 430])}${ring(W - 150, H + 190, [240, 380, 520])}</g>`;
-  },
-
   // A faint grid in perspective along the bottom edge.
   grid: () => {
     const top = 520;
@@ -130,6 +125,39 @@ const BACKGROUNDS = {
       lines += `<line x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
     }
     return `<g stroke="${C.teal}" stroke-width="1.5" mask="url(#gridmask)">${lines}</g>`;
+  },
+
+  // A striped retro sun rising from the bottom-right corner.
+  sun: () => {
+    const cx = W - 170;
+    const cy = H + 40;
+    const r = 270;
+    let gaps = '';
+    for (let k = 0; k < 7; k++) {
+      const y = cy - r * 0.62 + k * 30 + k * k * 1.5;
+      gaps += `<rect x="${cx - r}" y="${y}" width="${2 * r}" height="${3 + k * 2.2}" fill="#000"/>`;
+    }
+    return `<mask id="sunmask"><rect width="${W}" height="${H}" fill="#fff"/>${gaps}</mask>
+      <circle cx="${cx}" cy="${cy}" r="${r + 40}" fill="url(#sunglow)"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#sun)" mask="url(#sunmask)" opacity="0.42"/>`;
+  },
+
+  // Three neon racing stripes across the top-right corner.
+  beams: () => [C.teal, C.blue, C.purple].map((color, i) => {
+    const o = i * 34;
+    return `<path d="M${W - 470 + o} -20 L${W + 20} ${470 - o}" stroke="${color}" stroke-width="16" stroke-linecap="square" opacity="0.38"/>`;
+  }).join(''),
+
+  // A starfield with a few neon sparkles.
+  stars: () => {
+    let seed = 7;
+    const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    let dots = '';
+    for (let i = 0; i < 140; i++) {
+      dots += `<circle cx="${(random() * W).toFixed(1)}" cy="${(random() * H).toFixed(1)}" r="${(0.6 + random() * 1.4).toFixed(2)}" opacity="${(0.25 + random() * 0.5).toFixed(2)}"/>`;
+    }
+    const sparkle = (x, y, s, color) => `<path d="M${x} ${y - s} Q${x} ${y} ${x + s} ${y} Q${x} ${y} ${x} ${y + s} Q${x} ${y} ${x - s} ${y} Q${x} ${y} ${x} ${y - s}Z" fill="${color}" opacity="0.7" ${GLOW}/>`;
+    return `<g fill="#cfe9ff">${dots}</g>${sparkle(110, 90, 16, C.teal)}${sparkle(1090, 120, 12, C.purple)}${sparkle(1040, 540, 18, C.teal)}${sparkle(160, 520, 10, C.blue)}`;
   },
 };
 
@@ -160,6 +188,8 @@ text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
   <radialGradient id="weaveglow" cx="0.3" cy="0.55" r="0.75"><stop offset="0" stop-color="#2a3b5e"/><stop offset="0.6" stop-color="${C.background}"/><stop offset="1" stop-color="#121a2e"/></radialGradient>
   <linearGradient id="gridfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.5"/></linearGradient>
   <mask id="gridmask"><rect y="520" width="${W}" height="110" fill="url(#gridfade)"/></mask>
+  <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.teal}"/><stop offset="0.55" stop-color="${C.blue}"/><stop offset="1" stop-color="${C.purple}"/></linearGradient>
+  <radialGradient id="sunglow"><stop offset="0.75" stop-color="${C.teal}" stop-opacity="0.12"/><stop offset="1" stop-color="${C.teal}" stop-opacity="0"/></radialGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="${background === 'white' ? '#ffffff' : 'url(#bg)'}"/>
 ${BACKGROUNDS[background]()}
@@ -183,7 +213,10 @@ export function icon(name, cx, cy, size = 64, color = C.teal, strokeWidth = 1.9)
 }
 
 // Brand colors that read on the dark background, by logo name.
-const BRANDS = { nginx: '#21b354' };
+const BRANDS = {
+  nginx: '#21b354', docker: '#2496ed', webpack: '#8dd6f9', git: '#f05032', visualstudiocode: '#3ea6ff',
+  terraform: '#a67cff', argo: '#ef7b4d', githubactions: '#4d8dff', gitlab: '#fc6d26', prometheus: '#e6522c', grafana: '#f46800',
+};
 
 // A logo. Okteto and Claude come from the site's own files; Kubernetes is the
 // official mark (the white wheel on the blue heptagon, one corner up, never

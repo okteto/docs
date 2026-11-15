@@ -5,7 +5,8 @@ slug: preview-environments-for-kubernetes
 date: 2021-06-07
 authors: ["pablo-chico-de-guzman"]
 tags: ["kubernetes", "preview", "okteto", "development"]
-image: ./img/d9d1d39b8b35.jpg
+image: ./img/cover.jpg
+image_alt: "A pull request deploys a Preview Environment in a Kubernetes namespace"
 ---
 
 Have you ever wanted to test the changes in one of your teammate's pull requests? Today it looks like this: commit your local changes, switch your local branch, redeploy your application in your local environment, and test the changes if nothing breaks... Have you ever attached a gif in your pull request to help people validate visual changes in your application? Shouldn't there be a better way to do these things?
