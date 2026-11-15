@@ -1,6 +1,6 @@
 ---
 title: "Optimize your Development Environments"
-description: "Make your Okteto environments ready sooner: faster builds, faster remote deploys and tests, data from Volume Snapshots, and fewer containers per Namespace."
+description: "Make your Okteto environments ready sooner: faster builds, faster remote deploys and tests, data from Volume Snapshots, and smaller environments with shared services."
 slug: optimize-your-development-environment
 date: 2025-10-01
 image: ./img/cover.jpg
@@ -141,8 +141,33 @@ test:
 
 ## Data from Volume Snapshots
 
-Seed scripts are slow, and they break when the schema changes. [Volume Snapshots](/docs/core/use-volume-snapshots/) start the database of each environment, or of each test run, from a snapshot of real data instead: Kubernetes creates the volume from the snapshot, with no script to run and nothing to load. [Create and use Volume Snapshots](/tutorials/create-and-use-volume-snapshots/) shows how.
+An environment without data isn't useful, so many teams fill its database with a seed script on every deploy. Seed scripts are slow, because they insert every row one by one, and they get slower as the dataset grows. They break when the schema changes, and the data they create is a handful of fixtures that rarely looks like the data your application handles in production.
 
-## Fewer Containers per Namespace
+[Volume Snapshots](/docs/core/use-volume-snapshots/) replace the seed script with a copy of a real database. You take a snapshot of the volume of a database once, for example of a staging database or of a dataset curated for testing, and each environment creates its own volume from that snapshot. Two annotations on the PersistentVolumeClaim of the database are all it takes:
 
-An environment that runs every service of a large application has many containers to schedule, pull, and start, and it uses the resources of all of them. Most changes touch one or two services. With [Divert](/docs/development/divert/), an environment deploys only the services you change, and shares the rest with a shared environment that runs the whole application: requests reach your services, and the shared ones answer everything else. [Why flexibility is key to scaling development environments](/blog/why-flexibility-is-key-to-scaling-development-environments/) explains when to use it.
+```yaml
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-name: mongo-snapshot
+    dev.okteto.com/from-snapshot-namespace: staging
+```
+
+- **Faster:** the storage of your cluster creates the volume from the snapshot. No script runs and nothing is loaded through your application.
+- **Realistic:** every environment starts with real data, so it catches the bugs that only show up with real data, not with fixtures.
+- **Consistent:** every environment and every test run starts from the same known state. To start over, redeploy the environment.
+- **Isolated:** each environment writes to its own copy, so nobody's changes or tests affect anyone else's data.
+
+The [Volume Snapshots](/docs/core/use-volume-snapshots/) docs cover the requirements and how to create snapshots, [Create and use Volume Snapshots](/tutorials/create-and-use-volume-snapshots/) walks through an example, and [Data Cloning](/docs/development/divert/data-cloning/) explains how to combine them with Divert.
+
+## Smaller Environments with Shared Services
+
+A full copy of a large application in every environment has a cost that grows with the application: every environment waits for dozens of services nobody is changing to build, start, and become healthy, a deploy fails when any of them fails, and every environment reserves the resources of all of them. That cost multiplies with every developer, pull request, and AI agent that needs an environment.
+
+Most changes touch one or two services. With [Divert](/docs/development/divert/), the full application runs once in a Shared Namespace, and each environment deploys only the services it changes in its own Namespace. Requests that carry the divert header of an environment reach its version of those services, and the shared version of everything else.
+
+- **Faster:** an environment is ready in the time it takes to deploy the services you change, not the whole application.
+- **Cheaper:** an environment uses only the resources of the services you change, so you can run many more of them, for example one per agent.
+- **More reliable:** a deploy no longer fails because of a service you don't own and aren't touching.
+- **Up to date:** every environment tests its changes against the same shared services, which you keep up to date with your main branch.
+
+A full copy is still the better fit when a change touches most of the application, or when you need control over the version of every service. The [Divert](/docs/development/divert/) docs explain [when to use it](/docs/development/divert/#when-to-use-divert), how it routes requests, and how to set up the [Shared Namespace](/docs/development/divert/shared-namespace/), and [Why flexibility is key to scaling development environments](/blog/why-flexibility-is-key-to-scaling-development-environments/) explains the tradeoffs.
