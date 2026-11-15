@@ -1,5 +1,5 @@
 // Swizzled (ejected): the right column of a post stays in view and holds, in
-// this order, the table of contents and the signup of the site's email list.
+// this order, the signup of the site's email list and the table of contents.
 // On narrow screens the column is hidden (the callout in the post has a signup).
 
 import React from 'react';
@@ -31,14 +31,14 @@ function Aside() {
 
   return (
     <aside className={styles.aside}>
-      {showToc && (
-        <TOC toc={toc} minHeadingLevel={tocMinHeadingLevel} maxHeadingLevel={tocMaxHeadingLevel} className={styles.toc} />
-      )}
       {formId && (
         <div className={styles.newsletter}>
           <p className={styles.newsletterTitle}>{title}</p>
-          <NewsletterForm list={list} instance="aside" className={styles.newsletterForm} />
+          <NewsletterForm list={list} instance="aside" variant="column" />
         </div>
+      )}
+      {showToc && (
+        <TOC toc={toc} minHeadingLevel={tocMinHeadingLevel} maxHeadingLevel={tocMaxHeadingLevel} className={styles.toc} />
       )}
     </aside>
   );

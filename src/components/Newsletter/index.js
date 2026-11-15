@@ -94,7 +94,9 @@ function loadEmbedScript() {
 
 // `list` is a key of NEWSLETTERS. `instance` tells apart the copies of the form
 // on one page: it names the element HubSpot renders into and the form instance.
-export function NewsletterForm({ list, instance = 'callout', className }) {
+// `variant` is `callout` (on the dark callout), `page` (on the page background)
+// or `column` (on the page background, in a narrow column).
+export function NewsletterForm({ list, instance = 'callout', variant = 'callout', className }) {
   const { formId } = NEWSLETTERS[list];
   const targetId = `newsletter-form-${instance}`;
   const container = useRef(null);
@@ -121,6 +123,13 @@ export function NewsletterForm({ list, instance = 'callout', className }) {
           formInstanceId: instance,
           target: `#${targetId}`,
           css: '',
+          // In a narrow column, the placeholder of the form doesn't fit.
+          onFormReady: () => {
+            const email = container.current?.querySelector('input[type="email"]');
+            if (variant === 'column' && email) {
+              email.placeholder = 'Your email';
+            }
+          },
           onFormSubmitted: () => track('Newsletter Subscribed', { form: instance, list }),
         });
         setStatus('ready');
@@ -134,7 +143,7 @@ export function NewsletterForm({ list, instance = 'callout', className }) {
     return () => {
       cancelled = true;
     };
-  }, [attempt, formId, instance, list, targetId]);
+  }, [attempt, formId, instance, list, targetId, variant]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -147,7 +156,7 @@ export function NewsletterForm({ list, instance = 'callout', className }) {
       <div
         id={targetId}
         ref={container}
-        className={`${styles.newsletterForm} ${className || ''}`}
+        className={`${styles.newsletterForm} ${styles[variant] || ''} ${className || ''}`}
         hidden={status === 'error'}
       />
       {status === 'error' && (
