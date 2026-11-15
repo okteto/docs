@@ -91,12 +91,12 @@ export default [
   {
     out: post(BASICS),
     background: 'rings',
-    alt: 'A Kubernetes cluster with the objects the tutorial covers: Pods, Deployments, Services, and Volumes',
+    alt: 'A Kubernetes cluster with the objects the tutorial covers: HTTPRoutes, Services, Deployments, Pods, and Volumes',
     svg: `<g transform="translate(0 40)">${
       box(170, 130, 860, 330, { color: C.blue })
       + logo('kubernetes', 600, 130, 92) + text('Kubernetes Basics', 600, 218)
-      + [['boxes', 'Pods'], ['copy', 'Deployment'], ['network', 'Service'], ['hard-drive', 'Volume']].map(([name, label], i) => {
-        const x = 315 + i * 190;
+      + [['globe', 'HTTPRoute'], ['network', 'Service'], ['copy', 'Deployment'], ['boxes', 'Pods'], ['hard-drive', 'Volume']].map(([name, label], i) => {
+        const x = 270 + i * 165;
         return box(x - 55, 250, 110, 110, { color: C.teal, radius: 20, strokeWidth: 3.5 })
           + icon(name, x, 305, 58) + text(label, x, 405, 24);
       }).join('')
