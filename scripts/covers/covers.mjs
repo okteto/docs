@@ -598,7 +598,7 @@ const covers = [
     },
   },
   {
-    out: post('2020-10-10-webpack-dev-server-in-a-container'),
+    out: post('2021-08-18-webpack-dev-server-in-a-container'),
     alt: 'A laptop synchronizes files with a container that runs Webpack',
     svg: row([badge('laptop', null, { r: 80 }), 'both', group('Container', [smallMark('webpack', { size: 120 })], { dashed: true, color: C.teal })]),
   },
