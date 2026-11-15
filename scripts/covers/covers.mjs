@@ -339,6 +339,24 @@ const covers = [
       }).join('')
     }</g>`,
   },
+  // The two diagrams of the Network Policies guide.
+  ...[['default-traffic', 'by default', false], ['network-policy', 'using Network Policies', true]].map(([name, caption, blocked]) => ({
+    out: figure('2022-11-28-kubernetes-network-policies', name),
+    background: 'white',
+    alt: blocked
+      ? 'With Network Policies, the traffic between the frontend and the database is blocked'
+      : 'Frontend, backend, and database pods: by default, each one can talk to the other two',
+    svg: () => {
+      const node = (label, cx, cy) => box(cx - 120, cy - 42, 240, 84, { color: C.blue, radius: 16, strokeWidth: 3.5 }) + text(label, cx, cy + 10, 30);
+      let out = node('frontend', 300, 150) + node('backend', 900, 150) + node('database', 600, 400);
+      out += arrow(436, 150, 764, 150, { both: true });
+      out += arrow(812, 206, 690, 346, { both: true });
+      out += blocked
+        ? arrow(388, 206, 510, 346, { both: true, color: C.red, dashed: true }) + circle(449, 276, 28, { color: C.red }) + icon('x', 449, 276, 32, C.red)
+        : arrow(388, 206, 510, 346, { both: true });
+      return out + text(caption, 600, 545, 32, { mono: true });
+    },
+  })),
   // The two diagrams of Kubernetes Basics.
   {
     out: figure(BASICS, 'architecture'),
