@@ -41,7 +41,7 @@ module.exports = {
       contextualSearch: false,
       searchParameters: { facetFilters: ['language:en', 'docusaurus_tag:tutorials'] },
       translations: {
-        button: { buttonText: 'Search tutorials', buttonAriaLabel: 'Search tutorials' },
+        button: { buttonText: 'Search', buttonAriaLabel: 'Search tutorials' },
         modal: { searchBox: { placeholderText: 'Search tutorials' } },
       },
     },
