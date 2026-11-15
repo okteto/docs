@@ -22,7 +22,7 @@ export default function Callout() {
           <Button to="https://www.okteto.com/get-demo/" className="teal">
             Get a demo
           </Button>
-          <Button to="https://www.okteto.com/signup/" className="light">
+          <Button to="https://www.okteto.com/free-tier/" className="light">
             Start for Free
           </Button>
         </div>

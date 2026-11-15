@@ -147,7 +147,7 @@ function navbar(site, { start = [], end = [] } = {}) {
         className: 'Button teal NavbarButton',
       },
       {
-        href: `${SITE_URL}/signup/`,
+        href: `${SITE_URL}/free-tier/`,
         label: 'Start for Free',
         position: 'right',
         target: '_self',
@@ -188,7 +188,7 @@ function footer(site, { llmsTxtUrl }) {
           { label: 'Support', href: 'https://okteto.com/support' },
           { label: 'Community', href: 'https://community.okteto.com' },
           { label: 'Twitter', href: 'https://twitter.com/oktetohq' },
-          { label: 'Get 30 Days Free', href: `${SITE_URL}/free-trial` },
+          { label: 'Start for Free', href: `${SITE_URL}/free-tier/` },
         ],
       },
     ],
