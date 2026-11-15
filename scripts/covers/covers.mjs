@@ -597,6 +597,17 @@ const covers = [
       return out;
     },
   },
+  {
+    out: post('2020-10-10-webpack-dev-server-in-a-container'),
+    alt: 'A laptop synchronizes files with a container that runs Webpack',
+    svg: row([badge('laptop', null, { r: 80 }), 'both', group('Container', [smallMark('webpack', { size: 120 })], { dashed: true, color: C.teal })]),
+  },
+  {
+    out: post('2025-02-11-vite-dev-server-in-a-container'),
+    alt: 'A laptop synchronizes files with a container that runs Vite',
+    svg: row([badge('laptop', null, { r: 80 }), 'both', group('Container', [smallMark('vite', { size: 120 })], { dashed: true, color: C.teal })]),
+  },
+
   // -------------------------------------------------------------------------
   // Tutorials
   {
@@ -633,11 +644,6 @@ const covers = [
     out: tutorial('2026-11-13-cloud-infrastructure'),
     alt: 'A Namespace, Terraform, and the S3 bucket that Terraform creates for it',
     svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),
-  },
-  {
-    out: tutorial('2022-01-20-webpack'),
-    alt: 'A laptop synchronizes files with a Development Container that runs Webpack',
-    svg: row([badge('laptop', null, { r: 80 }), 'both', group('Development Container', [smallMark('webpack', { size: 120 })], { dashed: true, color: C.teal })]),
   },
   {
     out: tutorial('2025-10-01-optimize-your-development-environment'),

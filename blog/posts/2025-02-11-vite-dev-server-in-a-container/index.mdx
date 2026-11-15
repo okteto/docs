@@ -1,0 +1,104 @@
+---
+title: "Running the Vite Dev Server in a Container"
+description: "The settings of the Vite dev server to serve, hot reload, and watch files when it runs in a container, behind a published port or a proxy."
+slug: vite-dev-server-in-a-container
+date: 2025-02-11
+authors: ["pablo-chico-de-guzman"]
+image: ./img/cover.jpg
+image_alt: "A laptop synchronizes files with a container that runs Vite"
+---
+
+Running the Vite dev server in a container gives everyone on the team the same Node.js version and the same dependencies, whether the container runs with Docker on your laptop or in a remote development environment. Your browser reaches the dev server through a port published to `localhost`, or through a proxy that serves it on its own domain over HTTPS.
+
+{/* truncate */}
+
+The default configuration of the dev server assumes that it runs on your machine: it listens on `localhost` only, and rejects requests for other hosts. A few settings in `vite.config.js` make it work in a container. This post uses Vite 6.
+
+## The Container
+
+This command runs the dev server in a container, with your code mounted into it and port `5173` published to `localhost`:
+
+```bash
+docker run --rm -it -p 5173:5173 -v "$(pwd)":/app -w /app node:22 npx vite
+```
+
+Behind a proxy, such as a Kubernetes Ingress or the URL of a remote development environment, your browser reaches the same dev server on another host, over HTTPS on port 443.
+
+## Listening on All Interfaces
+
+The dev server listens on `localhost`, which inside a container only accepts connections from the container itself. Set `host` to `true` to listen on all addresses, so that the published port and the proxy reach it. With `strictPort`, the dev server fails to start when the port is busy, instead of moving to another port that nothing publishes:
+
+```js title="vite.config.js"
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  server: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+  },
+});
+```
+
+## Allowing the Proxy Host
+
+The dev server rejects requests for a host that isn't `localhost` or an IP address, with the message `Blocked request. This host is not allowed`. Vite added this check in January 2025, in versions 6.0.9 and 5.4.12. Add the domain that the proxy serves your application on to `allowedHosts`. A leading dot matches every subdomain:
+
+```js title="vite.config.js"
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  server: {
+    allowedHosts: ['.example.com'],
+  },
+});
+```
+
+Replace `example.com` with the domain of your proxy. `allowedHosts: true` turns off the check.
+
+## Hot Module Replacement Through the Proxy
+
+Hot Module Replacement is on by default, and it works through the proxy with no changes: its client opens a WebSocket to the protocol, host, and port of the page, `wss` on port 443 through the proxy, and `ws` on `localhost:5173` through the published port.
+
+If your configuration sets a port for the client of Hot Module Replacement, remove it: the client would connect to a port that the proxy doesn't expose.
+
+## Watching Files
+
+Vite detects changes with file system events. Some setups don't deliver those events to the container, such as bind mounts on Docker Desktop for macOS and Windows, or network file systems. If a change doesn't trigger an update, turn on polling with the `watch` options of the dev server:
+
+```js title="vite.config.js"
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 1000, // Checks for changes every second.
+    },
+  },
+});
+```
+
+Polling uses more CPU than file system events, so turn it on only when you need it.
+
+## The Complete Configuration
+
+```js title="vite.config.js"
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  server: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+    allowedHosts: ['.example.com'],
+    // Only if changes don't trigger an update.
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+  },
+});
+```
+
+Start the container, open your application, and edit a file: the page updates without a reload.

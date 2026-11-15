@@ -233,7 +233,7 @@ export function icon(name, cx, cy, size = 64, color = C.teal, strokeWidth = 1.9)
 const BRANDS = {
   nginx: '#21b354', docker: '#2496ed', webpack: '#8dd6f9', git: '#f05032', visualstudiocode: '#3ea6ff',
   terraform: '#a67cff', argo: '#ef7b4d', githubactions: '#4d8dff', gitlab: '#fc6d26', prometheus: '#e6522c', grafana: '#f46800',
-  github: '#ffffff', awslambda: '#ff9900', helm: '#ffffff',
+  github: '#ffffff', awslambda: '#ff9900', helm: '#ffffff', vite: '#747bff',
 };
 
 // A logo. Okteto and Claude come from the site's own files; Kubernetes is the
