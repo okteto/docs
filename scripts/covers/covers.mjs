@@ -73,6 +73,12 @@ export default [
       }).join(''), 0.93, 594, 285)}</g>`,
   },
   {
+    out: post('2026-01-28-ingress-nginx-controller-deprecation-your-migration-guide-to-kubernetes-gateway-api'),
+    background: 'weave',
+    alt: 'The NGINX logo, for Ingress NGINX, with an arrow to the Kubernetes logo, for the Gateway API',
+    svg: row([mark('nginx', { size: 170, label: 'Ingress NGINX' }), 'arrow', mark('kubernetes', { size: 180, label: 'Gateway API' })]),
+  },
+  {
     out: post('2026-01-15-compare-okteto-versus-signadot'),
     background: 'grid',
     alt: 'The Okteto logo versus Signadot',

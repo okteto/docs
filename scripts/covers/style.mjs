@@ -183,7 +183,7 @@ export function icon(name, cx, cy, size = 64, color = C.teal, strokeWidth = 1.9)
 }
 
 // Brand colors that read on the dark background, by logo name.
-const BRANDS = {};
+const BRANDS = { nginx: '#21b354' };
 
 // A logo. Okteto and Claude come from the site's own files; Kubernetes is the
 // official mark (the white wheel on the blue heptagon, one corner up, never
