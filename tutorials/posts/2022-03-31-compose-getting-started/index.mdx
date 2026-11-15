@@ -1,45 +1,38 @@
 ---
-title: "Docker Compose on Kubernetes"
-description: "Develop an application with Okteto using Docker Compose files"
+title: "Develop a Docker Compose application with Okteto"
+description: "Deploy an application defined in a Docker Compose file to Kubernetes, and develop its services in a Development Container with hot reload."
 slug: compose-getting-started
 date: 2022-03-31
 image: ./img/cover.jpg
 image_alt: "The Docker logo with an arrow to the Kubernetes logo"
 ---
 
-import Image from '@theme/Image';
-
-This tutorial will show you how to develop an application with Okteto using Docker Compose files.
-[Docker Compose](/docs/reference/docker-compose) are for developers who don't want to deal with the complexities of Kubernetes manifests.
-Okteto implements and extends the [Compose Specification](https://github.com/compose-spec/compose-spec) to make it easy to develop Docker Compose applications on Kubernetes.
+Okteto deploys an application defined in a [Docker Compose](/docs/reference/docker-compose/) file to Kubernetes, with no Kubernetes manifests, and then lets you develop each service in that environment. This tutorial uses a voting application written in Python and Redis.
 
 ## Prerequisites
 
-- Install the Okteto CLI. Follow this [guide](/docs/development/using-okteto-cli) if you haven't done it yet.
-- Configure Access to your Okteto Namespace [using the Okteto CLI](/docs/core/credentials/kubernetes-credentials#download-your-kubernetes-credentials-using-the-okteto-cli) or [using the Okteto dashboard](/docs/core/credentials/kubernetes-credentials).
+- Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli/#context) configured.
+- The [Okteto CLI](/docs/get-started/install-okteto-cli/) installed on your machine.
+- A local copy of the sample application:
 
-## Step 1: Deploy your Development Environment
-
-Get a local version of the Sample App by executing the following commands:
-
-```console
-$ git clone https://github.com/okteto/compose-getting-started
-$ cd compose-getting-started
+```bash
+git clone https://github.com/okteto/compose-getting-started
+cd compose-getting-started
 ```
 
-The Sample App is a simple web application implemented using Python, with Redis for storage.
-The `docker-compose.yml` file defines the components of the Sample App:
+## The Sample Application
 
-```yaml
+The application has two services: `vote`, a Flask application that shows two options and counts the votes, and `redis`, which stores the votes. The `docker-compose.yml` file at the root of the repository defines both:
+
+```yaml title="docker-compose.yml"
 services:
   vote:
     build: vote
-    scale: 2
-    environment:
-      - FLASK_ENV=development
-    command: python app.py
     ports:
       - 8080:8080
+    environment:
+      - FLASK_DEBUG=1
+    command: python app.py
     volumes:
       - ./vote:/src
 
@@ -54,83 +47,70 @@ volumes:
   redis:
 ```
 
-The equivalent Kubernetes manifests would have more than 300 lines of yaml!
+Okteto turns each part of the file into its Kubernetes equivalent:
 
-Deploying the Sample App is as simple as executing this command:
+- **`build`**: the [Okteto Build Service](/docs/core/build-service/) builds the image of `vote` from the `vote` folder, in your cluster.
+- **`ports`**: `8080:8080` makes the port public, so Okteto creates an HTTPS endpoint for `vote`. `6379` stays private to the cluster.
+- **`volumes`**: `redis` becomes a persistent volume. `./vote:/src`, a folder of your machine, is what `okteto up` synchronizes to the Development Container.
+- **`environment`**: `FLASK_DEBUG=1` runs Flask in debug mode, which reloads the application when its code changes.
 
-```console
-$ okteto deploy
+The [Docker Compose reference](/docs/reference/docker-compose/) lists every field that Okteto supports.
+
+## Deploying the Application
+
+Deploy the application from the root of the repository:
+
+```bash
+okteto deploy
 ```
 
-```console
- i  Using cindy @ okteto.example.com as context
- ✓  Deploying compose
- i  Endpoints available:
-  - https://vote-cindy.okteto.example.com/
- ✓  Development environment 'compose-getting-started' successfully deployed
+Okteto finds the `docker-compose.yml` file, builds the `vote` image, and creates the Deployments, Services, volumes, and endpoint of the application. It prints the endpoint when the deployment finishes, for example `https://vote-cindy.okteto.example.com`. Open it and vote.
+
+## Developing a Service
+
+Start a Development Container for the `vote` service:
+
+```bash
+okteto up vote
 ```
 
-The `deploy` command will create the necessary deployments, services, persistent volumes, and ingress rules needed to run the Sample App.  Cool no 😎?
+Okteto replaces the `vote` Deployment with a Development Container, synchronizes the `vote` folder of your machine to `/src`, and runs `python app.py`, the command of the service.
 
-Open your browser and go to the URL of your development environment, shown as part of the `okteto deploy` logs (https://vote-cindy.okteto.example.com/ in this case).
+Edit the options in `vote/app.py` on your machine:
 
-## Step 2: Developing time!
-
-In order to hot-reload your application in your remote development environment, run the this command:
-
-```console
-$ okteto up vote
-```
-
-```
- i  Using cindy @ okteto.example.com as context
- i  Development environment 'compose-getting-started' already deployed.
- i  To redeploy your development environment run 'okteto deploy' or 'okteto up vote --deploy'
- ✓  Persistent volume successfully attached
- ✓  Images successfully pulled
- ✓  Files synchronized
-    Context:   okteto.example.com
-    Namespace: cindy
-    Name:      vote
-    Forward:   8080 -> 8080
-
- * Serving Flask app 'app' (lazy loading)
- * Environment: development
- * Debug mode: on
- * Running on all addresses.
-   WARNING: This is a development server. Do not use it in a production deployment.
- * Running on http://10.8.35.69:8080/ (Press CTRL+C to quit)
- * Restarting with stat
- * Debugger is active!
- * Debugger PIN: 838-277-059
-```
-
-From this moment, all you code changes will be immediately synched and hot-reloaded by your development environment.
-For example, open the `vote/app.py` file in your IDE and modify the voting options on lines 16-17.
-
-```python
+```python title="vote/app.py"
 def getOptions():
     option_a = "Local development"
     option_b = "Cloud development"
+    return option_a, option_b
 ```
 
-Save your changes. Check the output of your development environment:
+Your change is synchronized to the container right away, and Flask reloads the application. Open the endpoint again to see the new options: no build, no push, and no redeploy. Press `Ctrl+C` and run `okteto down` when you're done to restore the original Deployment.
 
-```console
- * Detected change in '/src/app.py', reloading
- * Restarting with stat
- * Debugger is active!
- * Debugger PIN: 838-277-059
+## Deploying More Than Docker Compose
+
+`okteto deploy` deploys a Docker Compose file on its own, but your environment can also need things the file doesn't define, such as a Helm chart or a Terraform resource. Add an [Okteto Manifest](/docs/reference/okteto-manifest/) (`okteto.yaml`) and put the Compose file in its `deploy` section, next to the commands that deploy the rest:
+
+```yaml title="okteto.yaml"
+build:
+  vote:
+    context: vote
+  worker:
+    context: worker
+
+deploy:
+  commands:
+    - name: Deploy the worker with Helm
+      command: helm upgrade --install worker worker/chart --set image=${OKTETO_BUILD_WORKER_IMAGE}
+  compose: docker-compose.yml
 ```
 
-Access the URL of your application again.
-Your code changes were instantly applied. No commit, build, or push required!
+- **`build`** defines the images to build. The `vote` image replaces the image of the Compose service with the same name, and `${OKTETO_BUILD_WORKER_IMAGE}` holds the `worker` image, which the Helm command passes to its chart.
+- **`deploy`** runs its [commands](/docs/reference/okteto-manifest/#deploy-with-commands) first and then deploys the [Compose file](/docs/reference/okteto-manifest/#deploy-with-compose).
 
+[Develop a Helm application with Okteto](/tutorials/helm/) shows a complete application deployed with Helm commands.
 
-## Next steps
+## Next Steps
 
-Congratulations, you just developed **your first application with Okteto** 🚀.
-
-Read the docs for the [Docker Compose](/docs/reference/docker-compose) and the [available Okteto CLI commands](/docs/reference/okteto-cli) to learn more about developing your Docker Compose application on Okteto.
-
-Head over to [our getting started guides](/docs/development/containers) to see how to configure Okteto to live-update your application with different programming languages and **debuggers**.
+- [Preview Environments](/tutorials/preview-environments/) deploy the same application for every pull request.
+- The [Okteto CLI reference](/docs/reference/okteto-cli/) lists the commands to deploy, develop, and destroy your environments.
