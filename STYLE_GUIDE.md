@@ -1,6 +1,6 @@
 # Okteto Documentation Style Guide
 
-This guide covers voice, tone, formatting, and terminology for the Okteto docs. It applies to all content in `src/content/` and is the reference for both human contributors and automated tools.
+This guide covers voice, tone, formatting, images, and terminology for everything Okteto publishes from this repo: the docs (`src/content/` and `versioned_docs/`), the tutorials (`tutorials/`), and the blog (`blog/`). The three follow the same rules. It is the reference for both human contributors and automated tools.
 
 ---
 
@@ -110,7 +110,7 @@ Okteto uses [role-based access control (RBAC)](core/user-roles-and-permissions.m
 [Learn more about roles and permissions →](core/user-roles-and-permissions.mdx)
 ```
 
-Link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Link tutorials as `/docs/tutorials/<page>`. Don't link to `https://www.okteto.com/docs/...` for a page that is in the docs.
+Inside the docs, link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Between the docs, the tutorials, and the blog, link with a root-relative URL: `/docs/tutorials/<slug>/` for a tutorial, `/docs/<path>/` for a docs page, and `/blog/<slug>/` for a post. Don't link to `https://www.okteto.com/...` for a page of one of the three. The build doesn't check links between them, so when you move a page, update the pages of the other two that link to it.
 
 ### Code and CLI
 
@@ -149,7 +149,7 @@ Navigate to **Admin → Garbage Collector** and click **Enable**.
 
 ### Images
 
-Use the `Image` component (`import Image from "@theme/Image";`), never Markdown `![]()`. Always include descriptive `alt` text.
+In docs pages, use the `Image` component (`import Image from "@theme/Image";`), never Markdown `![]()`. Tutorials and blog posts keep their images in their own `img/` folder and show them with a Markdown image (`![alt](./img/diagram.webp)`) or with `Image` and `require('./img/...')`. Always include descriptive `alt` text.
 
 ```mdx
 <Image src={...} alt="BuildKit architecture diagram showing remote build flow" />
@@ -157,7 +157,7 @@ Use the `Image` component (`import Image from "@theme/Image";`), never Markdown 
 
 Images inside a page (docs, tutorials, and blog posts) have a white background, diagrams included. Only the cover of a blog post or a tutorial has a dark background. In tutorials and blog posts, images are shown at the width of the cover, centered: the styles do it, so don't size or align them one by one. Diagrams are drawn at the size of the cover too (2400x1260), so they keep its proportions. For Kubernetes architectures, the [Kubernetes icon set](https://github.com/kubernetes/community/tree/main/icons) is the reference: one shape per resource type, used the same way in every diagram.
 
-Diagrams are drawn with `scripts/covers`, with `background: 'white'`: see "Cover images" in [`AGENTS.md`](AGENTS.md#cover-images).
+Diagrams and covers are drawn with `scripts/covers` in the docs, the tutorials, and the blog alike (diagrams with `background: 'white'`): see "Images" in [`AGENTS.md`](AGENTS.md#images).
 
 ### Version numbers
 

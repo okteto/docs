@@ -34,9 +34,10 @@ blog/
    ---
    ```
 
-   The cover (`img/cover.jpg`) follows the style of the blog's covers and is
-   rendered with `scripts/covers`: see "Cover images" in
-   [`AGENTS.md`](../AGENTS.md#cover-images).
+   The cover (`img/cover.jpg`) follows the style of every cover and diagram of
+   the docs, the tutorials and the blog, and is rendered with `scripts/covers`:
+   see "Images" in [`AGENTS.md`](../AGENTS.md#images). The text follows
+   [`STYLE_GUIDE.md`](../STYLE_GUIDE.md), like the docs and the tutorials.
 3. Write the post in Markdown. Put `{/* truncate */}` after the first
    paragraph: everything above it is the excerpt.
 4. Run `yarn develop:blog` and open http://localhost:8081/blog/.
@@ -88,12 +89,15 @@ on unknown tags, which keeps near-duplicates like `preview-environment` and
 
 ## How it is built
 
-The docs and the blog are two Docusaurus sites in one repo, because
-Docusaurus applies `baseUrl` to the whole site:
+The docs, the tutorials and the blog are three Docusaurus sites in one repo,
+because Docusaurus applies `baseUrl` to the whole site:
 
 - `docusaurus.config.js` builds `/docs/` into `build/docs`.
+- `docusaurus.tutorials.config.js` builds `/docs/tutorials/` into
+  `build/docs/tutorials`, with the plugin and the theme of the blog (see
+  [`tutorials/README.md`](../tutorials/README.md)).
 - `docusaurus.blog.config.js` builds `/blog/` into `build/blog`.
-- `config/shared.js` holds what both share: navbar, footer, favicons, Prism
+- `config/shared.js` holds what the three share: navbar, footer, favicons, Prism
   theme, analytics (GA, GTM, Mixpanel, HubSpot) and styles. `shared/static`
   holds the fonts, favicons and logo. The React theme in `src/theme` and
   `src/styles` is shared too.
@@ -101,7 +105,7 @@ Docusaurus applies `baseUrl` to the whole site:
   (`/blog/page-2/`, tag pages for unused tags), compute series, and write
   `/blog/posts.json` for okteto.com pages that list posts.
 
-`yarn build` builds both. `yarn build:blog` ends with
+`yarn build` builds the three. `yarn build:blog` ends with
 `scripts/blog-migrate/verify-urls.mjs`, which fails the build if any URL the
 old blog served (`scripts/blog-migrate/legacy-urls.txt`) is missing.
 

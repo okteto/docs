@@ -1,4 +1,5 @@
-// Thin wrapper around @docusaurus/plugin-content-blog.
+// Thin wrapper around @docusaurus/plugin-content-blog, used by the blog and
+// by the tutorials (docusaurus.tutorials.config.js), which look the same.
 //
 // It keeps the stock plugin (name, routes, feed, MDX loader, theme hooks all
 // unchanged) and adds what the Sanity-powered blog had that Docusaurus
@@ -12,9 +13,10 @@
 //   3. Tag pages for tags no post uses. The old blog rendered an (empty) page
 //      for every tag; Docusaurus only creates pages for tags in use. Unused
 //      tags from tags.yml get a redirect page to /blog/tags/ instead of a 404.
-//   4. /blog/posts.json, a machine-readable index of every post. okteto.com
-//      pages that list blog posts (BlogPostsListing in okteto/website) read
-//      it instead of querying Sanity.
+//      Sites without a tags file (the tutorials) skip it.
+//   4. /blog/posts.json (and /docs/tutorials/posts.json), a machine-readable
+//      index of every post. okteto.com pages that list blog posts
+//      (BlogPostsListing in okteto/website) read it instead of querying Sanity.
 
 const fs = require('fs/promises');
 const path = require('path');
@@ -95,10 +97,10 @@ function attribute(tag, name) {
 // The image URL is read back from the built page, because Docusaurus only
 // knows the hashed asset path after webpack has run. Cards use the featured
 // image (src/theme/BlogPostItem/Header) and fall back to the social card.
-async function writePostsIndex({ outDir, content, siteUrl }) {
+async function writePostsIndex({ outDir, content, siteUrl, baseUrl }) {
   const posts = await Promise.all(
     content.blogPosts.map(async ({ metadata }) => {
-      const html = await fs.readFile(path.join(outDir, metadata.permalink.replace(/^\/blog\//, ''), 'index.html'), 'utf8');
+      const html = await fs.readFile(path.join(outDir, metadata.permalink.slice(baseUrl.length), 'index.html'), 'utf8');
       const featured = html.match(/<img\s[^>]*class=["']?featured_[^>]*>/)?.[0];
       const ogImage = html.match(/<meta\s[^>]*property=["']?og:image["'\s][^>]*>/)?.[0];
       const imagePath = (featured && attribute(featured, 'src')) || (ogImage && attribute(ogImage, 'content'));
@@ -126,10 +128,12 @@ async function oktetoBlogPlugin(context, options) {
     ...plugin,
     async postBuild(props) {
       await plugin.postBuild(props);
-      const tagsFile = path.resolve(context.siteDir, options.path, options.tags);
-      const count = await writeUnusedTagRedirects({ ...props, tagsFile, baseUrl: context.baseUrl });
-      console.log(`[okteto-blog] wrote ${count} redirect pages for unused tags`);
-      await writePostsIndex({ ...props, siteUrl: context.siteConfig.url });
+      const tagsFile = options.tags && path.resolve(context.siteDir, options.path, options.tags);
+      if (tagsFile && (await fs.stat(tagsFile).catch(() => null))) {
+        const count = await writeUnusedTagRedirects({ ...props, tagsFile, baseUrl: context.baseUrl });
+        console.log(`[okteto-blog] wrote ${count} redirect pages for unused tags`);
+      }
+      await writePostsIndex({ ...props, siteUrl: context.siteConfig.url, baseUrl: context.baseUrl });
     },
     async contentLoaded({ content, actions }) {
       actions.setGlobalData(buildIndex(content.blogPosts));

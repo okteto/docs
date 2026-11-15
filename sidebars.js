@@ -295,11 +295,6 @@ module.exports = {
       ],
     },
     {
-      type: 'html',
-      value: '<p class="sidebarHeading">Resources</p>',
-      defaultStyle: true,
-    },
-    {
       type: 'category',
       label: 'References',
       link: {
@@ -316,13 +311,7 @@ module.exports = {
         'reference/ssh-server',
       ],
     },
-    {
-      type: 'link',
-      label: 'Tutorials',
-      href: '/tutorials',
-    },
     'release-notes',
-    'community-forum',
     {
       type: 'link',
       label: 'Archives',
