@@ -200,10 +200,16 @@ const covers = [
   },
   {
     out: post('2024-01-25-platform-engineering-roadmap'),
-    alt: 'A road with three milestones that ends in a flag',
-    svg: scaled(curve('M180 400 C300 400 320 250 440 250 S580 350 700 350 S840 170 960 170', { dashed: true, strokeWidth: 5 })
-      + [[180, 400, '1'], [440, 250, '2'], [700, 350, '3']].map(([x, y, n]) => circle(x, y, 38) + text(n, x, y + 12, 34)).join('')
-      + circle(960, 170, 62, { color: C.amber }) + icon('flag', 960, 170, 62, C.amber), 1.12, 585, 270),
+    alt: "A roadmap with three milestones, self-service environments, golden paths, and collaboration, that leads to productive developers and coding agents",
+    svg: (() => {
+      const stop = (x, y, name, label, color = C.teal) => circle(x, y, 46, { color }) + icon(name, x, y, 46, color) + text(label, x, y + 86, 26);
+      return '<g transform="translate(0 -40)">' + curve('M120 395 C220 395 260 395 300 395 S420 255 520 255 S700 375 780 375 S960 190 1050 190', { dashed: true, strokeWidth: 5 })
+        + stop(250, 395, 'zap', 'Self-service')
+        + stop(520, 255, 'git-branch', 'Golden paths')
+        + stop(780, 375, 'users', 'Collaboration')
+        + circle(1050, 190, 58, { color: C.amber }) + icon('flag', 1050, 190, 56, C.amber)
+        + text('Developers', 1050, 290, 26) + text('and agents', 1050, 324, 26) + '</g>';
+    })(),
   },
   {
     out: post('2024-07-29-okteto-soc-2'),
