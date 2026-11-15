@@ -1,6 +1,6 @@
 // Swizzled (ejected): the right column of a post stays in view and holds, in
-// this order, the table of contents and the newsletter signup. On narrow
-// screens the column is hidden (the callout in the post has a signup).
+// this order, the signup of the site's email list and the table of contents.
+// On narrow screens the column is hidden (the callout in the post has a signup).
 
 import React from 'react';
 import clsx from 'clsx';
@@ -14,7 +14,7 @@ import BlogPostPageStructuredData from '@theme/BlogPostPage/StructuredData';
 import TOC from '@theme/TOC';
 import ContentVisibility from '@theme/ContentVisibility';
 
-import { NewsletterForm } from '@site/src/components/blog/Callout/Newsletter';
+import { NEWSLETTERS, NewsletterForm, useSiteNewsletter } from '@site/src/components/Newsletter';
 import styles from './styles.module.scss';
 
 function Aside() {
@@ -26,16 +26,20 @@ function Aside() {
     toc_max_heading_level: tocMaxHeadingLevel,
   } = frontMatter;
   const showToc = !hideTableOfContents && toc.length > 0;
+  const list = useSiteNewsletter();
+  const { formId, title } = NEWSLETTERS[list];
 
   return (
     <aside className={styles.aside}>
+      {formId && (
+        <div className={styles.newsletter}>
+          <p className={styles.newsletterTitle}>{title}</p>
+          <NewsletterForm list={list} instance="aside" variant="column" />
+        </div>
+      )}
       {showToc && (
         <TOC toc={toc} minHeadingLevel={tocMinHeadingLevel} maxHeadingLevel={tocMaxHeadingLevel} className={styles.toc} />
       )}
-      <div className={styles.newsletter}>
-        <p className={styles.newsletterTitle}>Subscribe to our newsletter</p>
-        <NewsletterForm instance="aside" className={styles.newsletterForm} />
-      </div>
     </aside>
   );
 }

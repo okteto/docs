@@ -1,16 +1,40 @@
-// Newsletter signup. Embeds the same HubSpot form as the footer of okteto.com.
-// The default export is one half of the callout shown at the end of every blog
-// post and post list; NewsletterForm is the form alone, which the right column
-// of a post also shows (src/theme/BlogPostPage).
+// Signup forms of the two email lists, embedded from HubSpot:
+//
+// - blog: the newsletter with the blog posts, the same form as the footer of
+//   okteto.com. The blog shows it.
+// - productUpdates: an email with each Okteto release and the new tutorials.
+//   The tutorials and the release notes of the docs show it.
+//
+// A site picks its list with `customFields.newsletter` in its Docusaurus
+// config (useSiteNewsletter); without it, the list is `blog`.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 import { track } from '@site/src/clientModules/mixpanel';
 
 import styles from './styles.module.scss';
 
 const PORTAL_ID = '5418301';
-const FORM_ID = '832002da-f018-426d-8b6f-45ac98caaf06';
+const REGION = 'na2';
+
+export const NEWSLETTERS = {
+  blog: {
+    formId: '832002da-f018-426d-8b6f-45ac98caaf06',
+    title: 'Subscribe to our newsletter',
+    text: 'What we learn running development environments and coding agents on Kubernetes, in your inbox.',
+  },
+  productUpdates: {
+    formId: '039cebe7-f47a-417b-a728-8e92474852ec',
+    title: 'Get product updates',
+    text: 'An email with each Okteto release and the new tutorials.',
+  },
+};
+
+export function useSiteNewsletter() {
+  const { siteConfig } = useDocusaurusContext();
+  return siteConfig.customFields?.newsletter ?? 'blog';
+}
 const EMBED_SRC = 'https://js.hsforms.net/forms/embed/v2.js';
 const LOAD_TIMEOUT_MS = 15000;
 
@@ -68,15 +92,21 @@ function loadEmbedScript() {
   });
 }
 
-// `instance` tells apart the copies of the form on one page: it names the
-// element HubSpot renders into and the form instance.
-export function NewsletterForm({ instance = 'callout', className }) {
+// `list` is a key of NEWSLETTERS. `instance` tells apart the copies of the form
+// on one page: it names the element HubSpot renders into and the form instance.
+// `variant` is `callout` (on the dark callout), `page` (on the page background)
+// or `column` (on the page background, in a narrow column).
+export function NewsletterForm({ list, instance = 'callout', variant = 'callout', className }) {
+  const { formId } = NEWSLETTERS[list];
   const targetId = `newsletter-form-${instance}`;
   const container = useRef(null);
   const [status, setStatus] = useState('loading');
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (!formId) {
+      return undefined;
+    }
     let cancelled = false;
     setStatus('loading');
 
@@ -87,12 +117,20 @@ export function NewsletterForm({ instance = 'callout', className }) {
         }
         container.current.innerHTML = '';
         window.hbspt.forms.create({
+          region: REGION,
           portalId: PORTAL_ID,
-          formId: FORM_ID,
+          formId,
           formInstanceId: instance,
           target: `#${targetId}`,
           css: '',
-          onFormSubmitted: () => track('Newsletter Subscribed', { form: instance }),
+          // In a narrow column, the placeholder of the form doesn't fit.
+          onFormReady: () => {
+            const email = container.current?.querySelector('input[type="email"]');
+            if (variant === 'column' && email) {
+              email.placeholder = 'Your email';
+            }
+          },
+          onFormSubmitted: () => track('Newsletter Subscribed', { form: instance, list }),
         });
         setStatus('ready');
       })
@@ -105,16 +143,20 @@ export function NewsletterForm({ instance = 'callout', className }) {
     return () => {
       cancelled = true;
     };
-  }, [attempt, instance, targetId]);
+  }, [attempt, formId, instance, list, targetId, variant]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+
+  if (!formId) {
+    return null;
+  }
 
   return (
     <>
       <div
         id={targetId}
         ref={container}
-        className={`${styles.newsletterForm} ${className || ''}`}
+        className={`${styles.newsletterForm} ${styles[variant] || ''} ${className || ''}`}
         hidden={status === 'error'}
       />
       {status === 'error' && (
@@ -126,17 +168,5 @@ export function NewsletterForm({ instance = 'callout', className }) {
         </p>
       )}
     </>
-  );
-}
-
-export default function Newsletter() {
-  return (
-    <div className={styles.half}>
-      <p className={styles.title}>Subscribe to our newsletter</p>
-      <p className={styles.text}>
-        What we learn running development environments and coding agents on Kubernetes, in your inbox.
-      </p>
-      <NewsletterForm />
-    </div>
   );
 }
