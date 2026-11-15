@@ -71,7 +71,7 @@ export default [
       }).join(''), 0.93, 594, 285)}</g>`,
   },
   {
-    out: post('2026-11-04-compare-okteto-versus-signadot'),
+    out: post('2026-01-15-compare-okteto-versus-signadot'),
     background: 'dots',
     alt: 'The Okteto logo versus Signadot',
     svg: row([mark('okteto-wordmark', { size: 360 }), 'vs', word('Signadot', { size: 84 })]),
