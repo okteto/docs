@@ -133,18 +133,25 @@ function navbar(site, { start = [], end = [] } = {}) {
     },
     items: [
       ...start,
-      { href: SITE_URL, label: 'Product', position: 'left', target: '_self' },
       { ...linkTo(site, 'docs', '/', 'Docs'), position: 'left' },
       { ...linkTo(site, 'tutorials', '/', 'Tutorials'), position: 'left' },
       { ...linkTo(site, 'blog', '/', 'Blog'), position: 'left' },
       { href: 'https://community.okteto.com', label: 'Community', position: 'left', target: '_self' },
       ...end,
+      // The two calls to action of okteto.com, in the same order and style.
       {
-        href: `${SITE_URL}/free-trial`,
-        label: 'Get Started',
+        href: `${SITE_URL}/get-demo/`,
+        label: 'Get a demo',
         position: 'right',
         target: '_self',
-        className: 'Button teal GetFreeTrialButton',
+        className: 'Button teal NavbarButton',
+      },
+      {
+        href: `${SITE_URL}/signup/`,
+        label: 'Start for Free',
+        position: 'right',
+        target: '_self',
+        className: 'Button light NavbarButton',
       },
     ],
   };
