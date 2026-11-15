@@ -31,6 +31,9 @@ module.exports = {
     // Read by src/theme/SearchMetadata and src/theme/BlogPostPaginator.
     searchTag: 'tutorials',
     allPostsLabel: 'All tutorials',
+    // Read by src/components/Newsletter: the tutorials go out in the product
+    // updates email, so this site signs readers up to that list.
+    newsletter: 'productUpdates',
   },
   themeConfig: {
     ...shared.themeConfig,
