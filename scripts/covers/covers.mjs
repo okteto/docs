@@ -616,11 +616,6 @@ const covers = [
     svg: row([badge('bot', 'Agent', { color: C.purple, r: 74 }), 'both', group('Okteto environment', [item('globe'), item('box'), item('database')], { dashed: true, color: C.teal })]),
   },
   {
-    out: tutorial('2026-07-21-preview-environments'),
-    alt: 'A pull request on GitHub deploys a Preview Environment and runs its tests',
-    svg: row([mark('github', { size: 150, label: 'Pull request' }), 'arrow', group('Preview Environment', [item('globe'), item('box'), item('flask-conical', { color: C.amber })], { dashed: true, color: C.teal })]),
-  },
-  {
     out: tutorial('2026-09-18-agent-ticket-to-pr'),
     alt: 'An issue goes to an AI agent, which opens a pull request',
     svg: row([tile('ticket', 'Issue', { color: C.blue }), 'arrow', badge('bot', 'Agent', { color: C.purple, r: 74 }), 'arrow', tile('git-pull-request', 'Pull request', { color: C.teal })]),

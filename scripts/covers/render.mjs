@@ -6,8 +6,8 @@
 // Usage: node scripts/covers/render.mjs [filter ...]
 //
 // With filters, it renders only the covers whose output path contains one of
-// them (for example, `helm` or `2026-11-08`). Blog covers are 2400x1260;
-// tutorial covers are 1200x630.
+// them (for example, `helm` or `2026-11-08`). The images of the blog and the
+// tutorials (covers and diagrams) are 2400x1260; the others are 1200x630.
 //
 // Needs Google Chrome. Set CHROME to its binary if it isn't in the default
 // macOS location.
@@ -62,7 +62,7 @@ const { result: { sessionId } } = await send('Target.attachToTarget', { targetId
 await send('Page.enable', {}, sessionId);
 let scale = 0;
 for (const [index, cover] of selected.entries()) {
-  const wanted = cover.out.startsWith('blog/') ? 2 : 1;
+  const wanted = /^(blog|tutorials)\//.test(cover.out) ? 2 : 1;
   if (wanted !== scale) {
     scale = wanted;
     await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: scale, mobile: false }, sessionId);
