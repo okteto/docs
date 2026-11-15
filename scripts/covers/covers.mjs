@@ -616,6 +616,27 @@ const covers = [
     svg: row([badge('bot', 'Agent', { color: C.purple, r: 74 }), 'both', group('Okteto environment', [item('globe'), item('box'), item('database')], { dashed: true, color: C.teal })]),
   },
   {
+    out: 'tutorials/posts/2026-09-18-agent-ticket-to-pr/img/ticket-to-pr.webp',
+    background: 'white',
+    alt: 'The agent label on a GitHub issue starts a GitHub Actions runner with Claude Code and the Okteto plugin. The agent deploys and tests the application in the Namespace agent-issue-42 and opens a pull request with the live URL. When the pull request closes, the cleanup job destroys the Namespace',
+    svg: () => {
+      let out = box(60, 160, 180, 190, { color: C.blue, radius: 22 }) + icon('ticket', 150, 210, 56, C.blue) + text('Issue', 150, 272, 26)
+        + box(102, 292, 96, 36, { color: C.purple, radius: 18, strokeWidth: 2.5, fill: C.pill }) + text('agent', 150, 317, 22, { color: C.purple });
+      out += arrow(250, 255, 300, 255);
+      out += box(310, 120, 300, 270, { color: C.purple, dashed: true }) + text('GitHub Actions runner', 460, 165, 24, { color: C.dim })
+        + circle(460, 240, 46, { color: C.purple }) + icon('bot', 460, 240, 50, C.purple) + text('Claude Code', 460, 320, 26) + text('Okteto plugin', 460, 356, 22, { color: C.dim });
+      out += arrow(622, 255, 760, 255) + text('deploy, test', 691, 235, 22, { color: C.dim });
+      out += box(770, 120, 370, 270, { color: C.blue }) + text('Namespace', 955, 165, 24, { color: C.dim }) + text('agent-issue-42', 955, 200, 26)
+        + icon('box', 875, 290, 58) + icon('box', 955, 290, 58) + icon('flask-conical', 1035, 290, 58, C.amber);
+      out += arrow(460, 395, 460, 445);
+      out += box(360, 450, 200, 140, { color: C.teal, radius: 22 }) + icon('git-pull-request', 460, 500, 50) + text('Pull request', 460, 565, 24);
+      out += arrow(570, 520, 885, 520) + text('on close', 728, 500, 22, { color: C.dim });
+      out += circle(955, 520, 56, { color: C.red }) + icon('trash-2', 955, 520, 50, C.red) + text('Cleanup', 955, 605, 24);
+      out += arrow(955, 460, 955, 400, { color: C.red, dashed: true });
+      return `<g transform="translate(0 -40)">${out}</g>`;
+    },
+  },
+  {
     out: tutorial('2026-09-18-agent-ticket-to-pr'),
     alt: 'An issue goes to an AI agent, which opens a pull request',
     svg: row([tile('ticket', 'Issue', { color: C.blue }), 'arrow', badge('bot', 'Agent', { color: C.purple, r: 74 }), 'arrow', tile('git-pull-request', 'Pull request', { color: C.teal })]),
