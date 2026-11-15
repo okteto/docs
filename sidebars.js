@@ -295,6 +295,12 @@ module.exports = {
       ],
     },
     {
+      // A line between the product sections and References, Release notes, and Archives.
+      type: 'html',
+      value: '<hr class="sidebarSeparator" />',
+      defaultStyle: true,
+    },
+    {
       type: 'category',
       label: 'References',
       link: {
