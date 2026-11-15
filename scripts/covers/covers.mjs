@@ -327,7 +327,7 @@ const covers = [
     out: post('2026-01-12-platform-engineering-tools-2026'),
     alt: 'A chat window connected to a Kubernetes cluster that runs an agent with guardrails, workload identity, and observability',
     svg: row([
-      tile('message-square', 'Chat', { color: C.teal }),
+      tile('bot', 'Chat', { color: C.purple }),
       'arrow',
       group('Kubernetes', [item('bot', { color: C.purple }), item('shield-check', { color: C.amber }), item('key-round'), item('eye')], { top: 'kubernetes' }),
     ]),
