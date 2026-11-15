@@ -134,11 +134,18 @@ const covers = [
   },
   {
     out: post('2023-03-23-total-cost-of-ownership-tco-of-building-versus-buying-software-for-development'),
-    alt: 'Two cost bars: building a platform, a tall bar of engineers, infrastructure and maintenance, and buying one, a short bar',
-    svg: bars([
-      { label: 'Build', segments: [{ value: 120, color: C.red, icon: 'users' }, { value: 110, color: C.purple, icon: 'server' }, { value: 110, color: C.amber, icon: 'wrench' }] },
-      { label: 'Buy', segments: [{ value: 130, color: C.teal, icon: 'dollar-sign' }] },
-    ], { baseline: 452, barWidth: 200, gap: 130, unit: 1.08 }),
+    alt: 'Two cost bars: building a platform piles up infrastructure, technical, security, features, integrations, and support costs, while buying Okteto is one short bar',
+    svg: (() => {
+      const items = [['users', 'Support', C.red], ['link', 'Integrations', C.amber], ['code', 'Features', C.purple], ['shield-check', 'Security', C.blue], ['wrench', 'Technical', C.amber], ['server', 'Infrastructure', C.purple]];
+      let out = '';
+      items.forEach(([name, label, color], i) => {
+        const y = 168 + i * 58;
+        out += box(380, y, 160, 50, { color, radius: 12, strokeWidth: 3.5 }) + icon(name, 460, y + 25, 32, color) + text(label, 360, y + 34, 24, { anchor: 'end' });
+      });
+      out += box(700, 404, 160, 110, { color: C.teal, radius: 14 }) + logo('okteto', 780, 459, 70) + text('Platform', 880, 468, 24, { anchor: 'start' });
+      out += `<path d="M320 530 H920" stroke="${C.dim}" stroke-width="3"/>` + text('Build', 460, 574, 30) + text('Buy', 780, 574, 30);
+      return out;
+    })(),
   },
   {
     out: post('2023-06-02-the-modern-way-of-sharing-dev-work-with-your-team'),
@@ -147,16 +154,38 @@ const covers = [
   },
   {
     out: post('2023-07-27-the-way-you-re-using-kubernetes-clusters-during-development-is-killing-productivity'),
-    alt: 'One Kubernetes cluster shared by three developers, each with their own namespace',
-    svg: hub({
-      rows: [{ icon: 'user', text: 'Namespace ana' }, { icon: 'user', text: 'Namespace li' }, { icon: 'user', text: 'Namespace sam' }],
-      rowColor: C.teal,
-    }),
+    alt: 'Developers waiting their turn for a shared cluster, versus a Kubernetes cluster where each developer has their own namespace',
+    svg: (() => {
+      let out = box(110, 170, 340, 330, { color: C.amber, dashed: true }) + text('Shared cluster', 280, 225, 28);
+      [190, 280, 370].forEach((x, i) => { out += icon('user', x, 300, 62, i === 0 ? C.teal : C.dim); });
+      out += icon('hourglass', 222, 420, 46, C.amber) + text('waiting', 256, 430, 26, { anchor: 'start', color: C.amber });
+      out += arrow(470, 335, 580, 335);
+      out += box(600, 130, 490, 400) + logo('kubernetes', 845, 130, 88) + text('Namespace per developer', 845, 218, 28);
+      ['ana', 'li', 'sam'].forEach((name, i) => {
+        const y = 248 + i * 90;
+        out += box(630, y, 430, 72, { color: C.teal, radius: 14, strokeWidth: 3.5, fill: C.row })
+          + icon('user', 670, y + 36, 38) + text(name, 702, y + 46, 26, { anchor: 'start' })
+          + ['globe', 'box', 'database'].map((n, k) => icon(n, 880 + k * 60, y + 36, 34)).join('');
+      });
+      return out;
+    })(),
   },
   {
     out: post('2023-08-15-five-challenges-with-developing-locally-using-docker-compose'),
-    alt: 'The Docker logo on a laptop, with a warning sign',
-    svg: row([group('Laptop', [smallMark('docker', { size: 130 })], { color: C.teal, minWidth: 260 }), 'none', badge('triangle-alert', null, { color: C.amber, r: 80 })]),
+    alt: 'A laptop running a Docker Compose stack of web, api, queue, and database containers, with its challenges: resources, not like production, not reproducible, coding agents, and end-to-end tests',
+    svg: (() => {
+      let out = box(120, 150, 440, 360, { color: C.blue }) + logo('docker', 340, 150, 96) + text('Laptop', 340, 238, 28);
+      [['globe', 'web'], ['box', 'api'], ['layers', 'queue'], ['database', 'db']].forEach(([name, label], i) => {
+        const x = 150 + (i % 2) * 200;
+        const y = 285 + Math.floor(i / 2) * 105;
+        out += box(x, y, 180, 80, { color: C.teal, radius: 14, strokeWidth: 3.5 }) + icon(name, x + 38, y + 40, 36) + text(label, x + 70, y + 50, 25, { anchor: 'start' });
+      });
+      [['gauge', 'Laptop resources'], ['triangle-alert', 'Not like production'], ['copy', 'Not reproducible'], ['bot', 'Coding agents'], ['flask-conical', 'End-to-end tests']].forEach(([name, label], i) => {
+        const y = 150 + i * 74;
+        out += box(620, y, 460, 60, { color: C.amber, radius: 30, strokeWidth: 3, fill: C.row }) + icon(name, 662, y + 30, 32, C.amber) + text(label, 696, y + 40, 25, { anchor: 'start' });
+      });
+      return out;
+    })(),
   },
   {
     out: post('2023-09-26-slash-your-kubernetes-costs-during-development'),
@@ -219,8 +248,16 @@ const covers = [
   },
   {
     out: post('2026-01-05-development-environment-pitfalls'),
-    alt: 'Three kinds of development environment in a row: local, shared, and ephemeral',
-    svg: row([badge('laptop', 'Local', { color: C.dim }), 'arrow', badge('server', 'Shared', { color: C.amber }), 'arrow', badge('cloud', 'Ephemeral')]),
+    alt: 'Three ways to run a development environment: a laptop that only fits part of the system, a full copy of every service, and Divert, which deploys only the service that changes on top of a shared environment',
+    svg: (() => {
+      const panel = (x, title, name, color) => box(x, 150, 290, 360, { color, dashed: color !== C.teal }) + icon(name, x + 145, 205, 52, color) + text(title, x + 145, 272, 28);
+      const pod = (x, y, color = C.teal, dashed = false) => box(x - 30, y - 30, 60, 60, { color, radius: 12, strokeWidth: 3, dashed }) + (dashed ? '' : icon('box', x, y, 32, color));
+      const grid = (x0, kinds) => kinds.map((k, n) => pod(x0 + 75 + (n % 3) * 70, 340 + Math.floor(n / 3) * 80, k[0], k[1])).join('');
+      let out = panel(70, 'Local', 'laptop', C.dim) + grid(70, [[C.teal], [C.teal], [C.dim, true], [C.dim, true], [C.dim, true], [C.dim, true]]);
+      out += panel(455, 'Full copy', 'copy', C.amber) + grid(455, Array(6).fill([C.amber]));
+      out += panel(840, 'Divert', 'git-branch', C.teal) + grid(840, [[C.teal], [C.dim], [C.dim], [C.dim], [C.dim], [C.dim]]);
+      return out + text('only part fits', 215, 488, 22, { color: C.dim }) + text('every service', 600, 488, 22, { color: C.amber }) + text('only what changes', 985, 488, 22, { color: C.teal });
+    })(),
   },
   {
     out: post('2026-09-10-compare-okteto-versus-bunnyshell'),
