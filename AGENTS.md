@@ -93,6 +93,7 @@ Images inside a page (a blog post, a tutorial, or a docs page) have a white back
 - **Kubernetes:** `mark('kubernetes')` draws the official mark, the white wheel on the blue (`#326ce5`) heptagon, with one corner up. Never put the wheel on a circle or on any other shape.
 - **Other brands:** single-color marks from `scripts/covers/logos/` (from [Simple Icons](https://simpleicons.org)), in a brand color that reads on the dark background (the `BRANDS` table of `style.mjs`). To add one, save its SVG in that folder and add its color to the table. If a brand has no mark there, write its name with `word()`.
 - **Icons:** line icons from `scripts/covers/icons/` (from [Lucide](https://lucide.dev)). To add one, save its SVG in that folder.
+- **Kubernetes resources:** take the [Kubernetes icon set](https://github.com/kubernetes/community/tree/main/icons) as the reference for diagrams of Kubernetes architectures: one recognizable shape per resource type (Pod, Deployment, Service, Ingress, Namespace, Volume, Secret, and so on), used the same way in every diagram, and the cluster or namespace as the box that contains them. Draw them in the style of `style.mjs` (line icons and the palette above), not as the blue icons of the set.
 
 ### Adding or changing a cover
 

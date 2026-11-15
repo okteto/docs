@@ -155,7 +155,7 @@ Use the `Image` component (`import Image from "@theme/Image";`), never Markdown 
 <Image src={...} alt="BuildKit architecture diagram showing remote build flow" />
 ```
 
-Images inside a page (docs, tutorials, and blog posts) have a white background, diagrams included. Only the cover of a blog post or a tutorial has a dark background. In tutorials and blog posts, images are shown at the width of the cover, centered: the styles do it, so don't size or align them one by one. Diagrams are drawn at the size of the cover too (2400x1260), so they keep its proportions.
+Images inside a page (docs, tutorials, and blog posts) have a white background, diagrams included. Only the cover of a blog post or a tutorial has a dark background. In tutorials and blog posts, images are shown at the width of the cover, centered: the styles do it, so don't size or align them one by one. Diagrams are drawn at the size of the cover too (2400x1260), so they keep its proportions. For Kubernetes architectures, the [Kubernetes icon set](https://github.com/kubernetes/community/tree/main/icons) is the reference: one shape per resource type, used the same way in every diagram.
 
 Diagrams are drawn with `scripts/covers`, with `background: 'white'`: see "Cover images" in [`AGENTS.md`](AGENTS.md#cover-images).
 
