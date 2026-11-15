@@ -85,7 +85,7 @@ When you draw the subject:
 
 Images inside a blog post or a tutorial are shown at the width of the cover (at most 40rem), centered. The styles do it for every image (`src/styles/blog.scss` and `src/styles/main.scss`), so don't size or align images one by one.
 
-Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post, a `.webp` file of its `img/` folder other than `cover.jpg`). When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
+Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
 
 ### Logos and icons
 
