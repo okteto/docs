@@ -2,9 +2,9 @@
 // style.mjs. Each entry has:
 //   out: where the JPEG goes (a cover is the post's img/cover.jpg; a diagram
 //        is another file of the post's img/ folder)
-//   background: 'dots', 'weave', 'rings' or 'grid' for a cover. Vary it from
-//        one cover to the next, so consecutive posts don't look the same.
-//        'white' for a diagram inside an article.
+//   background: 'white' for a diagram inside an article. A blog cover takes
+//        none: comparisons get `stars`, and the other posts one of the five
+//        backgrounds of ROTATION, by date order (see below).
 //   alt: what the image shows (the post's `image_alt`)
 //   svg: the subject, built with the helpers of style.mjs. For a diagram
 //        inside an article it is a function, drawn with the light theme.
@@ -12,13 +12,36 @@
 // A cover shows what the article is about, never its title: a simple
 // schematic, or big logos when the article is about an integration.
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 import {
-  C, text, icon, logo, box, circle, arrow, curve, scaled, hub, row, mark, word, tile, group, item,
+  C, root, text, icon, logo, box, circle, arrow, curve, scaled, hub, row, mark, word, tile, group, item,
+  badge, smallMark, terminal, bars,
 } from './style.mjs';
 
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
 const figure = (dir, name) => `blog/posts/${dir}/img/${name}.webp`;
 const LB = '2023-02-28-kubernetes-load-balancer-service';
+const pods = (n = 3, color = C.teal) => Array.from({ length: n }, () => item('box', { color }));
+const kubernetes = (options) => mark('kubernetes', options);
+const okteto = (options) => mark('okteto', options);
+const versus = (name) => row([mark('okteto-wordmark', { size: 360 }), 'vs', word(name, { size: 84 })]);
+
+// The backgrounds of the blog covers. A comparison of Okteto with another
+// vendor (an "okteto-vs" or "okteto-versus" post) always takes `stars`, and no
+// other post does. The other posts take the five backgrounds of ROTATION one
+// after another, sorted by date (their folder name).
+const COMPARISON = 'stars';
+const ROTATION = ['dots', 'weave', 'grid', 'sun', 'hexagons'];
+const isComparison = (dir) => /okteto-(vs|versus)-/.test(dir);
+const rotating = fs.readdirSync(path.join(root, 'blog/posts')).filter((dir) => /^\d{4}-/.test(dir) && !isComparison(dir)).sort();
+const rotation = (out) => {
+  const dir = out.match(/^blog\/posts\/([^/]+)\/img\/cover\.jpg$/)?.[1];
+  if (!dir) return undefined;
+  if (isComparison(dir)) return COMPARISON;
+  return rotating.includes(dir) ? ROTATION[rotating.indexOf(dir) % ROTATION.length] : undefined;
+};
 const BASICS = '2022-07-27-kubernetes-basics';
 
 // A row of small labels in rounded boxes, centered on (cx, cy).
@@ -33,10 +56,229 @@ function pills(cx, cy, labels, { color = C.teal, size = 18, gap = 10, fill = C.p
   }).join('');
 }
 
-export default [
+const covers = [
+  {
+    out: post('2019-09-22-manage-your-kubernetes-context-directly-from-vs-code'),
+    alt: 'The Visual Studio Code logo with an arrow to the Kubernetes logo',
+    svg: row([mark('visualstudiocode'), 'arrow', kubernetes()]),
+  },
+  {
+    out: post('2021-06-07-preview-environments-for-kubernetes'),
+    alt: 'A pull request deploys a Preview Environment in a Kubernetes namespace',
+    svg: row([
+      tile('git-pull-request', 'Pull request'),
+      'arrow',
+      group('Preview Environment', [item('globe'), ...pods(2)], { top: 'kubernetes', dashed: true }),
+    ]),
+  },
+  {
+    out: post('2021-10-04-best-practices-in-kubernetes-security'),
+    alt: 'The Kubernetes logo inside a shield',
+    svg: curve('M600 62 L772 124 V282 Q772 424 600 492 Q428 424 428 282 V124 Z', { strokeWidth: 6 })
+      + logo('kubernetes', 600, 262, 236),
+  },
+  {
+    out: post('2021-12-16-building-docker-images-faster-for-webpack'),
+    alt: 'The Webpack logo with a fast arrow to the Docker logo',
+    svg: row([mark('webpack'), { icon: 'zap' }, mark('docker', { size: 220 })]),
+  },
+  {
+    out: post('2022-02-23-a-15m-series-a-to-disrupt-modern-development'),
+    alt: 'The Okteto logo next to $15M, the size of the Series A',
+    svg: row([okteto(), 'none', word('$15M', { size: 130, color: C.amber, label: 'Series A' })]),
+  },
+  {
+    out: post('2022-09-27-why-development-experience-matters'),
+    alt: 'The panelists: Ramiro Berrelleza, CEO and co-founder of Okteto, Lior Rabin, DevEx team lead at monday.com, and Ron Barabash, chief architect at Yotpo',
+    // The photos of the panel, cut out of the original cover (images/).
+    svg: `<image href="file://${path.join(root, 'scripts/covers/images/why-development-experience-matters.png')}" x="21" y="0" width="1158" height="630"/>`,
+  },
+  {
+    out: post('2022-10-18-applying-gitops-principles-to-your-development-environments'),
+    alt: 'The Git logo with an arrow to an environment in Kubernetes',
+    svg: row([mark('git', { size: 170 }), 'arrow', group('Environment', pods(3), { top: 'kubernetes', dashed: true })]),
+  },
+  {
+    out: post('2022-11-28-kubernetes-network-policies'),
+    alt: 'A NetworkPolicy in a Kubernetes namespace lets the frontend Pod reach the api Pod and the api Pod reach the database, and blocks the frontend from the database',
+    svg: (() => {
+      const pod = (name, label, x, y, color = C.teal) => box(x - 55, y - 55, 110, 110, { color, radius: 20, strokeWidth: 3.5 })
+        + icon(name, x, y, 56, color) + text(label, x, y + 98, 26);
+      const verdict = (x, y, ok) => circle(x, y, 26, { color: ok ? C.teal : C.red }) + icon(ok ? 'check' : 'x', x, y, 30, ok ? C.teal : C.red);
+      return box(150, 105, 900, 465, { color: C.blue, dashed: true }) + logo('kubernetes', 600, 105, 88)
+        + icon('shield-check', 500, 192, 38, C.amber) + text('NetworkPolicy', 528, 204, 30, { anchor: 'start' })
+        + pod('box', 'api', 600, 300) + pod('box', 'frontend', 330, 430) + pod('database', 'db', 870, 430)
+        + arrow(395, 395, 532, 325) + verdict(463, 360, true)
+        + arrow(668, 325, 805, 395) + verdict(737, 360, true)
+        + arrow(395, 455, 805, 455, { color: C.red, dashed: true }) + verdict(600, 455, false);
+    })(),
+  },
+  {
+    out: post('2022-12-05-kubectl-cheat-sheet'),
+    alt: 'A terminal with three kubectl commands',
+    svg: scaled(terminal(['kubectl get pods', 'kubectl logs deploy/api', 'kubectl apply -f app.yaml'], { y: 144 }), 1.22, 600, 285),
+  },
+  {
+    out: post('2023-02-21-four-reasons-you-need-preview-environments'),
+    alt: 'A Preview Environment and four reasons to use it: collaboration, feedback, validation, and testing',
+    svg: hub({
+      title: 'Preview',
+      top: null,
+      rows: [{ icon: 'git-pull-request', text: 'Pull request' }, { icon: 'globe', text: 'Live URL' }],
+      left: [{ icon: 'users', label: 'Collaboration' }, { icon: 'message-circle', label: 'Feedback' }],
+      right: [{ icon: 'circle-check', label: 'Validation' }, { icon: 'flask-conical', label: 'Testing' }],
+    }),
+  },
+  {
+    out: post('2023-02-28-kubernetes-load-balancer-service'),
+    alt: 'A load balancer distributes the traffic from the internet across three Pods',
+    svg: scaled(circle(230, 270, 62) + icon('globe', 230, 270, 66)
+      + arrow(315, 270, 470, 270)
+      + box(495, 195, 210, 150, { color: C.blue }) + icon('network', 600, 258, 62, C.blue) + text('LoadBalancer', 600, 392)
+      + arrow(725, 240, 880, 150) + arrow(725, 270, 880, 270) + arrow(725, 300, 880, 390)
+      + [150, 270, 390].map((y) => box(905, y - 48, 96, 96, { color: C.teal, radius: 18 }) + icon('box', 953, y, 52)).join(''), 1.15, 615),
+  },
+  {
+    out: post('2023-03-23-total-cost-of-ownership-tco-of-building-versus-buying-software-for-development'),
+    alt: "Building a development platform means maintaining infrastructure, technical upkeep, security, features, integrations, and support; buying one means the Okteto platform, maintained for you",
+    svg: (() => {
+      let out = box(90, 125, 640, 400, { color: C.amber, dashed: true }) + icon('wrench', 340, 182, 40, C.amber) + text('Build', 372, 194, 32, { anchor: 'start' });
+      [['server', 'Infrastructure'], ['wrench', 'Technical'], ['shield-check', 'Security'], ['code', 'Features'], ['link', 'Integrations'], ['users', 'Support']].forEach(([name, label], i) => {
+        const x = 120 + (i % 2) * 300;
+        const y = 232 + Math.floor(i / 2) * 92;
+        out += box(x, y, 280, 72, { color: C.amber, radius: 14, strokeWidth: 3, fill: C.row }) + icon(name, x + 42, y + 36, 34, C.amber) + text(label, x + 76, y + 46, 25, { anchor: 'start' });
+      });
+      out += box(770, 125, 340, 400, { color: C.teal }) + icon('dollar-sign', 905, 182, 40) + text('Buy', 937, 194, 32, { anchor: 'start' });
+      out += logo('okteto-wordmark', 940, 330, 250) + text('Maintained for you', 940, 452, 25, { color: C.teal });
+      return out;
+    })(),
+  },
+  {
+    out: post('2023-06-02-the-modern-way-of-sharing-dev-work-with-your-team'),
+    alt: 'A developer shares their work with the team through a URL',
+    svg: row([badge('laptop', 'Developer'), 'arrow', tile('link', 'URL', { color: C.blue }), 'arrow', badge('users', 'Team', { color: C.purple })]),
+  },
+  {
+    out: post('2023-07-27-the-way-you-re-using-kubernetes-clusters-during-development-is-killing-productivity'),
+    alt: 'Developers waiting their turn for a shared cluster, versus a Kubernetes cluster where each developer has their own namespace',
+    svg: (() => {
+      let out = box(110, 170, 340, 330, { color: C.amber, dashed: true }) + text('Shared cluster', 280, 225, 28);
+      [190, 280, 370].forEach((x, i) => { out += icon('user', x, 300, 62, i === 0 ? C.teal : C.dim); });
+      out += icon('hourglass', 222, 420, 46, C.amber) + text('waiting', 256, 430, 26, { anchor: 'start', color: C.amber });
+      out += arrow(470, 335, 580, 335);
+      out += box(600, 130, 490, 400) + logo('kubernetes', 845, 130, 88) + text('Namespace per developer', 845, 218, 28);
+      ['ana', 'li', 'sam'].forEach((name, i) => {
+        const y = 248 + i * 90;
+        out += box(630, y, 430, 72, { color: C.teal, radius: 14, strokeWidth: 3.5, fill: C.row })
+          + icon('user', 670, y + 36, 38) + text(name, 702, y + 46, 26, { anchor: 'start' })
+          + ['globe', 'box', 'database'].map((n, k) => icon(n, 880 + k * 60, y + 36, 34)).join('');
+      });
+      return out;
+    })(),
+  },
+  {
+    out: post('2023-08-15-five-challenges-with-developing-locally-using-docker-compose'),
+    alt: 'A laptop running a Docker Compose stack of web, api, queue, and database containers, with its challenges: resources, not like production, not reproducible, coding agents, and end-to-end tests',
+    svg: (() => {
+      let out = box(120, 150, 440, 360, { color: C.blue }) + logo('docker', 340, 150, 96) + text('Laptop', 340, 238, 28);
+      [['globe', 'web'], ['box', 'api'], ['layers', 'queue'], ['database', 'db']].forEach(([name, label], i) => {
+        const x = 150 + (i % 2) * 200;
+        const y = 285 + Math.floor(i / 2) * 105;
+        out += box(x, y, 180, 80, { color: C.teal, radius: 14, strokeWidth: 3.5 }) + icon(name, x + 38, y + 40, 36) + text(label, x + 70, y + 50, 25, { anchor: 'start' });
+      });
+      [['gauge', 'Laptop resources'], ['triangle-alert', 'Not like production'], ['copy', 'Not reproducible'], ['bot', 'Coding agents'], ['flask-conical', 'End-to-end tests']].forEach(([name, label], i) => {
+        const y = 150 + i * 74;
+        out += box(620, y, 460, 60, { color: C.amber, radius: 30, strokeWidth: 3, fill: C.row }) + icon(name, 662, y + 30, 32, C.amber) + text(label, 696, y + 40, 25, { anchor: 'start' });
+      });
+      return out;
+    })(),
+  },
+  {
+    out: post('2023-09-26-slash-your-kubernetes-costs-during-development'),
+    alt: 'The Garbage Collector removes idle environments from Kubernetes and the cost goes down',
+    svg: row([kubernetes({ size: 170 }), 'arrow', tile('trash-2', 'Garbage Collector', { color: C.purple }), 'arrow', badge('trending-down', 'Cost', { color: C.teal })]),
+  },
+  {
+    out: post('2024-01-25-platform-engineering-roadmap'),
+    alt: "A roadmap with three milestones, self-service environments, golden paths, and collaboration, that leads to productive developers and coding agents",
+    svg: (() => {
+      const stop = (x, y, name, label, color = C.teal) => circle(x, y, 46, { color }) + icon(name, x, y, 46, color) + text(label, x, y + 86, 26);
+      return '<g transform="translate(0 -40)">' + curve('M120 395 C220 395 260 395 300 395 S420 255 520 255 S700 375 780 375 S960 190 1050 190', { dashed: true, strokeWidth: 5 })
+        + stop(250, 395, 'zap', 'Self-service')
+        + stop(520, 255, 'git-branch', 'Golden paths')
+        + stop(780, 375, 'users', 'Collaboration')
+        + circle(1050, 190, 58, { color: C.amber }) + icon('flag', 1050, 190, 56, C.amber)
+        + text('Developers', 1050, 290, 26) + text('and agents', 1050, 324, 26) + '</g>';
+    })(),
+  },
+  {
+    out: post('2024-07-29-okteto-soc-2'),
+    alt: "The Okteto logo and the text \"We're SOC 2!\", with the SOC 2 Achieved badge by Strike Graph and the AICPA SOC badge",
+    // The original cover, cut out of its background (images/).
+    svg: `<image href="file://${path.join(root, 'scripts/covers/images/okteto-soc-2.png')}" x="0" y="32" width="1200" height="565"/>`,
+  },
+  {
+    out: post('2025-01-07-platform-tooling-landscape'),
+    alt: 'A grid with the logos of eight platform engineering tools',
+    svg: scaled(['okteto', 'kubernetes', 'terraform', 'argo', 'githubactions', 'gitlab', 'prometheus', 'grafana'].map((name, i) => {
+      const x = 600 + ((i % 4) - 1.5) * 190;
+      const y = 175 + Math.floor(i / 4) * 190;
+      return box(x - 75, y - 75, 150, 150, { color: i % 2 === Math.floor(i / 4) % 2 ? C.teal : C.purple }) + logo(name, x, y, 84);
+    }).join(''), 1.12, 600, 270),
+  },
+  {
+    out: post('2025-03-10-what-are-ephemeral-environments'),
+    alt: 'A branch creates an environment that lives for a limited time and is then deleted',
+    svg: row([badge('git-branch', 'Branch'), 'arrow', group('Environment', [item('timer', { color: C.amber }), ...pods(2)], { dashed: true }), 'arrow', badge('trash-2', 'Deleted', { color: C.dim })]),
+  },
+  {
+    out: post('2025-04-22-why-flexibility-is-key-to-scaling-development-environments'),
+    alt: 'Two kinds of environment: a full one with every service, and a Divert one with only the service being changed',
+    svg: row([
+      group('Full environment', pods(4), { dashed: true, gap: 14 }),
+      'none',
+      group('Divert', [item('box'), ...pods(3, C.dim)], { color: C.purple, dashed: true, gap: 14 }),
+    ]),
+  },
+  {
+    out: post('2025-07-08-the-three-pillars-of-trust-for-ai-in-software-development'),
+    alt: 'Three pillars hold up an AI agent: results, safety, and unblocked',
+    svg: circle(600, 84, 44, { color: C.purple }) + icon('bot', 600, 84, 48, C.purple)
+      + box(250, 146, 700, 30, { color: C.blue, radius: 10 })
+      + [[370, 'zap', 'Results'], [600, 'shield-check', 'Safety'], [830, 'key', 'Unblocked']].map(([x, name, label]) =>
+        box(x - 55, 190, 110, 196, { color: C.teal, radius: 12 }) + icon(name, x, 288, 60) + text(label, x, 478)).join('')
+      + box(250, 400, 700, 30, { color: C.blue, radius: 10 }),
+  },
+  {
+    out: post('2025-12-05-okteto-vs-mirrord-choosing-the-right-development-environment-solution-for-your-team'),
+    alt: 'The Okteto logo versus mirrord',
+    svg: versus('mirrord'),
+  },
+  {
+    out: post('2025-12-19-compare-okteto-versus-qovery'),
+    alt: 'The Okteto logo versus Qovery',
+    svg: versus('Qovery'),
+  },
+  {
+    out: post('2026-01-05-development-environment-pitfalls'),
+    alt: 'Three ways to run a development environment: a laptop that only fits part of the system, a full copy of every service, and Divert, which deploys only the service that changes on top of a shared environment',
+    svg: (() => {
+      const panel = (x, title, name, color) => box(x, 150, 290, 360, { color, dashed: color !== C.teal }) + icon(name, x + 145, 205, 52, color) + text(title, x + 145, 272, 28);
+      const pod = (x, y, color = C.teal, dashed = false) => box(x - 30, y - 30, 60, 60, { color, radius: 12, strokeWidth: 3, dashed }) + (dashed ? '' : icon('box', x, y, 32, color));
+      const grid = (x0, kinds) => kinds.map((k, n) => pod(x0 + 75 + (n % 3) * 70, 340 + Math.floor(n / 3) * 80, k[0], k[1])).join('');
+      let out = panel(70, 'Local', 'laptop', C.dim) + grid(70, [[C.teal], [C.teal], [C.dim, true], [C.dim, true], [C.dim, true], [C.dim, true]]);
+      out += panel(455, 'Full copy', 'copy', C.amber) + grid(455, Array(6).fill([C.amber]));
+      out += panel(840, 'Divert', 'git-branch', C.teal) + grid(840, [[C.teal], [C.dim], [C.dim], [C.dim], [C.dim], [C.dim]]);
+      return out + text('only part fits', 215, 488, 22, { color: C.dim }) + text('every service', 600, 488, 22, { color: C.amber }) + text('only what changes', 985, 488, 22, { color: C.teal });
+    })(),
+  },
+  {
+    out: post('2026-09-10-compare-okteto-versus-bunnyshell'),
+    alt: 'The Okteto logo versus Bunnyshell',
+    svg: versus('Bunnyshell'),
+  },
   {
     out: post('2026-11-08-why-run-ai-coding-agents-on-kubernetes'),
-    background: 'rings',
     alt: 'AI coding agents working on separate issues inside Kubernetes, with four benefits: secure, reproducible, scale, and observability',
     svg: hub({
       rows: [{ icon: 'bot', text: '#142 fix login' }, { icon: 'bot', text: '#157 add export' }, { icon: 'bot', text: '#163 bump deps' }],
@@ -46,7 +288,6 @@ export default [
   },
   {
     out: post('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes'),
-    background: 'weave',
     alt: 'An agent sandbox with the agent binary and Git access, connected through RBAC to the Kubernetes namespace that runs the application: an HTTPRoute, a Service, Pods and a Volume',
     // Scaled down a little (the blog's cards crop the sides of the image) and
     // moved down to the center of the cover.
@@ -74,19 +315,16 @@ export default [
   },
   {
     out: post('2026-01-28-ingress-nginx-controller-deprecation-your-migration-guide-to-kubernetes-gateway-api'),
-    background: 'weave',
     alt: 'The NGINX logo, for Ingress NGINX, with an arrow to the Kubernetes logo, for the Gateway API',
     svg: row([mark('nginx', { size: 170, label: 'Ingress NGINX' }), 'arrow', mark('kubernetes', { size: 180, label: 'Gateway API' })]),
   },
   {
     out: post('2026-01-15-compare-okteto-versus-signadot'),
-    background: 'grid',
     alt: 'The Okteto logo versus Signadot',
     svg: row([mark('okteto-wordmark', { size: 360 }), 'vs', word('Signadot', { size: 84 })]),
   },
   {
     out: post('2026-01-12-platform-engineering-tools-2026'),
-    background: 'dots',
     alt: 'A chat window connected to a Kubernetes cluster that runs an agent with guardrails, workload identity, and observability',
     svg: row([
       tile('message-square', 'Chat', { color: C.teal }),
@@ -96,7 +334,6 @@ export default [
   },
   {
     out: post(BASICS),
-    background: 'rings',
     alt: 'A Kubernetes cluster with the objects the tutorial covers: HTTPRoutes, Services, Deployments, Pods, and Volumes',
     svg: `<g transform="translate(0 40)">${
       box(170, 130, 860, 330, { color: C.blue })
@@ -108,6 +345,115 @@ export default [
       }).join('')
     }</g>`,
   },
+  // The build times chart of the Webpack post.
+  {
+    out: figure('2021-12-16-building-docker-images-faster-for-webpack', 'build-times'),
+    background: 'white',
+    alt: 'Build times of the Okteto website with and without BuildKit caches: 50 seconds down to 9 for a dependency change, and 62 seconds down to 12 for a code change',
+    svg: () => {
+      const bar = (y, seconds, color) => {
+        const w = (seconds / 62) * 720;
+        return box(340, y, w, 48, { color, fill: color, radius: 10, strokeWidth: 2 }) + text(`${seconds}s`, 340 + w + 14, y + 34, 26, { anchor: 'start' });
+      };
+      let out = box(700, 28, 26, 26, { color: C.red, fill: C.red, radius: 6, strokeWidth: 2 }) + text('without BuildKit caches', 736, 50, 22, { anchor: 'start' })
+        + box(700, 66, 26, 26, { color: C.teal, fill: C.teal, radius: 6, strokeWidth: 2 }) + text('with BuildKit caches', 736, 88, 22, { anchor: 'start' });
+      [['yarn install', '1. Dependency change', 50, 9], ['yarn build', '2. Code change', 62, 12]].forEach(([command, caption, before, after], k) => {
+        const y0 = 130 + k * 250;
+        out += text('> docker build', 60, y0, 24, { anchor: 'start', mono: true, color: C.dim })
+          + box(60, y0 + 18, 250, 128, { color: C.text, fill: C.text, radius: 16, strokeWidth: 2 }) + text(command, 185, y0 + 92, 28, { mono: true, color: '#ffffff' })
+          + bar(y0 + 22, before, C.red) + bar(y0 + 92, after, C.teal)
+          + text(caption, 340, y0 + 186, 24, { anchor: 'start', color: C.dim });
+      });
+      return out;
+    },
+  },
+  // The three diagrams of How to Run AI Coding Agents on Kubernetes.
+  {
+    out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'fat-agent-sandbox'),
+    background: 'white',
+    alt: 'A fat agent sandbox: one privileged pod that holds the agent, its tools and privileges, and a Docker daemon running every service of the application',
+    svg: () => {
+      let out = box(250, 70, 700, 530, { color: C.red }) + circle(600, 70, 40, { color: C.red }) + icon('box', 600, 70, 42, C.red)
+        + text('Fat agent sandbox (privileged pod)', 600, 150, 28, { color: C.red });
+      out += box(280, 180, 300, 390, { color: C.dim, radius: 18, strokeWidth: 3 }) + text('Agent', 430, 225, 26, { color: C.dim });
+      ['Agent binary', 'Git access', 'Tools', 'Privileges'].forEach((label, i) => {
+        out += box(300, 250 + i * 65, 260, 52, { color: C.dim, radius: 10, strokeWidth: 2.5 }) + text(label, 430, 285 + i * 65, 24);
+      });
+      out += box(620, 180, 300, 390, { color: C.dim, radius: 18, strokeWidth: 3 }) + text('Dockerd', 770, 225, 26, { color: C.dim });
+      [['box', 'frontend'], ['box', 'api'], ['database', 'db'], ['box', 'worker'], ['database', 'kafka'], ['database', 'postgres'], ['box', 'service']].forEach(([name, label], i) => {
+        const x = 630 + (i % 2) * 145;
+        const y = 250 + Math.floor(i / 2) * 62;
+        out += box(x, y, 140, 50, { color: C.dim, fill: C.dim, radius: 10, strokeWidth: 2 }) + icon(name, x + 20, y + 25, 22, '#ffffff') + text(label, x + 36, y + 33, 22, { anchor: 'start', color: '#ffffff' });
+      });
+      out += box(775, 436, 140, 50, { color: C.dim, radius: 10, strokeWidth: 2.5 }) + text('...', 845, 466, 26, { color: C.dim });
+      return out;
+    },
+  },
+  {
+    out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'agent-sandbox-and-application-environment'),
+    background: 'white',
+    alt: 'The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application and its tests in a Kubernetes namespace',
+    svg: () => {
+      let out = box(40, 150, 400, 370, { color: C.purple }) + circle(240, 150, 40, { color: C.purple }) + icon('bot', 240, 150, 44, C.purple)
+        + text('Light agent sandbox', 240, 235, 30, { color: C.purple });
+      ['Agent binary', 'Git access', 'Kubernetes credentials'].forEach((label, i) => {
+        out += box(70, 268 + i * 80, 340, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text(label, 240, 308 + i * 80, 26);
+      });
+      out += arrow(470, 330, 640, 330, { color: C.purple }) + text('deploy, test', 555, 308, 24, { color: C.purple });
+      out += arrow(640, 390, 470, 390, { color: C.dim }) + text('results, logs', 555, 432, 24, { color: C.dim });
+      out += box(670, 90, 490, 510, { color: C.blue }) + logo('kubernetes', 915, 90, 80)
+        + text('Application environment', 915, 172, 30) + text('Kubernetes namespace', 915, 206, 22, { color: C.dim });
+      [['box', 'frontend'], ['box', 'api'], ['database', 'database'], ['database', 'queue']].forEach(([name, label], i) => {
+        const y = 228 + i * 70;
+        out += box(700, y, 430, 58, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 }) + icon(name, 738, y + 29, 30, C.blue) + text(label, 772, y + 38, 26, { anchor: 'start' });
+      });
+      out += box(700, 518, 430, 58, { color: C.teal, fill: '#e2f5f3', radius: 12, strokeWidth: 2.5 }) + icon('circle-check', 738, 547, 30, C.teal) + text('tests', 772, 556, 26, { anchor: 'start' });
+      return out;
+    },
+  },
+  {
+    out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'agent-loop-with-verified-output'),
+    background: 'white',
+    alt: 'The agent loop: the agent edits code in the light agent sandbox, builds and deploys the application to its Kubernetes namespace, and verifies its output there with tests, endpoints, and logs and metrics, repeating until it works and then opening a pull request',
+    svg: () => {
+      let out = box(30, 170, 300, 240, { color: C.purple }) + circle(180, 170, 38, { color: C.purple }) + icon('bot', 180, 170, 42, C.purple)
+        + text('Light agent sandbox', 180, 245, 26, { color: C.purple })
+        + box(55, 280, 250, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text('Edit code', 180, 320, 26);
+      out += arrow(345, 311, 398, 311, { color: C.purple });
+      out += box(410, 90, 535, 455, { color: C.blue }) + logo('kubernetes', 677, 90, 80)
+        + text('Application environment', 677, 170, 30) + text('Kubernetes namespace', 677, 204, 22, { color: C.dim });
+      out += box(430, 280, 205, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text('Build and deploy', 532, 320, 24);
+      out += arrow(642, 311, 672, 311, { color: C.blue });
+      out += box(680, 280, 245, 62, { color: C.teal, fill: C.teal, radius: 12, strokeWidth: 2 }) + icon('circle-check', 712, 311, 30, '#ffffff') + text('Verify output', 740, 320, 24, { anchor: 'start', color: '#ffffff' });
+      ['Tests', 'Endpoints', 'Logs and metrics'].forEach((label, i) => {
+        const y = 352 + i * 60;
+        out += box(680, y, 245, 50, { color: C.teal, fill: '#e2f5f3', radius: 10, strokeWidth: 2 }) + icon('circle-check', 708, y + 25, 26, C.teal) + text(label, 732, y + 33, 22, { anchor: 'start' });
+      });
+      out += arrow(952, 311, 978, 311, { color: C.teal });
+      out += box(985, 280, 190, 62, { color: C.text, radius: 12, strokeWidth: 3 }) + text('Pull request', 1080, 320, 24);
+      out += curve('M795 532 V585 H180 V430', { color: C.dim }) + arrow(180, 440, 180, 418, { color: C.dim })
+        + `<rect x="370" y="568" width="300" height="36" fill="#ffffff"/>` + text('repeat until it works', 520, 594, 24, { color: C.dim });
+      return out;
+    },
+  },
+  // The two diagrams of the Network Policies guide.
+  ...[['default-traffic', 'by default', false], ['network-policy', 'using Network Policies', true]].map(([name, caption, blocked]) => ({
+    out: figure('2022-11-28-kubernetes-network-policies', name),
+    background: 'white',
+    alt: blocked
+      ? 'With Network Policies, the traffic between the frontend and the database is blocked'
+      : 'Frontend, backend, and database pods: by default, each one can talk to the other two',
+    svg: () => {
+      const node = (label, cx, cy) => box(cx - 120, cy - 42, 240, 84, { color: C.blue, radius: 16, strokeWidth: 3.5 }) + text(label, cx, cy + 10, 30);
+      let out = node('frontend', 300, 150) + node('backend', 900, 150) + node('database', 600, 400);
+      out += arrow(436, 150, 764, 150, { both: true });
+      out += arrow(812, 206, 690, 346, { both: true });
+      out += blocked
+        ? arrow(388, 206, 510, 346, { both: true, color: C.red, dashed: true }) + circle(449, 276, 28, { color: C.red }) + icon('x', 449, 276, 32, C.red)
+        : arrow(388, 206, 510, 346, { both: true });
+      return out + text(caption, 600, 545, 32, { mono: true });
+    },
+  })),
   // The two diagrams of Kubernetes Basics.
   {
     out: figure(BASICS, 'architecture'),
@@ -247,3 +593,5 @@ export default [
     },
   },
 ];
+
+export default covers.map((cover) => ({ ...cover, background: cover.background ?? rotation(cover.out) }));

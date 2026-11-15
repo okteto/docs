@@ -5,7 +5,8 @@ slug: a-15m-series-a-to-disrupt-modern-development
 date: 2022-02-23
 authors: ["ramiro-berrelleza"]
 tags: ["okteto", "startup"]
-image: ./img/73e251703ecf.jpg
+image: ./img/cover.jpg
+image_alt: "The Okteto logo next to $15M, the size of the Series A"
 ---
 
 We are excited to announce that Okteto has raised $15M in Series A financing. The round was led by Villi Iltchev from Two Sigma Ventures, with participation from existing investors Haystack, Root Ventures, and Uncorrelated Ventures. 
