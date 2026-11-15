@@ -295,8 +295,9 @@ module.exports = {
       ],
     },
     {
+      // A line between the product sections and References, Release notes, and Archives.
       type: 'html',
-      value: '<p class="sidebarHeading">Resources</p>',
+      value: '<hr class="sidebarSeparator" />',
       defaultStyle: true,
     },
     {
@@ -316,13 +317,7 @@ module.exports = {
         'reference/ssh-server',
       ],
     },
-    {
-      type: 'link',
-      label: 'Tutorials',
-      href: '/tutorials',
-    },
     'release-notes',
-    'community-forum',
     {
       type: 'link',
       label: 'Archives',

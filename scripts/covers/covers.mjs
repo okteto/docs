@@ -1,8 +1,8 @@
 // The covers, and the diagrams inside the posts, drawn in the style of
 // style.mjs. Each entry has:
-//   out: where the JPEG goes (a cover is the post's img/cover.jpg; a diagram
-//        is another file of the post's img/ folder)
-//   background: 'white' for a diagram inside an article. A blog cover takes
+//   out: where the JPEG goes (a cover is the post's or the tutorial's
+//        img/cover.jpg; a diagram is another file of its img/ folder)
+//   background: 'white' for a diagram inside an article. A cover takes
 //        none: comparisons get `stars`, and the other posts one of the five
 //        backgrounds of ROTATION, by date order (see below).
 //   alt: what the image shows (the post's `image_alt`)
@@ -21,6 +21,7 @@ import {
 } from './style.mjs';
 
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
+const tutorial = (dir) => `tutorials/posts/${dir}/img/cover.jpg`;
 const figure = (dir, name) => `blog/posts/${dir}/img/${name}.webp`;
 const LB = '2023-02-28-kubernetes-load-balancer-service';
 const pods = (n = 3, color = C.teal) => Array.from({ length: n }, () => item('box', { color }));
@@ -28,19 +29,23 @@ const kubernetes = (options) => mark('kubernetes', options);
 const okteto = (options) => mark('okteto', options);
 const versus = (name) => row([mark('okteto-wordmark', { size: 360 }), 'vs', word(name, { size: 84 })]);
 
-// The backgrounds of the blog covers. A comparison of Okteto with another
-// vendor (an "okteto-vs" or "okteto-versus" post) always takes `stars`, and no
-// other post does. The other posts take the five backgrounds of ROTATION one
-// after another, sorted by date (their folder name).
+// The backgrounds of the covers of the blog posts and the tutorials. A
+// comparison of Okteto with another vendor (an "okteto-vs" or "okteto-versus"
+// post) always takes `stars`, and no other post does. The other posts take the
+// five backgrounds of ROTATION one after another, sorted by date (their folder
+// name). The tutorials rotate the same way, on their own.
 const COMPARISON = 'stars';
 const ROTATION = ['dots', 'weave', 'grid', 'sun', 'hexagons'];
 const isComparison = (dir) => /okteto-(vs|versus)-/.test(dir);
-const rotating = fs.readdirSync(path.join(root, 'blog/posts')).filter((dir) => /^\d{4}-/.test(dir) && !isComparison(dir)).sort();
+const rotating = (site) =>
+  fs.readdirSync(path.join(root, site, 'posts')).filter((dir) => /^\d{4}-/.test(dir) && !isComparison(dir)).sort();
+const ROTATING = { blog: rotating('blog'), tutorials: rotating('tutorials') };
 const rotation = (out) => {
-  const dir = out.match(/^blog\/posts\/([^/]+)\/img\/cover\.jpg$/)?.[1];
+  const [, site, dir] = out.match(/^(blog|tutorials)\/posts\/([^/]+)\/img\/cover\.jpg$/) ?? [];
   if (!dir) return undefined;
   if (isComparison(dir)) return COMPARISON;
-  return rotating.includes(dir) ? ROTATION[rotating.indexOf(dir) % ROTATION.length] : undefined;
+  const list = ROTATING[site];
+  return list.includes(dir) ? ROTATION[list.indexOf(dir) % ROTATION.length] : undefined;
 };
 const BASICS = '2022-07-27-kubernetes-basics';
 
@@ -591,6 +596,71 @@ const covers = [
       out += curve('M833 520 C995 520 995 300 897 196') + arrow(903, 204, 889, 190);
       return out;
     },
+  },
+  {
+    out: post('2021-08-18-webpack-dev-server-in-a-container'),
+    alt: 'A laptop synchronizes files with a container that runs Webpack',
+    svg: row([badge('laptop', null, { r: 80 }), 'both', group('Container', [smallMark('webpack', { size: 120 })], { dashed: true, color: C.teal })]),
+  },
+  {
+    out: post('2025-02-11-vite-dev-server-in-a-container'),
+    alt: 'A laptop synchronizes files with a container that runs Vite',
+    svg: row([badge('laptop', null, { r: 80 }), 'both', group('Container', [smallMark('vite', { size: 120 })], { dashed: true, color: C.teal })]),
+  },
+
+  // -------------------------------------------------------------------------
+  // Tutorials
+  {
+    out: 'tutorials/posts/2026-09-18-agent-ticket-to-pr/img/ticket-to-pr.webp',
+    background: 'white',
+    alt: 'The agent label on a GitHub issue starts a GitHub Actions runner with Claude Code and the Okteto plugin. The agent deploys and tests the application in the Namespace agent-issue-42 and opens a pull request with the live URL. When the pull request closes, the cleanup job destroys the Namespace',
+    svg: () => {
+      let out = box(60, 160, 180, 190, { color: C.blue, radius: 22 }) + icon('ticket', 150, 210, 56, C.blue) + text('Issue', 150, 272, 26)
+        + box(102, 292, 96, 36, { color: C.purple, radius: 18, strokeWidth: 2.5, fill: C.pill }) + text('agent', 150, 317, 22, { color: C.purple });
+      out += arrow(250, 255, 300, 255);
+      out += box(310, 120, 300, 270, { color: C.purple, dashed: true }) + text('GitHub Actions runner', 460, 165, 24, { color: C.dim })
+        + circle(460, 240, 46, { color: C.purple }) + icon('bot', 460, 240, 50, C.purple) + text('Claude Code', 460, 320, 26) + text('Okteto plugin', 460, 356, 22, { color: C.dim });
+      out += arrow(622, 255, 760, 255) + text('deploy, test', 691, 235, 22, { color: C.dim });
+      out += box(770, 120, 370, 270, { color: C.blue }) + text('Namespace', 955, 165, 24, { color: C.dim }) + text('agent-issue-42', 955, 200, 26)
+        + icon('box', 875, 290, 58) + icon('box', 955, 290, 58) + icon('flask-conical', 1035, 290, 58, C.amber);
+      out += arrow(460, 395, 460, 445);
+      out += box(360, 450, 200, 140, { color: C.teal, radius: 22 }) + icon('git-pull-request', 460, 500, 50) + text('Pull request', 460, 565, 24);
+      out += arrow(570, 520, 885, 520) + text('on close', 728, 500, 22, { color: C.dim });
+      out += circle(955, 520, 56, { color: C.red }) + icon('trash-2', 955, 520, 50, C.red) + text('Cleanup', 955, 605, 24);
+      out += arrow(955, 460, 955, 400, { color: C.red, dashed: true });
+      return `<g transform="translate(0 -40)">${out}</g>`;
+    },
+  },
+  {
+    out: tutorial('2026-09-18-agent-ticket-to-pr'),
+    alt: 'An issue goes to an AI agent, which opens a pull request',
+    svg: row([tile('ticket', 'Issue', { color: C.blue }), 'arrow', badge('bot', 'Agent', { color: C.purple, r: 74 }), 'arrow', tile('git-pull-request', 'Pull request', { color: C.teal })]),
+  },
+  {
+    out: tutorial('2022-03-31-compose-getting-started'),
+    alt: 'The Docker logo with an arrow to the Kubernetes logo',
+    svg: row([mark('docker', { size: 230 }), 'arrow', kubernetes()]),
+  },
+  {
+    out: tutorial('2026-11-14-helm'),
+    alt: 'The Helm logo with an arrow to the Kubernetes logo',
+    svg: row([mark('helm', { size: 200 }), 'arrow', kubernetes()]),
+  },
+  {
+    out: tutorial('2026-11-13-cloud-infrastructure'),
+    alt: 'A Namespace, Terraform, and the S3 bucket that Terraform creates for it',
+    svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),
+  },
+  {
+    out: tutorial('2025-10-01-optimize-your-development-environment'),
+    alt: 'A snail goes through the optimizations (builds, remote execution, Volume Snapshots, and Divert) and comes out as a rocket',
+    svg: row([
+      badge('snail', null, { color: C.amber, r: 86 }),
+      'arrow',
+      group('Optimizations', [item('layers'), item('server'), item('database'), item('split')], { dashed: true, color: C.teal }),
+      'arrow',
+      badge('rocket', null, { color: C.teal, r: 86 }),
+    ]),
   },
 ];
 

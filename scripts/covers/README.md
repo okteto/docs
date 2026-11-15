@@ -1,7 +1,8 @@
 # Covers
 
-The cover images of the blog posts and the tutorials. The style and the steps
-to add a cover are in ["Cover images" in `AGENTS.md`](../../AGENTS.md#cover-images).
+The covers of the blog posts and the tutorials, and the diagrams of the docs,
+the tutorials and the blog. The style and the steps to add one are in
+["Images" in `AGENTS.md`](../../AGENTS.md#images).
 
 - `style.mjs`: the style (background, colors, logos) and the drawing helpers.
 - `covers.mjs`: one entry per cover.

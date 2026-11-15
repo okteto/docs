@@ -84,7 +84,7 @@ Put the Kubernetes nodes on a dedicated network that isn't reachable from the co
 
 ### Apply Network Policies and Monitor Network Traffic
 
-By default, every pod can talk to every other pod. [Network policies](https://www.okteto.com/blog/kubernetes-network-policies/) restrict that traffic: start by denying all traffic in a namespace and then allow only the connections each workload needs. Monitor network activity, compare it to the traffic your policies allow, and remove the connections that are no longer needed to keep the attack surface small.
+By default, every pod can talk to every other pod. [Network policies](/blog/kubernetes-network-policies/) restrict that traffic: start by denying all traffic in a namespace and then allow only the connections each workload needs. Monitor network activity, compare it to the traffic your policies allow, and remove the connections that are no longer needed to keep the attack surface small.
 
 ### Allowlist Processes
 

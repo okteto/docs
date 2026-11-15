@@ -5,6 +5,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { track } from '@site/src/clientModules/mixpanel';
+
 import styles from './styles.module.scss';
 
 const PORTAL_ID = '5418301';
@@ -90,6 +92,7 @@ export function NewsletterForm({ instance = 'callout', className }) {
           formInstanceId: instance,
           target: `#${targetId}`,
           css: '',
+          onFormSubmitted: () => track('Newsletter Subscribed', { form: instance }),
         });
         setStatus('ready');
       })

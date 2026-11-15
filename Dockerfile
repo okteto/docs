@@ -13,7 +13,7 @@ COPY shared shared
 COPY versioned_sidebars versioned_sidebars
 COPY versioned_docs versioned_docs
 # Config files — occasional changes
-COPY sidebarTutorials.js sidebars.js versions.json docusaurus.config.js docusaurus.blog.config.js ./
+COPY sidebars.js versions.json docusaurus.config.js docusaurus.tutorials.config.js docusaurus.blog.config.js ./
 COPY config config
 COPY scripts scripts
 # Theme/component code — changes less often than content
@@ -23,17 +23,19 @@ COPY src/plugins src/plugins
 COPY src/pages src/pages
 COPY src/styles src/styles
 COPY src/theme src/theme
-COPY src/tutorials src/tutorials
 # Content changes most frequently — last so all layers above stay cached
 COPY src/content src/content
+COPY tutorials tutorials
 COPY blog blog
 
 RUN --mount=type=cache,target=/app/node_modules/.cache/webpack \
     --mount=type=cache,target=/app/.docusaurus \
     --mount=type=cache,target=/app/.docusaurus-blog \
+    --mount=type=cache,target=/app/.docusaurus-tutorials \
     yarn build
 
 FROM bitnami/nginx AS prod
 COPY nginx/index.html /app
 COPY --from=build /app/build/docs /app/docs
+COPY --from=build /app/build/tutorials /app/tutorials
 COPY --from=build /app/build/blog /app/blog

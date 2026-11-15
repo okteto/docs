@@ -4,7 +4,7 @@ This file is loaded automatically by Claude Code and the other agents that read 
 
 ## Mandatory: read the style guide first
 
-Before editing **any** file under `src/content/`, `src/pages/`, `versioned_docs/`, or any `.mdx`/`.md` doc page, you must read [`STYLE_GUIDE.md`](STYLE_GUIDE.md) in full. It is the source of truth for voice, tone, page structure, formatting, and terminology. The rules below are a quick-reference subset. When in doubt, defer to `STYLE_GUIDE.md`.
+Before editing **any** file under `src/content/`, `src/pages/`, `versioned_docs/`, `tutorials/`, or `blog/`, or any `.mdx`/`.md` page, you must read [`STYLE_GUIDE.md`](STYLE_GUIDE.md) in full. It is the source of truth for voice, tone, page structure, formatting, and terminology, and it applies the same way to the docs, the tutorials, and the blog. The rules below are a quick-reference subset. When in doubt, defer to `STYLE_GUIDE.md`.
 
 If `STYLE_GUIDE.md` is not present in the working tree (for example, on an old branch), stop and tell the user before continuing.
 
@@ -60,17 +60,21 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 - `src/content/`: the **current** unreleased version. **All new content goes here.**
 - `versioned_docs/version-X.Y/`: frozen snapshots of released versions. By default, changes go only to `src/content/` (the next version), because most of them document features that ship in it. Copy a change to the official version (`lastVersion` in `docusaurus.config.js`) or older ones only when the user asks.
 - `src/pages/`: top-level pages (archives, etc.).
+- `tutorials/`: the tutorials, served at `/tutorials/` as a site of their own with the look of the blog (`docusaurus.tutorials.config.js`). One folder per tutorial in `tutorials/posts/`, with its images. They aren't versioned. See [`tutorials/README.md`](tutorials/README.md).
+- `blog/`: the blog, served at `/blog/` (`docusaurus.blog.config.js`). See [`blog/README.md`](blog/README.md).
+- `config/shared.js`: what the three sites share (navbar, footer, search, analytics, styles), and the links between them. A page links to a page of another site with a root-relative URL (`/tutorials/helm/` from the docs, `/docs/reference/okteto-cli/` from a tutorial): the build turns it into a plain link and doesn't check it.
+- `src/clientModules/mixpanel.js`: analytics for the three sites, in the Mixpanel "Website" project that okteto.com uses too. Page views, clicks, and scrolls are captured automatically; calls to action send `Click <label>`, the event name of okteto.com. To send a new event, call its `track()` with an event name in the style of the existing ones (`404 Page Viewed`, `Newsletter Subscribed`, `Docs Feedback Submitted`).
 - `static/`: images and assets. Use the `+X.Y` filename suffix when an image only applies to specific versions (see [`README.md`](README.md#image)).
 - `src/content/variables.json`: version variables (`cliVersion`, `chartVersion`, etc.), imported in MDX. Never hardcode a version.
 
 File extension is `.mdx` for content pages. Frontmatter requires a `description` field. Write it per [`STYLE_GUIDE.md`](STYLE_GUIDE.md#frontmatter-description).
 
-## Cover images
+## Images
 
-Every blog post has a cover image, and all of them share one style, defined in `scripts/covers/style.mjs`:
+The docs, the tutorials, and the blog draw their images the same way, with one generator (`scripts/covers`) and one style, defined in `scripts/covers/style.mjs`. Every tutorial and every blog post has a cover image in that style:
 
 - **Subject:** what the article is about, never its title (the title is already next to the image). Draw a schematic of the idea (a flow, a box with its parts, a comparison), or big logos when the article is about an integration (`Okteto + Argo`, `Helm to Kubernetes`).
-- **Look:** neon lines on navy (`#1a2640`), over one of six backgrounds with an 80s feel in the colors of Okteto: `dots` (halftone dots fading from two corners), `weave` (a band of halftone dots across the cover), `grid` (a faint grid in perspective along the bottom edge), `sun` (a striped retro sun rising from the bottom-right corner), `hexagons` (a honeycomb of thin outlines fading in from two corners, the pattern of the older Okteto covers), and `stars` (a starfield with a few neon sparkles). These six are the only backgrounds of the blog covers. A comparison of Okteto with another vendor (Okteto vs mirrord, vs Qovery, and so on, a post whose folder contains `okteto-vs-` or `okteto-versus-`) always uses `stars`, and no other post does. The other posts rotate through the other five: `covers.mjs` gives each one the next background in date order, so consecutive posts never share it. Don't set `background` on a blog cover. When you add or remove a post, render every cover again (`node scripts/covers/render.mjs img/cover.jpg`), because the rotation shifts.
+- **Look:** neon lines on navy (`#1a2640`), over one of six backgrounds with an 80s feel in the colors of Okteto: `dots` (halftone dots fading from two corners), `weave` (a band of halftone dots across the cover), `grid` (a faint grid in perspective along the bottom edge), `sun` (a striped retro sun rising from the bottom-right corner), `hexagons` (a honeycomb of thin outlines fading in from two corners, the pattern of the older Okteto covers), and `stars` (a starfield with a few neon sparkles). These six are the only backgrounds of the covers. A comparison of Okteto with another vendor (Okteto vs mirrord, vs Qovery, and so on, a post whose folder contains `okteto-vs-` or `okteto-versus-`) always uses `stars`, and no other post does. The other posts rotate through the other five: `covers.mjs` gives each one the next background in date order, so consecutive posts never share it. The tutorials rotate through the same five, on their own. Don't set `background` on a cover. When you add or remove a post or a tutorial, render every cover again (`node scripts/covers/render.mjs img/cover.jpg`), because the rotation shifts.
 - **Simplicity:** one idea, a handful of shapes, and few labels of one to three words, in Circular Bold. The image has to read at the width of a card (about 300px).
 - **Colors:** teal (`#00d1ca`) for Okteto and for environments, blue (`#4d8dff`) for Kubernetes boxes, purple (`#b44cff`) for agents, and amber (`#ffb13b`) or red (`#ff5c7a`) for warnings, cost, and blocked paths.
 
@@ -85,7 +89,7 @@ When you draw the subject:
 
 Images inside a blog post or a tutorial are shown at the width of the cover (at most 40rem), centered. The styles do it for every image (`src/styles/blog.scss` and `src/styles/main.scss`), so don't size or align images one by one.
 
-Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
+Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post or a tutorial, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
 
 ### Logos and icons
 
@@ -98,9 +102,9 @@ Images inside a page (a blog post, a tutorial, or a docs page) have a white back
 ### Adding or changing a cover
 
 1. Add or edit the entry in `scripts/covers/covers.mjs`: the output path, the `alt` text, and the subject, built with the helpers of `style.mjs` (`row`, `group`, `hub`, `badge`, `tile`, `mark`, and others). Start from the closest existing cover.
-2. Run `node scripts/covers/render.mjs <filter>`. The filter is a part of the output path, such as the post's folder; without it, the script renders every cover. It needs Google Chrome. Blog covers are 2400x1260.
+2. Run `node scripts/covers/render.mjs <filter>`. The filter is a part of the output path, such as the post's folder; without it, the script renders every cover. It needs Google Chrome. Covers are 2400x1260.
 3. Look at the image, also at the size of a card, and simplify it until it reads at a glance.
-4. In the post, set the cover and its alternative text (the `alt` of the entry) in the frontmatter:
+4. In the post or the tutorial, set the cover and its alternative text (the `alt` of the entry) in the frontmatter:
 
    ```yaml
    image: ./img/cover.jpg
@@ -130,8 +134,10 @@ If the user asks you to release a new version of the docs, follow the [Quick Ref
 
 ```
 yarn install
-yarn start    # dev server
-yarn build    # production build, used to catch broken links
+yarn start                # docs dev server: http://localhost:8080/docs/
+yarn develop:tutorials    # tutorials dev server: http://localhost:8082/tutorials/
+yarn develop:blog         # blog dev server: http://localhost:8081/blog/
+yarn build                # production build of the three sites, used to catch broken links
 ```
 
 ### Commits

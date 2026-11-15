@@ -225,6 +225,9 @@ module.exports = {
           // Also feeds dateModified in the page JSON-LD (src/theme/DocItem/Metadata).
           showLastUpdateTime: true,
           sidebarPath: require.resolve('./sidebars.js'),
+          // Links to the tutorials (/tutorials/...) and the blog are
+          // links to other sites (see config/shared.js).
+          remarkPlugins: [shared.remarkCrossSiteLinks('docs')],
           lastVersion: '1.50',
           versions: {
             current: {
@@ -276,17 +279,6 @@ module.exports = {
     ],
   ],
   plugins: [
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'tutorials',
-        path: 'src/tutorials',
-        routeBasePath: 'tutorials',
-        sidebarPath: require.resolve('./sidebarTutorials.js'),
-        breadcrumbs: false,
-        showLastUpdateTime: true,
-      },
-    ],
     [
       '@signalwire/docusaurus-plugin-llms-txt',
       {

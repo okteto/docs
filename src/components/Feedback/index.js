@@ -3,6 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import ThumbsUpIcon from '../../icons/ThumbsUpIcon';
 import ThumbsDownIcon from '../../icons/ThumbsDownIcon';
 import Button from '../../theme/Button';
+import { track } from '../../clientModules/mixpanel';
 import styles from './styles.module.scss';
 
 const SESSION_STORAGE_KEY = 'OktetoDocsFeedback';
@@ -48,6 +49,7 @@ const Feedback = () => {
     };
 
     handleSessionStorage({ url: data.pageURL, helpful: data.helpful });
+    track('Docs Feedback Submitted', { helpful: data.helpful });
 
     fetch('https://okteto-docs.netlify.app/.netlify/functions/gather-feedback', {
       method: 'POST',
