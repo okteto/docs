@@ -18,6 +18,7 @@ import {
 
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
 const figure = (dir, name) => `blog/posts/${dir}/img/${name}.webp`;
+const LB = '2023-02-28-kubernetes-load-balancer-service';
 
 // A row of small labels in rounded boxes, centered on (cx, cy).
 function pills(cx, cy, labels, { color = C.teal, size = 18, gap = 10, fill = C.pill } = {}) {
@@ -75,6 +76,80 @@ export default [
     background: 'grid',
     alt: 'The Okteto logo versus Signadot',
     svg: row([mark('okteto-wordmark', { size: 360 }), 'vs', word('Signadot', { size: 84 })]),
+  },
+  // The four diagrams of the Load Balancer Service guide.
+  {
+    out: figure(LB, 'load-balancer'),
+    background: 'white',
+    alt: 'Clients send requests over the internet to a load balancer, which distributes them across three servers',
+    svg: () => {
+      let out = text('Clients', 150, 92, 30);
+      [170, 315, 460].forEach((y) => {
+        out += icon('user', 150, y, 72, C.blue) + arrow(200, y, 372, 315 + (y - 315) * 0.25, { color: C.blue });
+      });
+      out += icon('globe', 440, 315, 110, C.blue) + text('Internet', 440, 420);
+      out += arrow(505, 315, 630, 315);
+      out += box(640, 250, 200, 130, { color: C.teal }) + icon('split', 740, 315, 70) + text('Load Balancer', 740, 430);
+      [170, 315, 460].forEach((y) => {
+        out += arrow(850, 315 + (y - 315) * 0.25, 1000, y) + icon('server', 1050, y, 80, C.blue);
+      });
+      return out;
+    },
+  },
+  {
+    out: figure(LB, 'load-balancer-service'),
+    background: 'white',
+    alt: 'Incoming traffic reaches a LoadBalancer, which sends it to a Kubernetes Service in the cluster, and the Service distributes it across three Pod replicas',
+    svg: () => {
+      let out = icon('cloud', 140, 315, 130, C.blue) + text('Incoming traffic', 140, 420);
+      out += arrow(220, 315, 320, 315);
+      out += box(330, 250, 190, 130, { color: C.teal }) + icon('split', 425, 315, 70) + text('LoadBalancer', 425, 430);
+      out += box(600, 70, 570, 490, { dashed: true }) + logo('kubernetes', 885, 70, 80) + text('The Cluster', 885, 150);
+      out += arrow(530, 315, 650, 315);
+      out += box(660, 250, 170, 130, { color: C.blue }) + icon('network', 745, 315, 70, C.blue) + text('Kubernetes', 745, 430) + text('Service', 745, 466);
+      out += text('Replicas', 1050, 215, 26, { color: C.dim });
+      [270, 365, 460].forEach((y, i) => {
+        out += arrow(840, 315, 950, y - 0) + box(960, y - 35, 180, 70, { color: C.blue, radius: 14, strokeWidth: 3.5 }) + text(`Pod ${i + 1}`, 1050, y + 10);
+      });
+      return out;
+    },
+  },
+  {
+    out: figure(LB, 'endpointslice'),
+    background: 'white',
+    alt: 'The nginx-loadbalancer-service Service selects the pods with the label app=nginx, and its EndpointSlice lists the addresses of the three Pod replicas',
+    svg: () => {
+      let out = box(100, 205, 220, 180, { color: C.blue }) + logo('kubernetes', 210, 295, 110);
+      out += text('Service', 210, 440) + text('nginx-loadbalancer-service', 210, 478, 20, { mono: true }) + text('selector: app=nginx', 210, 512, 20, { mono: true });
+      out += arrow(335, 295, 505, 295, { color: C.blue, both: true });
+      out += box(520, 145, 160, 300, { color: C.purple }) + icon('list', 600, 295, 70, C.purple) + text('EndpointSlice', 600, 500);
+      out += box(800, 95, 360, 440, { dashed: true }) + text('Replicas', 980, 145, 26, { color: C.dim });
+      [205, 325, 445].forEach((y, i) => {
+        out += arrow(690, 295 + (y - 325) * 0.6, 880, y - 10, { color: C.purple })
+          + box(890, y - 45, 180, 70, { color: C.blue, radius: 14, strokeWidth: 3.5 }) + text(`Pod ${i + 1}`, 980, y)
+          + text('app=nginx', 980, y + 55, 20, { mono: true, color: C.dim });
+      });
+      return out;
+    },
+  },
+  {
+    out: figure(LB, 'gateway-api'),
+    background: 'white',
+    alt: 'A client reaches a Gateway in the cluster through a load balancer, an HTTPRoute sends the request to a Service, and the Service sends it to its Pods',
+    svg: () => {
+      const node = (label, x, w, color = C.blue) => box(x, 280, w, 70, { color, radius: 14, strokeWidth: 3.5 }) + text(label, x + w / 2, 325);
+      let out = box(20, 280, 140, 70, { color: C.dim, radius: 35, strokeWidth: 3.5 }) + text('Client', 90, 325);
+      out += box(365, 90, 805, 450, { dashed: true }) + text('Cluster', 767, 150, 28, { color: C.blue });
+      out += arrow(170, 315, 375, 315, { dashed: true }) + text('Load balancer', 262, 280, 24, { color: C.dim });
+      out += node('Gateway', 390, 160, C.teal) + arrow(558, 315, 580, 315);
+      out += node('HTTPRoute', 590, 185, C.teal) + arrow(780, 315, 815, 315);
+      out += node('Service', 825, 140);
+      out += curve('M975 300 C995 240 1005 225 1015 225') + arrow(1008, 225, 1018, 225);
+      out += curve('M975 330 C995 390 1005 405 1015 405') + arrow(1008, 405, 1018, 405);
+      out += box(1025, 190, 120, 70, { color: C.blue, radius: 14, strokeWidth: 3.5 }) + text('Pod', 1085, 235);
+      out += box(1025, 370, 120, 70, { color: C.blue, radius: 14, strokeWidth: 3.5 }) + text('Pod', 1085, 415);
+      return out;
+    },
   },
   {
     out: figure('2025-04-22-why-flexibility-is-key-to-scaling-development-environments', 'divert'),
