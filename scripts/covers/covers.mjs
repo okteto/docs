@@ -626,11 +626,6 @@ const covers = [
     svg: row([tile('ticket', 'Issue', { color: C.blue }), 'arrow', badge('bot', 'Agent', { color: C.purple, r: 74 }), 'arrow', tile('git-pull-request', 'Pull request', { color: C.teal })]),
   },
   {
-    out: tutorial('2022-07-17-aws-lambda'),
-    alt: 'The Okteto logo plus the AWS Lambda logo',
-    svg: row([okteto(), 'plus', mark('awslambda')]),
-  },
-  {
     out: tutorial('2022-03-31-compose-getting-started'),
     alt: 'The Docker logo with an arrow to the Kubernetes logo',
     svg: row([mark('docker', { size: 230 }), 'arrow', kubernetes()]),
