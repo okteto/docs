@@ -325,11 +325,11 @@ const covers = [
   },
   {
     out: post('2026-01-12-platform-engineering-tools-2026'),
-    alt: 'An AI agent connected to Kubernetes, which makes it secure, reproducible, scalable, and observable',
+    alt: 'A chat window connected to a Kubernetes cluster that runs an agent with guardrails, workload identity, and observability',
     svg: row([
-      tile('bot', 'Chat', { color: C.purple }),
+      tile('message-square', 'Chat', { color: C.teal }),
       'arrow',
-      group('Kubernetes', [item('shield-check'), item('equal'), item('copy'), item('eye')], { top: 'kubernetes' }),
+      group('Kubernetes', [item('bot', { color: C.purple }), item('shield-check', { color: C.amber }), item('key-round'), item('eye')], { top: 'kubernetes' }),
     ]),
   },
   {
@@ -344,6 +344,97 @@ const covers = [
           + icon(name, x, 305, 58) + text(label, x, 405, 24);
       }).join('')
     }</g>`,
+  },
+  // The build times chart of the Webpack post.
+  {
+    out: figure('2021-12-16-building-docker-images-faster-for-webpack', 'build-times'),
+    background: 'white',
+    alt: 'Build times of the Okteto website with and without BuildKit caches: 50 seconds down to 9 for a dependency change, and 62 seconds down to 12 for a code change',
+    svg: () => {
+      const bar = (y, seconds, color) => {
+        const w = (seconds / 62) * 720;
+        return box(340, y, w, 48, { color, fill: color, radius: 10, strokeWidth: 2 }) + text(`${seconds}s`, 340 + w + 14, y + 34, 26, { anchor: 'start' });
+      };
+      let out = box(700, 28, 26, 26, { color: C.red, fill: C.red, radius: 6, strokeWidth: 2 }) + text('without BuildKit caches', 736, 50, 22, { anchor: 'start' })
+        + box(700, 66, 26, 26, { color: C.teal, fill: C.teal, radius: 6, strokeWidth: 2 }) + text('with BuildKit caches', 736, 88, 22, { anchor: 'start' });
+      [['yarn install', '1. Dependency change', 50, 9], ['yarn build', '2. Code change', 62, 12]].forEach(([command, caption, before, after], k) => {
+        const y0 = 130 + k * 250;
+        out += text('> docker build', 60, y0, 24, { anchor: 'start', mono: true, color: C.dim })
+          + box(60, y0 + 18, 250, 128, { color: C.text, fill: C.text, radius: 16, strokeWidth: 2 }) + text(command, 185, y0 + 92, 28, { mono: true, color: '#ffffff' })
+          + bar(y0 + 22, before, C.red) + bar(y0 + 92, after, C.teal)
+          + text(caption, 340, y0 + 186, 24, { anchor: 'start', color: C.dim });
+      });
+      return out;
+    },
+  },
+  // The three diagrams of How to Run AI Coding Agents on Kubernetes.
+  {
+    out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'fat-agent-sandbox'),
+    background: 'white',
+    alt: 'A fat agent sandbox: one privileged pod that holds the agent, its tools and privileges, and a Docker daemon running every service of the application',
+    svg: () => {
+      let out = box(250, 70, 700, 530, { color: C.red }) + circle(600, 70, 40, { color: C.red }) + icon('box', 600, 70, 42, C.red)
+        + text('Fat agent sandbox (privileged pod)', 600, 150, 28, { color: C.red });
+      out += box(280, 180, 300, 390, { color: C.dim, radius: 18, strokeWidth: 3 }) + text('Agent', 430, 225, 26, { color: C.dim });
+      ['Agent binary', 'Git access', 'Tools', 'Privileges'].forEach((label, i) => {
+        out += box(300, 250 + i * 65, 260, 52, { color: C.dim, radius: 10, strokeWidth: 2.5 }) + text(label, 430, 285 + i * 65, 24);
+      });
+      out += box(620, 180, 300, 390, { color: C.dim, radius: 18, strokeWidth: 3 }) + text('Dockerd', 770, 225, 26, { color: C.dim });
+      [['box', 'frontend'], ['box', 'api'], ['database', 'db'], ['box', 'worker'], ['database', 'kafka'], ['database', 'postgres'], ['box', 'service']].forEach(([name, label], i) => {
+        const x = 630 + (i % 2) * 145;
+        const y = 250 + Math.floor(i / 2) * 62;
+        out += box(x, y, 140, 50, { color: C.dim, fill: C.dim, radius: 10, strokeWidth: 2 }) + icon(name, x + 20, y + 25, 22, '#ffffff') + text(label, x + 36, y + 33, 22, { anchor: 'start', color: '#ffffff' });
+      });
+      out += box(775, 436, 140, 50, { color: C.dim, radius: 10, strokeWidth: 2.5 }) + text('...', 845, 466, 26, { color: C.dim });
+      return out;
+    },
+  },
+  {
+    out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'agent-sandbox-and-application-environment'),
+    background: 'white',
+    alt: 'The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application and its tests in a Kubernetes namespace',
+    svg: () => {
+      let out = box(40, 150, 400, 370, { color: C.purple }) + circle(240, 150, 40, { color: C.purple }) + icon('bot', 240, 150, 44, C.purple)
+        + text('Light agent sandbox', 240, 235, 30, { color: C.purple });
+      ['Agent binary', 'Git access', 'Kubernetes credentials'].forEach((label, i) => {
+        out += box(70, 268 + i * 80, 340, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text(label, 240, 308 + i * 80, 26);
+      });
+      out += arrow(470, 330, 640, 330, { color: C.purple }) + text('deploy, test', 555, 308, 24, { color: C.purple });
+      out += arrow(640, 390, 470, 390, { color: C.dim }) + text('results, logs', 555, 432, 24, { color: C.dim });
+      out += box(670, 90, 490, 510, { color: C.blue }) + logo('kubernetes', 915, 90, 80)
+        + text('Application environment', 915, 172, 30) + text('Kubernetes namespace', 915, 206, 22, { color: C.dim });
+      [['box', 'frontend'], ['box', 'api'], ['database', 'database'], ['database', 'queue']].forEach(([name, label], i) => {
+        const y = 228 + i * 70;
+        out += box(700, y, 430, 58, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 }) + icon(name, 738, y + 29, 30, C.blue) + text(label, 772, y + 38, 26, { anchor: 'start' });
+      });
+      out += box(700, 518, 430, 58, { color: C.teal, fill: '#e2f5f3', radius: 12, strokeWidth: 2.5 }) + icon('circle-check', 738, 547, 30, C.teal) + text('tests', 772, 556, 26, { anchor: 'start' });
+      return out;
+    },
+  },
+  {
+    out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'agent-loop-with-verified-output'),
+    background: 'white',
+    alt: 'The agent loop: the agent edits code in the light agent sandbox, builds and deploys the application to its Kubernetes namespace, and verifies its output there with tests, endpoints, and logs and metrics, repeating until it works and then opening a pull request',
+    svg: () => {
+      let out = box(30, 170, 300, 240, { color: C.purple }) + circle(180, 170, 38, { color: C.purple }) + icon('bot', 180, 170, 42, C.purple)
+        + text('Light agent sandbox', 180, 245, 26, { color: C.purple })
+        + box(55, 280, 250, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text('Edit code', 180, 320, 26);
+      out += arrow(345, 311, 398, 311, { color: C.purple });
+      out += box(410, 90, 535, 455, { color: C.blue }) + logo('kubernetes', 677, 90, 80)
+        + text('Application environment', 677, 170, 30) + text('Kubernetes namespace', 677, 204, 22, { color: C.dim });
+      out += box(430, 280, 205, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text('Build and deploy', 532, 320, 24);
+      out += arrow(642, 311, 672, 311, { color: C.blue });
+      out += box(680, 280, 245, 62, { color: C.teal, fill: C.teal, radius: 12, strokeWidth: 2 }) + icon('circle-check', 712, 311, 30, '#ffffff') + text('Verify output', 740, 320, 24, { anchor: 'start', color: '#ffffff' });
+      ['Tests', 'Endpoints', 'Logs and metrics'].forEach((label, i) => {
+        const y = 352 + i * 60;
+        out += box(680, y, 245, 50, { color: C.teal, fill: '#e2f5f3', radius: 10, strokeWidth: 2 }) + icon('circle-check', 708, y + 25, 26, C.teal) + text(label, 732, y + 33, 22, { anchor: 'start' });
+      });
+      out += arrow(952, 311, 978, 311, { color: C.teal });
+      out += box(985, 280, 190, 62, { color: C.text, radius: 12, strokeWidth: 3 }) + text('Pull request', 1080, 320, 24);
+      out += curve('M795 532 V585 H180 V430', { color: C.dim }) + arrow(180, 440, 180, 418, { color: C.dim })
+        + `<rect x="370" y="568" width="300" height="36" fill="#ffffff"/>` + text('repeat until it works', 520, 594, 24, { color: C.dim });
+      return out;
+    },
   },
   // The two diagrams of the Network Policies guide.
   ...[['default-traffic', 'by default', false], ['network-policy', 'using Network Policies', true]].map(([name, caption, blocked]) => ({
