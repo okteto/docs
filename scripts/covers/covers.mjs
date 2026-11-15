@@ -13,7 +13,7 @@
 // schematic, or big logos when the article is about an integration.
 
 import {
-  C, text, icon, logo, box, circle, arrow, curve, scaled, hub,
+  C, text, icon, logo, box, circle, arrow, curve, scaled, hub, row, mark, word,
 } from './style.mjs';
 
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
@@ -69,6 +69,12 @@ export default [
           + icon(name, x, 300, 52) + text(label, x, 384, 21)
           + (i < 3 ? arrow(x + 58, 300, x + 86, 300) : '');
       }).join(''), 0.93, 594, 285)}</g>`,
+  },
+  {
+    out: post('2026-11-04-compare-okteto-versus-signadot'),
+    background: 'dots',
+    alt: 'The Okteto logo versus Signadot',
+    svg: row([mark('okteto-wordmark', { size: 360 }), 'vs', word('Signadot', { size: 84 })]),
   },
   {
     out: figure('2025-04-22-why-flexibility-is-key-to-scaling-development-environments', 'divert'),
