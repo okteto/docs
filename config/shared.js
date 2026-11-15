@@ -90,7 +90,7 @@ const siteConfig = {
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
   onDuplicateRoutes: 'warn',
-  clientModules: [require.resolve('../src/clientModules/mixpanel.js')],
+  clientModules: [require.resolve('../src/clientModules/mixpanel.js'), require.resolve('../src/clientModules/pageHistory.js')],
   // Docusaurus Faster (@docusaurus/faster): Rspack, SWC and Lightning CSS
   // instead of Webpack, Babel and Terser, and static pages rendered in
   // worker threads. The worker threads need the v4 flag below; no plugin
