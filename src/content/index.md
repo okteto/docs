@@ -9,7 +9,7 @@ Okteto gives every task, whether it's run by an AI agent or a developer, an isol
 
 These docs explain how to install Okteto, run agent and development environments, add Preview Environments to your pull requests, test inside those environments, and operate the platform on BYOC or Self-Hosted infrastructure.
 
-[Start with our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
+[Start with our Free Tier (5 users and 500 environments per month, one-year license)](https://www.okteto.com/signup/)
 
 ## Why Platform Teams choose Okteto?
 
@@ -68,6 +68,6 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 - 👩‍💻 [Deploy your first Development Environment](get-started/dev-quickstart.mdx) — start here if your platform team already runs Okteto.
 - 🚀 [Follow the installation guide](get-started/install/index.mdx) — install the Okteto Platform in your own Kubernetes cluster.
 - 🗓️ [Book a demo with our team](https://okteto.com/schedule/)
-- 🎁 [Sign up for our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
+- 🎁 [Sign up for our Free Tier (5 users and 500 environments per month, one-year license)](https://www.okteto.com/signup/)
 
 Need help deciding which deployment model or feature fits best? [Contact us](https://okteto.com/schedule/) and we'll walk you through it.
