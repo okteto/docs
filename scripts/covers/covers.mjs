@@ -13,7 +13,7 @@
 // schematic, or big logos when the article is about an integration.
 
 import {
-  C, text, icon, logo, box, circle, arrow, curve, scaled, hub, row, mark, word,
+  C, text, icon, logo, box, circle, arrow, curve, scaled, hub, row, mark, word, tile, group, item,
 } from './style.mjs';
 
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
@@ -76,6 +76,16 @@ export default [
     background: 'grid',
     alt: 'The Okteto logo versus Signadot',
     svg: row([mark('okteto-wordmark', { size: 360 }), 'vs', word('Signadot', { size: 84 })]),
+  },
+  {
+    out: post('2026-01-12-platform-engineering-tools-2026'),
+    background: 'dots',
+    alt: 'A chat window connected to a Kubernetes cluster that runs an agent with guardrails, workload identity, and observability',
+    svg: row([
+      tile('message-square', 'Chat', { color: C.teal }),
+      'arrow',
+      group('Kubernetes', [item('bot', { color: C.purple }), item('shield-check', { color: C.amber }), item('key-round'), item('eye')], { top: 'kubernetes' }),
+    ]),
   },
   // The four diagrams of the Load Balancer Service guide.
   {
