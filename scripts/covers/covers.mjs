@@ -83,8 +83,9 @@ const covers = [
   },
   {
     out: post('2022-09-27-why-development-experience-matters'),
-    alt: 'Three steps joined by arrows: code, fast feedback, happy developers',
-    svg: row([badge('code', 'Code'), 'arrow', badge('zap', 'Feedback', { color: C.amber }), 'arrow', badge('smile', 'Developers', { color: C.purple })]),
+    alt: 'The panelists: Ramiro Berrelleza, CEO and co-founder of Okteto, Lior Rabin, DevEx team lead at monday.com, and Ron Barabash, chief architect at Yotpo',
+    // The photos of the panel, cut out of the original cover (images/).
+    svg: `<image href="file://${path.join(root, 'scripts/covers/images/why-development-experience-matters.png')}" x="21" y="0" width="1158" height="630"/>`,
   },
   {
     out: post('2022-10-18-applying-gitops-principles-to-your-development-environments'),
@@ -93,13 +94,18 @@ const covers = [
   },
   {
     out: post('2022-11-28-kubernetes-network-policies'),
-    alt: 'A network policy lets a frontend Pod reach the API Pod and blocks it from the database Pod',
-    svg: scaled(box(215, 205, 130, 130, { color: C.teal }) + icon('box', 280, 270, 68) + text('frontend', 280, 378)
-      + box(855, 85, 130, 130, { color: C.teal }) + icon('box', 920, 150, 68) + text('api', 920, 258)
-      + box(855, 305, 130, 130, { color: C.red }) + icon('database', 920, 370, 68, C.red) + text('db', 920, 478)
-      + arrow(370, 245, 830, 160) + arrow(370, 295, 830, 365, { color: C.red, dashed: true })
-      + circle(600, 198, 30) + icon('check', 600, 198, 34)
-      + circle(600, 334, 30, { color: C.red }) + icon('x', 600, 334, 34, C.red), 1.18),
+    alt: 'A NetworkPolicy in a Kubernetes namespace lets the frontend Pod reach the api Pod and the api Pod reach the database, and blocks the frontend from the database',
+    svg: (() => {
+      const pod = (name, label, x, y, color = C.teal) => box(x - 55, y - 55, 110, 110, { color, radius: 20, strokeWidth: 3.5 })
+        + icon(name, x, y, 56, color) + text(label, x, y + 98, 26);
+      const verdict = (x, y, ok) => circle(x, y, 26, { color: ok ? C.teal : C.red }) + icon(ok ? 'check' : 'x', x, y, 30, ok ? C.teal : C.red);
+      return box(150, 105, 900, 465, { color: C.blue, dashed: true }) + logo('kubernetes', 600, 105, 88)
+        + icon('shield-check', 500, 192, 38, C.amber) + text('NetworkPolicy', 528, 204, 30, { anchor: 'start' })
+        + pod('box', 'api', 600, 300) + pod('box', 'frontend', 330, 430) + pod('database', 'db', 870, 430)
+        + arrow(395, 395, 532, 325) + verdict(463, 360, true)
+        + arrow(668, 325, 805, 395) + verdict(737, 360, true)
+        + arrow(395, 455, 805, 455, { color: C.red, dashed: true }) + verdict(600, 455, false);
+    })(),
   },
   {
     out: post('2022-12-05-kubectl-cheat-sheet'),
