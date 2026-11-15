@@ -646,26 +646,6 @@ const covers = [
       badge('rocket', null, { color: C.teal, r: 86 }),
     ]),
   },
-  {
-    out: 'tutorials/posts/2025-12-04-create-and-use-volume-snapshots/img/volume-snapshot.webp',
-    background: 'white',
-    alt: 'The PersistentVolumeClaim data of the Namespace cindy has a VolumeSnapshot, mongo-snapshot. A PersistentVolumeClaim data in the Namespace from-snapshot is created from that snapshot, through its two annotations',
-    svg: () => {
-      const namespace = (x, name) => box(x, 150, 320, 330, { color: C.blue })
-        + text('Namespace', x + 160, 205, 24, { color: C.dim }) + text(name, x + 160, 245, 28)
-        + icon('database', x + 160, 330, 76) + text('PVC data', x + 160, 425, 26);
-      return namespace(40, 'cindy') + namespace(840, 'from-snapshot')
-        + arrow(375, 315, 515, 315) + arrow(685, 315, 825, 315)
-        + box(530, 230, 140, 170, { color: C.teal, radius: 22 }) + icon('camera', 600, 290, 64) + text('Snapshot', 600, 370, 24)
-        + text('mongo-snapshot', 600, 450, 24, { color: C.dim })
-        + text('annotations', 755, 290, 22, { color: C.dim });
-    },
-  },
-  {
-    out: tutorial('2025-12-04-create-and-use-volume-snapshots'),
-    alt: 'A database, its Volume Snapshot, and a copy of the database in a new environment',
-    svg: row([badge('database', 'Database', { r: 74 }), 'arrow', tile('camera', 'Snapshot', { color: C.purple }), 'arrow', badge('database', 'Copy', { r: 74 })]),
-  },
 ];
 
 export default covers.map((cover) => ({ ...cover, background: cover.background ?? rotation(cover.out) }));
