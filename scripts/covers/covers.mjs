@@ -88,6 +88,20 @@ export default [
       group('Kubernetes', [item('bot', { color: C.purple }), item('shield-check', { color: C.amber }), item('key-round'), item('eye')], { top: 'kubernetes' }),
     ]),
   },
+  {
+    out: post(BASICS),
+    background: 'rings',
+    alt: 'A Kubernetes cluster with the objects the tutorial covers: Pods, Deployments, Services, and Volumes',
+    svg: `<g transform="translate(0 40)">${
+      box(170, 130, 860, 330, { color: C.blue })
+      + logo('kubernetes', 600, 130, 92) + text('Kubernetes', 600, 218)
+      + [['boxes', 'Pods'], ['copy', 'Deployment'], ['network', 'Service'], ['hard-drive', 'Volume']].map(([name, label], i) => {
+        const x = 315 + i * 190;
+        return box(x - 55, 250, 110, 110, { color: C.teal, radius: 20, strokeWidth: 3.5 })
+          + icon(name, x, 305, 58) + text(label, x, 405, 24);
+      }).join('')
+    }</g>`,
+  },
   // The two diagrams of Kubernetes Basics.
   {
     out: figure(BASICS, 'architecture'),
