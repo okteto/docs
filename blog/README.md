@@ -59,10 +59,8 @@ To work on a post without publishing it, add `draft: true`. Drafts show up in
 ### Components
 
 Markdown covers text, headings, lists, code, tables and images
-(`![alt](./img/diagram.webp)`). An image fills the width of the article; end
-its URL with `#narrow` (`![alt](./img/diagram.webp#narrow)`) to show it at the
-width of the featured image, centered. For anything else, import a component
-at the top of the post:
+(`![alt](./img/diagram.webp)`). Images are shown at the width of the featured
+image, centered. For anything else, import a component at the top of the post:
 
 ```mdx
 import { YouTube, CallToAction, CustomerQuote } from '@site/src/components/blog';

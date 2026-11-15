@@ -33,7 +33,7 @@ It is common to assume that the application environment runs inside the agent sa
 
 The usual first design puts the agent sandbox and the application environment in the same place. Each agent gets a large pod with a Docker daemon inside, and the agent runs `docker compose up` to have something to test against.
 
-![A fat agent sandbox: one privileged pod that holds the agent, its tools and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png#narrow)
+![A fat agent sandbox: one privileged pod that holds the agent, its tools and privileges, and a Docker daemon running every service of the application](./img/fat-agent-sandbox.png)
 
 The problems show up at scale, with many agents and many teams that have different requirements:
 
@@ -59,7 +59,7 @@ The sandbox keeps only what the agent needs to do its own job:
 
 Everything else, the application itself included, moves to the application environment: builds, deployments, and tests run remotely in the cluster, compilation and unit tests included.
 
-![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png#narrow)
+![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.png)
 
 The split changes six things:
 
@@ -81,7 +81,7 @@ Whatever the tool, images are built outside the sandbox, and the application is 
 
 ## The agent loop with verified output
 
-![The agent loop: the agent edits code in the light agent sandbox, builds and deploys the application to its Kubernetes namespace, and verifies its output there with tests, endpoints, logs, and metrics. It repeats until the change works, and then opens a pull request](./img/agent-loop-with-verified-output.png#narrow)
+![The agent loop: the agent edits code in the light agent sandbox, builds and deploys the application to its Kubernetes namespace, and verifies its output there with tests, endpoints, logs, and metrics. It repeats until the change works, and then opens a pull request](./img/agent-loop-with-verified-output.png)
 
 With the two layers in place, an agent works the way a developer does: it writes a change, runs it, and looks at what happened. The orchestrator creates a namespace for the agent and starts the sandbox pod with the task, the repository, and credentials for that namespace only. The agent edits the code and asks for a build and a deployment of the application, from the definition in the repository. Then it **verifies its output** against a realistic copy of the application, not a simplified version of it: it runs the tests, exercises the endpoints, and troubleshoots with the Kubernetes API, the logs, and the metrics of its namespace. It repeats until the tests pass and the application behaves as expected, and then it opens a pull request. The verification is much more rigorous this way, and the quality of the agent's output is much higher.
 

@@ -83,12 +83,17 @@ When you draw the subject:
 - Leave a margin of about 80px on each side: the blog cards crop the sides of the image. Pick a background that keeps the labels readable: with `dots`, keep labels away from the two dotted corners; with `grid`, keep the subject off the bottom edge.
 - Draw one or two covers first and iterate on them with the user before applying a change of style to many.
 
+Images inside a blog post or a tutorial are shown at the width of the cover (at most 40rem), centered. The styles do it for every image (`src/styles/blog.scss` and `src/styles/main.scss`), so don't size or align images one by one.
+
+Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
+
 ### Logos and icons
 
 - **Okteto:** `mark('okteto')` draws the symbol (`static/img/logos/okteto.svg`) and `mark('okteto-wordmark')` draws the symbol with the name (`shared/static/img/logo.svg`). Use those files as they are: don't redraw or recolor them.
 - **Kubernetes:** `mark('kubernetes')` draws the official mark, the white wheel on the blue (`#326ce5`) heptagon, with one corner up. Never put the wheel on a circle or on any other shape.
 - **Other brands:** single-color marks from `scripts/covers/logos/` (from [Simple Icons](https://simpleicons.org)), in a brand color that reads on the dark background (the `BRANDS` table of `style.mjs`). To add one, save its SVG in that folder and add its color to the table. If a brand has no mark there, write its name with `word()`.
 - **Icons:** line icons from `scripts/covers/icons/` (from [Lucide](https://lucide.dev)). To add one, save its SVG in that folder.
+- **Kubernetes resources:** take the [Kubernetes icon set](https://github.com/kubernetes/community/tree/main/icons) as the reference for diagrams of Kubernetes architectures: one recognizable shape per resource type (Pod, Deployment, Service, Ingress, Namespace, Volume, Secret, and so on), used the same way in every diagram, and the cluster or namespace as the box that contains them. Draw them in the style of `style.mjs` (line icons and the palette above), not as the blue icons of the set.
 
 ### Adding or changing a cover
 

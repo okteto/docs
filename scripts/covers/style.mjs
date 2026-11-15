@@ -1,6 +1,7 @@
 // The visual system of the blog and tutorial covers: a schematic drawn with
 // neon lines on the navy of the blog, over one of four backgrounds (dots,
 // weave, rings or grid). No titles: the image shows what the article is about.
+// The images inside an article use the same shapes on a white background.
 //
 // A cover is an SVG string built with the helpers of this file, on a
 // 1200x630 canvas. Use few, short labels.
@@ -17,11 +18,14 @@ export const W = 1200;
 export const H = 630;
 
 // The palette. Teal is Okteto's; blue is Kubernetes'; purple is for agents.
-export const C = {
+// The palette of the covers (dark). Teal is Okteto's; blue is Kubernetes';
+// purple is for agents.
+const DARK = {
   text: '#ffffff',
   background: '#1a2640',
   ink: '#0f172d', // fill of boxes
   row: '#141e39', // fill of rows inside a box
+  pill: '#0f3a4d', // fill of small labels
   halftone: '#1d7f8c', // the dots of the background
   teal: '#00d1ca',
   purple: '#b44cff',
@@ -31,6 +35,29 @@ export const C = {
   dim: '#6b6590',
   kubernetes: '#326ce5',
 };
+
+// The palette of the images inside an article, on a white background.
+const LIGHT = {
+  ...DARK,
+  text: '#1a263e',
+  background: '#ffffff',
+  ink: '#ffffff',
+  row: '#f1f4f9',
+  pill: '#f1f4f9',
+  teal: '#0fa99d',
+  purple: '#a412d7',
+  blue: '#2f80db',
+  amber: '#d98200',
+  red: '#e5484d',
+  dim: '#9aa3b5',
+};
+
+export const C = { ...DARK };
+
+/** 'dark' for covers; 'light' for the images inside an article (white background, no glow). */
+export function setTheme(theme) {
+  Object.assign(C, theme === 'light' ? LIGHT : DARK);
+}
 
 const GLOW = 'filter="url(#glow)"';
 const estimate = (string, size) => string.length * size * 0.56;
@@ -58,6 +85,9 @@ function corner(right, bottom) {
 // The backgrounds of the blog covers, all on the same navy. Vary them from
 // one cover to the next.
 const BACKGROUNDS = {
+  // Plain white, for the images inside an article. Rendered with the light theme.
+  white: () => '',
+
   // Halftone dots fading from the bottom-left and top-right corners.
   dots: () => `<g fill="${C.halftone}" opacity="0.55">${corner(false, true)}${corner(true, false)}</g>`,
 
@@ -115,6 +145,7 @@ text { font-family: Circular, sans-serif; font-weight: 700; }
 text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
 </style></head><body><svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
+  ${background === 'white' ? ['glow', 'iconglow', 'logoglow', 'halo'].map((name) => `<filter id="${name}" x="-50%" y="-50%" width="200%" height="200%"><feOffset/></filter>`).join('') : `
   <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
     <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
@@ -124,13 +155,13 @@ text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
   <filter id="logoglow" x="-50%" y="-50%" width="200%" height="200%">
     <feGaussianBlur stdDeviation="0.7" result="b"/><feComponentTransfer in="b" result="c"><feFuncA type="linear" slope="0.6"/></feComponentTransfer><feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
-  <filter id="halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
+  <filter id="halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>`}
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.background}"/><stop offset="1" stop-color="#1b203d"/></linearGradient>
   <radialGradient id="weaveglow" cx="0.3" cy="0.55" r="0.75"><stop offset="0" stop-color="#2a3b5e"/><stop offset="0.6" stop-color="${C.background}"/><stop offset="1" stop-color="#121a2e"/></radialGradient>
   <linearGradient id="gridfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.5"/></linearGradient>
   <mask id="gridmask"><rect y="520" width="${W}" height="110" fill="url(#gridfade)"/></mask>
 </defs>
-<rect width="${W}" height="${H}" fill="url(#bg)"/>
+<rect width="${W}" height="${H}" fill="${background === 'white' ? '#ffffff' : 'url(#bg)'}"/>
 ${BACKGROUNDS[background]()}
 ${subject}
 </svg></body></html>`;
@@ -152,7 +183,7 @@ export function icon(name, cx, cy, size = 64, color = C.teal, strokeWidth = 1.9)
 }
 
 // Brand colors that read on the dark background, by logo name.
-const BRANDS = {};
+const BRANDS = { nginx: '#21b354' };
 
 // A logo. Okteto and Claude come from the site's own files; Kubernetes is the
 // official mark (the white wheel on the blue heptagon, one corner up, never

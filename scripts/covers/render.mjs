@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Renders the covers of the blog posts and the tutorials, defined in
-// covers.mjs with the style of style.mjs, as JPEG files.
+// covers.mjs with the style of style.mjs, as JPEG files (or PNG or WebP, by the
+// extension of the output).
 //
 // Usage: node scripts/covers/render.mjs [filter ...]
 //
@@ -17,7 +18,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 
 import covers from './covers.mjs';
-import { page, root, W, H } from './style.mjs';
+import { page, root, setTheme, W, H } from './style.mjs';
 
 const chrome = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const filters = process.argv.slice(2);
@@ -67,14 +68,20 @@ for (const [index, cover] of selected.entries()) {
     await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: scale, mobile: false }, sessionId);
   }
   const html = path.join(tmp, `${index}.html`);
-  fs.writeFileSync(html, page(cover.svg, cover.background));
+  // Images inside an article have a white background and the light theme. Their
+  // subject is a function, so it is drawn after the theme is set.
+  setTheme(cover.background === 'white' ? 'light' : 'dark');
+  const subject = typeof cover.svg === 'function' ? cover.svg() : cover.svg;
+  fs.writeFileSync(html, page(subject, cover.background));
   await send('Page.navigate', { url: `file://${html}` }, sessionId);
   // Wait for the font and the logo files.
   await send('Runtime.evaluate', {
     expression: 'Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))]).then(() => new Promise((r) => setTimeout(r, 300)))',
     awaitPromise: true,
   }, sessionId);
-  const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 84 }, sessionId);
+  // The format follows the extension of the output: .jpg, .png or .webp.
+  const format = { '.png': 'png', '.webp': 'webp' }[path.extname(cover.out)] ?? 'jpeg';
+  const shot = await send('Page.captureScreenshot', { format, ...(format === 'png' ? {} : { quality: format === 'webp' ? 90 : 84 }) }, sessionId);
   const out = path.join(root, cover.out);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, Buffer.from(shot.result.data, 'base64'));
