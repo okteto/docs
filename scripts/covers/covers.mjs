@@ -637,9 +637,9 @@ const covers = [
   },
   {
     out: tutorial('2025-10-01-optimize-your-development-environment'),
-    alt: 'The time an environment takes to be ready, split into build, sync, data, and services: a long bar before, and a much shorter one after',
+    alt: 'The time an environment takes to be ready, split into build, deploy, data, and services: a long bar before, and a much shorter one after',
     svg: (() => {
-      const parts = [['layers', 'Build'], ['copy', 'Sync'], ['database', 'Data'], ['boxes', 'Services']];
+      const parts = [['layers', 'Build'], ['server', 'Deploy'], ['database', 'Data'], ['boxes', 'Services']];
       const bar = (y, widths, color, fill, labels) => {
         let x = 300;
         let out = '';

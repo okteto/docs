@@ -1,31 +1,19 @@
 ---
 title: "Optimize your Development Environments"
-description: "Practices that make the builds, deployments, file synchronization, and tests of your Okteto environments faster."
+description: "Make your Okteto environments ready sooner: faster builds, faster remote deploys and tests, data from Volume Snapshots, and fewer containers per Namespace."
 slug: optimize-your-development-environment
 date: 2025-10-01
 image: ./img/cover.jpg
-image_alt: "The time an environment takes to be ready, split into build, sync, data, and services: a long bar before, and a much shorter one after"
+image_alt: "The time an environment takes to be ready, split into build, deploy, data, and services: a long bar before, and a much shorter one after"
 ---
 
 Every minute an environment takes to be ready, someone is waiting: a developer who ran `okteto up`, a reviewer who opened a Preview Environment, a test suite in CI, an AI agent that wants to check its change. Agents wait the most, because they deploy and test many times a day, often in several environments at once.
 
-That wait has mainly four sources: images that build from scratch, context transfer for remote builds, deploys, and tests, databases filled by seed scripts, and environments with many containers that all have to start. Each practice on this page removes part of one of them, and they add up: an environment whose images are already built, whose files are already in place, whose database starts from a snapshot, and that deploys only the services you change is ready in a fraction of the time.
+That wait has mainly four sources: images that build from scratch, context transfer for remote builds, deploys, and tests, databases filled by seed scripts, and environments with many containers that all have to start. Each section of this page removes one of them, and they add up: an environment whose images are already built, whose files are already in place, whose database starts from a snapshot, and that deploys only the services you change is ready in a fraction of the time.
 
-## Images and Builds
+## Fast Builds
 
-### Pinned Image Tags
-
-Use an explicit version tag or a digest. With `latest`, Kubernetes pulls the image every time a container starts instead of reusing the copy already on the node.
-
-```yaml
-# Avoid
-image: registry/redis:latest
-
-# Use instead
-image: registry/redis:8.2.1
-# or
-image: registry/redis@sha256:2678c...
-```
+The [Okteto Build Service](/docs/core/build-service/) builds your images in the cluster with BuildKit. A build is fast when it skips what didn't change and sends only the files it needs.
 
 ### Smart Builds
 
@@ -95,11 +83,9 @@ RUN --mount=type=cache,sharing=private,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -o /usr/src/api
 ```
 
-## Build Context and File Synchronization
-
 ### Build Context
 
-A `.dockerignore` file limits the files sent to build an image. Exclude everything, and then include only the files the build needs:
+Every build starts by sending its context, the folder of the Dockerfile, to the Build Service. A `.dockerignore` file keeps out the files the build doesn't need. Exclude everything, and then include only those files:
 
 ```gitignore title=".dockerignore"
 # Exclude everything
@@ -115,9 +101,13 @@ A `.dockerignore` file limits the files sent to build an image. Exclude everythi
 
 When a repository has several Dockerfiles, each one can have its own ignore file next to it, such as `dev.Dockerfile.dockerignore`.
 
+## Fast Remote Execution
+
+`okteto deploy` and `okteto test` run their commands in the cluster with [Remote Execution](/docs/core/remote-execution/). Each run sends its context first, and each test run starts from a clean container. Send only the files each command needs, and keep the dependencies of your tests between runs.
+
 ### Deploy and Test Context
 
-A `.oktetoignore` file limits the files sent to run the `deploy` and `test` commands with [Remote Execution](/docs/core/remote-execution/#ignoring-files). It uses the syntax of `.gitignore`, with a section for each phase:
+A `.oktetoignore` file limits the files that `okteto deploy` and `okteto test` [send to the cluster](/docs/core/remote-execution/#ignoring-files). It uses the syntax of `.gitignore`, with a section for each phase:
 
 ```gitignore title=".oktetoignore"
 # Exclude everything
@@ -133,78 +123,9 @@ A `.oktetoignore` file limits the files sent to run the `deploy` and `test` comm
 !tests/**
 ```
 
-### File Synchronization
-
-A `.stignore` file limits the files that `okteto up` [synchronizes](/docs/reference/file-synchronization/#ignoring-files) to the Development Container. Synchronize the source code you edit, not generated artifacts. Unlike `.dockerignore`, `.stignore` applies the first pattern that matches a file, so the `!` patterns go before the catch-all `*`:
-
-```gitignore title=".stignore"
-# Include only the source code
-!src/**
-!public/**
-
-# Exclude everything else
-*
-```
-
-### Source Code in the Development Image
-
-With a multi-stage Dockerfile, use the stage that already contains your source code as the image of the Development Container. The first synchronization only sends what changed, and the build caches of that stage are already warm:
-
-```docker
-FROM golang:1.24 AS builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY main.go main.go
-RUN go build -o myapp
-
-FROM alpine AS production
-WORKDIR /app
-COPY --from=builder /app/myapp .
-```
-
-```yaml title="okteto.yaml"
-build:
-  myapp:
-    context: .
-    target: production
-  myapp-dev:
-    context: .
-    target: builder
-
-dev:
-  myapp:
-    image: ${OKTETO_BUILD_MYAPP_DEV_IMAGE}
-```
-
-## Data and Shared Services
-
-### Volume Snapshots Instead of Seed Scripts
-
-Seed scripts are slow and break when the schema changes. [Volume Snapshots](/docs/core/use-volume-snapshots/) start the database of each environment with a copy of real data instead. [Create and use Volume Snapshots](/tutorials/create-and-use-volume-snapshots/) shows how.
-
-### Divert
-
-Not every environment needs its own copy of every service. With [Divert](/docs/development/divert/), an environment deploys only the services you change and shares the rest with a shared environment, so it's ready sooner and uses fewer resources. [Why flexibility is key to scaling development environments](/blog/why-flexibility-is-key-to-scaling-development-environments/) explains when to use it.
-
-## Development Containers and Tests
-
-### Volumes in Development Containers
-
-[Volumes](/docs/reference/okteto-manifest/#volumes-string-optional) keep files between `okteto up` sessions, so the Development Container doesn't download or build them again every time it starts. Use them for dependencies, such as `node_modules` or `vendor/`, and for build caches, such as `.m2` or `.cache/go-build`:
-
-```yaml title="okteto.yaml"
-dev:
-  app:
-    volumes:
-      - /usr/src/app/node_modules
-      - /root/.m2
-      - /root/.cache/go-build
-```
-
 ### Caches in Tests
 
-[Caches](/docs/reference/okteto-manifest/#caches-string-optional) keep files between runs of `okteto test`, so a test doesn't install its dependencies or rebuild its caches every time:
+[Caches](/docs/reference/okteto-manifest/#caches-string-optional) keep files between runs of `okteto test`, so a test doesn't install its dependencies or rebuild its caches every time. Use them for dependencies, such as `node_modules` or `vendor/`, and for build caches, such as `.m2` or `.cache/go-build`:
 
 ```yaml title="okteto.yaml"
 test:
@@ -218,6 +139,10 @@ test:
       - npm test
 ```
 
-## Agents
+## Data from Volume Snapshots
 
-The same practices make AI agents faster, because agents get feedback by deploying their changes and running tests in a live environment, and wait for it like a developer does. The [Okteto plugin for Claude Code](/docs/agentic/) packages your `okteto.yaml`, the commands agents should run, and the commands they must never run as agent skills, so an agent deploys, tests, and debugs in the same environments as your team.
+Seed scripts are slow, and they break when the schema changes. [Volume Snapshots](/docs/core/use-volume-snapshots/) start the database of each environment, or of each test run, from a snapshot of real data instead: Kubernetes creates the volume from the snapshot, with no script to run and nothing to load. [Create and use Volume Snapshots](/tutorials/create-and-use-volume-snapshots/) shows how.
+
+## Fewer Containers per Namespace
+
+An environment that runs every service of a large application has many containers to schedule, pull, and start, and it uses the resources of all of them. Most changes touch one or two services. With [Divert](/docs/development/divert/), an environment deploys only the services you change, and shares the rest with a shared environment that runs the whole application: requests reach your services, and the shared ones answer everything else. [Why flexibility is key to scaling development environments](/blog/why-flexibility-is-key-to-scaling-development-environments/) explains when to use it.
