@@ -1,6 +1,6 @@
 // The visual system of the blog and tutorial covers: a schematic drawn with
 // neon lines on the navy of the blog, over one of six backgrounds (dots,
-// weave, grid, sun, beams or stars). No titles: the image shows what the
+// weave, grid, sun, hexagons or stars). No titles: the image shows what the
 // article is about.
 // The images inside an article use the same shapes on a white background.
 //
@@ -142,11 +142,25 @@ const BACKGROUNDS = {
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#sun)" mask="url(#sunmask)" opacity="0.42"/>`;
   },
 
-  // Three neon racing stripes across the top-right corner.
-  beams: () => [C.teal, C.blue, C.purple].map((color, i) => {
-    const o = i * 34;
-    return `<path d="M${W - 470 + o} -20 L${W + 20} ${470 - o}" stroke="${color}" stroke-width="16" stroke-linecap="square" opacity="0.38"/>`;
-  }).join(''),
+  // A honeycomb of thin hexagon outlines, fading in from the top-right and
+  // bottom-left corners (the pattern of the older Okteto covers).
+  hexagons: () => {
+    const r = 46;
+    const w = r * Math.sqrt(3);
+    let cells = '';
+    for (let row = -1; row * r * 1.5 <= H + r; row++) {
+      for (let column = -1; column * w <= W + w; column++) {
+        const cx = column * w + (row % 2 ? w / 2 : 0);
+        const cy = row * r * 1.5;
+        const points = Array.from({ length: 6 }, (_, k) => {
+          const a = Math.PI / 6 + (k * Math.PI) / 3;
+          return `${(cx + r * 0.9 * Math.cos(a)).toFixed(1)},${(cy + r * 0.9 * Math.sin(a)).toFixed(1)}`;
+        }).join(' ');
+        cells += `<polygon points="${points}"/>`;
+      }
+    }
+    return `<g fill="none" stroke="#4b6191" stroke-width="2" mask="url(#hexmask)">${cells}</g>`;
+  },
 
   // A starfield with a few neon sparkles.
   stars: () => {
@@ -188,6 +202,9 @@ text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
   <radialGradient id="weaveglow" cx="0.3" cy="0.55" r="0.75"><stop offset="0" stop-color="#2a3b5e"/><stop offset="0.6" stop-color="${C.background}"/><stop offset="1" stop-color="#121a2e"/></radialGradient>
   <linearGradient id="gridfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.5"/></linearGradient>
   <mask id="gridmask"><rect y="520" width="${W}" height="110" fill="url(#gridfade)"/></mask>
+  <radialGradient id="hexfade1" cx="1" cy="0" r="0.55"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="hexfade2" cx="0" cy="1" r="0.45"><stop offset="0" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <mask id="hexmask"><rect width="${W}" height="${H}" fill="url(#hexfade1)"/><rect width="${W}" height="${H}" fill="url(#hexfade2)"/></mask>
   <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.teal}"/><stop offset="0.55" stop-color="${C.blue}"/><stop offset="1" stop-color="${C.purple}"/></linearGradient>
   <radialGradient id="sunglow"><stop offset="0.75" stop-color="${C.teal}" stop-opacity="0.12"/><stop offset="1" stop-color="${C.teal}" stop-opacity="0"/></radialGradient>
 </defs>

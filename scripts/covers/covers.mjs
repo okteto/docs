@@ -3,8 +3,8 @@
 //   out: where the JPEG goes (a cover is the post's img/cover.jpg; a diagram
 //        is another file of the post's img/ folder)
 //   background: 'white' for a diagram inside an article. A blog cover takes
-//        none: it gets one of the six backgrounds in rotation, by the date order
-//        of the posts (see ROTATION), so consecutive posts never look the same.
+//        none: comparisons get `stars`, and the other posts one of the five
+//        backgrounds of ROTATION, by date order (see below).
 //   alt: what the image shows (the post's `image_alt`)
 //   svg: the subject, built with the helpers of style.mjs. For a diagram
 //        inside an article it is a function, drawn with the light theme.
@@ -28,13 +28,19 @@ const kubernetes = (options) => mark('kubernetes', options);
 const okteto = (options) => mark('okteto', options);
 const versus = (name) => row([mark('okteto-wordmark', { size: 360 }), 'vs', word(name, { size: 84 })]);
 
-// The six backgrounds of the blog covers, in the order they rotate. The posts,
-// sorted by date (their folder name), take them one after another.
-const ROTATION = ['dots', 'weave', 'grid', 'sun', 'beams', 'stars'];
-const posts = fs.readdirSync(path.join(root, 'blog/posts')).filter((dir) => /^\d{4}-/.test(dir)).sort();
+// The backgrounds of the blog covers. A comparison of Okteto with another
+// vendor (an "okteto-vs" or "okteto-versus" post) always takes `stars`, and no
+// other post does. The other posts take the five backgrounds of ROTATION one
+// after another, sorted by date (their folder name).
+const COMPARISON = 'stars';
+const ROTATION = ['dots', 'weave', 'grid', 'sun', 'hexagons'];
+const isComparison = (dir) => /okteto-(vs|versus)-/.test(dir);
+const rotating = fs.readdirSync(path.join(root, 'blog/posts')).filter((dir) => /^\d{4}-/.test(dir) && !isComparison(dir)).sort();
 const rotation = (out) => {
   const dir = out.match(/^blog\/posts\/([^/]+)\/img\/cover\.jpg$/)?.[1];
-  return dir && posts.includes(dir) ? ROTATION[posts.indexOf(dir) % ROTATION.length] : undefined;
+  if (!dir) return undefined;
+  if (isComparison(dir)) return COMPARISON;
+  return rotating.includes(dir) ? ROTATION[rotating.indexOf(dir) % ROTATION.length] : undefined;
 };
 const BASICS = '2022-07-27-kubernetes-basics';
 
@@ -134,16 +140,16 @@ const covers = [
   },
   {
     out: post('2023-03-23-total-cost-of-ownership-tco-of-building-versus-buying-software-for-development'),
-    alt: 'Two cost bars: building a platform piles up infrastructure, technical, security, features, integrations, and support costs, while buying Okteto is one short bar',
+    alt: "Building a development platform means maintaining infrastructure, technical upkeep, security, features, integrations, and support; buying one means the Okteto platform, maintained for you",
     svg: (() => {
-      const items = [['users', 'Support', C.red], ['link', 'Integrations', C.amber], ['code', 'Features', C.purple], ['shield-check', 'Security', C.blue], ['wrench', 'Technical', C.amber], ['server', 'Infrastructure', C.purple]];
-      let out = '';
-      items.forEach(([name, label, color], i) => {
-        const y = 168 + i * 58;
-        out += box(380, y, 160, 50, { color, radius: 12, strokeWidth: 3.5 }) + icon(name, 460, y + 25, 32, color) + text(label, 360, y + 34, 24, { anchor: 'end' });
+      let out = box(90, 125, 640, 400, { color: C.amber, dashed: true }) + icon('wrench', 340, 182, 40, C.amber) + text('Build', 372, 194, 32, { anchor: 'start' });
+      [['server', 'Infrastructure'], ['wrench', 'Technical'], ['shield-check', 'Security'], ['code', 'Features'], ['link', 'Integrations'], ['users', 'Support']].forEach(([name, label], i) => {
+        const x = 120 + (i % 2) * 300;
+        const y = 232 + Math.floor(i / 2) * 92;
+        out += box(x, y, 280, 72, { color: C.amber, radius: 14, strokeWidth: 3, fill: C.row }) + icon(name, x + 42, y + 36, 34, C.amber) + text(label, x + 76, y + 46, 25, { anchor: 'start' });
       });
-      out += box(700, 404, 160, 110, { color: C.teal, radius: 14 }) + logo('okteto', 780, 459, 70) + text('Platform', 880, 468, 24, { anchor: 'start' });
-      out += `<path d="M320 530 H920" stroke="${C.dim}" stroke-width="3"/>` + text('Build', 460, 574, 30) + text('Buy', 780, 574, 30);
+      out += box(770, 125, 340, 400, { color: C.teal }) + icon('dollar-sign', 905, 182, 40) + text('Buy', 937, 194, 32, { anchor: 'start' });
+      out += logo('okteto-wordmark', 940, 330, 250) + text('Maintained for you', 940, 452, 25, { color: C.teal });
       return out;
     })(),
   },
@@ -201,8 +207,9 @@ const covers = [
   },
   {
     out: post('2024-07-29-okteto-soc-2'),
-    alt: 'The Okteto logo plus a shield with a check, for SOC 2 Type 2',
-    svg: row([okteto(), 'plus', badge('shield-check', 'SOC 2 Type 2', { r: 92 })]),
+    alt: "The Okteto logo and the text \"We're SOC 2!\", with the SOC 2 Achieved badge by Strike Graph and the AICPA SOC badge",
+    // The original cover, cut out of its background (images/).
+    svg: `<image href="file://${path.join(root, 'scripts/covers/images/okteto-soc-2.png')}" x="0" y="32" width="1200" height="565"/>`,
   },
   {
     out: post('2025-01-07-platform-tooling-landscape'),
