@@ -637,14 +637,24 @@ const covers = [
   },
   {
     out: tutorial('2025-10-01-optimize-your-development-environment'),
-    alt: 'Three bars that get shorter: build, sync, and deploy times',
-    svg: `<g transform="translate(0 32)">${scaled(['Build', 'Sync', 'Deploy'].map((label, i) => {
-      const y = 150 + i * 105;
-      const length = [210, 130, 270][i];
-      return text(label, 330, y + 32, 34, { anchor: 'end' })
-        + `<rect x="370" y="${y}" width="560" height="56" rx="14" fill="none" stroke="${C.dim}" stroke-width="3" stroke-dasharray="10 10"/>`
-        + box(370, y, length, 56, { color: C.teal, radius: 14, fill: '#0f3a4d' });
-    }).join('') + icon('zap', 985, 283, 84, C.amber), 1.2, 615, 285)}</g>`,
+    alt: 'The time an environment takes to be ready, split into build, sync, and data: a long bar before, and a much shorter one after',
+    svg: (() => {
+      const parts = [['layers', 'Build'], ['copy', 'Sync'], ['database', 'Data']];
+      const bar = (y, widths, color, fill, labels) => {
+        let x = 300;
+        let out = '';
+        widths.forEach((width, i) => {
+          out += box(x, y, width, 96, { color, radius: 18, strokeWidth: 3.5, fill }) + icon(parts[i][0], x + width / 2, y + 48, 46, color);
+          if (labels) out += text(parts[i][1], x + width / 2, y + 140, 26, { color: C.dim });
+          x += width + 12;
+        });
+        return { out, end: x };
+      };
+      const before = bar(150, [300, 200, 200], C.amber, '#3a2f17', true);
+      const after = bar(385, [100, 70, 70], C.teal, '#0f3a4d', false);
+      return text('Before', 270, 210, 32, { anchor: 'end' }) + before.out + icon('hourglass', before.end + 40, 198, 60, C.amber)
+        + text('After', 270, 445, 32, { anchor: 'end' }) + after.out + icon('zap', after.end + 40, 433, 64, C.teal);
+    })(),
   },
   {
     out: tutorial('2025-12-04-create-and-use-volume-snapshots'),
