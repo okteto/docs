@@ -1,16 +1,77 @@
 ---
 title: "Okteto vs Signadot: Choosing the Right Platform for Developers and Coding Agents"
 title_meta: "Okteto vs Signadot: Kubernetes Environments for Developers and Agents"
-description: "Okteto gives each developer, pull request, and coding agent a dedicated namespace built on native Kubernetes resources, and Signadot forks workloads on a shared baseline. This guide explains what that difference means for your team."
+description: "Okteto gives each developer, pull request, and coding agent a dedicated namespace built on native Kubernetes resources, with Divert to deploy only the services that change. Signadot forks workloads on a shared baseline. This guide compares routing, queues, data, builds, deployment model, and pricing."
 slug: compare-okteto-versus-signadot
 date: 2026-01-15
+last_update:
+  date: 2026-09-30
 authors: ["pablo-chico-de-guzman"]
 tags: ["ai-agents", "kubernetes", "platform-engineering"]
 image: ./img/cover.jpg
 image_alt: "The Okteto logo versus Signadot"
 ---
 
-If you're comparing Signadot and Okteto, you want developers and coding agents to test their changes against the real application, in your Kubernetes cluster, before they open a pull request. Both products run in your cluster, both can share a baseline environment and route requests by header to the services that changed, and both now speak to coding agents. The difference is in how each one builds on Kubernetes. Okteto gives every developer, pull request, and agent a dedicated namespace, and relies on native Kubernetes resources for data, routing, builds, and policies. Signadot adds its own layer on top of a shared baseline. This guide explains what that means for your team.
+<head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does Okteto deploy only the services that change, like Signadot?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. With Divert, an Overlay Namespace runs only the services you change, and every other service is served by a Shared Namespace that runs the complete application. A namespace can also run a full copy of the application, or a mix: its own copy of some services, such as a database, and the shared version of the rest."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Okteto Divert only work with HTTP?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Divert routes HTTP and gRPC requests by the W3C baggage header. Message queues are split per namespace with Queue Splitting: when each subsystem owns its queues, an Overlay Namespace that deploys the subsystem gets its own broker and consumers, without changes to producers or consumers. Databases are isolated with Data Cloning, from Kubernetes Volume Snapshots of the shared data or with your own dump and restore scripts."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Okteto Divert support the Kubernetes Gateway API?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The Gateway API is the default Divert driver: Okteto creates an HTTPRoute for each overlay service, and any service mesh that implements GAMMA, such as Linkerd or Istio, routes the requests. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver instead."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does the shared environment have to be deployed by Okteto?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The Shared Namespace can be any namespace in the same cluster, including an existing staging namespace that your CI or GitOps tooling deploys and that Okteto doesn't manage."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Signadot run entirely in my Kubernetes cluster?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The Signadot Operator and the sandboxes run in your cluster, but the control plane, its API, dashboard, and preview URLs, is hosted by Signadot and connects to your cluster through a tunnel. Okteto runs entirely in your cluster, control plane included, as Self-Hosted, Bring Your Own Cloud (BYOC), or air-gapped."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How are Okteto and Signadot priced?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Okteto is priced per user. The Starter plan is free for up to 5 users, and the Scale and Enterprise plans, which include Divert, have unlimited environments. Signadot is priced by usage: sandboxes created, test invocations, and concurrent devboxes."
+          }
+        }
+      ]
+    })}
+  </script>
+</head>
+
+If you're comparing Signadot and Okteto, you want developers and coding agents to test their changes against the real application, in your Kubernetes cluster, before they open a pull request. Both products run environments in your cluster, both can share a baseline environment and route requests by header to only the services that changed, and both now speak to coding agents. The differences are in how each one builds on Kubernetes, and where each one runs. Okteto gives every developer, pull request, and agent a dedicated namespace, relies on native Kubernetes resources for data, routing, builds, and policies, and runs entirely in your cluster. Signadot adds its own layer on top of a shared baseline, managed from a control plane that Signadot hosts. This guide explains what that means for your team.
 
 {/* truncate */}
 
@@ -18,7 +79,7 @@ If you're comparing Signadot and Okteto, you want developers and coding agents t
 
 Modern applications are code plus configuration, runtime, network policies, data, and dependencies across many services. Neither a developer nor a coding agent can gain real confidence that a change works by running unit tests on its own, and neither can a shared staging environment that everyone queues for. Each change needs to run against an environment that behaves like production.
 
-Okteto and Signadot agree on that, and on something else: copying the whole application for every change doesn't scale for large applications. Both let you run only the services that change and share the rest.
+Okteto and Signadot agree on that, and on something else: copying the whole application for every change doesn't scale for large applications. Both let you run only the services that change and share the rest. Okteto doesn't tie an environment to that model: an environment can deploy only the services you change, a full copy of the application, or a mix, such as the services you change plus your own copy of the database, with everything else shared.
 
 ## How Signadot Works
 
@@ -26,26 +87,43 @@ Signadot starts from a baseline environment that runs the whole application in y
 
 For the dependencies a sandbox needs, such as a database or a queue, Signadot uses resource plugins: containerized workflows that you write to provision and clean up each resource.
 
+The Signadot Operator runs in your cluster and connects through a tunnel to the Signadot control plane, which Signadot hosts: its API, its dashboard, and the preview URLs of the sandboxes. Signadot is priced by usage: sandboxes created, test invocations, and concurrent devboxes.
+
 For coding agents, Signadot offers an MCP server and skills that let an agent create sandboxes and run tests from Claude Code, Codex, Cursor, and other tools.
 
 ## How Okteto Works
 
 Okteto runs in your cluster, and each developer, each pull request, and each coding agent gets its own application environment, in a dedicated namespace. An [Okteto Manifest](/docs/reference/okteto-manifest/) in the repository defines how to build, deploy, develop, and test the application, and the same definition creates every environment.
 
-An environment can be a full copy of the application or, with [Divert](/docs/development/divert/), only the services you change, deployed in your namespace on top of a shared environment that runs the rest. Okteto builds the images in the cluster, synchronizes your code changes in seconds to the pod that runs your service, creates a [Preview Environment](/docs/previews/) for each pull request, and runs the tests in the cluster too.
+An environment can be a full copy of the application. With [Divert](/docs/development/divert/), it deploys in your namespace only the services you change, or those plus any others you want your own copy of, on top of a shared environment that runs the rest. Okteto builds the images in the cluster, synchronizes your code changes in seconds to the pod that runs your service, creates a [Preview Environment](/docs/previews/) for each pull request, and runs the tests in the cluster too.
 
-Okteto also includes the infrastructure to [run coding agents](https://www.okteto.com/agents-on-kubernetes/) on your cluster. Each agent works in a light agent sandbox, under the access and policies the platform team defines, and gets its own application environment, the same one a developer gets.
+Okteto also includes the infrastructure to [run coding agents](https://www.okteto.com/agents-on-kubernetes/) on your cluster. Each agent works in a light agent sandbox, under the access and policies the platform team defines, and gets its own application environment, the same one a developer gets. Agents that run elsewhere, such as Claude Code on a laptop, use the [Okteto agent skills](/docs/agentic/) to work in the same environments.
+
+The whole platform, control plane included, runs in your cluster: Self-Hosted on any Kubernetes cluster, air-gapped, or Bring Your Own Cloud (BYOC). Okteto is priced per user, with a free Starter plan for up to 5 users.
 
 ## Quick Comparison
 
 | | Okteto | Signadot |
 |---|---|---|
-| **Environment** | A dedicated namespace: a full copy, or only the services that change with Divert | Forked workloads on a shared baseline |
-| **Routing to the services that change** | Native: Gateway API routes on your service mesh (Linkerd, Istio, and other GAMMA meshes) | Signadot's own sidecars, or Istio VirtualServices |
-| **Data** | Native: Kubernetes Volume Snapshots clone the real data of any volume | Resource plugins you write to provision each resource |
-| **Builds** | In the cluster, as part of the environment | An image your CI built, or a process on your laptop |
-| **Observability** | Your cluster's tools see every component, including the one you are changing | Local workloads run outside your cluster's tools |
-| **Coding agents** | Runs the agents on your cluster, each with its own application environment | MCP server and skills for agents that run elsewhere |
+| **Environment** | A dedicated namespace: only the services that change with Divert, a full copy, or a mix of both | Forked workloads on a shared baseline |
+| **Shared environment** | Any namespace in the cluster, deployed by Okteto, your CI, or your GitOps tooling | A baseline environment in the cluster |
+| **Routing to the services that change** | HTTP and gRPC, by the W3C `baggage` header. Gateway API routes on your service mesh (Linkerd, Istio, and other GAMMA meshes), or Istio VirtualServices | Signadot's own sidecars, or Istio VirtualServices. Gateway API in alpha |
+| **Message queues** | Queue Splitting: each namespace gets its own broker and consumers, or consumers filter by the `baggage` header | Routing key in the message headers, filtered by consumers |
+| **Data** | Native: Kubernetes Volume Snapshots clone the real data of any volume, or your own dump and restore scripts | Resource plugins you write to provision each resource |
+| **Builds** | In the cluster, with the Okteto Build Service, or any image you choose, such as one your CI built | An image your CI built, or a process on your laptop |
+| **Coding agents** | Agents run anywhere, with Okteto's agent skills, or on your cluster. Each one gets its own application environment | MCP server and skills for agents that run elsewhere |
+| **Where it runs** | Entirely in your cluster, control plane included: Self-Hosted, air-gapped, or BYOC | Operator in your cluster, control plane hosted by Signadot |
+| **Pricing** | Per user. Free Starter plan for up to 5 users; Divert in Scale and Enterprise | By usage: sandboxes, test invocations, and devboxes |
+
+## What Divert Covers
+
+Divert is how Okteto deploys only the services you change. It covers the same ground as a Signadot sandbox, with standard Kubernetes resources:
+
+- **Requests**: Divert routes HTTP and gRPC requests by the divert header, the W3C [`baggage`](https://www.w3.org/TR/baggage/) header that OpenTelemetry already propagates. See [Header Propagation](/docs/development/divert/header-propagation/).
+- **Service meshes**: the default driver uses the [Gateway API](https://gateway-api.sigs.k8s.io/), and works with any mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), such as Linkerd and Istio. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver. Only the Shared Namespace needs the mesh: Overlay Namespaces don't.
+- **Message queues**: with [Queue Splitting](/docs/development/divert/queue-splitting/), when each subsystem owns its queues, deploying the subsystem in your namespace gives you your own broker and consumers, without changes to your producers or consumers. When services share a broker, consumers filter messages by the divert header.
+- **Databases**: with [Data Cloning](/docs/development/divert/data-cloning/), your namespace gets its own copy of the databases it writes to, restored from a Volume Snapshot of the shared data or with your own dump and restore scripts, or a tenant of its own in the shared database.
+- **Shared environment**: the [Shared Namespace](/docs/development/divert/shared-namespace/) can be a Preview Environment that your CI redeploys on every merge, or any namespace in the same cluster that Okteto doesn't manage, such as your existing staging.
 
 ## Why a Dedicated Namespace Matters
 
@@ -53,7 +131,7 @@ A namespace is the unit Kubernetes already uses for isolation, access, and polic
 
 ### Real Data, Not Seed Scripts
 
-An environment needs data that looks like production's. Okteto uses the native [Volume Snapshots](/docs/core/use-volume-snapshots/) of Kubernetes, through the CSI driver of your cluster, to restore a volume of the environment from a snapshot of the shared one. Any data store that keeps its data in a volume gets a full, realistic copy of the data, in the time it takes to restore a disk, and its writes never reach anyone else. Nobody has to write and maintain a workflow per resource, and developers and agents don't have to limit their tests to the data a seed script loads.
+An environment needs data that looks like production's. Okteto uses the native [Volume Snapshots](/docs/core/use-volume-snapshots/) of Kubernetes, through the CSI driver of your cluster, to restore a volume of the environment from a snapshot of the shared one. Any data store that keeps its data in a volume gets a full, realistic copy of the data, in the time it takes to restore a disk, and its writes never reach anyone else. Nobody has to write and maintain a workflow per resource, and developers and agents don't have to limit their tests to the data a seed script loads. If your team already has dump and restore scripts, the Okteto Manifest runs them as part of the deploy.
 
 ### Standard Routing on Your Service Mesh
 
@@ -61,36 +139,60 @@ When an environment only runs the services you change, the requests for those se
 
 ### Builds Inside the Loop
 
-A developer or an agent can't verify a change until it's built and deployed. Okteto builds the images in the cluster, as part of the environment, so an agent writes the code, builds it, deploys it, and tests it without waiting for an external pipeline or a human to close the loop. When the build depends on a CI pipeline, every iteration waits for it.
-
-### Observability of Every Component
-
-Your services, the one you are changing included, run in pods of your cluster, so the logs, metrics, and traces your observability stack already collects cover all of them. That includes everything a developer does from their laptop or an agent does from its sandbox: the services they deploy, the tests they run, and the requests they send all run in the cluster and show up in the same tools. On top of that, [Okteto Insights](/docs/admin/okteto-insights/) shows how environments, builds, and deploys are used across the organization.
+A developer or an agent can't verify a change until it's built and deployed. Okteto builds the images in the cluster, with the [Okteto Build Service](/docs/core/build-service/), as part of the environment, so an agent writes the code, builds it, deploys it, and tests it without waiting for an external pipeline or a human to close the loop. When the build depends on a CI pipeline, every iteration waits for it. For the services you don't change, an environment can reuse any image you choose, such as the one your CI already built.
 
 ### The Same Access and Policies as Production
 
 Each environment inherits the RBAC, network policies, and resource limits that Kubernetes applies per namespace. The platform team governs environments with the tools it already uses for the rest of the cluster, and a change that breaks because of a policy breaks during development, not after the merge.
 
+### Nothing Leaves Your Cluster
+
+Okteto's control plane runs in your cluster, next to the environments. Your code, your data, your test results, and the requests to your environments stay in your infrastructure, and Okteto Enterprise runs air-gapped. With Signadot, the environments run in your cluster, but the control plane is a service Signadot hosts: test artifacts, traffic captured by Smart Tests, and requests to preview URLs go through it.
+
 ## Where Coding Agents Fit
 
 Both products help coding agents test their changes against the real application. With Signadot, the agent runs wherever you run it, and uses Signadot's MCP server to create a sandbox for its change.
 
-With Okteto, the agents run on your cluster, and each one builds, deploys, and tests its change in its own application environment before it opens a pull request. The data it writes is its own, the routing to its services is standard, everything it does is visible in your observability tools, and it works under the policies the platform team defines. That is what lets a team run many agents in parallel and trust what they produce.
+With Okteto, the agents run wherever you run them too, using the [Okteto agent skills](/docs/agentic/), or on your cluster, under the policies the platform team defines. Either way, each one builds, deploys, and tests its change in its own application environment before it opens a pull request. The data it writes is its own, and the routing to its services is standard. That is what lets a team run many agents in parallel and trust what they produce.
 
 ## Choosing the Right Solution for Your Team
 
 **Signadot may fit if:**
 
-- You already have a CI pipeline that builds an image for every change, and a baseline environment to fork from
+- You prefer a hosted control plane and usage-based pricing
 - Your team is comfortable writing and maintaining a resource plugin for each dependency
-- Your coding agents already run outside the cluster, and you only need them to create sandboxes
 
 **Okteto fits best if:**
 
 - You want each developer, pull request, and coding agent to get a dedicated namespace in your cluster
 - You want one definition of the environment for development, pull requests, tests, and agents
 - You want real data, routing on your own service mesh, and builds inside the environment
-- You want observability of every component and the same policies as production
+- You want the same policies as production
 - You want to run coding agents on your cluster, under your policies
+- You need the whole platform in your infrastructure, including air-gapped
 
-The question isn't only whether a change can be tested against the real application. It's whether that test runs on the same Kubernetes resources, data, routing, and policies your application will face in production, for every developer and every agent.
+## Frequently Asked Questions
+
+### Does Okteto deploy only the services that change, like Signadot?
+
+Yes. With Divert, an Overlay Namespace runs only the services you change, and every other service is served by a Shared Namespace that runs the complete application. A namespace can also run a full copy of the application, or a mix: its own copy of some services, such as a database, and the shared version of the rest.
+
+### Does Okteto Divert only work with HTTP?
+
+No. Divert routes HTTP and gRPC requests by the W3C `baggage` header. Message queues are split per namespace with Queue Splitting: when each subsystem owns its queues, an Overlay Namespace that deploys the subsystem gets its own broker and consumers, without changes to producers or consumers. Databases are isolated with Data Cloning, from Kubernetes Volume Snapshots of the shared data or with your own dump and restore scripts.
+
+### Does Okteto Divert support the Kubernetes Gateway API?
+
+Yes. The Gateway API is the default Divert driver: Okteto creates an `HTTPRoute` for each overlay service, and any service mesh that implements GAMMA, such as Linkerd or Istio, routes the requests. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver instead.
+
+### Does the shared environment have to be deployed by Okteto?
+
+No. The Shared Namespace can be any namespace in the same cluster, including an existing staging namespace that your CI or GitOps tooling deploys and that Okteto doesn't manage.
+
+### Does Signadot run entirely in my Kubernetes cluster?
+
+No. The Signadot Operator and the sandboxes run in your cluster, but the control plane, its API, dashboard, and preview URLs, is hosted by Signadot and connects to your cluster through a tunnel. Okteto runs entirely in your cluster, control plane included, as Self-Hosted, Bring Your Own Cloud (BYOC), or air-gapped.
+
+### How are Okteto and Signadot priced?
+
+Okteto is priced per user. The Starter plan is free for up to 5 users, and the Scale and Enterprise plans, which include Divert, have unlimited environments. Signadot is priced by usage: sandboxes created, test invocations, and concurrent devboxes.

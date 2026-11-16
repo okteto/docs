@@ -79,6 +79,10 @@ module.exports = {
         // blog, so there is no by-year archive page either.
         archiveBasePath: null,
         showReadingTime: true,
+        // Feeds dateModified in the post JSON-LD and article:modified_time, from
+        // git or the `last_update` front matter. Post pages don't show it: their
+        // footer is the callout (src/theme/BlogPostItem/Footer).
+        showLastUpdateTime: true,
         authorsMapPath: '../authors.yml',
         tags: '../tags.yml',
         onInlineTags: 'throw',
