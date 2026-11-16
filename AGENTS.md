@@ -127,13 +127,13 @@ Run through this before declaring any docs change complete:
 
 1. **Read the diff aloud.** Does any sentence start with preamble (`Before you start...`, `In this guide...`)? Cut it.
 2. **Grep your additions for banned words:** `powerful`, `seamless`, `intelligent`, `foundational`, `comprehensive`, `Learn more`, `Useful for`, `—`. None should appear.
-3. **Check for confidential information** in the docs, commit messages and PR description: no customer names, internal links or credentials (see [Confidential information](#confidential-information)).
-4. **Check every Okteto noun you introduced** against the capitalization canon above. `Self-Hosted` (not `self-hosted`), `BYOC` (not `byoc`), `okteto.yaml` in backticks, `Okteto CLI` (not `Okteto cli` or `okteto CLI`).
-5. **Verify links are inline**, not standalone "Learn more →" lines.
-6. **Confirm the frontmatter `description`** is a single functional sentence, with no marketing copy.
-7. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
-8. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
-9. **Check every image or table you added at phone width** (390px, an iPhone). Text inside images must stay readable (about 11px or more on screen): give wide diagrams a stacked version with the `mobileSrc` prop of `Image`. Tables must fit the screen without scrolling sideways. Headless Chrome can't make its window narrower than about 500px, so emulate the device (Chrome DevTools, or `Emulation.setDeviceMetricsOverride` over the DevTools protocol) instead of resizing the window.
+3. **Check every Okteto noun you introduced** against the capitalization canon above. `Self-Hosted` (not `self-hosted`), `BYOC` (not `byoc`), `okteto.yaml` in backticks, `Okteto CLI` (not `Okteto cli` or `okteto CLI`).
+4. **Verify links are inline**, not standalone "Learn more →" lines.
+5. **Confirm the frontmatter `description`** is a single functional sentence, with no marketing copy.
+6. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
+7. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
+8. **Check every image or table you added at phone width** (390px, an iPhone). Text inside images must stay readable (about 11px or more on screen): give wide diagrams a stacked version with the `mobileSrc` prop of `Image`. Tables must fit the screen without scrolling sideways. Headless Chrome can't make its window narrower than about 500px, so emulate the device (Chrome DevTools, or `Emulation.setDeviceMetricsOverride` over the DevTools protocol) instead of resizing the window.
+9. **Check for confidential information** in the docs, commit messages and PR description: no customer names, internal links or credentials (see [Confidential information](#confidential-information)).
 
 ## Special workflows
 
