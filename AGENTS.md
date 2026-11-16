@@ -55,6 +55,16 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
 
+## Confidential information
+
+This repo and its PRs are public. Never include in docs, commits, PR titles or PR descriptions:
+
+- Customer or prospect names, or details that identify them (domains, cluster names, IPs, support bundle contents)
+- Links to internal resources: Slack threads, Jira tickets, private GitHub repos or PRs (e.g. okteto/app), internal dashboards
+- Unreleased roadmap, pricing or contract details, license keys, tokens or credentials
+
+Describe the problem generically instead (e.g. "clusters where the ingress controller Service is IPv6-first").
+
 ## Where docs live
 
 - `src/content/`: the **current** unreleased version. **All new content goes here.**
@@ -123,6 +133,7 @@ Run through this before declaring any docs change complete:
 6. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
 7. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
 8. **Check every image or table you added at phone width** (390px, an iPhone). Text inside images must stay readable (about 11px or more on screen): give wide diagrams a stacked version with the `mobileSrc` prop of `Image`. Tables must fit the screen without scrolling sideways. Headless Chrome can't make its window narrower than about 500px, so emulate the device (Chrome DevTools, or `Emulation.setDeviceMetricsOverride` over the DevTools protocol) instead of resizing the window.
+9. **Check for confidential information** in the docs, commit messages and PR description: no customer names, internal links or credentials (see [Confidential information](#confidential-information)).
 
 ## Special workflows
 
