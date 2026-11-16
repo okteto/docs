@@ -1,95 +1,161 @@
 ---
 title: "Ingress NGINX Controller Deprecation: Your Migration Guide to Kubernetes Gateway API"
 title_meta: "Ingress NGINX Deprecation 2026: Gateway API Migration Guide"
-description: "Ingress NGINX Controller retires March 2026. Learn why Kubernetes is moving to Gateway API and get a practical migration framework for platform teams."
-excerpt: "Learn why Kubernetes is moving to Gateway API and get a practical migration framework for platform teams."
+description: "The Ingress NGINX Controller retires in March 2026. Why Kubernetes is moving to the Gateway API, how to translate an Ingress into an HTTPRoute, and a migration framework for platform teams."
 slug: ingress-nginx-controller-deprecation-your-migration-guide-to-kubernetes-gateway-api
 date: 2026-01-28
 authors: ["cody-landstrom"]
-image: ./img/259efce7c4d4.jpg
-image_alt: "Ingress NGINX Controller Notification with Kubernetes Logo"
+image: ./img/cover.jpg
+image_alt: "The NGINX logo, for Ingress NGINX, with an arrow to the Kubernetes logo, for the Gateway API"
 ---
 
-import { CallToAction } from '@site/src/components/blog';
-
-The Kubernetes project announced in November 2025 that the Ingress NGINX Controller will be retired on March 31st, 2026.
+The Kubernetes project [announced in November 2025](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) that the Ingress NGINX Controller will be retired on March 31st, 2026.
 
 {/* truncate */}
 
-This is the ingress controller that ships as the default in most Kubernetes distributions. It's what countless tutorials recommend. It's probably what you're running in production right now. In three months, it stops receiving security patches, bug fixes, and compatibility updates.
+It's one of the most widely used ingress controllers in Kubernetes. It's what countless tutorials recommend, and it's probably what you're running in production right now. In three months, it stops receiving security patches, bug fixes, and compatibility updates.
 
-We've been evaluating what this ingress nginx deprecation means for Okteto and the broader Kubernetes ecosystem. Here's our analysis and a decision framework that might help if you're navigating this transition.
+We've been evaluating what this means for Okteto and the broader Kubernetes ecosystem. Here's our analysis, how to translate your Ingress resources to the Gateway API, and a decision framework that might help if you're navigating this transition.
 
 ## What's Actually Happening with the Ingress NGINX Deprecation
 
-The Kubernetes Ingress API itself is not being deprecated. You can still create Ingress resources. What's being retired is the specific NGINX-based controller that implements that API.
+The Kubernetes Ingress API itself is not being deprecated. You can still create Ingress resources. What's being retired is the specific NGINX-based controller that implements that API, the `kubernetes/ingress-nginx` project.
 
-This Ingress NGINX Controller retirement creates three critical operational risks:
+The retirement creates three operational risks:
 
 **Security vulnerabilities won't receive patches.** After March 2026, CVEs discovered in the Ingress NGINX Controller won't be fixed upstream. You'll need to maintain your own fork or accept the security exposure.
 
 **Bug fixes end permanently.** When ingress routing breaks or behaves unexpectedly, there's no upstream maintainer to file issues with or expect resolution from.
 
-**Kubernetes compatibility will degrade over time.** New Kubernetes releases will introduce changes that the deprecated controller can't handle. It might function with Kubernetes 1.32, but will likely fail with 1.35 and beyond.
+**Kubernetes compatibility will degrade over time.** New Kubernetes releases will keep changing, and nobody will adapt the controller to them. Sooner or later, a Kubernetes upgrade will break it.
 
-Important distinction: This deprecation affects only the `kubernetes/ingress-nginx` project. NGINX Inc.'s commercial ingress controller (now part of F5) remains actively maintained and supported. It's a completely separate codebase with its own lifecycle.
+Note that the retirement affects only the `kubernetes/ingress-nginx` project. F5's [NGINX Ingress Controller](https://github.com/nginx/kubernetes-ingress), available in an open source and a commercial edition, is a separate codebase with its own lifecycle, and it remains maintained.
 
 ## Why Kubernetes is Moving to Gateway API
 
-The Ingress API served the ecosystem during Kubernetes' early years, but its design assumptions no longer match how production platforms operate. Three fundamental limitations drove the need for a replacement:
+The Ingress API served the ecosystem during Kubernetes' early years, but its design assumptions no longer match how production platforms operate. Three limitations drove the need for a replacement:
 
-**Annotation-based configuration creates vendor lock-in.** Configuring request timeouts requires `nginx.ingress.kubernetes.io/proxy-read-timeout` on NGINX controllers but `traefik.ingress.kubernetes.io/service.serversscheme` on Traefik. Every controller implements essential features through proprietary annotations. Switching controllers means rewriting all your routing configuration.
+**Annotation-based configuration creates vendor lock-in.** The Ingress API covers little more than hosts and paths, so every controller implements essential features through its own annotations or custom resources. A request timeout is `nginx.ingress.kubernetes.io/proxy-read-timeout` on Ingress NGINX, and something else on every other controller. Switching controllers means rewriting your routing configuration.
 
-**Role boundaries don't exist.** Platform operators, application developers, and security teams all modify the same Ingress resources with identical permissions. A developer adding a hostname shouldn't need cluster-admin rights, but the Ingress API provides no mechanism for granular access control.
+**Role boundaries don't exist.** Platform operators, application developers, and security teams all modify the same Ingress resources. A developer adding a route to their service can also change settings that should belong to the platform team, and the Ingress API provides no way to separate them.
 
-**Traffic management capabilities are severely limited.** Modern applications need canary deployments with traffic splitting, header-based routing decisions, request mirroring, and sophisticated load balancing. The Ingress API can't express these patterns. Each controller invents proprietary extensions that don't work anywhere else.
+**Traffic management capabilities are limited.** Modern applications need canary deployments with traffic splitting, header-based routing, and request mirroring. The Ingress API can't express these patterns, and each controller invents extensions that don't work anywhere else.
 
-Gateway API addresses these architectural problems systematically. It provides role-separated resources (Gateway for infrastructure teams, HTTPRoute for developers, GatewayClass for platform vendors), controller-portable configuration that works across implementations, and comprehensive traffic management built into the specification.
+Gateway API addresses these problems. It provides role-separated resources (GatewayClass for infrastructure providers, Gateway for platform teams, HTTPRoute for developers), configuration that works across implementations, and traffic management built into the specification.
 
-The ecosystem has already committed to this direction. Istio, Contour, Traefik, Envoy Gateway, and every major ingress controller supports Gateway API today. This represents alignment with Kubernetes' established roadmap, not speculation about future possibilities.
+The ecosystem has already committed to this direction. Istio, Envoy Gateway, Cilium, Kong, Traefik, Contour, and the major cloud providers implement Gateway API today. This is Kubernetes' established roadmap, not speculation about future possibilities.
+
+## From Ingress to HTTPRoute
+
+Here's an Ingress that sends the requests for `app.example.com/api` to the `api` Service, with a timeout set through an Ingress NGINX annotation:
+
+```yaml title="ingress.yaml"
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 8080
+```
+
+With Gateway API, the platform team creates a Gateway, the entry point that receives the traffic, with the GatewayClass of the controller they choose:
+
+```yaml title="gateway.yaml"
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: web-gateway
+spec:
+  gatewayClassName: example
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+```
+
+And developers attach HTTPRoutes to it. The routing and the timeout are now part of the specification, so they work the same way on any controller:
+
+```yaml title="httproute.yaml"
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: app
+spec:
+  parentRefs:
+  - name: web-gateway
+  hostnames:
+  - app.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    backendRefs:
+    - name: api
+      port: 8080
+    timeouts:
+      request: 60s
+```
+
+The two timeouts don't measure exactly the same thing (the annotation limits the time between two reads from the backend, and `timeouts.request` the whole request), so check what each one covers when you translate them. To convert many Ingress resources at once, the Kubernetes project maintains [ingress2gateway](https://github.com/kubernetes-sigs/ingress2gateway), a tool that translates Ingress resources, including some controller-specific annotations, into Gateway API resources.
 
 ## Real-World Migration Strategy: How We're Approaching This at Okteto
 
-Okteto's platform depends on ingress infrastructure for generating HTTPS endpoints, routing development environment traffic, and implementing private networking security. This deprecation directly affects our core functionality.
+Okteto's platform depends on ingress infrastructure for generating HTTPS endpoints and routing development environment traffic. This deprecation directly affects our core functionality.
 
-We analyzed three Kubernetes Gateway API migration strategies:
+We analyzed three migration strategies:
 
-**Replace NGINX with another Ingress controller.** This minimizes immediate disruption but perpetuates the same architectural problems. We'd remain dependent on annotation-based configuration and controller-specific behaviors. Most problematically, we'd face identical migration pressure when the replacement controller reaches end-of-life.
+**Replace NGINX with another Ingress controller.** This minimizes immediate disruption but keeps the same architectural problems. We'd remain dependent on annotation-based configuration and controller-specific behaviors, and we'd face the same migration pressure when the replacement controller reaches end-of-life.
 
-**Migrate completely to Gateway API with Ingress compatibility layers.** This aligns with Kubernetes' long-term direction but requires building complex translation mechanisms between networking models. We'd need to handle edge cases where Ingress semantics don't map to Gateway API primitives while supporting both during transition.
+**Migrate completely to Gateway API with Ingress compatibility layers.** This aligns with Kubernetes' long-term direction but requires building complex translation mechanisms between networking models. We'd need to handle edge cases where Ingress semantics don't map to Gateway API primitives while supporting both during the transition.
 
-**Implement hybrid support for both networking models.** Maintain Ingress functionality for existing workloads while building new features on Gateway API foundations. This enables incremental modernization without disrupting operational systems.
+**Implement hybrid support for both networking models.** Keep Ingress working for existing workloads while building new features on Gateway API. This enables incremental modernization without disrupting operational systems.
 
 We chose the hybrid approach because it balances technical debt reduction with platform stability.
 
 The architectural principle guiding our decision: **depend on APIs, not implementations.** Platform resilience comes from abstractions that multiple controllers can satisfy, not tight coupling to specific controller behaviors.
 
-Gateway API provides exactly that abstraction layer. We can implement features once and support customer choice in underlying networking infrastructure.
+Gateway API provides exactly that abstraction layer. We can implement features once and support customer choice in the underlying networking infrastructure.
 
 ## Practical Next Steps for Platform Teams
 
 This decision framework applies regardless of whether you're running Okteto or managing your own Kubernetes infrastructure:
 
-**Inventory your annotation dependencies immediately.** Every `nginx.ingress.kubernetes.io/*` annotation represents technical debt requiring migration. Create a comprehensive catalog of controller-specific configurations in your manifests. Focus on annotations that implement business logic rather than basic routing (those represent the highest migration complexity).
+**Inventory your annotation dependencies now.** Every `nginx.ingress.kubernetes.io/*` annotation is technical debt that needs a migration. Catalog the controller-specific configuration in your manifests, and focus on the annotations that implement business logic rather than basic routing: those are the hardest to migrate.
 
-**Assess your controller's Gateway API maturity.** Controllers without Gateway API support signal questionable long-term viability. You don't need immediate migration, but understanding your options prevents crisis-driven decisions. Proven Gateway API implementations include Istio Gateway, Contour, Traefik v3, and Envoy Gateway.
+**Assess your controller's Gateway API maturity.** A controller without Gateway API support is a long-term risk. You don't need to migrate immediately, but knowing your options prevents crisis-driven decisions. Established Gateway API implementations include Envoy Gateway, Istio, Cilium, Kong, Traefik, and Contour.
 
-**Evaluate whether bundling controllers still makes sense.** If your platform ships with embedded ingress controllers, reconsider that architectural choice. Every bundled controller creates ongoing CVE tracking, compatibility testing, and support obligations. Letting customers provide their own networking infrastructure while you deliver higher-level abstractions often proves more sustainable.
+**Evaluate whether bundling controllers still makes sense.** If your platform ships with embedded ingress controllers, reconsider that choice. Every bundled controller creates ongoing CVE tracking, compatibility testing, and support obligations. Letting customers provide their own networking infrastructure while you deliver higher-level abstractions often proves more sustainable.
 
-**Design for portability over convenience.** Build platform features that work regardless of which Gateway API controller customers deploy. This architectural discipline creates resilience against future infrastructure changes while reducing your maintenance burden.
+**Design for portability over convenience.** Build platform features that work regardless of which Gateway API controller customers deploy. This discipline creates resilience against future infrastructure changes while reducing your maintenance burden.
 
 ## What This Means for Okteto Users
 
-We're treating this transition as an opportunity to strengthen our networking architecture. The migration prioritizes continuity (your development environments maintain their endpoints, TLS certificates continue automatic provisioning, and private networking remains fully functional). Behind the scenes, we're implementing Gateway API support for new capabilities while preserving existing workflows during the transition.
+Okteto supports Gateway API for the endpoints of your applications and for the Okteto control plane, and works with any Gateway controller that implements it. We run our end-to-end tests against Envoy Gateway, Istio, and Kong.
 
-<CallToAction title={"If you're an existing Okteto customer, please read this post about what's changing, impact and timelines. "} actions={[{"label":"Community Post","url":"https://community.okteto.com/t/gateway-api-migration-what-okteto-customers-need-to-know/1451"}]} />
+Following our own advice, Okteto Chart 2.0 will make Gateway API the default and stop bundling NGINX Ingress controllers: you'll bring the Gateway controller you choose, and Okteto will create the routes. The [Migrate to Gateway API](/docs/self-hosted/manage/migrate-to-gateway-api/) guide explains how to move your instance before that upgrade.
+
+In the meantime, Okteto maintains a fork of Ingress NGINX where we patch security fixes for the NGINX Ingress controllers that Okteto ships, so your instance doesn't run an unpatched controller while you migrate.
 
 ## Infrastructure Evolution as Platform Opportunity
 
-The Ingress NGINX Controller deprecation represents natural ecosystem maturation rather than arbitrary disruption. Kubernetes networking is evolving from early-adoption defaults toward sophisticated, portable abstractions that serve diverse production requirements better.
+The Ingress NGINX Controller retirement is the ecosystem maturing, not an arbitrary disruption. Kubernetes networking is moving from early defaults toward portable abstractions that serve production requirements better.
 
-For platform teams, this creates an opportunity to reduce technical debt, improve operational flexibility, and align with Kubernetes' architectural direction. The migration investment pays returns through reduced vendor coupling, enhanced multi-cloud portability, and more predictable upgrade experiences.
+For platform teams, this is an opportunity to reduce technical debt, gain flexibility, and align with Kubernetes' direction. The migration pays off through less vendor coupling, better portability across clouds, and more predictable upgrades.
 
-If you're navigating this Kubernetes ingress controller replacement, we'd value learning about your approach. Migration challenges are similar across platforms. Sharing experiences with both successful strategies and unexpected obstacles benefits the entire community.
+If you're navigating this transition, we'd like to hear about your approach. Migration challenges are similar across platforms, and sharing what worked and what didn't benefits the whole community.
 
-The March 2026 deadline might feel aggressive, but it's accelerating the ecosystem toward more maintainable infrastructure patterns. That makes the migration effort worthwhile.
+The March 2026 deadline might feel aggressive, but it's pushing the ecosystem toward more maintainable infrastructure. That makes the migration effort worthwhile.

@@ -5,6 +5,9 @@ sidebar_label: Header Propagation
 id: header-propagation
 ---
 
+import Image from "@theme/Image";
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
 Header propagation is forwarding the `baggage` header of an incoming request to every outgoing request or message that the request triggers. Divert routes a request by its divert header: the `baggage` header with the key `okteto-divert=<namespace>`. The header is set by the client, such as the Okteto UI, a browser extension, or `curl`, but when a service calls another service, it makes a new request, and the header is only there if your service copied it. Propagating the header is up to your application, not Okteto.
 
 ## When You Need Header Propagation
@@ -13,11 +16,19 @@ In the Movies application, requests enter through an API gateway, which calls th
 
 Without propagation, the rent service receives the header, but its call to the catalog service is a new request without it, so the call reaches the shared catalog service:
 
-![The rent service receives the baggage header but calls the catalog service without it, so the request reaches the shared catalog service instead of Cindy's](@site/static/img/divert-propagation-missing.svg)
+<Image
+  src={useBaseUrl("/img/divert-propagation-missing.svg")}
+  alt="The rent service receives the baggage header but calls the catalog service without it, so the request reaches the shared catalog service instead of Cindy's"
+  borderless
+/>
 
 With propagation, the rent service forwards the header, and the call reaches Cindy's catalog service:
 
-![The rent service forwards the baggage header to the catalog call, and the request reaches Cindy's catalog service](@site/static/img/divert-propagation.svg)
+<Image
+  src={useBaseUrl("/img/divert-propagation.svg")}
+  alt="The rent service forwards the baggage header to the catalog call, and the request reaches Cindy's catalog service"
+  borderless
+/>
 
 The same applies to messages. The producer copies the `baggage` header into the message metadata, and the consumer reads it back and forwards it on the requests it makes to other services while processing the message.
 

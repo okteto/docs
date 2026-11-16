@@ -5,6 +5,9 @@ sidebar_label: Queue Splitting
 id: queue-splitting
 ---
 
+import Image from "@theme/Image";
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
 Queue splitting is making sure each message is consumed by the namespace it belongs to. Divert routes HTTP and gRPC requests, but it doesn't intercept message brokers like Kafka, RabbitMQ, or SQS. Without a strategy, a consumer in your Overlay Namespace and a consumer in the Shared Namespace compete for the same messages, and each message is processed by whichever gets it first.
 
 ## Service-Owned Queues
@@ -13,11 +16,19 @@ The recommended approach is that each subsystem owns its queues: only its own se
 
 In the following example, the API gateway sends work to the rentals and catalog subsystems through their APIs. Each subsystem has its own Kafka, and only its own worker consumes from it:
 
-![The API gateway calls the rent API and the catalog API. The rentals subsystem has the rent API, its own Kafka, the rent worker, and a PostgreSQL database used by the API and the worker. The catalog subsystem has the catalog API, its own Kafka, the catalog worker, and a MongoDB database used by the API and the worker](@site/static/img/divert-queues.svg)
+<Image
+  src={useBaseUrl("/img/divert-queues.svg")}
+  alt="The API gateway calls the rent API and the catalog API. The rentals subsystem has the rent API, its own Kafka, the rent worker, and a PostgreSQL database used by the API and the worker. The catalog subsystem has the catalog API, its own Kafka, the catalog worker, and a MongoDB database used by the API and the worker"
+  borderless
+/>
 
 With this pattern, Divert splits queues without changes to your producers or consumers. In the following example, Cindy deploys only the rentals subsystem in her Overlay Namespace:
 
-![Requests with baggage okteto-divert=cindy go from the API gateway of staging to Cindy's rent API. Cindy's Overlay Namespace runs the whole rentals subsystem: the rent API, its own Kafka, the rent worker, and PostgreSQL](@site/static/img/divert-queues-overlay.svg)
+<Image
+  src={useBaseUrl("/img/divert-queues-overlay.svg")}
+  alt="Requests with baggage okteto-divert=cindy go from the API gateway of staging to Cindy's rent API. Cindy's Overlay Namespace runs the whole rentals subsystem: the rent API, its own Kafka, the rent worker, and PostgreSQL"
+  borderless
+/>
 
 1. In your Overlay Namespace, deploy the whole subsystem: its API, its broker (or its own vhost), its workers, and its databases.
 2. A request with your divert header reaches your API, which publishes to your broker. Your service resolves the broker by a short name, such as `rabbitmq:5672`, so it gets the one in your Overlay Namespace.
@@ -56,7 +67,11 @@ Message-level routing is sharing the broker of the Shared Namespace, and making 
 
 In the following example, Cindy deploys only the rent worker. Both rent workers receive every message, and each one skips the messages of the other:
 
-![The rent API of staging publishes to the shared broker with the baggage in the message headers. The rent worker of staging skips the messages with okteto-divert=cindy. Cindy's rent worker processes only the messages with okteto-divert=cindy](@site/static/img/divert-queues-routing.svg)
+<Image
+  src={useBaseUrl("/img/divert-queues-routing.svg")}
+  alt="The rent API of staging publishes to the shared broker with the baggage in the message headers. The rent worker of staging skips the messages with okteto-divert=cindy. Cindy's rent worker processes only the messages with okteto-divert=cindy"
+  borderless
+/>
 
 1. **Producers copy the divert header into the message.** A service that publishes a message while handling a request copies the `baggage` header of the request to the message headers.
 2. **Each Overlay Namespace creates its own subscription.** Give your consumer its own subscription, such as `rent-worker-cindy`, starting from the latest message, so it receives every new message.

@@ -1,6 +1,6 @@
 # Okteto Documentation Style Guide
 
-This guide covers voice, tone, formatting, and terminology for the Okteto docs. It applies to all content in `src/content/` and is the reference for both human contributors and automated tools.
+This guide covers voice, tone, formatting, images, and terminology for everything Okteto publishes from this repo: the docs (`src/content/` and `versioned_docs/`), the tutorials (`tutorials/`), and the blog (`blog/`). The three follow the same rules. It is the reference for both human contributors and automated tools.
 
 ---
 
@@ -12,6 +12,8 @@ This guide covers voice, tone, formatting, and terminology for the Okteto docs. 
 |-------|-------------|
 | Before you start, it helps to understand... | _Start with what the feature is._ |
 | In this guide, you will learn how to... | _Start with what the feature does._ |
+| This guide will walk you through... | _Start with what the feature does._ |
+| Please note that the CRD is required. | The CRD is required. |
 | Understand what each role can do across the platform. | Okteto uses RBAC with two roles: Admin and Developer. |
 
 **Factual.** Describe behavior, not value. Reserve adjectives for cases where they add technical meaning.
@@ -30,13 +32,34 @@ This guide covers voice, tone, formatting, and terminology for the Okteto docs. 
 | Guides, references, and tutorials. | _Remove. It adds nothing._ |
 | Power your Okteto development experience. | _Remove or replace with specific capability._ |
 
+**Second person.** Address the reader as "you". Use "we" only for what Okteto runs as a company, as in the BYOC docs.
+
+---
+
+## Readers
+
+Readers arrive mid-task from search or a link in the product, and they don't read the docs in order. Every page stands on its own: never assume the reader has read another page. Assume the reader's team already runs Kubernetes; don't argue for it.
+
+| Reader | Usually reads | Write for them |
+|--------|---------------|----------------|
+| Platform engineer | `admin/`, `self-hosted/`, `byoc/`, installation pages | Knows Kubernetes and Helm well. Don't explain Kubernetes primitives. Give exact configuration keys, default values, and failure modes. |
+| Application developer | `get-started/`, `development/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
+| AI coding agent | Any page | Runs what the page says, verbatim. See below. |
+
+Write so an agent can act on a single section:
+
+- Commands, flags, and paths are complete and exact.
+- Prerequisites, interactive prompts, and destructive steps are stated in the text, not implied.
+- Commands go in fenced code blocks with a language tag. Options go in tables.
+- No references by position ("above", "below", "the previous step"). Link to the section or name it.
+
 ---
 
 ## Page structure
 
 ### Opening sentence
 
-Open with the subject — either the feature name or "Okteto" — followed by what it does. No preamble.
+Open with the subject, either the feature name or "Okteto", followed by what it does. No preamble.
 
 **Pattern:** `[Feature] is/does/allows [what it does].`
 
@@ -79,13 +102,15 @@ Embed links in the flow of the sentence. Don't use standalone "Learn more" lines
 
 ```mdx
 # Good
-[Namespaces](core/namespaces.mdx) are isolated workspaces where development environments run.
+[Namespaces](core/namespaces.mdx) isolate the Development Environments of each team.
 Okteto uses [role-based access control (RBAC)](core/user-roles-and-permissions.mdx) with two roles.
 
 # Avoid
 [Learn more about Namespaces →](core/namespaces.mdx)
 [Learn more about roles and permissions →](core/user-roles-and-permissions.mdx)
 ```
+
+Inside the docs, link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Between the docs, the tutorials, and the blog, link with a root-relative URL: `/tutorials/<slug>/` for a tutorial, `/docs/<path>/` for a docs page, and `/blog/<slug>/` for a post. Don't link to `https://www.okteto.com/...` for a page of one of the three. The build doesn't check links between them, so when you move a page, update the pages of the other two that link to it.
 
 ### Code and CLI
 
@@ -101,7 +126,7 @@ CLI commands are always lowercase: `okteto up`, `okteto deploy`, `okteto test`, 
 
 ### Admonitions
 
-Use sparingly — each one interrupts reading flow.
+Use sparingly: each one interrupts reading flow.
 
 | Type | When to use |
 |------|-------------|
@@ -124,11 +149,27 @@ Navigate to **Admin → Garbage Collector** and click **Enable**.
 
 ### Images
 
-Always include descriptive `alt` text.
+In docs pages, use the `Image` component (`import Image from "@theme/Image";`), never Markdown `![]()`. Tutorials and blog posts keep their images in their own `img/` folder and show them with a Markdown image (`![alt](./img/diagram.webp)`) or with `Image` and `require('./img/...')`. Always include descriptive `alt` text.
 
 ```mdx
 <Image src={...} alt="BuildKit architecture diagram showing remote build flow" />
 ```
+
+Images inside a page (docs, tutorials, and blog posts) have a white background, diagrams included. Only the cover of a blog post or a tutorial has a dark background. In tutorials and blog posts, images are shown at the width of the cover, centered: the styles do it, so don't size or align them one by one. Diagrams are drawn at the size of the cover too (2400x1260), so they keep its proportions. For Kubernetes architectures, the [Kubernetes icon set](https://github.com/kubernetes/community/tree/main/icons) is the reference: one shape per resource type, used the same way in every diagram.
+
+Diagrams and covers are drawn with `scripts/covers` in the docs, the tutorials, and the blog alike (diagrams with `background: 'white'`): see "Images" in [`AGENTS.md`](AGENTS.md#images).
+
+### Version numbers
+
+Never hardcode the Okteto CLI, Helm chart, or Kubernetes versions. Import them from `src/content/variables.json` (`import variables from '../variables.json';`, with the path relative to the page) and write `{variables.cliVersion}`, or `${variables.cliVersion}` inside a template literal.
+
+### Mechanics
+
+- Present tense: "Okteto creates the Namespace", not "Okteto will create the Namespace".
+- Active voice, unless the actor is unknown or irrelevant.
+- American spelling and the Oxford comma.
+- "for example" and "that is", not "e.g." and "i.e.".
+- No exclamation points, ellipses, or em dashes. Use a comma, a colon, parentheses, or two sentences instead of an em dash.
 
 ---
 
@@ -162,7 +203,15 @@ Use these terms exactly as written. Capitalization matters.
 | **Preview Environment** | Capitalized when referring to the Okteto feature. Lowercase when generic. |
 | **Namespace** | Capitalize when referring to an Okteto Namespace. Lowercase for generic Kubernetes namespace references. |
 | **Development Container** | Capitalized. |
-| **dev environment** | Lowercase. Informal shorthand — acceptable in tutorials and quickstarts, avoid in reference docs. |
+| **dev environment** | Lowercase. Informal shorthand, acceptable in tutorials and quickstarts. Avoid it in reference docs. |
+
+Other products use near-synonyms for these concepts. Don't use them for Okteto concepts:
+
+| Avoid | Use instead |
+|-------|-------------|
+| workspace, remote workspace | Development Environment, or Namespace |
+| devbox, cloud IDE | Development Environment |
+| ephemeral environment | Preview Environment, when it is created per pull request |
 
 ### Access and roles
 

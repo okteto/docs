@@ -1,17 +1,18 @@
 ---
 title: "Kubectl Cheat Sheet Commands & Examples"
-description: "Learn the most useful kubectl commands to help you in your Kubernetes learning journey"
+description: "The kubectl commands you use most often to work with a Kubernetes cluster, its namespaces, resources, and nodes, with what each one does."
 slug: kubectl-cheat-sheet
 date: 2022-12-05
 authors: ["arsh-sharma"]
-image: ./img/596aa89c8325.jpg
+image: ./img/cover.jpg
+image_alt: "A terminal with three kubectl commands"
 series: "Learning Kubernetes"
-related: ["kubernetes-basics", "developing-microservices-by-hot-reloading-on-kubernetes-clusters"]
+related: ["kubernetes-basics"]
 ---
 
-import { CustomerQuote, YouTube } from '@site/src/components/blog';
+import { YouTube } from '@site/src/components/blog';
 
-Things can be overwhelming when you are [new to Kubernetes](https://www.reddit.com/r/kubernetes/comments/13f57ta/is_it_just_me_or_is_kubernetes_supposed_to_be/). You’d think that understanding all the [different objects](https://www.okteto.com/blog/kubernetes-basics/#getting-started-with-kubernetes) Kubernetes has to offer would be the end of it. But no, when it comes to actually interacting with K8s clusters, things get even more confusing for beginners. This is where our kubectl cheat sheet will come in handy!
+Things can be overwhelming when you are [new to Kubernetes](https://www.reddit.com/r/kubernetes/comments/13f57ta/is_it_just_me_or_is_kubernetes_supposed_to_be/). You’d think that understanding all the [different objects](/blog/kubernetes-basics/#getting-started-with-kubernetes) Kubernetes has to offer would be the end of it. But when it comes to actually interacting with a cluster, things get even more confusing for beginners. This is where a kubectl cheat sheet comes in handy.
 
 {/* truncate */}
 
@@ -19,62 +20,61 @@ Things can be overwhelming when you are [new to Kubernetes](https://www.reddit.c
 
 ## Introduction to kubectl
 
-The most common tool to interact with a Kubernetes cluster is [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl). This allows you to interact with the objects you create, view logs, etc. But as anyone who’s just starting to learn K8s will agree, THERE ARE JUST [TOO MANY KUBECTL COMMANDS](https://kubernetes.io/docs/reference/kubectl/quick-reference/) TO KEEP TRACK OF!
+The most common tool to interact with a Kubernetes cluster is [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl). It lets you work with the objects you create, view logs, and much more. But as anyone who’s just starting to learn Kubernetes will agree, there are [too many kubectl commands](https://kubernetes.io/docs/reference/kubectl/quick-reference/) to keep track of.
 
-<CustomerQuote quote={"When I was learning K8s personally, I had to maintain a diary of all the commands I came across and used to revise them every day before taking my Certified Kubernetes Administrator exam. I hope this Kubernetes command cheat sheet makes things easier for you so that you don't have to struggle like I did."} author={"Arsh Sharma"} role={"Developer Experience Engineer"} />
+When I was preparing for the Certified Kubernetes Administrator exam, I kept a diary of all the commands I came across and reviewed it every day. This cheat sheet is my attempt to save you that work: it goes over the commands you’ll find yourself using most often.
 
-But don’t worry; this kubectl cheat sheet is going to be my attempt to simplify things. We’ll go over the most common commands you’d find yourself using throughout your K8s journey. Here’s a meme to ease you in before getting started.
-
-![](./img/9d39c8830b64.webp)
-
-Also, if you’re completely new to Kubernetes, you might want to check out our [Kubernetes for Beginners](https://www.okteto.com/blog/kubernetes-basics/) blog before proceeding. Now let's begin with our Kubernetes command cheat sheet!
+If you’re completely new to Kubernetes, you might want to read our [Kubernetes for Beginners](/blog/kubernetes-basics/) post first.
 
 ## Cluster Info and Configuration
 
-Often you need to get information, not about the application but the [cluster itself](https://www.vmware.com/topics/kubernetes-cluster). Here are a few Kubernetes commands in our cheat sheet which help with that:
+Often you need information, not about the application but about the [cluster itself](https://www.vmware.com/topics/kubernetes-cluster). These commands help with that:
 
-- `kubectl version`: Gives information about what version of Kubernetes the client and server are on.
+- `kubectl version`: Shows the version of Kubernetes of the client and the server.
 - `kubectl cluster-info`: Displays the endpoint of the Kubernetes control plane.
 - `kubectl config get-contexts`: Lists all the contexts present in the current kubeconfig.
-- `kubectl config use-context <context name>`: Allows you to set the default context for all the kubectl commands you’ll run.
+- `kubectl config use-context <context name>`: Sets the default context for all the kubectl commands you’ll run.
 
 ## Namespaces
 
-[Namespaces](https://www.okteto.com/blog/kubernetes-basics/#namespaces) play a very important role in clusters. No kubectl cheat sheet can be complete without including commands which help you work with them. They act as a way to organize and isolate the different resources your application might need. By default, you’re in the `default` namespace (surprise, surprise!), and the resources Kubernetes needs for its functioning are in the `kube-system` namespace. Here are some other commands related to namespaces you’ll find yourself using frequently:
+[Namespaces](/blog/kubernetes-basics/#namespaces) play a very important role in clusters. They organize and isolate the different resources your application might need. By default, you’re in the `default` namespace, and the resources Kubernetes needs to work are in the `kube-system` namespace. These are the commands you’ll use most often with namespaces:
 
-- `kubectl get namespaces`: Often, you’ll find that you’ve lost track of all the namespaces you’ve created. This command will help you out by listing them all.
-- `kubectl create namespace <namespace name>`: This command would create a new namespace for you. Note that it will not set that namespace as the default one, though. So all resources you create will still be created in the `default` namespace unless you specify the `--namespace` flag explicitly.
-- `kubectl config set-context --current --namespace=<namespace name>`: This allows you to change the default namespace for all the commands you’ll run while still keeping the same context. Just remember that the default namespace is called `default` in case you ever want to switch back.
-- `kubectl delete namespace <namespace name>`: This deletes the specified namespace and **all resources under the namespace!** The deletion of resources is an asynchronous process, so don’t be surprised if you see your namespace in the “Terminating” state for a while before it’s completely gone.
+- `kubectl get namespaces`: Lists all the namespaces of the cluster.
+- `kubectl create namespace <namespace name>`: Creates a new namespace. It doesn’t make it the default one: the resources you create still go to the current namespace unless you pass the `--namespace` flag.
+- `kubectl config set-context --current --namespace=<namespace name>`: Changes the default namespace for all the commands you’ll run, while keeping the same context. To switch back, the default namespace is called `default`.
+- `kubectl delete namespace <namespace name>`: Deletes the namespace and **all the resources in it!** The deletion is asynchronous, so the namespace may stay in the `Terminating` state for a while before it’s completely gone.
 
 ## Pods, Deployments, Secrets, etc
 
-Now there is a certain set of commands which you’ll find yourself using a lot when interacting with most of the [Kubernetes resources](https://www.okteto.com/blog/kubernetes-basics/#getting-started-with-kubernetes). Just put in the resource name instead of `X`, and you should be good to go with these:
+There is a set of commands you’ll use with most [Kubernetes resources](/blog/kubernetes-basics/#getting-started-with-kubernetes). Replace `X` with the type of resource (`pod`, `deployment`, `secret`, and so on):
 
-- `kubectl get X`: Lists all resources of that particular type **in the current namespace**.
-- `kubectl create X <name> <other properties>`: Creates the “X” resource in the current namespace with the specified name. In most cases, you would have to specify some additional flags to actually create that particular resource.
-- `kubectl delete X <name>`: Deletes the “X” resource with the given name in the current namespace.
-- `kubectl describe X <name>`: You’ll find yourself using this one a lot when debugging things. This provides details and events related to the resource you specify.
-- `kubectl edit X <name>`: This command will allow you to edit the specified resource directly without having to deal with any YAML. Remember to make the changes to your YAMLs once you’re satisfied with your edits because the edits don’t persist once the resource gets deleted!
+- `kubectl get X`: Lists all the resources of that type **in the current namespace**. Add `-o wide` for more columns, or `-o yaml` for the full definition of a resource.
+- `kubectl create X <name> <other properties>`: Creates a resource of that type in the current namespace with the given name. Most types need some additional flags.
+- `kubectl delete X <name>`: Deletes the resource with the given name in the current namespace.
+- `kubectl describe X <name>`: Shows the details and the events of the resource. You’ll use this one a lot when debugging.
+- `kubectl edit X <name>`: Opens the YAML of the resource in your editor and applies your changes when you save it. Copy your changes to your own YAML files too: an edit doesn’t persist once the resource is deleted and created again.
 
 ## Nodes
 
-Next up in our kubectl cheat sheet are commands related to nodes. Nodes are what build your cluster, so it’s no surprise that you’ll often find yourself interacting with them. The following commands are worth keeping a note of:
+Nodes are the machines that make up your cluster, so you’ll often find yourself interacting with them. These commands are worth keeping a note of:
 
-- `kubectl get nodes`: Shows a list of all the nodes along with their role (`control-plane`, `worker`, etc.) and the version of K8s they are running.
-- `kubectl top node <node name>`: Shows the CPU and memory usage of the specified node.
-- `kubectl cordon/uncordon node <node name>`: Cordoning nodes means marking them as unschedulable; that is, no pods will be placed on that particular node. This is useful when you want to isolate a node for something like updating its version or debugging.
-- `kubectl drain node <node name>`: You’ll find yourself using this command when doing maintenance tasks for your cluster. Draining a node, cordons it as well, and deletes all pods running on it. If those pods are being managed by a Deployment, DaemonSet, etc., they will be recreated on the remaining nodes.
+- `kubectl get nodes`: Lists all the nodes, with their role (`control-plane`, or `<none>` for the worker nodes) and the version of Kubernetes they run.
+- `kubectl top node <node name>`: Shows the CPU and memory usage of the node. `kubectl top pod` does the same for pods. Both need the [metrics server](https://github.com/kubernetes-sigs/metrics-server) installed in the cluster.
+- `kubectl cordon <node name>` and `kubectl uncordon <node name>`: Cordoning a node marks it as unschedulable, so no new pods are placed on it. Use it to isolate a node, for example to upgrade or debug it. Uncordoning makes it schedulable again.
+- `kubectl drain <node name> --ignore-daemonsets`: You’ll use this command for maintenance tasks. Draining a node cordons it and evicts its pods. The pods managed by a Deployment, a StatefulSet, or another controller are recreated on the remaining nodes. The pods of a DaemonSet stay on the node, which is why the command needs `--ignore-daemonsets`.
 
-## Other Common Kubectl Cheat Sheet Commands
+## Other Common Kubectl Commands
 
-Finally to finish our kubectl cheat sheet let's discuss some commands which don’t exactly fit into any single category, but you’ll find yourself using them a lot.
+These commands don’t fit into any single category, but you’ll use them a lot:
 
-- `kubectl apply -f <filename.yaml>`: If you’re creating K8s resources using YAML files, then this is the command you should be using to apply those YAMLs. If the resource specified in the YAML already exists, then this command would update that resource with the latest configuration specified in the YAML file.
-- `kubectl delete -f <filename.yaml>`: This command deletes all the resources specified in the particular YAML file.
-- `kubectl port-forward <pod name> <local port>:<remote port>`: Relying on [services](https://www.okteto.com/blog/kubernetes-network-policies/) to expose your application to external traffic isn’t always convenient, especially when you’re debugging. The `port-forward` subcommand provides you with a simple way to do this by letting you forward a local port to a specified port in the mentioned pod.
-- `kubectl logs <pod name>`: This is a very useful command for debugging your deployed application. This command prints the logs for the container running in the specified pod. If your pod is running more than one container, you can additionally specify the `--container` flag to mention which container’s logs you want to see.
+- `kubectl apply -f <filename.yaml>`: Creates the resources defined in a YAML file. If a resource already exists, it updates it with the configuration of the file.
+- `kubectl delete -f <filename.yaml>`: Deletes all the resources defined in a YAML file.
+- `kubectl port-forward <pod name> <local port>:<remote port>`: Exposing your application with a [service](/blog/kubernetes-basics/#services) isn’t always convenient, especially when you’re debugging. This command forwards a local port to a port of the pod. It also works with a service: `kubectl port-forward svc/<service name> <local port>:<remote port>`.
+- `kubectl logs <pod name>`: Prints the logs of the container running in the pod. If the pod runs more than one container, pass `--container` to choose one. Add `-f` to follow the logs as they’re written, and `--previous` to see the logs of the last container that crashed and restarted.
+- `kubectl exec -it <pod name> -- sh`: Opens a shell in the container of the pod, to inspect it from inside.
+- `kubectl get events --sort-by=.metadata.creationTimestamp`: Lists the recent events of the current namespace, in order. It’s a good first step when a pod doesn’t start.
+- `kubectl rollout status deployment/<name>`: Waits until the latest rollout of a Deployment finishes, and shows its progress. `kubectl rollout restart deployment/<name>` restarts all the pods of a Deployment, one by one.
 
-## Who Are These Kubectl Cheat Sheet Commands For?
+## Who Are These Kubectl Commands For?
 
-While we discussed some common Kubernetes commands in the form of a cheat sheet that you’d find yourself using when working with K8s, I believe that it is not developers who should be taking care of these K8s related tasks. Having developers deal with the infrastructure and deployment side of things during the development process takes a massive hit on productivity and also leads to a poor developer experience. With Okteto, you can define all the things you need to spin up your dev environment in a YAML and have developers skip right to the code-writing phase by running just one single command. Try our [Getting Started Guide](https://www.okteto.com/docs/getting-started/) to see the magic for yourself!
+These commands are what you need to inspect and debug what runs in a cluster. Getting the application running is a different matter: it shouldn’t take a list of kubectl commands, for a developer or for a coding agent. A good platform gives them their own copy of the application with a single command, and leaves kubectl for when they need to look under the hood.

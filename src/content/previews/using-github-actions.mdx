@@ -14,7 +14,7 @@ This guide configures GitHub Actions to deploy a Preview Environment for every p
 - An Okteto account
 - A [GitHub account](https://github.com)
 
-This guide uses the [Movies app](https://github.com/okteto/getting-started) from the [getting started guide](get-started/deploy-your-app/index.mdx). Fork the repository to your GitHub account so you can configure secrets and open pull requests. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](core/okteto-manifest.mdx#deploy) and [`test`](core/okteto-manifest.mdx#test) sections.
+This guide uses the [Movies app](https://github.com/okteto/getting-started) from the [getting started guide](get-started/deploy-your-app/index.mdx). Fork the repository to your GitHub account so you can configure secrets and open pull requests. GitHub turns off the workflows of a fork: open the **Actions** tab of your fork and enable them. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](core/okteto-manifest.mdx#deploy) and [`test`](core/okteto-manifest.mdx#test) sections.
 
 ## Step 1: Create the GitHub Workflow
 
@@ -28,6 +28,10 @@ on:
   pull_request:
     branches:
       - main
+
+permissions:
+  contents: read
+  pull-requests: write
 
 concurrency:
   # more info here: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
@@ -58,6 +62,8 @@ What each step does:
 - `okteto/context` connects the workflow to your Okteto instance.
 - `okteto/deploy-preview` deploys the Preview Environment `pr-<number>` with the `deploy` section of your Okteto Manifest, and comments its URL on the pull request.
 
+The `permissions` block lets the `GITHUB_TOKEN` of the workflow comment on the pull request. Without it, repositories with restricted default permissions for workflows reject the comment.
+
 :::warning
 **Important:** Always set `cancel-in-progress: false` for preview environment workflows.
 
@@ -67,10 +73,10 @@ Setting to `true` will cancel **in-progress deployments**, which can lead to:
 - Failed cleanup operations
 
 **Recommended approach:**
-- For preview deployments: Set `cancel-in-progress: false` (as shown above)
+- For preview deployments: Set `cancel-in-progress: false` (as shown in `.github/workflows/preview.yaml`)
 - To manage queued workflows: Use GitHub's UI to manually cancel queued (not in-progress) workflows, or configure your CI/CD pipeline to handle this at the queue level rather than during execution
 
-The concurrency group configuration above ensures that workflows are properly queued per pull request, preventing concurrent deployments to the same preview environment.
+The concurrency group configuration in `.github/workflows/preview.yaml` ensures that workflows are properly queued per pull request, preventing concurrent deployments to the same preview environment.
 :::
 
 
@@ -81,7 +87,7 @@ The workflow reads your Okteto credentials from the `secrets.OKTETO_TOKEN` and `
 Create the following secrets in your repository:
 
 - `OKTETO_TOKEN` with an Okteto [Admin Access Token](admin/dashboard.mdx#admin-access-tokens)
-- `OKTETO_CONTEXT` with the URL of your Okteto instance (e.g. `https://okteto.example.com`).
+- `OKTETO_CONTEXT` with the URL of your Okteto instance (for example, `https://okteto.example.com`).
 
 See [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) for adding these to your GitHub repository.
 
@@ -89,7 +95,7 @@ The workflow also uses `secrets.GITHUB_TOKEN`, which GitHub populates automatica
 
 ## Step 3: Open a Pull Request and see your changes live
 
-Make a change in a new branch of your repository and open a pull request against `main`. GitHub receives the event and starts your workflow. You can see the workflow's status and logs in the **Checks** section of the pull request.
+Make a change in a new branch of your repository and open a pull request against `main`. On a fork, open the pull request against your fork, not the original repository: GitHub preselects the original one, and your secrets only exist in your fork. GitHub receives the event and starts your workflow. You can see the workflow's status and logs in the **Checks** section of the pull request.
 
 <p align="center">
   <Image
@@ -144,7 +150,7 @@ Add the following steps at the end of the `preview` job in your `.github/workflo
 
 ```yaml
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run tests
         uses: okteto/test@latest
@@ -152,7 +158,7 @@ Add the following steps at the end of the `preview` job in your `.github/workflo
           namespace: pr-${{ github.event.number }}
 
       - name: Save Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

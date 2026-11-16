@@ -1,27 +1,85 @@
-// Configuration shared by the two Docusaurus sites built from this repo:
+// Configuration shared by the three Docusaurus sites built from this repo:
 //
-//   docusaurus.config.js       -> https://www.okteto.com/docs/
-//   docusaurus.blog.config.js  -> https://www.okteto.com/blog/
+//   docusaurus.config.js            -> https://www.okteto.com/docs/
+//   docusaurus.tutorials.config.js  -> https://www.okteto.com/tutorials/
+//   docusaurus.blog.config.js       -> https://www.okteto.com/blog/
 //
-// Docusaurus applies `baseUrl` to the whole site, so serving /docs/ and /blog/
-// from one repo means two builds. Everything that should look and behave the
-// same on both (identity, navbar, footer, analytics, styles) lives here, and
+// Docusaurus applies `baseUrl` to the whole site, so serving them from one
+// repo means one build each. Everything that should look and behave the same
+// on all of them (identity, navbar, footer, analytics, styles) lives here, and
 // each config only adds what is specific to it.
 
 const SITE_URL = 'https://www.okteto.com';
 
-// Links between the two sites are root-relative (/docs/..., /blog/...), so
-// they stay on whatever host serves the page: production, a Netlify deploy
-// preview or an Okteto preview environment. Two switches make Docusaurus
-// emit them as plain links: `autoAddBaseUrl: false` stops it from prefixing
-// the current site's baseUrl (/docs/blog/), and `pathname://` makes it a full
-// page load instead of a client-side route the current site doesn't have.
-// Inside the current site, links use `to` so they go through the router.
+// The base URL of each site.
+const SITES = {
+  docs: '/docs/',
+  tutorials: '/tutorials/',
+  blog: '/blog/',
+};
+
+function siteOf(path) {
+  const withSlash = path.endsWith('/') ? path : `${path}/`;
+  return Object.keys(SITES).find((site) => withSlash.startsWith(SITES[site]));
+}
+
+// Links between the sites are root-relative (/docs/..., /blog/...), so they
+// stay on whatever host serves the page: production, a Netlify deploy preview
+// or an Okteto preview environment. Two switches make Docusaurus emit them as
+// plain links: `autoAddBaseUrl: false` stops it from prefixing the current
+// site's baseUrl (/docs/blog/), and `pathname://` makes it a full page load
+// instead of a client-side route the current site doesn't have. Inside the
+// current site, links use `to` so they go through the router.
 function linkTo(site, target, path, label) {
   if (site === target) return { label, to: path };
-  // Both sites use trailing slashes; without one the link costs a redirect.
+  // The sites use trailing slashes; without one the link costs a redirect.
   const withSlash = path.endsWith('/') ? path : `${path}/`;
-  return { label, href: `pathname:///${target}${withSlash}`, autoAddBaseUrl: false, target: '_self' };
+  return { label, href: `pathname://${SITES[target]}${withSlash.replace(/^\//, '')}`, autoAddBaseUrl: false, target: '_self' };
+}
+
+// Remark plugin for the Markdown of a site: a root-relative link to a page of
+// another site (in the docs, `/tutorials/helm/`; in a tutorial,
+// `/docs/reference/okteto-cli/`) becomes the same plain link as linkTo above,
+// written as `<a href="pathname://..." autoAddBaseUrl={false} target="_self">`.
+// Without it, Docusaurus looks for the page among the routes of the current
+// site and fails the build, or prefixes the link with the current site's
+// baseUrl (/tutorials/docs/...). The build doesn't check these links.
+const FALSE = {
+  type: 'mdxJsxAttributeValueExpression',
+  value: 'false',
+  data: {
+    estree: {
+      type: 'Program',
+      sourceType: 'module',
+      body: [{ type: 'ExpressionStatement', expression: { type: 'Literal', value: false, raw: 'false' } }],
+    },
+  },
+};
+
+function remarkCrossSiteLinks(site) {
+  const attribute = (name, value) => ({ type: 'mdxJsxAttribute', name, value });
+  const walk = (node) => {
+    (node.children || []).forEach((child, i) => {
+      if (child.type === 'link' && typeof child.url === 'string' && child.url.startsWith('/')) {
+        const target = siteOf(child.url.split(/[?#]/)[0]);
+        if (target && target !== site) {
+          node.children[i] = {
+            type: 'mdxJsxTextElement',
+            name: 'a',
+            attributes: [
+              attribute('href', `pathname://${child.url}`),
+              attribute('autoAddBaseUrl', FALSE),
+              attribute('target', '_self'),
+            ],
+            children: child.children,
+            position: child.position,
+          };
+        }
+      }
+      walk(node.children[i]);
+    });
+  };
+  return () => (tree) => walk(tree);
 }
 
 const siteConfig = {
@@ -32,7 +90,7 @@ const siteConfig = {
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
   onDuplicateRoutes: 'warn',
-  clientModules: [require.resolve('../src/clientModules/mixpanel.js')],
+  clientModules: [require.resolve('../src/clientModules/mixpanel.js'), require.resolve('../src/clientModules/pageHistory.js')],
   // Docusaurus Faster (@docusaurus/faster): Rspack, SWC and Lightning CSS
   // instead of Webpack, Babel and Terser, and static pages rendered in
   // worker threads. The worker threads need the v4 flag below; no plugin
@@ -45,7 +103,7 @@ const siteConfig = {
   },
 };
 
-// shared/static holds the fonts, favicons and logo. Both sites include it, so
+// shared/static holds the fonts, favicons and logo. Every site includes it, so
 // /docs/fonts/... and /blog/fonts/... resolve from the same files.
 const staticDirectories = (own) => [own, 'shared/static'];
 
@@ -75,17 +133,25 @@ function navbar(site, { start = [], end = [] } = {}) {
     },
     items: [
       ...start,
-      { href: SITE_URL, label: 'Product', position: 'left', target: '_self' },
       { ...linkTo(site, 'docs', '/', 'Docs'), position: 'left' },
+      { ...linkTo(site, 'tutorials', '/', 'Tutorials'), position: 'left' },
       { ...linkTo(site, 'blog', '/', 'Blog'), position: 'left' },
       { href: 'https://community.okteto.com', label: 'Community', position: 'left', target: '_self' },
       ...end,
+      // The two calls to action of okteto.com, in the same order and style.
       {
-        href: `${SITE_URL}/free-trial`,
-        label: 'Get Started',
+        href: `${SITE_URL}/get-demo/`,
+        label: 'Get a demo',
         position: 'right',
         target: '_self',
-        className: 'Button teal GetFreeTrialButton',
+        className: 'Button teal NavbarButton',
+      },
+      {
+        href: `${SITE_URL}/free-tier/`,
+        label: 'Start for Free',
+        position: 'right',
+        target: '_self',
+        className: 'Button light NavbarButton',
       },
     ],
   };
@@ -108,6 +174,7 @@ function footer(site, { llmsTxtUrl }) {
       {
         title: 'Resources',
         items: [
+          linkTo(site, 'tutorials', '/', 'Tutorials'),
           linkTo(site, 'blog', '/', 'Blog'),
           { label: 'GitHub', href: 'https://github.com/okteto/okteto' },
           { label: 'YouTube', href: 'https://www.youtube.com/@OktetoHQ' },
@@ -121,7 +188,7 @@ function footer(site, { llmsTxtUrl }) {
           { label: 'Support', href: 'https://okteto.com/support' },
           { label: 'Community', href: 'https://community.okteto.com' },
           { label: 'Twitter', href: 'https://twitter.com/oktetohq' },
-          { label: 'Get 30 Days Free', href: `${SITE_URL}/free-trial` },
+          { label: 'Start for Free', href: `${SITE_URL}/free-tier/` },
         ],
       },
     ],
@@ -129,10 +196,11 @@ function footer(site, { llmsTxtUrl }) {
   };
 }
 
-// Algolia search. One index holds both sites: the crawler adds a
+// Algolia search. One index holds the three sites: the crawler adds a
 // `docusaurus_tag` to every record (`docs-default-<version>` on docs pages,
-// `default` on blog posts), and Docusaurus's contextual search filters on it,
-// so the docs search box returns docs and the blog's returns blog posts.
+// `tutorials` on tutorials, `default` on blog posts), and each search box
+// filters on it, so the docs search box returns docs, the tutorials' returns
+// tutorials and the blog's returns blog posts.
 const algolia = {
   appId: 'RS9BKUCQCT',
   apiKey: '9213a8b24b30e1994c4c8ff5f282cf6f',
@@ -141,7 +209,7 @@ const algolia = {
   position: 'left',
 };
 
-// Navbar item for the search box, placed first on both sites.
+// Navbar item for the search box, placed first on every site.
 const searchNavbarItem = { type: 'search', position: 'left' };
 
 const themeConfig = {
@@ -193,6 +261,8 @@ const scripts = [
 
 module.exports = {
   SITE_URL,
+  SITES,
+  remarkCrossSiteLinks,
   siteConfig,
   staticDirectories,
   headTags,

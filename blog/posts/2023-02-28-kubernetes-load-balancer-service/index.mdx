@@ -1,62 +1,51 @@
 ---
 title: "Guide to the Kubernetes Load Balancer Service"
+description: "How a Kubernetes Service of type LoadBalancer exposes a set of pods behind a stable address, how it tracks them with EndpointSlices, and when to use the Gateway API instead."
 slug: kubernetes-load-balancer-service
 date: 2023-02-28
 authors: ["joseph-chege"]
-image: ./img/15f930dbcbfd.jpg
-image_alt: "Blue background, white words that say Guide to the Kubernetes Load Balancer Service' with the okteto logo in the lower right hand corner"
+image: ./img/cover.jpg
+image_alt: "A load balancer distributes the traffic from the internet across three Pods"
+series: "Learning Kubernetes"
 ---
 
-import { CallToAction, YouTube } from '@site/src/components/blog';
-
-<YouTube id={"X8fdAb32HAA"} />
-
-A [pod](https://www.okteto.com/blog/kubernetes-basics/#pods) is Kubernetes’ smallest and simplest unit representing a single instance of a running process in a Kubernetes cluster. Pods contain one or more containers. They share the same network namespace to allow containers within the same pod to communicate with each other. However, a pod is updated and deleted based on the desired state defined by higher-level objects such as [Deployments](https://www.okteto.com/blog/beginners-guide-to-kubernetes-deployments/), StatefulSets, DaemonSets, and ReplicationControllers.
+A [pod](/blog/kubernetes-basics/#pods) is the smallest unit Kubernetes runs: one or more containers that share a network namespace. Pods come and go. Higher-level objects such as Deployments, StatefulSets, and DaemonSets create, replace, and delete them to match the state you declare, and each new pod gets a new IP address.
 
 {/* truncate */}
 
-When such actions are performed, the pod IP address changes or is removed based on the pod state. You cannot guarantee that this pod IP will exist in the future. Pod IP addresses in Kubernetes are assigned dynamically and can change under different certain circumstances.
+So you can't rely on the IP address of a pod to reach your application. You need a stable address in front of a changing set of pods, and that's what a Kubernetes [Service](https://kubernetes.io/docs/concepts/services-networking/service/) provides. A Service is a single entry point to a set of pods: clients talk to the Service, and it sends each request to one of the pods, without the clients knowing their individual addresses or state.
 
-Therefore, you need a reliable identifier. This is where the Kubernetes Load Balancer service comes to rescue. This Kubernetes service provide stable Kubernetes endpoints for accessing applications.
+The main types of Services are:
 
-It creates everlasting IP addresses for exposing applications both internally and externally. A service acts as a single entry point to a set of pods. This allows clients to communicate with the application without knowing the individual pod IP addresses or their current state.
+- **ClusterIP**: a stable IP address inside the cluster. It's the default type.
+- **NodePort**: a port open on every node of the cluster, on top of a ClusterIP.
+- **LoadBalancer**: an external load balancer in front of the Service, on top of a NodePort and a ClusterIP.
 
-The major types of [services](https://kubernetes.io/docs/concepts/services-networking/) in Kubernetes are:
-
-- ClusterIP
-- NodePort
-- LoadBalancer
-
-In this guide, you will learn how to use Kubernetes Load Balancer service to expose applications running in Kubernetes Pods internally and externally.
+This guide covers the LoadBalancer type: how it works, an example with three replicas of NGINX, and when to put the Gateway API in front of your Services instead.
 
 ## How a Load Balancer Works and Why It Is Useful
 
-Imagine your website has thousands of different clients per minute. It is not easy for a single server to keep up with the requests demand. This creates a bad user experience with unpredictable downtimes.
+Imagine your website gets thousands of requests per minute. A single server can't keep up with that demand, and your users get slow responses and unpredictable downtime.
 
-![](./img/220fca0c8e2b.webp)
+![Clients send requests over the internet to a load balancer, which distributes them across three servers](./img/load-balancer.webp)
 
-A load balancer helps you distribute the requests to the different servers in the resource pool. This ensures no single server becomes overloaded at any single time.
+A load balancer distributes the requests across a pool of servers, so no single server is overloaded.
 
-In Kubernetes, a Load Balancer Service is a crucial component for deploying and managing applications in Kubernetes. It exposes a service externally in the underlying infrastructure (for example, a cloud provider's load balancer).
+In Kubernetes, a Service of type `LoadBalancer` exposes a set of pods outside the cluster through a load balancer of the underlying infrastructure, for example the load balancer of your cloud provider. The load balancer sends the incoming traffic to the Service, and the Service distributes it across the pods, for better performance and high availability.
 
-The Kubernetes Load Balancer Service provides load-balancing abilities for incoming traffic to distribute evenly across multiple pods for better performance and high availability.
+![Incoming traffic reaches a LoadBalancer, which sends it to a Kubernetes Service in the cluster, and the Service distributes it across three Pod replicas](./img/load-balancer-service.webp)
 
-![](./img/b0d01c6c9496.webp)
+The load balancer gives your application a single, stable external address that doesn't change when pods are replaced.
 
+Kubernetes doesn't create the load balancer itself. When you create a Service with `type: LoadBalancer`, a controller of your infrastructure detects it and provisions the load balancer, outside the cluster. Managed clusters include one, such as the [AWS Load Balancer Controller](https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html) on EKS. On bare metal you need a project like [MetalLB](https://metallb.io/), and on a local cluster like minikube, a command like `minikube tunnel`.
 
-A Kubernetes LoadBalancer provides external network access to a set of pods to achieve high availability in a cluster. This creates a single and stable IP address for accessing the application without being affected by the pods' state.
+This is a Service of type `LoadBalancer` for pods with the label `app: nginx`:
 
-Kubernetes uses the Load Balancer service to automatically create a load balancer in the underlying infrastructure. The infrastructure being used must have the capacity to provision a LoadBalancer. This is common when using cloud providers such as [AWS](https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html) to provision your applications and route incoming traffic to the pods in a Kubernetes cluster.
-
-Cloud provider uses their own control manager to automatically detect `spec.LoadBalancer`. The Load Balancer is then provisioned within the cluster to load balance incoming traffic across multiple pods.
-
-This can be used alongside large-scale applications, such as e-commerce apps requiring handling many concurrent requests from external users. A Kubernetes Load Balancer Service creates a unique IP address that is accessible by external networks. It then redirects incoming traffic, and its IP address is the only entry to the Kubernetes cluster.
-
-```yaml
+```yaml title="service.yaml"
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-loadbalancer
+  name: nginx-loadbalancer-service
 spec:
   selector:
     app: nginx
@@ -64,22 +53,30 @@ spec:
   ports:
   - name: http
     port: 80
-    targetPort: 8080
+    targetPort: 80
+    protocol: TCP
 ```
 
-If you have defined how to expose the service externally, it will display EXTERNAL-IP as pending:
+`port` is the port the Service exposes, and `targetPort` is the port the containers listen on: 80 for NGINX.
+
+Until the load balancer is ready, the `EXTERNAL-IP` column shows `<pending>`. If it stays that way, nothing in your cluster provisions load balancers:
+
+```bash
+kubectl get service nginx-loadbalancer-service
+```
 
 ```
-> kubectl get service nginx-loadbalancer
-NAME              TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-nginx-clusterip   LoadBalancer   10.101.132.164   <pending>     80:30998/TCP     16m
+NAME                         TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+nginx-loadbalancer-service   LoadBalancer   10.101.132.164   <pending>     80:30998/TCP   16m
 ```
 
-## Understanding Kubernetes Load Balancer Service With an Example
+The `80:30998` in the `PORT(S)` column shows the NodePort (30998) that Kubernetes opens on every node for the load balancer to send traffic to.
 
-Suppose you want to create a cluster to run the Nginx server with three instances. You need to create ReplicaSet that has three Pods, each of which runs the Nginx server. Below is a simple deployment you can leverage to get a cluster started:
+## Understanding the Kubernetes Load Balancer Service With an Example
 
-```yaml
+Suppose you want to run NGINX with three replicas. This Deployment creates three pods, each one running NGINX, with the label `app: nginx`:
+
+```yaml title="deployment.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,46 +98,38 @@ spec:
         - containerPort: 80
 ```
 
-Now, this deployment requires a service object to expose the application. You can use the previously created Load Balancer service object.
+Apply the Deployment and the Service from the previous section:
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-loadbalancer-service
-spec:
-  selector:
-    app: nginx
-  type: LoadBalancer
-  ports:
-  - name: http
-    port: 80
-    targetPort: 8080
-    protocol: TCP
+```bash
+kubectl apply -f deployment.yaml -f service.yaml
 ```
 
-In this case, the Kubernetes service will use a selector to map the service to the corresponding three pods with matching labels. Nginx will have three pods, run the following [Kubernetes command](https://www.okteto.com/blog/kubectl-cheat-sheet/) to see them:
+The Service uses its selector to find the pods with the matching label. List the three pods with their IP addresses (the [kubectl cheat sheet](/blog/kubectl-cheat-sheet/) covers this and other common commands):
+
+```bash
+kubectl get pods --output=wide
+```
 
 ```
-> kubectl get pods --output=wide
 NAME                                             READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
-nginx-loadbalancer-deployment-544dc8b7c4-bhh5h   1/1     Running   2          58m   172.17.0.6   minikube   <none>           <none>
-nginx-loadbalancer-deployment-544dc8b7c4-n25fn   1/1     Running   2          58m   172.17.0.8   minikube   <none>           <none>
-nginx-loadbalancer-deployment-544dc8b7c4-wqkn2   1/1     Running   2          58m   172.17.0.7   minikube   <none>           <none>
+nginx-loadbalancer-deployment-544dc8b7c4-bhh5h   1/1     Running   0          58m   172.17.0.6   minikube   <none>           <none>
+nginx-loadbalancer-deployment-544dc8b7c4-n25fn   1/1     Running   0          58m   172.17.0.8   minikube   <none>           <none>
+nginx-loadbalancer-deployment-544dc8b7c4-wqkn2   1/1     Running   0          58m   172.17.0.7   minikube   <none>           <none>
 ```
 
+Kubernetes keeps track of the addresses of those pods in [EndpointSlices](https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/), objects that list the IP addresses and ports a Service sends its traffic to. Kubernetes updates them automatically when pods that match the selector are added, replaced, or removed.
 
-It uses Kubernetes Endpoints as an object to update the IP addresses of each pod. Each service creates its own Endpoint object. Thus, the cluster can automatically track the matching pods' IP addresses accordingly.
+![The nginx-loadbalancer-service Service selects the pods with the label app=nginx, and its EndpointSlice lists the addresses of the three Pod replicas](./img/endpointslice.webp)
 
-![](./img/28c8e4297864.webp)
+Describe the Service to see the addresses it sends traffic to:
 
-You can describe your service and check how Kubernetes Endpoints lists the matching pods:
+```bash
+kubectl describe service nginx-loadbalancer-service
+```
 
 ```
-> kubectl describe service nginx-loadbalancer-service
 Name:                     nginx-loadbalancer-service
 Namespace:                default
-Labels:                   <none>
 Labels:                   <none>
 Annotations:              <none>
 Selector:                 app=nginx
@@ -157,79 +146,80 @@ External Traffic Policy:  Cluster
 Events:                   <none>
 ```
 
-The Kubernetes Endpoints keep the list of IP addresses up to date for the service to forward its traffic. Endpoints are updated automatically if pods are added, updated, or removed from the service selector. This allows the Service to route network traffic to the correct pods, as the Endpoints can save the address the application need to route to.
+The EndpointSlices of a Service carry the label `kubernetes.io/service-name` with the name of the Service:
 
-Every endpoint that represents the pod network IP and port is defined with the same name as that of the service as follows:
-
-```
-> kubectl describe endpoints nginx-loadbalancer-service
-Name:         nginx-loadbalancer-service
-Namespace:    default
-Labels:       <none>
-Annotations:  endpoints.kubernetes.io/last-change-trigger-time: 2023-02-02T09:29:12Z
-Subsets:
-  Addresses:          172.17.0.6,172.17.0.7,172.17.0.8
-  NotReadyAddresses:  <none>
-  Ports:
-    Name  Port  Protocol
-    ----  ----  --------
-    http  80    TCP
-
-Events:  <none>
+```bash
+kubectl get endpointslices -l kubernetes.io/service-name=nginx-loadbalancer-service
 ```
 
-Endpoints create a stable network identity for a Replicaset of pods. They change dynamically as the pods' state changes to load balance network traffic to a dynamic set of pods in a consistent pattern.
+```
+NAME                               ADDRESSTYPE   PORTS   ENDPOINTS                          AGE
+nginx-loadbalancer-service-7x2kq   IPv4          80      172.17.0.6,172.17.0.7,172.17.0.8   58m
+```
 
-<CallToAction title={"Stay on Top of Kubernetes Best Practices & Trends"} actions={[{"label":"Download the Trend Report","url":"https://www.okteto.com/ebooks/dzone-kubernetes/"}]} />
+As pods are replaced, the EndpointSlice changes with them, and the Service keeps sending traffic to the pods that are running.
 
-## Kubernetes Load Balancers and Ingresses
+## Kubernetes Load Balancers and the Gateway API
 
-LoadBalancer service type is a good choice when you have a few services to expose. However, with many services, it can be hard to manage. It has limitations such as:
+A Service of type `LoadBalancer` is a good choice when you have a few services to expose. With many services, it has limitations:
 
-- Limited URL routing
-- Cloud provider dependent
-- Lacks SSL termination
-- It doesn't support URL rewriting and rate limiting.
+- Each Service gets its own load balancer, with its own address and its own cost.
+- It works at the connection level: it can't route requests by hostname or URL path.
+- Features such as TLS termination depend on the annotations of each cloud provider.
 
-With an extensive pool of services to load balance, you need to explore other alternatives outside the LoadBalancer Kubernetes service. [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) defines rules for incoming traffic, such as routing based on the URL path and hostname. This allows you to expose multiple services using a LoadBalancer and manage incoming network traffic to your cluster.
+When you expose many services, put the [Gateway API](https://gateway-api.sigs.k8s.io/) in front of them. It's the Kubernetes standard for routing incoming traffic, and the successor of Ingress (the most popular Ingress controller, Ingress NGINX, [has been retired](/blog/ingress-nginx-controller-deprecation-your-migration-guide-to-kubernetes-gateway-api/)). A Gateway receives the traffic, usually through a single load balancer, and HTTPRoutes send each request to a Service by hostname, path, or headers.
 
-![](./img/3dba6b58e721.webp)
+![A client reaches a Gateway in the cluster through a load balancer, an HTTPRoute sends the request to a Service, and the Service sends it to its Pods](./img/gateway-api.webp)
 
-Unlike LoadBalancer Kubernetes service, it provides:
+The Gateway API provides:
 
-- Advanced URL routing,
-- URL path-based routing,
-- Hostname-based routing,
-- [SSL termination](https://www.f5.com/glossary/ssl-termination),
-- URL rewriting, and
-- Rate limiting.
+- Routing by hostname and URL path
+- Routing by headers and query parameters
+- [TLS termination](https://www.f5.com/glossary/ssl-termination), configured the same way on every implementation
+- URL rewrites and redirects
+- Traffic splitting between versions of a service
 
-In the Nginx example, a basic Ingress resource can be defined as follows:
+The Gateway API needs an implementation installed in your cluster, such as Envoy Gateway, Istio, Cilium, or the one of your cloud provider. Each implementation provides a GatewayClass. For the NGINX example, a Gateway and an HTTPRoute look like this (replace `example` with the GatewayClass of your implementation):
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+```yaml title="gateway.yaml"
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
 metadata:
-  name: nginx-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: web-gateway
 spec:
+  gatewayClassName: example
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: nginx-route
+spec:
+  parentRefs:
+  - name: web-gateway
+  hostnames:
+  - nginx.example.com
   rules:
-  - host: nginx.you_url.com
-    http:
-      paths:
-      - path: /nginx
-        pathType: Prefix
-        backend:
-          service:
-            name: nginx-loadbalancer-service
-            port:
-              number: 8080
-              name: http
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /nginx
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: nginx-loadbalancer-service
+      port: 80
 ```
 
-This will allow your cluster maps incoming traffic for `nginx.you_url.com/nginx` to the `nginx-loadbalancer-service` service you created using the service resource.
+The HTTPRoute sends the requests for `nginx.example.com/nginx` to the `nginx-loadbalancer-service` Service, without the `/nginx` prefix. With a Gateway in front, the Service doesn't need its own load balancer anymore: change its type to `ClusterIP`, and the Gateway's load balancer serves all your services.
 
 ## Conclusion
 
-To sum up, LoadBalancer is a powerful tool that can help you optimize your Kubernetes deployments. It provides several benefits, including load balancing, scalability, security, and ease of use. If you are looking to improve the performance and reliability of your Kubernetes deployments, LoadBalancer is definitely worth considering. If you want to learn more about Kubernetes concepts check out our [Kubernetes Tutorial for Beginners](https://www.okteto.com/blog/kubernetes-basics/)!
+A Service of type `LoadBalancer` is the simplest way to expose a set of pods outside the cluster: it gives them a stable external address, and it distributes the traffic across them as pods come and go. When you expose many services, put a Gateway in front of them and route each request with an HTTPRoute. To learn more about Kubernetes concepts, read our [Kubernetes Tutorial for Beginners](/blog/kubernetes-basics/).

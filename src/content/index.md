@@ -1,6 +1,6 @@
 ---
 title: "Okteto: the environment platform for agentic development"
-description: Okteto gives every AI agent task and developer an isolated, production-like environment on your own infrastructure to build, test, and verify against real services and data.
+description: Okteto gives every developer, coding agent and pull request an on-demand application environment on your Kubernetes infrastructure, built from a single definition.
 ---
 
 ## The environment platform for agentic development
@@ -9,7 +9,7 @@ Okteto gives every task, whether it's run by an AI agent or a developer, an isol
 
 These docs explain how to install Okteto, run agent and development environments, add Preview Environments to your pull requests, test inside those environments, and operate the platform on BYOC or Self-Hosted infrastructure.
 
-[Start with our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
+[Start with our Free Tier (5 users and 500 environments per month, one-year license)](https://www.okteto.com/free-tier/)
 
 ## Why Platform Teams choose Okteto?
 
@@ -68,6 +68,6 @@ Okteto is flexible enough to meet your deployment and compliance needs.
 - 👩‍💻 [Deploy your first Development Environment](get-started/dev-quickstart.mdx) — start here if your platform team already runs Okteto.
 - 🚀 [Follow the installation guide](get-started/install/index.mdx) — install the Okteto Platform in your own Kubernetes cluster.
 - 🗓️ [Book a demo with our team](https://okteto.com/schedule/)
-- 🎁 [Sign up for our Free Tier (5 seats, 1 year)](https://www.okteto.com/free-trial/)
+- 🎁 [Sign up for our Free Tier (5 users and 500 environments per month, one-year license)](https://www.okteto.com/free-tier/)
 
 Need help deciding which deployment model or feature fits best? [Contact us](https://okteto.com/schedule/) and we'll walk you through it.

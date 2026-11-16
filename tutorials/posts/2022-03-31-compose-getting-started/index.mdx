@@ -1,0 +1,111 @@
+---
+title: "Develop a Docker Compose application with Okteto"
+description: "Deploy an application defined in a Docker Compose file to Kubernetes, and develop its services in a Development Container with hot reload."
+slug: compose-getting-started
+date: 2022-03-31
+image: ./img/cover.jpg
+image_alt: "The Docker logo with an arrow to the Kubernetes logo"
+---
+
+Okteto deploys an application defined in a [Docker Compose](/docs/reference/docker-compose/) file to Kubernetes, with no Kubernetes manifests, and then lets you develop each service in that environment. This tutorial uses a voting application written in Python and Redis.
+
+## Prerequisites
+
+- Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli/#context) configured.
+- The [Okteto CLI](/docs/get-started/install-okteto-cli/) installed on your machine.
+- A local copy of the sample application:
+
+```bash
+git clone https://github.com/okteto/compose-getting-started
+cd compose-getting-started
+```
+
+## The Sample Application
+
+The application has two services: `vote`, a Flask application that shows two options and counts the votes, and `redis`, which stores the votes. The `docker-compose.yml` file at the root of the repository defines both:
+
+```yaml title="docker-compose.yml"
+services:
+  vote:
+    build: vote
+    ports:
+      - 8080:8080
+    environment:
+      - FLASK_DEBUG=1
+    command: python app.py
+    volumes:
+      - ./vote:/src
+
+  redis:
+    image: redis
+    ports:
+      - 6379
+    volumes:
+      - redis:/data
+
+volumes:
+  redis:
+```
+
+Okteto turns each part of the file into its Kubernetes equivalent:
+
+- **`build`**: the [Okteto Build Service](/docs/core/build-service/) builds the image of `vote` from the `vote` folder, in your cluster.
+- **`ports`**: `8080:8080` makes the port public, so Okteto creates an HTTPS endpoint for `vote`. `6379` stays private to the cluster.
+- **`volumes`**: `redis` becomes a persistent volume. `./vote:/src`, a folder of your machine, is what `okteto up` synchronizes to the Development Container.
+- **`environment`**: `FLASK_DEBUG=1` runs Flask in debug mode, which reloads the application when its code changes.
+
+The [Docker Compose reference](/docs/reference/docker-compose/) lists every field that Okteto supports.
+
+## Deploying the Application
+
+Deploy the application from the root of the repository:
+
+```bash
+okteto deploy
+```
+
+Okteto finds the `docker-compose.yml` file, builds the `vote` image, and creates the Deployments, Services, volumes, and endpoint of the application. It prints the endpoint when the deployment finishes, for example `https://vote-cindy.okteto.example.com`. Open it and vote.
+
+## Developing a Service
+
+Start a Development Container for the `vote` service:
+
+```bash
+okteto up vote
+```
+
+Okteto replaces the `vote` Deployment with a Development Container, synchronizes the `vote` folder of your machine to `/src`, and runs `python app.py`, the command of the service.
+
+Edit the options in `vote/app.py` on your machine:
+
+```python title="vote/app.py"
+def getOptions():
+    option_a = "Local development"
+    option_b = "Cloud development"
+    return option_a, option_b
+```
+
+Your change is synchronized to the container right away, and Flask reloads the application. Open the endpoint again to see the new options: no build, no push, and no redeploy. Press `Ctrl+C` and run `okteto down` when you're done to restore the original Deployment.
+
+## Deploying More Than Docker Compose
+
+`okteto deploy` deploys a Docker Compose file on its own, but your environment can also need things the file doesn't define, such as a Helm chart or a Terraform resource. Add an [Okteto Manifest](/docs/reference/okteto-manifest/) (`okteto.yaml`) and put the Compose file in its `deploy` section, next to the commands that deploy the rest:
+
+```yaml title="okteto.yaml"
+build:
+  vote:
+    context: vote
+  worker:
+    context: worker
+
+deploy:
+  commands:
+    - name: Deploy the worker with Helm
+      command: helm upgrade --install worker worker/chart --set image=${OKTETO_BUILD_WORKER_IMAGE}
+  compose: docker-compose.yml
+```
+
+- **`build`** defines the images to build. The `vote` image replaces the image of the Compose service with the same name, and `${OKTETO_BUILD_WORKER_IMAGE}` holds the `worker` image, which the Helm command passes to its chart.
+- **`deploy`** runs its [commands](/docs/reference/okteto-manifest/#deploy-with-commands) first and then deploys the [Compose file](/docs/reference/okteto-manifest/#deploy-with-compose).
+
+[Develop a Helm application with Okteto](/tutorials/helm/) shows a complete application deployed with Helm commands.

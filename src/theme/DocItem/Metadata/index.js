@@ -11,16 +11,12 @@ import Metadata from '@theme-original/DocItem/Metadata';
 
 /**
  Wraps the original DocItem/Metadata to add a page-level JSON-LD block
- (TechArticle + BreadcrumbList) to every doc page, in every version and in
- the tutorials plugin. URLs, title, description and breadcrumbs come from the
+ (TechArticle + BreadcrumbList) to every doc page, in every version. URLs, title, description and breadcrumbs come from the
  doc metadata at build time, so nothing needs updating when a version is cut.
 
  The @id references point at the site-level graph declared in
  docusaurus.config.js (siteJsonLd). Keep both in sync.
 */
-
-// Extra breadcrumb level for docs plugins other than the main one.
-const PLUGIN_ROOT_LABELS = { tutorials: 'Tutorials' };
 
 const withSlash = (path) => (path.endsWith('/') ? path : `${path}/`);
 
@@ -73,13 +69,7 @@ function usePageJsonLd() {
 
   // No breadcrumb for a version's landing page: it would be a single item.
   if (permalink !== versionRoot) {
-    const crumbs = [];
-    if (pluginId in PLUGIN_ROOT_LABELS) {
-      crumbs.push({ name: 'Documentation', item: docsRoot });
-      crumbs.push({ name: PLUGIN_ROOT_LABELS[pluginId], item: `${siteUrl}${versionRoot}` });
-    } else {
-      crumbs.push({ name: 'Documentation', item: `${siteUrl}${versionRoot}` });
-    }
+    const crumbs = [{ name: 'Documentation', item: `${siteUrl}${versionRoot}` }];
     // Categories without their own page can't be linked, so they're skipped.
     const trail = findSidebarTrail(sidebar?.items ?? [], permalink) ?? [];
     trail

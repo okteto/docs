@@ -1,0 +1,85 @@
+---
+title: "Platform Engineering Tools to Watch in 2026: The Agentic Platform"
+title_meta: "19 Platform Engineering Tools to Watch in 2026"
+description: "The platform engineering tools we expect to matter in 2026: running coding agents in the cluster, guardrails, AI gateways, agent observability, credential-less execution, and agents as the development interface."
+slug: platform-engineering-tools-2026
+date: 2026-01-12
+authors: ["pablo-chico-de-guzman"]
+tags: ["ai-agents", "kubernetes", "platform-engineering", "security"]
+image: ./img/cover.jpg
+image_alt: "A chat window connected to a Kubernetes cluster that runs an agent with guardrails, workload identity, and observability"
+---
+
+A year ago, our [list of platform engineering tools](/blog/platform-tooling-landscape/) covered the familiar categories: infrastructure as code, development environments, CI/CD, observability, security, and cost. Those categories still matter. But in 2025, coding agents went from a demo to a daily tool, and they now write a growing share of the code. In 2026, platform teams will spend their time on a new question: where do the agents run, and under which rules?
+
+{/* truncate */}
+
+This is our bet for 2026. The tools that win will be the ones that move agents off laptops and into the cluster, put guardrails around them, control their access to models, make what they do observable, let them work without long-lived credentials, and turn the conversation with an agent into the main interface for development. Each tool on this list points in that direction.
+
+## Agents Move to the Cluster
+
+An agent that runs on a laptop runs with the developer's credentials, can't be audited, and stops when the laptop closes. An agent that runs in the cluster gets the isolation, scheduling, and policies that platform teams already use for every other workload, and it can run next to a realistic copy of the application to verify its changes.
+
+[**Kubernetes Agent Sandbox:**](https://github.com/kubernetes-sigs/agent-sandbox) A SIG Apps subproject announced at KubeCon North America in November 2025, and the clearest sign of where this is going. Agent Sandbox adds Kubernetes APIs (`Sandbox`, `SandboxTemplate`, and `SandboxClaim`) for isolated, stateful, single-instance workloads such as an agent runtime, with a stable identity, persistent storage, and the option of a sandboxed runtime like gVisor or Kata Containers. When the agent runtime becomes a standard Kubernetes resource, running agents in the cluster stops being a custom project.
+
+[**Daytona:**](https://www.daytona.io/) Open source infrastructure for running AI-generated code in isolated sandboxes that start in a fraction of a second. Hosted sandboxes showed in 2025 how much demand there is for agent runtimes, and Daytona can also run on your own infrastructure.
+
+[**Okteto:**](https://www.okteto.com/agents-on-kubernetes/) Okteto runs coding agents on your own cluster, with Agent Sandbox under the hood for the runtime of each agent. Each agent works in a light sandbox, under the policies the platform team defines, and gets its own application environment to build, deploy, and test its change before it opens a pull request.
+
+## Guardrails for Agents
+
+Agents run code nobody has reviewed yet, so the platform has to limit what that code can do, and watch every command it runs. In 2026, guardrails will be part of the platform, not a setting each developer remembers to turn on.
+
+[**gVisor:**](https://gvisor.dev/) A user-space kernel that intercepts the system calls of a container, so code running inside it has a much smaller attack surface on the host. It's available as a Kubernetes runtime class, and managed offerings such as GKE Sandbox build on it.
+
+[**Kata Containers:**](https://katacontainers.io/) Runs each pod in a lightweight virtual machine, with its own kernel, behind the standard container interfaces. For agents that execute untrusted code, it gives the isolation of a VM with the workflow of a container.
+
+[**Kyverno:**](https://kyverno.io/) A CNCF policy engine for Kubernetes, with policies written as Kubernetes resources. Platform teams can require every agent workload to use a sandboxed runtime class, block privileged pods, enforce resource limits, and restrict which images and namespaces agents can use.
+
+[**Tetragon:**](https://tetragon.io/) A Cilium project that sees every process an agent starts, every file it opens, and every connection it makes, from inside the kernel. Its policies can also act on what they see, and kill a process the moment it runs a forbidden command or reaches a forbidden address, before the command does any harm.
+
+## AI Gateways
+
+Every agent calls models, and more and more of them call tools through MCP. Letting each agent hold its own API keys and talk to any provider doesn't survive a security review. An AI gateway gives the platform one place to control access, cost, and routing.
+
+[**Envoy AI Gateway:**](https://aigateway.envoyproxy.io/) An open source gateway built on Envoy Gateway and configured with Kubernetes resources. It gives agents one API for providers such as OpenAI, Anthropic, AWS Bedrock, and Google Vertex AI, with upstream authentication and token-based rate limiting, and added MCP support in late 2025.
+
+[**agentgateway:**](https://agentgateway.dev/) An open source proxy built for agent traffic, created at Solo.io and donated to the Linux Foundation in 2025. It speaks MCP and A2A, the protocols agents use to reach tools and other agents, and applies security, observability, and governance to that traffic.
+
+[**LiteLLM:**](https://www.litellm.ai/) An open source proxy that exposes many model providers behind one OpenAI-compatible API, with virtual keys, budgets, and spend tracking per team or per agent. It's often the quickest way to stop handing provider keys to every agent.
+
+## Agent Observability
+
+When an agent's change fails, you need to know what it did: which prompts it sent, which tools it called, which commands it ran, and what each step cost. Agent observability will join logs, metrics, and traces as a standard signal.
+
+[**OpenTelemetry GenAI semantic conventions:**](https://opentelemetry.io/docs/specs/semconv/gen-ai/) The OpenTelemetry conventions for model calls, agents, and tool invocations. They let agent frameworks emit traces that any OpenTelemetry backend understands, so agent activity lands in the same pipeline as the rest of your telemetry.
+
+[**Langfuse:**](https://langfuse.com/) An open source platform for tracing, evaluating, and monitoring LLM applications and agents, which you can self-host. It shows each step of an agent run, its latency, and its cost.
+
+[**Arize Phoenix:**](https://phoenix.arize.com/) An open source observability and evaluation tool for LLM applications, built on OpenTelemetry. It traces agent runs and evaluates their output, and runs locally or in your own infrastructure.
+
+## Credential-less Execution
+
+The fastest way to lose control of an agent is to give it a long-lived token. Agents should prove who they are with a workload identity and get short-lived credentials for exactly what they need, so there is nothing to leak.
+
+[**SPIFFE and SPIRE:**](https://spiffe.io/) The CNCF standard and its reference implementation for workload identity. Each workload, an agent included, gets a short-lived, automatically rotated identity it can use to authenticate to other services, without secrets in its environment.
+
+[**Cloud workload identity:**](https://aws.amazon.com/blogs/containers/amazon-eks-pod-identity-a-new-way-for-applications-on-eks-to-obtain-iam-credentials/) EKS Pod Identity, GKE Workload Identity Federation, and Azure Workload Identity map a Kubernetes service account to a cloud role. An agent running in the cluster gets temporary cloud credentials for its own role, and nobody has to create or rotate a key for it.
+
+[**Teleport Machine & Workload Identity:**](https://goteleport.com/platform/machine-and-workload-identity/) Issues short-lived certificates to machines and workloads, including bots and agents, to access servers, databases, and Kubernetes clusters, with every access recorded in an audit log.
+
+## Agents as the Development Interface
+
+In 2025, the conversation with an agent became, for many developers, the place where development starts: you describe the change, the agent makes it, and you review the result. The IDE won't disappear, but in 2026 more work will start in a chat or a terminal, or from an issue assigned to an agent, than in an editor.
+
+[**Claude Code:**](https://www.anthropic.com/claude-code) Anthropic's agentic coding tool. It works in the terminal, reads and changes your codebase, runs commands, and also runs headless, in CI or in the cluster, which is what makes it a building block for platforms and not only a developer tool.
+
+[**OpenAI Codex:**](https://openai.com/codex/) OpenAI's coding agent, available as an open source CLI and as a cloud service that works on tasks in parallel, each in its own environment, and proposes pull requests.
+
+[**Gemini CLI:**](https://github.com/google-gemini/gemini-cli) Google's open source agent for the terminal, with tools to read and change code, run commands, and connect to MCP servers.
+
+## Where This Is Going
+
+These categories aren't separate trends. They describe one architecture. Developers start the work in a conversation with an agent. The agent runs in the cluster, in an isolated sandbox, under guardrails the platform team defines. It reaches models and tools through a gateway, proves who it is with a workload identity instead of a secret, and everything it does is traced. And to verify its changes, it gets a realistic application environment of its own, the same kind developers and pull requests use.
+
+The platform teams that build this in 2026 will be the ones that can let many agents work in parallel, and still trust what they ship.

@@ -1,8 +1,8 @@
 // The Okteto blog, served at https://www.okteto.com/blog/.
 //
-// Built from the same repo and the same shared configuration as the docs
-// (config/shared.js), as a second Docusaurus site because baseUrl is
-// site-wide. Content lives in ./blog: one folder per post, plus authors.yml
+// Built from the same repo and the same shared configuration as the docs and
+// the tutorials (config/shared.js), as a separate Docusaurus site because
+// baseUrl is site-wide. Content lives in ./blog: one folder per post, plus authors.yml
 // and tags.yml. See blog/README.md for how to write a post.
 
 const shared = require('./config/shared');
@@ -30,12 +30,12 @@ module.exports = {
   themeConfig: {
     ...shared.themeConfig,
     // Searches blog posts only (see shared.algolia). Results depend on the
-    // Algolia crawler indexing https://www.okteto.com/blog/. The labels say so:
-    // the defaults ("Search", "Search docs") are the ones of the docs site.
+    // Algolia crawler indexing https://www.okteto.com/blog/. The button reads
+    // "Search" on the three sites; the search box says what it searches.
     algolia: {
       ...shared.algolia,
       translations: {
-        button: { buttonText: 'Search the blog', buttonAriaLabel: 'Search the blog' },
+        button: { buttonText: 'Search', buttonAriaLabel: 'Search the blog' },
         modal: { searchBox: { placeholderText: 'Search blog posts' } },
       },
     },
@@ -84,7 +84,9 @@ module.exports = {
         onInlineTags: 'throw',
         onInlineAuthors: 'throw',
         onUntruncatedBlogPosts: 'ignore',
-        editUrl: 'https://github.com/okteto/docs/edit/main/',
+        // Root-relative links to the docs and the tutorials are links to
+        // other sites (see config/shared.js).
+        remarkPlugins: [shared.remarkCrossSiteLinks('blog')],
         feedOptions: {
           // Published at /blog/rss.xml; okteto.com proxies the old /rss.xml
           // URL to it.

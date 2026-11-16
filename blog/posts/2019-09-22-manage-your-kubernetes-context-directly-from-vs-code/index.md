@@ -5,6 +5,8 @@ slug: manage-your-kubernetes-context-directly-from-vs-code
 date: 2019-09-22
 authors: ["ramiro-berrelleza"]
 tags: ["visual-studio-code", "development", "kubernetes", "cloud-native"]
+image: ./img/cover.jpg
+image_alt: "The Visual Studio Code logo with an arrow to the Kubernetes logo"
 ---
 
 Do you keep deploying your applications into the wrong namespace? Now you can see and manage your Kubernetes context directly from VS Code with [our new extension](https://marketplace.visualstudio.com/items?itemName=okteto.kubernetes-context) 🚀.
