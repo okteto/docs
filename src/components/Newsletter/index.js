@@ -3,7 +3,7 @@
 // - blog: the newsletter with the blog posts, the same form as the footer of
 //   okteto.com. The blog shows it.
 // - productUpdates: an email with each Okteto release and the new tutorials.
-//   The tutorials and the release notes of the docs show it.
+//   The tutorials and the docs show it.
 //
 // A site picks its list with `customFields.newsletter` in its Docusaurus
 // config (useSiteNewsletter); without it, the list is `blog`.
