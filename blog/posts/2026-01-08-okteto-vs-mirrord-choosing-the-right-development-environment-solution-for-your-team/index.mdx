@@ -1,0 +1,183 @@
+---
+title: "Okteto vs mirrord: Choosing the Right Development Environment Solution for Your Team"
+title_meta: "Okteto vs mirrord for Kubernetes development environments."
+description: "Okteto runs each environment in the cluster, in its own namespace, and mirrord connects code running on a laptop to a shared cluster. This guide compares where the code runs, routing, queues, data, builds, coding agents, and pricing."
+slug: okteto-vs-mirrord-choosing-the-right-development-environment-solution-for-your-team
+date: 2026-01-08
+last_update:
+  date: 2026-11-17
+authors: ["ashlynn-pericacho"]
+image: ./img/cover.jpg
+image_alt: "The Okteto logo versus mirrord"
+social_image: /img/social/okteto-vs-mirrord-choosing-the-right-development-environment-solution-for-your-team.jpg
+---
+
+<head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does Okteto run the code on my laptop, like mirrord?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Okteto runs your code in the cluster, in a Development Container that takes the place of your service in your namespace. You keep editing on your laptop, with your own IDE, and Okteto synchronizes your changes to the container in seconds."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can developers share a staging environment with Okteto, like with mirrord?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. With Divert, the Shared Namespace can be your existing staging, deployed by your CI or GitOps tooling, and each developer, pull request, or coding agent deploys only the services it changes in its own namespace. Requests with its divert header reach its services, and every other request reaches staging."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Okteto Divert only work with HTTP?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Divert routes HTTP and gRPC requests by the W3C baggage header. Message queues are split per namespace with Queue Splitting: when each subsystem owns its queues, an Overlay Namespace that deploys the subsystem gets its own broker and consumers, without changes to producers or consumers. Databases are isolated with Data Cloning, from Kubernetes Volume Snapshots of the shared data or with your own dump and restore scripts."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Okteto Divert support the Kubernetes Gateway API?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The Gateway API is the default Divert driver: Okteto creates an HTTPRoute for each overlay service, and any service mesh that implements GAMMA, such as Linkerd or Istio, routes the requests. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver instead."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How are Okteto and mirrord priced?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Okteto is priced per user. The free tier covers up to 5 users, and the Scale and Enterprise plans, which include Divert, have unlimited environments. mirrord is open source and free for individual developers, its Team plan is priced per seat, and its Enterprise plan, which includes preview environments and cloud agents, has custom pricing."
+          }
+        }
+      ]
+    })}
+  </script>
+</head>
+
+If you're comparing mirrord by MetalBear and Okteto, you want the same outcome from both: developers and coding agents that test their changes against a realistic version of the application before they open a pull request. The two products get there from opposite directions. mirrord keeps the code on the developer's laptop or the agent's machine, and connects it to a shared environment in the cluster. Okteto runs the code in the cluster, in a namespace of its own. That one decision shapes everything else, and this guide explains how.
+
+{/* truncate */}
+
+## Understanding the Shared Goal
+
+Modern applications are code plus configuration, runtime, network policies, data, and dependencies across many services. Neither a developer nor a coding agent can gain real confidence that a change works by running unit tests on its own. Both need to run the change against an environment that behaves like production.
+
+Okteto and mirrord both reject the "code locally, hope it works in CI" workflow, and both let many developers share one environment that runs the rest of the application, such as staging. Okteto doesn't tie an environment to that model: an environment can deploy only the services you change, a full copy of the application, or a mix, such as the services you change plus your own copy of the database, with everything else shared.
+
+## How mirrord Works
+
+mirrord runs your process on your local machine and intercepts its network calls, environment variables, and file access, routing them to and from a remote Kubernetes cluster. Your service behaves as if it ran in the cluster, without building an image or waiting for a deployment. mirrord's agent, next to the pod your process stands in for, mirrors its incoming requests to your process, or steals the ones that match a filter, such as a `baggage` header, so several developers can share one staging environment at the same time.
+
+On the Team plan, mirrord adds database branching and queue splitting for the shared environment. A database branch, for databases such as PostgreSQL, MySQL, or MongoDB, starts empty by default, and copying all its data is recommended only for very small databases. Queue splitting covers SQS, Kafka, RabbitMQ, and other brokers. On the Enterprise plan, preview environments run the services you change as pods in the cluster, from images you provide, and route the requests that carry their key to them.
+
+For coding agents, mirrord offers a skills plugin and an MCP server for agents that run on a laptop. Agents that run in the cloud need the Enterprise plan.
+
+The mirrord operator runs in your cluster. On the Team plan, it gets its license from MetalBear's cloud, and the admin dashboard is hosted by MetalBear. The Enterprise plan adds a self-hosted license server and air-gapped installs. mirrord is open source and free for individual developers, the Team plan is priced per seat, and the Enterprise plan has custom pricing.
+
+## How Okteto Works
+
+Okteto runs in your cluster, and each developer, each pull request, and each coding agent gets its own application environment, in a dedicated namespace. An [Okteto Manifest](/docs/reference/okteto-manifest/) in the repository defines how to build, deploy, develop, and test the application, and the same definition creates every environment.
+
+An environment can be a full copy of the application. With [Divert](/docs/development/divert/), it deploys in your namespace only the services you change, or those plus any others you want your own copy of, on top of a shared environment that runs the rest. Okteto builds the images in the cluster, synchronizes your code changes in seconds to the [Development Container](/docs/development/containers/) that runs your service, creates a [Preview Environment](/docs/previews/) for each pull request, and runs the tests in the cluster too.
+
+Okteto also includes the infrastructure to [run coding agents](https://www.okteto.com/agents-on-kubernetes/) on your cluster. Each agent works in a light agent sandbox, under the access and policies the platform team defines, and gets its own application environment, the same one a developer gets. Agents that run elsewhere, such as Claude Code on a laptop, use the [Okteto agent skills](/docs/agentic/) to work in the same environments.
+
+The whole platform, control plane included, runs in your cluster: Self-Hosted on any Kubernetes cluster, air-gapped, or Bring Your Own Cloud (BYOC). Okteto is priced per user, with a free tier for up to 5 users.
+
+## Quick Comparison
+
+| | Okteto | mirrord |
+|---|---|---|
+| **Where the code runs** | In pods of your cluster, in a dedicated namespace | On the laptop or the agent's machine, connected to the cluster |
+| **Environment** | A dedicated namespace: only the services that change with Divert, a full copy, or a mix of both | A shared environment, such as staging, that every session uses |
+| **Routing to the services you change** | HTTP and gRPC, by the W3C `baggage` header. Gateway API routes on your service mesh (Linkerd, Istio, and other GAMMA meshes), or Istio VirtualServices | mirrord's own agent, at the pod your process stands in for, by a header filter such as `baggage` |
+| **Message queues** | Queue Splitting: each namespace gets its own broker and consumers, or consumers filter by the `baggage` header | Queue splitting for SQS, Kafka, RabbitMQ, and other brokers (Team) |
+| **Data** | Kubernetes Volume Snapshots clone the real data of any volume, or your own dump and restore scripts | Database branches, empty by default. A full copy is recommended only for very small databases (Team) |
+| **Builds** | In the cluster, with the Okteto Build Service, or any image you choose, such as one your CI built | None: the code runs locally, and preview environments use images you provide |
+| **Tests** | In the cluster, with Okteto Test, or natively in your CI pipelines, against the environment | On your CI runner, connected to the cluster (Enterprise) |
+| **Coding agents** | Agents run anywhere, with Okteto's agent skills, or on your cluster. Each one gets its own application environment | Skills and an MCP server for agents on a laptop. Cloud agents on Enterprise |
+| **Where it runs** | Entirely in your cluster, control plane included: Self-Hosted, air-gapped, or BYOC | Operator in your cluster. License and dashboard hosted by MetalBear, or a self-hosted license server on Enterprise |
+| **Pricing** | Per user. Free tier for up to 5 users; Divert in Scale and Enterprise | Free and open source for individuals. Team per seat, Enterprise custom |
+
+## What Divert Covers
+
+Divert is how Okteto shares an environment, such as staging, among developers, pull requests, and coding agents. Each one deploys in its own namespace only the services it changes, and Divert routes its requests to them, with standard Kubernetes resources:
+
+- **Requests**: Divert routes HTTP and gRPC requests by the divert header, the W3C [`baggage`](https://www.w3.org/TR/baggage/) header that OpenTelemetry already propagates. See [Header Propagation](/docs/development/divert/header-propagation/).
+- **Service meshes**: the default driver uses the [Gateway API](https://gateway-api.sigs.k8s.io/), and works with any mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), such as Linkerd and Istio. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver. Only the Shared Namespace needs the mesh: Overlay Namespaces don't.
+- **Message queues**: with [Queue Splitting](/docs/development/divert/queue-splitting/), when each subsystem owns its queues, deploying the subsystem in your namespace gives you your own broker and consumers, without changes to your producers or consumers. When services share a broker, consumers filter messages by the divert header.
+- **Databases**: with [Data Cloning](/docs/development/divert/data-cloning/), your namespace gets its own copy of the databases it writes to, restored from a Volume Snapshot of the shared data or with your own dump and restore scripts, or a tenant of its own in the shared database.
+- **Shared environment**: the [Shared Namespace](/docs/development/divert/shared-namespace/) can be a Preview Environment that your CI redeploys on every merge, or any namespace in the same cluster that Okteto doesn't manage, such as your existing staging.
+
+## Why a Dedicated Namespace Matters
+
+A namespace is the unit Kubernetes already uses for isolation, access, and policies. Because every Okteto environment is one, Okteto can rely on what Kubernetes and its ecosystem provide, instead of reimplementing it next to the cluster.
+
+### Real Data, Not Empty Branches
+
+An environment needs data that looks like production's. Okteto uses the native [Volume Snapshots](/docs/core/use-volume-snapshots/) of Kubernetes, through the CSI driver of your cluster, to restore a volume of the environment from a snapshot of the shared one. Any data store that keeps its data in a volume gets a full, realistic copy of the data, in the time it takes to restore a disk, and its writes never reach anyone else. Developers and agents don't have to limit their tests to the data that fixtures load into an empty branch. If your team already has dump and restore scripts, the Okteto Manifest runs them as part of the deploy.
+
+### Standard Routing on Your Service Mesh
+
+When an environment only runs the services you change, the requests for those services have to reach your version. Divert does it with the standard [Gateway API](https://gateway-api.sigs.k8s.io/): Okteto creates an `HTTPRoute` for each service you change, and any service mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), such as Linkerd or Istio, routes the requests that carry your header to it. mirrord intercepts the requests at the pod, with an agent of its own. With Divert, the routing is a Kubernetes resource your platform team can read, and it works with the mesh you already run.
+
+### Builds Inside the Loop
+
+A developer or an agent can't verify a change until it's built and deployed the way it will run. mirrord skips that step for the process on the laptop, but what gets merged is an image and its Kubernetes manifests. Okteto builds the images in the cluster, with the [Okteto Build Service](/docs/core/build-service/), as part of the environment, so an agent writes the code, builds it, deploys it, and tests it without waiting for an external pipeline or a human to close the loop. For the services you don't change, an environment can reuse any image you choose, such as the one your CI already built.
+
+### The Same Access and Policies as Production
+
+An environment in a namespace inherits the RBAC, network policies, and resource limits that Kubernetes applies per namespace, and the code you change runs in a container of your cluster, not on the operating system of a laptop. The platform team governs environments with the tools it already uses for the rest of the cluster, and a change that breaks because of a policy breaks during development, not after the merge.
+
+## Where Coding Agents Fit
+
+Both products help coding agents test their changes against the real application. With mirrord, the code an agent writes runs where the agent runs, connected to the shared environment that every agent and developer uses at the same time. Agents that run in the cloud need the Enterprise plan.
+
+With Okteto, the agents run wherever you run them too, using the [Okteto agent skills](/docs/agentic/), or on your cluster, under the policies the platform team defines. Either way, each one builds, deploys, and tests its change in its own application environment before it opens a pull request. The data it writes is its own, and the routing to its services is standard. That is what lets a team run many agents in parallel and trust what they produce.
+
+## Choosing the Right Solution for Your Team
+
+**mirrord may fit if:**
+
+- You want the code under development to run on the laptop, with your local tools, without building an image
+- You already have a shared staging environment, and other solutions for builds, tests, and environments per pull request
+
+**Okteto fits best if:**
+
+- You want developers, pull requests, and coding agents to run their changes in the cluster, in a dedicated namespace
+- You want one definition of the environment for development, pull requests, tests, and agents
+- You want real data, routing on your own service mesh, and builds inside the environment
+- You want the same policies as production
+- You want to run coding agents on your cluster, under your policies
+- You're building or scaling a platform engineering function
+
+## Frequently Asked Questions
+
+### Does Okteto run the code on my laptop, like mirrord?
+
+No. Okteto runs your code in the cluster, in a Development Container that takes the place of your service in your namespace. You keep editing on your laptop, with your own IDE, and Okteto synchronizes your changes to the container in seconds.
+
+### Can developers share a staging environment with Okteto, like with mirrord?
+
+Yes. With Divert, the Shared Namespace can be your existing staging, deployed by your CI or GitOps tooling, and each developer, pull request, or coding agent deploys only the services it changes in its own namespace. Requests with its divert header reach its services, and every other request reaches staging.
+
+### Does Okteto Divert only work with HTTP?
+
+No. Divert routes HTTP and gRPC requests by the W3C `baggage` header. Message queues are split per namespace with Queue Splitting: when each subsystem owns its queues, an Overlay Namespace that deploys the subsystem gets its own broker and consumers, without changes to producers or consumers. Databases are isolated with Data Cloning, from Kubernetes Volume Snapshots of the shared data or with your own dump and restore scripts.
+
+### Does Okteto Divert support the Kubernetes Gateway API?
+
+Yes. The Gateway API is the default Divert driver: Okteto creates an `HTTPRoute` for each overlay service, and any service mesh that implements GAMMA, such as Linkerd or Istio, routes the requests. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver instead.
+
+### How are Okteto and mirrord priced?
+
+Okteto is priced per user. The free tier covers up to 5 users, and the Scale and Enterprise plans, which include Divert, have unlimited environments. mirrord is open source and free for individual developers, its Team plan is priced per seat, and its Enterprise plan, which includes preview environments and cloud agents, has custom pricing.

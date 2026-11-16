@@ -255,7 +255,7 @@ const covers = [
       + box(250, 400, 700, 30, { color: C.blue, radius: 10 }),
   },
   {
-    out: post('2025-12-05-okteto-vs-mirrord-choosing-the-right-development-environment-solution-for-your-team'),
+    out: post('2026-01-08-okteto-vs-mirrord-choosing-the-right-development-environment-solution-for-your-team'),
     alt: 'The Okteto logo versus mirrord',
     svg: versus('mirrord'),
   },

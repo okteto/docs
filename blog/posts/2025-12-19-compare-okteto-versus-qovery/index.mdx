@@ -1,142 +1,191 @@
 ---
 title: "Okteto vs Qovery: Choosing the Right Kubernetes Development Platform for Your Team"
 title_meta: "Okteto vs Qovery: Comparing Kubernetes Development Platforms"
-description: "Okteto and Qovery take different approaches to environments on Kubernetes. This guide explains the key differences to help you choose."
+description: "Okteto gives each developer, pull request, and coding agent an environment in your cluster, with Divert to deploy only the services that change. Qovery clones a whole environment for each pull request and deploys to production too. This guide compares environments, data, builds, development, tests, agents, and pricing."
 slug: compare-okteto-versus-qovery
 date: 2025-12-19
+last_update:
+  date: 2026-11-17
 authors: ["ashlynn-pericacho"]
 image: ./img/cover.jpg
 image_alt: "The Okteto logo versus Qovery"
 social_image: /img/social/compare-okteto-versus-qovery.jpg
 ---
 
-The development platform you choose shapes how your entire engineering organization works, not just today, but as you scale. So the question isn't just which platform has the right features. It's which platform is built around the right philosophy for how your team works. Do you need a platform that deploys your application for you, production included? Or one that gives every developer and every coding agent a realistic environment to build, deploy, and test a change before they open a pull request? Okteto and Qovery answer these questions differently. This guide explains how.
+<head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does Okteto clone the whole application for every pull request, like Qovery?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It can, but it doesn't have to. With Divert, an Overlay Namespace runs only the services you change, and every other service is served by a Shared Namespace that runs the complete application. A namespace can also run a full copy of the application, or a mix: its own copy of some services, such as a database, and the shared version of the rest."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does an Okteto environment get a copy of the data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Okteto restores the volumes of an environment from Kubernetes Volume Snapshots of the shared data, so any data store that keeps its data in a volume gets a full copy. Your own dump and restore scripts work too, as part of the deploy."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Okteto Divert support the Kubernetes Gateway API?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The Gateway API is the default Divert driver: Okteto creates an HTTPRoute for each overlay service, and any service mesh that implements GAMMA, such as Linkerd or Istio, routes the requests. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver instead."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Okteto deploy to production, like Qovery?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Okteto covers the development cycle: development, pull requests, tests, and coding agents. Production stays on the pipeline you already run, such as Argo CD or Flux."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How are Okteto and Qovery priced?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Okteto is priced per user. The free tier covers up to 5 users, and the Scale and Enterprise plans, which include Divert, have unlimited environments. Qovery's plans include a number of users, clusters, and deployment minutes per month, from a free plan for 3 users to an Enterprise plan with custom pricing."
+          }
+        }
+      ]
+    })}
+  </script>
+</head>
+
+If you're comparing Qovery and Okteto, you want developers, reviewers, and coding agents to see a change running before it's merged. Both products create an environment for each pull request on Kubernetes, and both now speak to coding agents. The differences are in what each one is for, and in what an environment contains. Qovery is a platform to deploy your applications on your cloud, production included, and each preview is a clone of a whole environment. Okteto covers the development cycle: each developer, pull request, and agent gets an environment in your cluster, from a full copy of the application to only the services that change. This guide explains what that means for your team.
 
 {/* truncate */}
 
-## Understanding the Shared Challenge
+## Understanding the Shared Goal
 
-Modern cloud-native development is complex. Your applications aren't just code anymore. They're code plus configuration, runtime dependencies, network policies, secrets, and interactions across dozens of microservices. Developers can't gain real confidence that their changes work by running unit tests on a laptop, and neither can coding agents. Both need access to realistic environments that reflect production complexity.
+Modern applications are code plus configuration, runtime, network policies, data, and dependencies across many services. Neither a developer nor a coding agent can gain real confidence that a change works by running unit tests on its own, and neither can a shared staging environment that everyone queues for. Each change needs to run against an environment that behaves like production.
 
-Both Okteto and Qovery recognize this challenge. Both aim to give developers better environments than local development that can't match production's complexity. But they approach the problem from different starting points, and those starting points shape everything about how each platform works.
+Okteto and Qovery agree on that. Where they differ is in what each environment holds. A Qovery preview is a copy of the application, with the services and databases you choose to include. Okteto doesn't tie an environment to that model: an environment can deploy only the services you change, a full copy of the application, or a mix, such as the services you change plus your own copy of the database, with everything else shared.
 
 ## How Qovery Works
 
-Qovery positions itself as a DevOps automation platform. Its core promise is to give teams Heroku-like simplicity while running on their own cloud infrastructure. When you use Qovery, the platform provisions complete, standalone copies of your infrastructure for each environment: development, staging, production.
+Qovery is a self-service platform between your team and your cloud account. It deploys your applications to Kubernetes on AWS, GCP, Azure, Scaleway, or your own cluster, from development to production.
 
-This approach has clear appeal. Teams migrating from Heroku or Elastic Beanstalk get a familiar abstraction layer. Organizations without deep Kubernetes expertise can deploy to Kubernetes without learning Kubernetes. The platform handles infrastructure provisioning and deployment, prioritizing abstraction over daily developer experience.
+In Qovery, an environment is a group of applications, databases, and services in one Kubernetes namespace. A preview environment for a pull request is a clone of a blueprint environment. You can leave services out of a preview, and include each database as a clone or share it with another environment. Qovery's docs describe no way to route a preview's requests to a shared copy of the services it leaves out. When a database is cloned, its data isn't: teams fill each preview database with test data from a Lifecycle Job.
 
-Qovery's architecture creates full infrastructure copies for each environment. For example, when you spin up a preview environment, you get a complete replica of your services, databases, and dependencies. This provides high fidelity but comes with tradeoffs: longer spin-up times (minutes rather than seconds), higher infrastructure costs (full resource duplication per environment), and costs that scale linearly with environment count. You'll also need to translate your existing deployments into Qovery's configuration model rather than using your native Kubernetes manifests.
+By default, Qovery builds the images on its side, in a cluster dedicated to builds, and it can also build in your cluster or deploy an image your CI built. For development, the Qovery CLI forwards ports and opens shells into the containers of an environment. Tests run from your CI, against the URL of the preview.
 
-The focus is on deployment automation and infrastructure abstraction. Qovery aims to eliminate the need for DevOps expertise by handling the complexity behind a simplified interface.
+The Qovery control plane runs in Qovery's infrastructure, and its engine can run in your cluster. The Enterprise plan adds a self-hosted control plane, air-gapped if needed. Qovery's plans include a number of users, clusters, and deployment minutes per month, from a free plan for 3 users to an Enterprise plan with custom pricing.
+
+For coding agents, Qovery offers an MCP server, skills, and an AI Copilot that operates the platform. Agent Tasks can clone an entire environment and run an agent in the clone.
 
 ## How Okteto Works
 
-Okteto starts from a different premise: the team already runs Kubernetes, and what it lacks is a standard way to get the application running for everyone who changes it.
+Okteto runs in your cluster, and each developer, each pull request, and each coding agent gets its own application environment, in a dedicated namespace. An [Okteto Manifest](/docs/reference/okteto-manifest/) in the repository defines how to build, deploy, develop, and test the application, on top of the Helm charts, Kubernetes manifests, or Docker Compose files you already have, and the same definition creates every environment.
 
-Okteto installs in your own cluster. An [Okteto Manifest](/docs/reference/okteto-manifest/) in the repository defines how to build, deploy, develop, and test the application, on top of the Helm charts, Kubernetes manifests, or Docker Compose files you already have. From that one definition, Okteto creates an application environment in its own namespace: your services with their real configuration, running in pods of your cluster.
+An environment can be a full copy of the application. With [Divert](/docs/development/divert/), it deploys in your namespace only the services you change, or those plus any others you want your own copy of, on top of a shared environment that runs the rest. Okteto builds the images in the cluster, synchronizes your code changes in seconds to the [Development Container](/docs/development/containers/) that runs your service, creates a [Preview Environment](/docs/previews/) for each pull request, and runs the tests in the cluster too. Production stays on the pipeline you already run.
 
-That environment isn't reserved for the end of the process. A developer or a coding agent gets one for the change they are working on, tries the change against the real application, and opens the pull request when it already works. Each pull request then gets its own [Preview Environment](/docs/previews/), with a URL that product managers, designers, and QA can open, and the automated tests run against it too.
+Okteto also includes the infrastructure to [run coding agents](https://www.okteto.com/agents-on-kubernetes/) on your cluster. Each agent works in a light agent sandbox, under the access and policies the platform team defines, and gets its own application environment, the same one a developer gets. Agents that run elsewhere, such as Claude Code on a laptop, use the [Okteto agent skills](/docs/agentic/) to work in the same environments.
 
-Okteto also includes the infrastructure to [run the agents themselves](https://www.okteto.com/agents-on-kubernetes/). Its built-in orchestrator launches coding agents on your cluster, each in a [light agent sandbox](/blog/how-to-run-ai-coding-agents-on-kubernetes/) that holds the agent and its access to Git, under the access, quotas, and policies the platform team defines. The application doesn't run in the sandbox: each agent gets its own application environment, the same one a developer gets. That is what lets a team run many agents in parallel and trust what they produce.
+The whole platform, control plane included, runs in your cluster: Self-Hosted on any Kubernetes cluster, air-gapped, or Bring Your Own Cloud (BYOC). Okteto is priced per user, with a free tier for up to 5 users.
 
 ## Quick Comparison
 
-The table shows what each solution offers. The rest of this guide explains why those differences matter for your decision.
-
 | | Okteto | Qovery |
 |---|---|---|
-| **Core idea** | One definition of the application environment for developers, pull requests, tests, and agents | Environments are infrastructure configurations |
-| **Where code runs** | In pods of your Kubernetes cluster | Deployed containers in infrastructure copies |
-| **Feedback loop** | Changes synchronized in seconds | Minutes per deployment |
-| **Preview Environments** | Automatic per pull request, shareable URLs, automatic cleanup | Similar offering |
-| **Testing** | Okteto Test, in the cluster | No dedicated product |
-| **AI** | Runs coding agents on your cluster, each with a realistic application environment | AI Copilot for assisted DevOps tasks |
-| **Production deployment** | Integrates with existing pipelines (ArgoCD, Flux, and others) | Core platform capability |
-| **Primary value** | Standardized environments for the development cycle | DevOps automation, deployment management |
-| **Assumes** | Kubernetes expertise exists on the platform team | Kubernetes expertise is scarce |
-| **Best for** | Organizations committed to Kubernetes that want developers and agents to ship tested changes | Organizations that want the benefits of Kubernetes without Kubernetes expertise |
+| **Scope** | The development cycle: development, pull requests, tests, and agents | Deploying applications on your cloud, production included |
+| **Environment** | A dedicated namespace: only the services that change with Divert, a full copy, or a mix of both | A clone of a blueprint environment, with the services and databases you include |
+| **Routing to the services that change** | HTTP and gRPC, by the W3C `baggage` header. Gateway API routes on your service mesh (Linkerd, Istio, and other GAMMA meshes), or Istio VirtualServices | No routing to services a preview leaves out |
+| **Data** | Kubernetes Volume Snapshots clone the real data of any volume, or your own dump and restore scripts | Cloned databases without their data, filled by Lifecycle Jobs |
+| **Builds** | In the cluster, with the Okteto Build Service, or any image you choose, such as one your CI built | On Qovery's build cluster by default, in your cluster, or an image your CI built |
+| **Development** | Code changes synchronized in seconds to a container in the cluster | Port forwarding and shells into the containers |
+| **Tests** | In the cluster, with Okteto Test, or natively in your CI pipelines, against the environment | From your CI, against the preview URL |
+| **Coding agents** | Agents run anywhere, with Okteto's agent skills, or on your cluster. Each one gets its own application environment | MCP server, skills, and AI Copilot. Agent Tasks clone an environment per agent |
+| **Where it runs** | Entirely in your cluster, control plane included: Self-Hosted, air-gapped, or BYOC | Control plane hosted by Qovery, or self-hosted on Enterprise |
+| **Pricing** | Per user. Free tier for up to 5 users; Divert in Scale and Enterprise | Plans by users, clusters, and deployment minutes. Free plan for 3 users |
 
-## The Philosophical Divide
+## What Divert Covers
 
-Here's the core distinction that explains most of the differences between these platforms.
+Divert is how Okteto deploys only the services you change, instead of a copy of the whole application. Each environment deploys them in its own namespace, on top of a shared environment, and Divert routes its requests to them with standard Kubernetes resources:
 
-Qovery manages the infrastructure for you. An environment is a copy of that infrastructure, with different sizing and lifecycle rules, and the same platform takes the application to production. That works when deploying is your main problem.
+- **Requests**: Divert routes HTTP and gRPC requests by the divert header, the W3C [`baggage`](https://www.w3.org/TR/baggage/) header that OpenTelemetry already propagates. See [Header Propagation](/docs/development/divert/header-propagation/).
+- **Service meshes**: the default driver uses the [Gateway API](https://gateway-api.sigs.k8s.io/), and works with any mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), such as Linkerd and Istio. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver. Only the Shared Namespace needs the mesh: Overlay Namespaces don't.
+- **Message queues**: with [Queue Splitting](/docs/development/divert/queue-splitting/), when each subsystem owns its queues, deploying the subsystem in your namespace gives you your own broker and consumers, without changes to your producers or consumers. When services share a broker, consumers filter messages by the divert header.
+- **Databases**: with [Data Cloning](/docs/development/divert/data-cloning/), your namespace gets its own copy of the databases it writes to, restored from a Volume Snapshot of the shared data or with your own dump and restore scripts, or a tenant of its own in the shared database.
+- **Shared environment**: the [Shared Namespace](/docs/development/divert/shared-namespace/) can be a Preview Environment that your CI redeploys on every merge, or any namespace in the same cluster that Okteto doesn't manage, such as your existing staging.
 
-Okteto standardizes the environments of the development cycle. Developers, pull requests, tests, and coding agents all run the application from the same definition, on the cluster you already operate, so a bug found by one of them reproduces for the others. Production stays on the pipeline you already trust.
+## Why a Dedicated Namespace Matters
 
-The result isn't more complexity for developers. Developers, PMs, QA, and agents get an environment that behaves like production before a change is merged, not after.
+A namespace is the unit Kubernetes already uses for isolation, access, and policies. Because every Okteto environment is one, Okteto can rely on what Kubernetes and its ecosystem provide, instead of reimplementing it in a layer of its own.
 
-## Architecture Matters: Where Your Code Actually Runs
+### Real Data, Not Seed Jobs
 
-The philosophical difference manifests in a concrete technical distinction: where your code actually runs during development.
+An environment needs data that looks like production's. Okteto uses the native [Volume Snapshots](/docs/core/use-volume-snapshots/) of Kubernetes, through the CSI driver of your cluster, to restore a volume of the environment from a snapshot of the shared one. Any data store that keeps its data in a volume gets a full, realistic copy of the data, in the time it takes to restore a disk, and its writes never reach anyone else. Developers and agents don't have to limit their tests to the data a seed job loads. If your team already has dump and restore scripts, the Okteto Manifest runs them as part of the deploy.
 
-With Qovery, you get a complete, isolated replica of your services, but you're working with deployed containers, not an interactive development experience.
+### Only the Services That Change
 
-With Okteto, your development process runs in actual Kubernetes pods, inheriting your production configuration automatically. You're not developing in something that looks like production. You're developing in production's twin.
+Large applications don't fit in a copy per pull request, let alone one per coding agent. With Divert, an environment deploys only the services it changes, and the Gateway API routes its requests to them: Okteto creates an `HTTPRoute` for each service you change, and any service mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), such as Linkerd or Istio, routes the requests that carry your header to it. Every other request reaches the shared environment, so a preview that leaves a service out still works end to end.
 
-This matters for several reasons:
+### A Development Loop in the Cluster
 
-### You get true production parity
+A developer or an agent can't verify a change until it's built and deployed. Okteto builds the images in the cluster, with the [Okteto Build Service](/docs/core/build-service/), as part of the environment, and while you work, `okteto up` synchronizes your code changes in seconds to the container that runs your service, so you see the result without waiting for a new deployment. [Okteto Test](/docs/get-started/deploy-your-app/test/) runs the tests in containers of the cluster, next to the services they test, or your CI pipelines run them natively, against the environment. For the services you don't change, an environment can reuse any image you choose, such as the one your CI already built.
 
-Okteto eliminates the "works on my machine" problem at the root. If it works in your dev environment, it works in production, because they're the same runtime. Integration issues surface during development, not after deployment. Configuration drift between environments disappears because there's only one environment configuration.
+### The Same Access and Policies as Production
 
-### Your Feedback Loops Drop to Seconds
+Each environment inherits the RBAC, network policies, and resource limits that Kubernetes applies per namespace. The platform team governs environments with the tools it already uses for the rest of the cluster, and a change that breaks because of a policy breaks during development, not after the merge.
 
-Code changes sync in under 3 seconds. You write code, save the file, and see results immediately. Developers aren't waiting on container builds, image pushes, or long deployments. Seconds vs. minutes adds up. A developer iterating 50 times a day saves over 2 hours with a 3-second loop instead of a 3-minute deploy. Multiply that across your team and the year, and you're recovering thousands of engineering hours.
+### Nothing Leaves Your Cluster
 
-### You Debug Directly in Kubernetes
+Okteto's control plane runs in your cluster, next to the environments, on every plan. Your code, your data, your test results, and the requests to your environments stay in your infrastructure, and Okteto Enterprise runs air-gapped. With Qovery, the control plane runs in Qovery's infrastructure, unless you self-host it on the Enterprise plan.
 
-Attach a debugger directly to code running in Kubernetes, setting breakpoints, inspecting variables, and stepping through execution against realistic services and data. Instead of adding log statements, redeploying, and waiting, you can pause execution and inspect state in real time. You're debugging against actual dependencies, actual data flows, and actual network conditions. For complex bugs that only manifest in production-like environments, this cuts investigation time dramatically.
+## Where Coding Agents Fit
 
-### Your Costs Don't Scale Linearly
+Both products give coding agents an environment to test their changes. With Qovery, agents use its MCP server and skills to operate the platform, and Agent Tasks clone a whole environment for each agent.
 
-Environments share cluster resources intelligently, so costs don't scale linearly with team size. With infrastructure-copy approaches, ten developers mean ten full environment replicas, fifty developers mean fifty, and every coding agent adds one more. With [Divert](/docs/development/divert/), Okteto lets teams share baseline resources while isolating only what each developer or agent is actively changing. The result is predictable costs that don't balloon as your team grows.
+With Okteto, the agents run wherever you run them, using the [Okteto agent skills](/docs/agentic/), or on your cluster, under the policies the platform team defines. Either way, each one builds, deploys, and tests its change in its own application environment before it opens a pull request. With Divert, that environment holds only the services the agent changes, so a team can run many agents in parallel on a large application. The data each agent writes is its own, and the routing to its services is standard.
 
-## Platform Engineering Enablements
-
-For platform engineering leaders, the question isn't just "which tool helps developers code faster?" It's "which platform helps me build and scale a developer experience function?"
-
-Okteto provides the infrastructure platform teams need:
-
-**Okteto Insights** gives you visibility into your developer experience by tracking build duration trends, deploy times, test success rates, and platform adoption metrics. This is the data you need to understand how your platform serves developers and where to improve.
-
-**Okteto Catalog** lets platform teams define standardized, compliant environment templates. Developers get self-service access to approved configurations, and platform teams maintain governance without becoming a bottleneck.
-
-**Resource Manager** provides cost visibility and optimization across namespaces, while **Garbage Collector** sets sleep and delete policies for automatic cleanup. Know what you're spending, where to optimize, and let smart policies handle the rest.
-
-**Unified manifest** with `build`, `dev`, `test`, and `deploy` sections provides consistent governance across every environment. One configuration model for your entire development lifecycle.
-
-**Enterprise readiness**: SSO, RBAC, audit logs, and the compliance features (SOC 2 Type 2) that enterprise organizations require.
-
-## Choosing the Right Platform for Your Team
-
-Both platforms solve real problems. The right choice depends on your organization's context, not which platform has more features.
-
-**Okteto fits best if:**
-
-- Your organization has already committed to Kubernetes and is experiencing developer productivity pain
-- You want developers working in environments that truly mirror production to eliminate environment skew
-- You want developers and coding agents to build, deploy, and test their changes in a realistic environment before they open a pull request
-- You want one definition of the environment for development, pull requests, tests, and agents
-- You are putting coding agents to work and want them running on your cluster, under your policies
-- You're building or scaling a platform engineering function
-- You have existing production deployment pipelines and need a solution that integrates rather than replaces
-- You care about enabling your entire product team, not just developers
-- You want visibility into platform adoption and developer productivity metrics
+## Choosing the Right Solution for Your Team
 
 **Qovery may fit if:**
 
-- You're building greenfield infrastructure without existing Kubernetes expertise
-- You want a single vendor for dev through production because infrastructure management is your primary pain point, not developer velocity
-- You're migrating from Heroku or similar PaaS and want familiar abstractions
+- You want one platform to deploy your applications on your cloud, production included
+- Your team has little Kubernetes expertise, and you want the platform to manage the clusters
+- Your application is small enough to clone for every pull request
 
-## The Platform Engineering Perspective
+**Okteto fits best if:**
 
-If you're a platform engineering leader evaluating these solutions, here's the strategic question: Are you trying to automate infrastructure, or are you trying to accelerate your entire product team?
+- You want each developer, pull request, and coding agent to get a dedicated namespace in your cluster
+- You want to deploy only the services that change on large applications, and share the rest
+- You want one definition of the environment for development, pull requests, tests, and agents
+- You want real data, a development loop in the cluster, and the choice to run tests in the cluster or in your CI pipelines
+- You want to run coding agents on your cluster, under your policies
+- You already have a pipeline for production, such as [Argo CD](/docs/self-hosted/manage/argocd/), and need a platform that integrates with it
+- You need the whole platform in your infrastructure, including air-gapped
 
-Qovery answers the first question. It automates DevOps so you don't have to hire for it. That's valuable for organizations at a certain stage.
+## Frequently Asked Questions
 
-Okteto answers the second question. It gives developers and coding agents a realistic environment to build, deploy, and test a change before the pull request, gives PMs and designers shareable preview URLs, runs the tests in the cluster, and gives you the visibility to continuously improve. One definition of the environment serves all of them.
+### Does Okteto clone the whole application for every pull request, like Qovery?
 
-If your organization has committed to Kubernetes and your constraint is how fast developers and agents ship tested changes, not deployment automation, Okteto is purpose-built for that outcome.
+It can, but it doesn't have to. With Divert, an Overlay Namespace runs only the services you change, and every other service is served by a Shared Namespace that runs the complete application. A namespace can also run a full copy of the application, or a mix: its own copy of some services, such as a database, and the shared version of the rest.
+
+### Does an Okteto environment get a copy of the data?
+
+Yes. Okteto restores the volumes of an environment from Kubernetes Volume Snapshots of the shared data, so any data store that keeps its data in a volume gets a full copy. Your own dump and restore scripts work too, as part of the deploy.
+
+### Does Okteto Divert support the Kubernetes Gateway API?
+
+Yes. The Gateway API is the default Divert driver: Okteto creates an `HTTPRoute` for each overlay service, and any service mesh that implements GAMMA, such as Linkerd or Istio, routes the requests. Clusters that define their routing with Istio VirtualServices can use the VirtualServices driver instead.
+
+### Does Okteto deploy to production, like Qovery?
+
+No. Okteto covers the development cycle: development, pull requests, tests, and coding agents. Production stays on the pipeline you already run, such as Argo CD or Flux.
+
+### How are Okteto and Qovery priced?
+
+Okteto is priced per user. The free tier covers up to 5 users, and the Scale and Enterprise plans, which include Divert, have unlimited environments. Qovery's plans include a number of users, clusters, and deployment minutes per month, from a free plan for 3 users to an Enterprise plan with custom pricing.
