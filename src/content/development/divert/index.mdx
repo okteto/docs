@@ -45,6 +45,16 @@ Divert routes each request by the divert header it carries: the `baggage` header
 
 Several Overlay Namespaces can use the same Shared Namespace at the same time. Each one only sees its own changes, and the Shared Namespace is not affected by any of them. An Overlay Namespace can also run several overlay services: they call each other directly, and use the Shared Namespace for everything else.
 
+## What Divert Routes
+
+| | How Divert handles it |
+|---|---|
+| **HTTP and gRPC requests** | Routed by the divert header to the overlay service when one exists, and to the shared service otherwise |
+| **Message queues** | Divert doesn't intercept message brokers such as Kafka, RabbitMQ, or SQS. [Queue Splitting](development/divert/queue-splitting.mdx) keeps each message in its namespace: deploy a subsystem with its own broker, or filter messages by the divert header |
+| **Databases** | Divert doesn't split databases. [Data Cloning](development/divert/data-cloning.mdx) gives your Overlay Namespace its own copy, restored from a Volume Snapshot of the shared database |
+| **Service mesh** | The Gateway API driver, the default, creates an `HTTPRoute` per overlay service and works with any mesh that implements [GAMMA](https://gateway-api.sigs.k8s.io/mesh/gamma/), such as Linkerd and Istio. The VirtualServices driver adds the routing rules to your Istio VirtualServices. Only the Shared Namespace needs the mesh |
+| **Shared Namespace** | A namespace managed by Okteto, such as a Preview Environment your CI redeploys on every merge, or any namespace that Okteto doesn't manage in the same cluster, such as an existing staging namespace. See [Shared Namespace](development/divert/shared-namespace.mdx) |
+
 ## Concepts
 
 - **Shared Namespace**: the namespace that runs the complete application. It serves every service that an Overlay Namespace doesn't deploy. It's usually a namespace that your CI redeploys on every merge. If Okteto manages your Shared Namespace, make it [persistent](core/namespaces.mdx#mark-a-namespace-as-persistent-to-prevent-it-from-sleeping-and-deletion) so it never goes to sleep.
