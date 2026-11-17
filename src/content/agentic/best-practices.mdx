@@ -14,7 +14,7 @@ This is the full list of which commands agents may run. The collaborative and au
 |---------|----------------|-------|
 | `okteto deploy --wait` | Yes | Builds images and deploys all services. Always pass `--wait`. |
 | `okteto build <service>` | Yes | Builds a single image through the Okteto Build Service. |
-| `okteto test <name>` | Yes | Runs a test container defined in `okteto.yaml`. |
+| `okteto test <name>` | Yes | Runs a test container defined in `okteto.yaml`. Add `-- <command>` to replace its commands for one run. |
 | `okteto validate` | Yes | Checks `okteto.yaml` for syntax and schema errors. |
 | `okteto logs <service>` | Yes | Views container logs. |
 | `okteto endpoints` | Yes | Lists public URLs for the environment. |
@@ -95,6 +95,20 @@ okteto deploy --wait
 # Risky: services might not be ready yet
 okteto deploy
 ```
+
+### Override test commands to run a subset of tests
+
+Running a whole test container to check one test is slow. Pass the test command after `--` to replace the commands of that test container for one run, without editing `okteto.yaml`:
+
+```bash
+# Good: runs only the test the agent is working on
+okteto test unit -- go test ./pkg/api -run TestLogin
+
+# Slow: runs every command of the 'unit' test container
+okteto test unit
+```
+
+Test containers listed in `depends_on` still run first, with their own commands. For shell features such as `&&` or pipes, pass `--command "..."` instead. The [`okteto test` reference](reference/okteto-cli.mdx#overriding-the-commands-of-a-test-container) lists the full rules.
 
 ## Worktree isolation
 
