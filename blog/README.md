@@ -56,6 +56,7 @@ To work on a post without publishing it, add `draft: true`. Drafts show up in
 | `social_image` | Social card when it should differ from the featured image. Absolute path into `blog/static`, e.g. `/img/social/<slug>.jpg` |
 | `hide_featured_image` | `true` keeps `image` as the social card but doesn't show it on the page |
 | `series` | Series name. Posts with the same series get a "Part N of M" box, ordered by date |
+| `featured` | Position at the top of the blog index (`1` is the first card). The card gets a "Featured" badge. Posts without it follow, newest first |
 
 ### Components
 
