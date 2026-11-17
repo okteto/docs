@@ -1,19 +1,26 @@
 ---
-title: "How to Run Testcontainers on Okteto"
+title: "Run Testcontainers tests with Okteto"
 description: "Run a Testcontainers test suite with okteto test and kubedock, which runs each container as a pod in your Namespace, without a Docker daemon."
-slug: how-to-run-testcontainers-on-okteto
+slug: testcontainers
 date: 2026-11-17
-authors: ["mario-nevado"]
-tags: ["kubernetes", "java", "cicd", "security"]
 image: ./img/cover.jpg
 image_alt: "Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace"
 ---
 
 Testcontainers runs the real dependencies of your tests, such as a Postgres database or a Kafka broker, as throwaway containers. On Okteto there is no Docker daemon to start them, but [kubedock](https://github.com/joyrex2001/kubedock) can start them as regular pods in your Namespace instead, without a privileged container.
 
-{/* truncate */}
+This tutorial runs a Testcontainers test suite with `okteto test` and kubedock. The containers your tests start are regular pods in your Namespace, created with your own permissions. It uses the sample repository [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock): a small Scala web application, built with Maven, whose tests start a Postgres container.
 
-This post shows how to run a Testcontainers test suite with `okteto test` and kubedock, without privileged containers: the containers your tests start are regular pods in your Namespace, created with your own permissions. Everything in it is in the sample repository [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock): a small Scala web application, built with Maven, whose tests start a Postgres container.
+## Prerequisites
+
+- Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli#context) configured.
+- The [Okteto CLI](/docs/get-started/install-okteto-cli) installed on your machine.
+- A local copy of the sample application:
+
+```bash
+git clone https://github.com/okteto-community/testcontainers-kubedock
+cd testcontainers-kubedock
+```
 
 ## Testcontainers
 
@@ -46,7 +53,7 @@ When Testcontainers asks kubedock for a Postgres container:
 
 Testcontainers doesn't know the difference: it sees a Docker API.
 
-Vincent van Dam has maintained kubedock since 2021, and it works very well. It covers far more of the Docker API than a test suite usually needs, and it has the options that make it safe on a shared cluster, which the setup in this post relies on. If it's useful to you too, give [the repository](https://github.com/joyrex2001/kubedock) a star.
+Vincent van Dam has maintained kubedock since 2021, and it works very well. It covers far more of the Docker API than a test suite usually needs, and it has the options that make it safe on a shared cluster, which this tutorial relies on. If it's useful to you too, give [the repository](https://github.com/joyrex2001/kubedock) a star.
 
 ## Running Testcontainers safely on a shared cluster
 
@@ -142,7 +149,11 @@ build:
       SKIP_TESTS: "true"
 ```
 
-A CI pipeline that builds the image with a Docker daemon available keeps running the tests in the build, with no change. On Okteto, `okteto deploy` builds the image without them and deploys the application, and `okteto test` runs them.
+A CI pipeline that builds the image with a Docker daemon available keeps running the tests in the build, with no change. On Okteto, `okteto deploy` builds the image without them and deploys the application:
+
+```bash
+okteto deploy
+```
 
 ## Faster test runs
 
@@ -159,13 +170,6 @@ The sample avoids downloading or uploading anything twice:
 - **Runs in the same Namespace wait for each other.** With `--lock`, a second `okteto test` in the same Namespace starts when the first one finishes.
 - **Port forwarding.** kubedock reaches the ports of each pod through Kubernetes port forwarding, which keeps them on `127.0.0.1`. Its README describes port forwarding as meant for local debugging, and not as fast or stable as a direct connection. It worked well in every run of the sample, but keep it in mind for test suites that move a lot of data through their containers.
 
-## Trying it
+## Using kubedock in your project
 
-Clone [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock) and run:
-
-```bash
-okteto deploy      # builds the application without the tests and deploys it
-okteto test unit   # runs the tests, with Postgres as a pod in your Namespace
-```
-
-To use it in your own project, copy `start-kubedock.sh` and the `test` section of the Okteto Manifest, and change `mvn -B test` for the command that runs your tests.
+To run your own Testcontainers tests the same way, copy `start-kubedock.sh` and the `test` section of the Okteto Manifest, and change `mvn -B test` for the command that runs your tests.

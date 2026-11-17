@@ -319,17 +319,6 @@ const covers = [
       }).join(''), 0.93, 594, 285)}</g>`,
   },
   {
-    out: post('2026-11-17-how-to-run-testcontainers-on-okteto'),
-    alt: 'Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace',
-    svg: row([
-      tile('flask-conical', 'Tests', { color: C.teal }),
-      'arrow',
-      tile('server', 'kubedock', { color: C.teal }),
-      'arrow',
-      group('Namespace', [item('database'), item('box')], { top: 'kubernetes' }),
-    ]),
-  },
-  {
     out: post('2026-01-28-ingress-nginx-controller-deprecation-your-migration-guide-to-kubernetes-gateway-api'),
     alt: 'The NGINX logo, for Ingress NGINX, with an arrow to the Kubernetes logo, for the Gateway API',
     svg: row([mark('nginx', { size: 170, label: 'Ingress NGINX' }), 'arrow', mark('kubernetes', { size: 180, label: 'Gateway API' })]),
@@ -656,6 +645,17 @@ const covers = [
     out: tutorial('2026-11-14-helm'),
     alt: 'The Helm logo with an arrow to the Kubernetes logo',
     svg: row([mark('helm', { size: 200 }), 'arrow', kubernetes()]),
+  },
+  {
+    out: tutorial('2026-11-17-testcontainers'),
+    alt: 'Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace',
+    svg: row([
+      tile('flask-conical', 'Tests', { color: C.teal }),
+      'arrow',
+      tile('server', 'kubedock', { color: C.teal }),
+      'arrow',
+      group('Namespace', [item('database'), item('box')], { top: 'kubernetes' }),
+    ]),
   },
   {
     out: tutorial('2026-11-13-cloud-infrastructure'),
