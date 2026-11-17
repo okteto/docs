@@ -1,6 +1,6 @@
 // Swizzled (ejected): the right column of a post stays in view and holds, in
 // this order, the signup of the site's email list and the table of contents.
-// On narrow screens the column is hidden (the callout in the post has a signup).
+// On narrow screens the column is hidden.
 
 import React from 'react';
 import clsx from 'clsx';

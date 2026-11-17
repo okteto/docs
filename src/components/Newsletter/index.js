@@ -100,7 +100,7 @@ function loadEmbedScript() {
 //
 // `list` is a key of NEWSLETTERS. `instance` tells apart the copies of the form
 // on one page: it names the element HubSpot renders into and the form instance.
-// `variant` is `callout` (on the dark callout), `page` (on the page background)
+// `variant` is `callout` (on a dark background), `page` (on the page background)
 // or `column` (on the page background, in a narrow column).
 export function NewsletterForm({ list, instance = 'callout', variant = 'callout', className }) {
   const { formId } = NEWSLETTERS[list];
