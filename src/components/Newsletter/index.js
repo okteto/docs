@@ -3,7 +3,7 @@
 // - blog: the newsletter with the blog posts, the same form as the footer of
 //   okteto.com. The blog shows it.
 // - productUpdates: an email with each Okteto release and the new tutorials.
-//   The tutorials and the release notes of the docs show it.
+//   The tutorials and the docs show it.
 //
 // A site picks its list with `customFields.newsletter` in its Docusaurus
 // config (useSiteNewsletter); without it, the list is `blog`.
@@ -16,6 +16,7 @@ import { track } from '@site/src/clientModules/mixpanel';
 import styles from './styles.module.scss';
 
 const PORTAL_ID = '5418301';
+const PRIVACY_POLICY_URL = 'https://www.okteto.com/privacy-policy/';
 const REGION = 'na2';
 
 export const NEWSLETTERS = {
@@ -92,10 +93,16 @@ function loadEmbedScript() {
   });
 }
 
+// Every form ends with the same consent text under the button: in one line,
+// or in two in a narrow column.
+// The consent text of the HubSpot form itself is hidden, so that the forms
+// without one show it too.
+//
 // `list` is a key of NEWSLETTERS. `instance` tells apart the copies of the form
 // on one page: it names the element HubSpot renders into and the form instance.
-// `variant` is `callout` (on the dark callout), `page` (on the page background)
-// or `column` (on the page background, in a narrow column).
+// `variant` is `callout` (on a dark background), `page` (on the page
+// background), `column` (on the page background, in a narrow column) or
+// `footer` (on a dark background, in a narrow column).
 export function NewsletterForm({ list, instance = 'callout', variant = 'callout', className }) {
   const { formId } = NEWSLETTERS[list];
   const targetId = `newsletter-form-${instance}`;
@@ -126,7 +133,7 @@ export function NewsletterForm({ list, instance = 'callout', variant = 'callout'
           // In a narrow column, the placeholder of the form doesn't fit.
           onFormReady: () => {
             const email = container.current?.querySelector('input[type="email"]');
-            if (variant === 'column' && email) {
+            if ((variant === 'column' || variant === 'footer') && email) {
               email.placeholder = 'Your email';
             }
           },
@@ -159,6 +166,17 @@ export function NewsletterForm({ list, instance = 'callout', variant = 'callout'
         className={`${styles.newsletterForm} ${styles[variant] || ''} ${className || ''}`}
         hidden={status === 'error'}
       />
+      {status !== 'error' && (
+        <p className={styles.consent}>
+          You can unsubscribe at any time.{' '}
+          <br />
+          See our{' '}
+          <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener">
+            Privacy Policy
+          </a>
+          .
+        </p>
+      )}
       {status === 'error' && (
         <p className={styles.newsletterError} role="alert">
           The signup form couldn't load.{' '}

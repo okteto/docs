@@ -1,27 +1,24 @@
-// Swizzled (wrapped): on the release notes, in every version of the docs, the
-// right column holds the signup to the product updates email on top and the
-// table of contents under it. Other pages keep the stock column.
+// Swizzled (wrapped): on every page of the docs, in every version, the right
+// column holds the signup to the product updates email on top and the table of
+// contents under it. Pages without a table of contents have no right column.
 
 import React from 'react';
 import clsx from 'clsx';
 import { ThemeClassNames } from '@docusaurus/theme-common';
 import { useDoc } from '@docusaurus/plugin-content-docs/client';
 import TOC from '@theme/TOC';
-import TOCDesktop from '@theme-original/DocItem/TOC/Desktop';
 
 import { ProductUpdatesAside } from '@site/src/components/ProductUpdatesSignup';
 import styles from './styles.module.scss';
 
-export default function TOCDesktopWrapper(props) {
+export default function TOCDesktopWrapper() {
   const { metadata, toc, frontMatter } = useDoc();
-
-  if (metadata.id !== 'release-notes') {
-    return <TOCDesktop {...props} />;
-  }
+  // The release notes keep their own name in the analytics of the form.
+  const instance = metadata.id === 'release-notes' ? 'release-notes-aside' : 'docs-aside';
 
   return (
     <aside className={styles.aside}>
-      <ProductUpdatesAside />
+      <ProductUpdatesAside instance={instance} />
       <TOC
         toc={toc}
         minHeadingLevel={frontMatter.toc_min_heading_level}
