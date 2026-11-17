@@ -1,11 +1,14 @@
-// Swizzled (ejected): a page with a right column (blog posts) gives it three
-// of the twelve grid columns instead of two, so the newsletter signup fits
-// there (see src/theme/BlogPostPage). Pages without it are unchanged.
+// Swizzled (ejected): a page with a right column (blog posts and tutorials)
+// gives it the width of the right column of the docs, so the three sites look
+// the same, and the main column takes the rest (see src/theme/BlogPostPage).
+// Pages without it are unchanged.
 
 import React from 'react';
 import clsx from 'clsx';
 import Layout from '@theme/Layout';
 import BlogSidebar from '@theme/BlogSidebar';
+
+import styles from './styles.module.scss';
 
 export default function BlogLayout(props) {
   const { sidebar, toc, children, ...layoutProps } = props;
@@ -20,11 +23,11 @@ export default function BlogLayout(props) {
               'col--7': hasSidebar && !toc,
               'col--6': hasSidebar && toc,
               'col--9 col--offset-1': !hasSidebar && !toc,
-              'col--9': !hasSidebar && toc,
+              [styles.main]: !hasSidebar && toc,
             })}>
             {children}
           </main>
-          {toc && <div className="col col--3">{toc}</div>}
+          {toc && <div className={clsx('col', hasSidebar ? 'col--3' : styles.toc)}>{toc}</div>}
         </div>
       </div>
     </Layout>

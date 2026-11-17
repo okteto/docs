@@ -93,7 +93,8 @@ function loadEmbedScript() {
   });
 }
 
-// Every form ends with the same consent text, in two lines, under the button.
+// Every form ends with the same consent text under the button: in one line,
+// or in two in a narrow column.
 // The consent text of the HubSpot form itself is hidden, so that the forms
 // without one show it too.
 //
@@ -166,7 +167,7 @@ export function NewsletterForm({ list, instance = 'callout', variant = 'callout'
       />
       {status !== 'error' && (
         <p className={styles.consent}>
-          You can unsubscribe at any time.
+          You can unsubscribe at any time.{' '}
           <br />
           See our{' '}
           <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener">
