@@ -100,8 +100,9 @@ function loadEmbedScript() {
 //
 // `list` is a key of NEWSLETTERS. `instance` tells apart the copies of the form
 // on one page: it names the element HubSpot renders into and the form instance.
-// `variant` is `callout` (on a dark background), `page` (on the page background)
-// or `column` (on the page background, in a narrow column).
+// `variant` is `callout` (on a dark background), `page` (on the page
+// background), `column` (on the page background, in a narrow column) or
+// `footer` (on a dark background, in a narrow column).
 export function NewsletterForm({ list, instance = 'callout', variant = 'callout', className }) {
   const { formId } = NEWSLETTERS[list];
   const targetId = `newsletter-form-${instance}`;
@@ -132,7 +133,7 @@ export function NewsletterForm({ list, instance = 'callout', variant = 'callout'
           // In a narrow column, the placeholder of the form doesn't fit.
           onFormReady: () => {
             const email = container.current?.querySelector('input[type="email"]');
-            if (variant === 'column' && email) {
+            if ((variant === 'column' || variant === 'footer') && email) {
               email.placeholder = 'Your email';
             }
           },

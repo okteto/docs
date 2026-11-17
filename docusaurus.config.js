@@ -152,6 +152,11 @@ module.exports = {
   tagline: 'Kubernetes for Developers',
   baseUrl: BASE_URL,
   favicon: 'img/favicon.ico',
+  customFields: {
+    // Read by src/components/Newsletter: the docs sign readers up to the
+    // product updates email, with each Okteto release.
+    newsletter: 'productUpdates',
+  },
   staticDirectories: shared.staticDirectories('static'),
   markdown: {
     mermaid: true,
