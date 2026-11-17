@@ -1,0 +1,168 @@
+---
+title: "How to Run Testcontainers on Okteto"
+description: "Run a Testcontainers test suite with okteto test and kubedock, which runs each container as a pod in your Namespace, without a Docker daemon."
+slug: how-to-run-testcontainers-on-okteto
+date: 2026-11-17
+tags: ["kubernetes", "java", "cicd", "security"]
+---
+
+Testcontainers runs the real dependencies of your tests, such as a Postgres database or a Kafka broker, as throwaway containers. On Okteto there is no Docker daemon to start them, but [kubedock](https://github.com/joyrex2001/kubedock) can start them as regular pods in your Namespace instead, without a privileged container.
+
+{/* truncate */}
+
+This post shows how to run a Testcontainers test suite with `okteto test` and kubedock, without privileged containers: the containers your tests start are regular pods in your Namespace, created with your own permissions. Everything in it is in the sample repository [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock): a small Scala web application, built with Maven, whose tests start a Postgres container.
+
+## Testcontainers
+
+[Testcontainers](https://testcontainers.com) is a library that starts containers from your test code. It's available for Java, Go, .NET, Node.js, Python, and other languages.
+
+A test asks for a Postgres container, Testcontainers starts it, and the test runs against a real database instead of a mock. When the test ends, the container is removed.
+
+To start those containers, Testcontainers needs the Docker API: the Docker daemon set in `DOCKER_HOST`, or the local Docker socket. On a laptop, that's Docker Desktop.
+
+## Testcontainers on Okteto
+
+On Okteto, your builds and your tests run on Kubernetes, and neither of them has a Docker daemon:
+
+- `okteto build` runs your Dockerfile in BuildKit.
+- `okteto test` runs your test commands in a container in the cluster.
+
+The usual way to get a Docker daemon in a cluster is Docker-in-Docker, and it takes a privileged container. The [documentation of the Docker image](https://hub.docker.com/_/docker) says that `--privileged` "is required for Docker-in-Docker to function properly" and that it "provides full access to the host environment".
+
+In a cluster shared by many developers, giving every test run full access to its node is not an option.
+
+## kubedock
+
+[kubedock](https://github.com/joyrex2001/kubedock) implements the Docker API on top of Kubernetes. Instead of running containers itself, it translates each Docker API call into Kubernetes resources.
+
+When Testcontainers asks kubedock for a Postgres container:
+
+1. kubedock creates a pod that runs the `postgres` image.
+2. It waits until the pod is running and makes its ports reachable to the test.
+3. When the test stops the container, kubedock deletes the pod.
+
+Testcontainers doesn't know the difference: it sees a Docker API.
+
+Vincent van Dam has maintained kubedock since 2021, and it works very well. It covers far more of the Docker API than a test suite usually needs, and it has the options that make it safe on a shared cluster, which the setup in this post relies on. If it's useful to you too, give [the repository](https://github.com/joyrex2001/kubedock) a star.
+
+## Running Testcontainers safely on a shared cluster
+
+Running Testcontainers through kubedock in `okteto test` avoids the problems that Docker-in-Docker brings to a shared cluster:
+
+- **No privileged containers.** The test container and the pods kubedock creates are regular pods.
+- **Nobody else can use kubedock.** It only listens on `127.0.0.1` inside the test container, and it only lives while `okteto test` runs. Nothing is deployed in your Namespace.
+- **Your own permissions.** kubedock creates the pods in your Namespace with your Kubernetes credentials, so it can't do anything you couldn't already do with `kubectl`.
+- **No collisions between runs.** Testcontainers can give a container a network alias, such as `db`, and kubedock creates a Service with that name. Two runs using the same alias in the same Namespace would collide, so `--lock` makes them run one at a time.
+- **No leftovers.** kubedock deletes each pod when the test stops its container. If a run is cancelled before that, the next run deletes what it left behind (`--prune-start`).
+- **Visible to Kubernetes.** The containers are pods, so your logs, metrics, and policies see them like any other workload.
+
+## Running the tests with okteto test
+
+`okteto test` runs your test commands in a container in your Namespace, and that container already has your Kubernetes credentials. kubedock only needs to start in that container before the tests do.
+
+This is the `test` section of the Okteto Manifest of the sample:
+
+```yaml
+test:
+  unit:
+    image: maven:3.9-eclipse-temurin-21
+    caches:
+      - /root/.m2
+      - /root/.kubedock
+    commands:
+      - ./start-kubedock.sh
+      - DOCKER_HOST=tcp://127.0.0.1:2475 TESTCONTAINERS_RYUK_DISABLED=true mvn -B test
+    artifacts:
+      - target/test-reports
+```
+
+The two commands do the work:
+
+1. `start-kubedock.sh` downloads kubedock, starts it in the background, and waits until it answers. kubedock keeps running for the next command.
+2. `mvn -B test` runs the tests with `DOCKER_HOST` pointing to kubedock, so Testcontainers talks to it instead of a Docker daemon.
+
+This is how the script starts kubedock:
+
+```bash
+kubedock server \
+  --kubeconfig "${KUBECONFIG:-$HOME/.kube/config}" \
+  --namespace "$OKTETO_NAMESPACE" \
+  --listen-addr 127.0.0.1:2475 \
+  --port-forward \
+  --disable-dind \
+  --lock \
+  --prune-start
+```
+
+| Flag | What it does |
+|------|--------------|
+| `--kubeconfig`, `--namespace` | Create the pods in your Namespace, with the Kubernetes credentials of the test container. |
+| `--listen-addr 127.0.0.1:2475` | Serve the Docker API only inside the test container. |
+| `--port-forward` | Make the ports of each pod reachable on `127.0.0.1`. |
+| `--disable-dind` | Don't add the Docker socket sidecar that kubedock uses for Docker-in-Docker cases. |
+| `--lock` | Wait for any other run in the Namespace to finish before starting. |
+| `--prune-start` | Delete what a cancelled run left behind, once kubedock holds the lock. |
+
+Run the tests with:
+
+```bash
+okteto test unit
+```
+
+## Keeping the tests out of the build
+
+`okteto build` doesn't have a Docker API either, so the tests that use Testcontainers run in `okteto test` and not while building the image.
+
+The sample keeps a single Dockerfile for every case. It runs the tests by default and skips them when the `SKIP_TESTS` build argument is `true`:
+
+```dockerfile
+FROM maven:3.9-eclipse-temurin-21 AS build
+
+ARG SKIP_TESTS=false
+
+WORKDIR /src
+
+COPY pom.xml .
+RUN --mount=type=cache,target=/root/.m2 mvn -B dependency:go-offline
+
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn -B package -DskipTests=${SKIP_TESTS}
+```
+
+The Okteto Manifest sets it for `okteto build`:
+
+```yaml
+build:
+  app:
+    context: .
+    args:
+      SKIP_TESTS: "true"
+```
+
+A CI pipeline that builds the image with a Docker daemon available keeps running the tests in the build, with no change. On Okteto, `okteto deploy` builds the image without them and deploys the application, and `okteto test` runs them.
+
+## Faster test runs
+
+The sample avoids downloading or uploading anything twice:
+
+- **Caches in `okteto test`.** The Maven repository (`/root/.m2`) and the kubedock binary (`/root/.kubedock`) are kept between runs, so later runs don't download them again.
+- **Dependency layer in the build.** The Dockerfile downloads the Maven dependencies in their own layer, with a BuildKit cache for `/root/.m2`, so a change in `src/` doesn't download them again.
+- **Smaller context.** `.dockerignore` only sends `pom.xml` and `src/` to the build, and `.oktetoignore` doesn't upload `target/` to `okteto test`.
+- **Test reports as artifacts.** `okteto test` downloads the JUnit XML reports to `target/test-reports` on your machine.
+
+## Things to know
+
+- **Ryuk is disabled.** Testcontainers uses a container called Ryuk to remove the containers of a crashed test run. Ryuk needs the Docker socket, which kubedock doesn't provide, so `TESTCONTAINERS_RYUK_DISABLED=true` turns it off. kubedock takes care of the cleanup instead.
+- **Runs in the same Namespace wait for each other.** With `--lock`, a second `okteto test` in the same Namespace starts when the first one finishes.
+- **Port forwarding.** kubedock reaches the ports of each pod through Kubernetes port forwarding, which keeps them on `127.0.0.1`. Its README describes port forwarding as meant for local debugging, and not as fast or stable as a direct connection. It worked well in every run of the sample, but keep it in mind for test suites that move a lot of data through their containers.
+
+## Trying it
+
+Clone [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock) and run:
+
+```bash
+okteto deploy      # builds the application without the tests and deploys it
+okteto test unit   # runs the tests, with Postgres as a pod in your Namespace
+```
+
+To use it in your own project, copy `start-kubedock.sh` and the `test` section of the Okteto Manifest, and change `mvn -B test` for the command that runs your tests.
