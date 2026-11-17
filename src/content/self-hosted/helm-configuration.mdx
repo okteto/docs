@@ -1414,13 +1414,17 @@ userDefinedNamespaces: false
 
 ### userPodAffinity
 
-When enabled Okteto automatically adds a preferred affinity to every pod, which leans towards placing pods from the same namespace and in the same node (default: `true`).
+When enabled, Okteto adds a preferred pod affinity to every pod of a Namespace, so the Kubernetes scheduler places the pods of the same Namespace on the same node when it can (default: `true`). Packing the pods of each Namespace on fewer nodes lets the cluster autoscaler remove the nodes that are left empty.
 
-- `antiAffinity`: When enabled Okteto adds an anti-affinity to the pod to ensure that all pods in the same namespace are placed in the same node. Disabled by default
+- `weight`: Weight of the preferred pod affinity, from `1` to `100` (default: `100`). The scheduler weighs it against its other preferences, such as spreading the replicas of a Deployment or placing pods on the nodes with more free resources. Lower values spread the pods of a Namespace across more nodes. The Okteto components fail to start if the value is outside that range.
+- `antiAffinity`: When enabled, Okteto adds a required pod anti-affinity, so pods of different Namespaces never run on the same node (default: `false`).
+
+The affinity applies when a pod is created: pods that are already running keep their node until they are recreated.
 
 ```yaml
 userPodAffinity:
   enabled: true
+  weight: 100
   antiAffinity:
     enabled: false
 ```
