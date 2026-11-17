@@ -83,7 +83,7 @@ Okteto and Signadot agree on that, and on something else: copying the whole appl
 
 ## How Signadot Works
 
-Signadot starts from a baseline environment that runs the whole application in your cluster. A sandbox forks the workloads you change: in the cluster, from an image your CI pipeline already built, or as a process on your laptop. Requests that carry the sandbox's routing key reach the forked workloads, and every other request reaches the baseline. The routing goes through Signadot's own sidecars (DevMesh), or through Istio VirtualServices if you run Istio. Its Gateway API support is in alpha.
+Signadot starts from a baseline environment that runs the whole application in your cluster. A sandbox forks the workloads you change: in the cluster, from an image your CI pipeline already built, or as a process on your laptop. Requests that carry the sandbox's routing key reach the forked workloads, and every other request reaches the baseline. The routing goes through Signadot's own sidecars (DevMesh), or through your service mesh if you run Istio (with VirtualServices) or Linkerd. Its Gateway API support is in alpha.
 
 For the dependencies a sandbox needs, such as a database or a queue, Signadot uses resource plugins: containerized workflows that you write to provision and clean up each resource.
 
@@ -107,7 +107,7 @@ The whole platform, control plane included, runs in your cluster: Self-Hosted on
 |---|---|---|
 | **Environment** | A dedicated namespace: only the services that change with Divert, a full copy, or a mix of both | Forked workloads on a shared baseline |
 | **Shared environment** | Any namespace in the cluster, deployed by Okteto, your CI, or your GitOps tooling | A baseline environment in the cluster |
-| **Routing to the services that change** | HTTP and gRPC, by the W3C `baggage` header. Gateway API routes on your service mesh (Linkerd, Istio, and other GAMMA meshes), or Istio VirtualServices | Signadot's own sidecars, or Istio VirtualServices. Gateway API in alpha |
+| **Routing to the services that change** | HTTP and gRPC, by the W3C `baggage` header. Gateway API routes on your service mesh (Linkerd, Istio, and other GAMMA meshes), or Istio VirtualServices | Signadot's own sidecars, Istio VirtualServices, or Linkerd. Gateway API in alpha |
 | **Message queues** | Queue Splitting: each namespace gets its own broker and consumers, or consumers filter by the `baggage` header | Routing key in the message headers, filtered by consumers |
 | **Data** | Native: Kubernetes Volume Snapshots clone the real data of any volume, or your own dump and restore scripts | Resource plugins you write to provision each resource |
 | **Builds** | In the cluster, with the Okteto Build Service, or any image you choose, such as one your CI built | An image your CI built, or a process on your laptop |
