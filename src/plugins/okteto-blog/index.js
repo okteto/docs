@@ -17,6 +17,12 @@
 //   4. /blog/posts.json (and /tutorials/posts.json), a machine-readable
 //      index of every post. okteto.com pages that list blog posts
 //      (BlogPostsListing in okteto/website) read it instead of querying Sanity.
+//   5. Featured posts. Posts with `featured: <n>` in their front matter come
+//      first on the blog index and the author pages, by that number (1 is
+//      the first card), and their cards get a "Featured" badge
+//      (src/theme/BlogPostItems). The other posts keep their order by date,
+//      and so do tag pages, the feed, posts.json and the previous and next
+//      links of each post.
 
 const fs = require('fs/promises');
 const path = require('path');
@@ -122,6 +128,20 @@ async function writePostsIndex({ outDir, content, siteUrl, baseUrl }) {
   await fs.writeFile(path.join(outDir, 'posts.json'), JSON.stringify({ posts }, null, 2));
 }
 
+// Featured posts first, ordered by their `featured` number, then the rest by
+// date.
+function featuredFirst(blogPosts) {
+  const rank = (post) => post.metadata.frontMatter.featured;
+  for (const post of blogPosts) {
+    const value = rank(post);
+    if (value !== undefined && !(Number.isInteger(value) && value > 0)) {
+      throw new Error(`${post.metadata.source}: \`featured\` must be a positive integer, got ${JSON.stringify(value)}`);
+    }
+  }
+  const featured = blogPosts.filter((post) => rank(post) !== undefined).sort((a, b) => rank(a) - rank(b));
+  return [...featured, ...blogPosts.filter((post) => rank(post) === undefined)];
+}
+
 async function oktetoBlogPlugin(context, options) {
   const plugin = await pluginContentBlog(context, options);
   return {
@@ -138,7 +158,7 @@ async function oktetoBlogPlugin(context, options) {
     async contentLoaded({ content, actions }) {
       actions.setGlobalData(buildIndex(content.blogPosts));
       await plugin.contentLoaded({
-        content,
+        content: { ...content, blogPosts: featuredFirst(content.blogPosts) },
         actions: { ...actions, addRoute: (route) => actions.addRoute(rewriteRoute(route)) },
       });
     },

@@ -1,7 +1,8 @@
 // Swizzled (ejected): the blog index, tag and author pages show a grid of
 // post cards instead of the stock list of truncated posts, matching the
 // layout of the Sanity-powered blog. Cards show no date: dates only order
-// the posts (newest first).
+// the posts (newest first). Posts with `featured` in their front matter get
+// a badge on the cover (src/plugins/okteto-blog puts them first).
 
 import React from 'react';
 import Link from '@docusaurus/Link';
@@ -17,6 +18,7 @@ function PostCard({ content }) {
       <Link to={metadata.permalink} className={styles.cardLink}>
         <div className={styles.cardImage}>
           {image && <img src={image} alt={frontMatter.image_alt || ''} loading="lazy" />}
+          {frontMatter.featured && <span className={styles.featured}>Featured</span>}
         </div>
         <div className={styles.cardBody}>
           <h2 className={styles.cardTitle}>{metadata.title}</h2>
