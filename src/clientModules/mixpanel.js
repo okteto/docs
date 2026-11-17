@@ -14,13 +14,27 @@ const TRACKED_HOST = 'www.okteto.com';
 
 let enabled = false;
 
-if (ExecutionEnvironment.canUseDOM && window.location.hostname === TRACKED_HOST) {
+// Automated browsers (headless Chrome, Playwright, Selenium) say so in
+// navigator.webdriver. Crawlers driving them were most of the page views in
+// the reports, one page per visitor, so they aren't tracked.
+if (
+  ExecutionEnvironment.canUseDOM &&
+  window.location.hostname === TRACKED_HOST &&
+  !window.navigator.webdriver
+) {
   mixpanel.init(MIXPANEL_TOKEN, {
     // Docusaurus routes client-side, so page views are tracked on every path
     // change instead of only on full page loads.
     track_pageview: 'url-with-path',
     autocapture: true,
   });
+  // `?analytics=off` on any page stops tracking this browser, for the team,
+  // so our own visits don't end up in the reports; `?analytics=on` undoes
+  // it. Mixpanel keeps the choice in localStorage, per project token, so it
+  // applies to okteto.com too (src/utils/analytics.js in okteto/website).
+  const choice = new URLSearchParams(window.location.search).get('analytics');
+  if (choice === 'off') mixpanel.opt_out_tracking();
+  if (choice === 'on') mixpanel.opt_in_tracking();
   enabled = true;
 
   // Calls to action (the Button component, which the blog's CallToAction and
