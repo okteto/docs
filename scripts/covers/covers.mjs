@@ -647,6 +647,17 @@ const covers = [
     svg: row([mark('helm', { size: 200 }), 'arrow', kubernetes()]),
   },
   {
+    out: tutorial('2026-11-17-testcontainers'),
+    alt: 'Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace',
+    svg: row([
+      tile('flask-conical', 'Tests', { color: C.teal }),
+      'arrow',
+      tile('server', 'kubedock', { color: C.teal }),
+      'arrow',
+      group('Namespace', [item('database'), item('box')], { top: 'kubernetes' }),
+    ]),
+  },
+  {
     out: tutorial('2026-11-13-cloud-infrastructure'),
     alt: 'A Namespace, Terraform, and the S3 bucket that Terraform creates for it',
     svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),
