@@ -728,7 +728,7 @@ The `status` command should be run from the same location than `okteto up`.
 Run tests using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
 
 ```bash
-okteto test [testContainerName]
+okteto test [testContainerName...] [-- COMMAND [args...]]
 ```
 
 Since tests run inside the cluster, all internal endpoints are available inside the test execution.
@@ -742,6 +742,7 @@ Use the `-v` / `--var` flag to pass individual variables at the CLI level instea
 
 | Options                                        |   Type   | Description                                                                                                            | Default     |
 | :--------------------------------------------- | :------: | :--------------------------------------------------------------------------------------------------------------------- | :---------- |
+| <em className="no-wrap">_--command_</em>       |  list    | Replace the commands of the Test Container. Requires exactly one Test Container name (can be set more than once, run in order) | |
 | <em className="no-wrap">_--deploy_</em>        |  bool    | Force execution of the commands in the `deploy` section                                       | `false` |
 | <em className="no-wrap">_-f, --file_</em>      | string   | The path to the Okteto Manifest                                            | `okteto.yml`|
 | <em className="no-wrap">_-n, --namespace_</em> | string   | Overwrite the current Okteto Namespace                                    | |
@@ -749,6 +750,27 @@ Use the `-v` / `--var` flag to pass individual variables at the CLI level instea
 | <em className="no-wrap">_--no-cache_</em>      |  bool    | By default, the `caches` of a Test Container are reused between executions                                                      | `false` |
 | <em className="no-wrap">_-t, --timeout_</em>   | duration | The duration to wait for the Test Container to run. Any value should contain a corresponding time unit, for example, 1s, 2m, 3h | 5m0s |
 | <em className="no-wrap">_-v, --var_</em>       |  list    | Set a variable to be injected in the test commands (can be set more than once)                                            | |
+
+#### Overriding the commands of a Test Container
+
+`okteto test` replaces the `commands` of a single Test Container when you pass a command after `--` or with the `--command` flag. The override applies to that run only, and your Okteto Manifest doesn't change. Use it to run part of a test suite, such as a single test, while you iterate.
+
+```bash
+# Replace the commands of the 'unit' Test Container with a single command
+okteto test unit -- go test ./pkg/api -run TestLogin
+
+# Replace the commands of the 'unit' Test Container with several commands, run in order
+okteto test unit --command "go mod download" --command "go test ./pkg/api -run TestLogin"
+```
+
+The override follows these rules:
+
+- It replaces the whole `commands` list of the Test Container. The rest of the definition, such as `image`, `context`, `caches`, and `artifacts`, stays the same.
+- The Test Containers listed in `depends_on` still run first, with the commands defined in your Okteto Manifest.
+- The arguments after `--` are quoted and joined into a single command, so each argument reaches the program exactly as you typed it, for example `-run 'TestA|TestB'`. Shell features such as `&&`, pipes, or variables expanded in the remote container don't work in this form. Use `--command '...'` or `-- sh -c '...'` instead, for example `okteto test unit --command 'echo $OKTETO_NAMESPACE'`. Single quotes keep your local shell from expanding `$VARIABLES` before `okteto` receives them.
+- Each `--command` value runs as is, like a command in your Okteto Manifest.
+- You must name exactly one Test Container. `okteto test` fails before connecting to the cluster if you name no Test Container or several, pass nothing after `--`, pass an empty `--command`, or combine `--` with `--command`.
+- A run with overridden commands isn't published to [Okteto Insights](admin/okteto-insights.mdx#test-metrics), so it doesn't affect the test metrics of that Test Container. Runs of its dependencies are still published.
 
 ### up<TiersList tiers="Platform Open-Source" />
 
