@@ -9,7 +9,7 @@ image_alt: "Tests talk to kubedock, which runs their containers, such as a datab
 
 [Testcontainers](https://testcontainers.com) is a widely adopted library that runs the real dependencies of your tests, such as a Postgres database or a Kafka broker, as throwaway containers. It's available for Java, Go, .NET, Node.js, Python, and other languages. A test asks for a Postgres container, runs against a real database instead of a mock, and the container is removed when the test ends. To start those containers, Testcontainers needs the Docker API. On a laptop, that's Docker Desktop. On Kubernetes, it's Docker-in-Docker: a privileged container, which can run any kind of untrusted code with full access to its node. In a cluster shared by many developers, giving every test run that access is not an option. Luckily, an open source project, [kubedock](https://github.com/joyrex2001/kubedock), comes to the rescue: it starts those containers as regular pods in your Okteto Namespace.
 
-This tutorial runs a Testcontainers test suite with `okteto test` and kubedock. It uses the sample repository [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock): a small Scala web application, built with Maven, whose tests start a Postgres container.
+This tutorial runs the Testcontainers test suite of a sample application with `okteto test` and kubedock.
 
 ## Prerequisites
 
@@ -32,9 +32,14 @@ When a test asks for a Postgres container:
 
 ## Running the tests with Okteto Test
 
-`okteto test` runs your test commands in a container in the cluster, with [Remote Execution](/docs/core/remote-execution), and that container already has your Kubernetes credentials. kubedock only needs to start in that container before the tests do.
+To see how to configure Okteto to run your tests with Testcontainers, this tutorial uses the [testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock) sample: a small Scala web application, built with Maven, whose tests start a Postgres container. Get a local copy of it:
 
-This is the `test` section of the Okteto Manifest of the sample:
+```bash
+git clone https://github.com/okteto-community/testcontainers-kubedock
+cd testcontainers-kubedock
+```
+
+Look at the `test` section of its Okteto Manifest:
 
 ```yaml
 test:
@@ -50,7 +55,7 @@ test:
       - target/test-reports
 ```
 
-The two commands do the work:
+`okteto test` runs these commands in a container in the cluster, with [Remote Execution](/docs/core/remote-execution), and that container already has your Kubernetes credentials. kubedock only needs to start in that container before the tests do:
 
 1. `start-kubedock.sh` downloads kubedock, starts it in the background on `tcp://127.0.0.1:2475`, and waits until it answers. kubedock keeps running for the next command.
 2. `mvn -B test` runs the tests with `DOCKER_HOST` set to that address, so Testcontainers talks to kubedock instead of a Docker daemon.
@@ -77,17 +82,32 @@ kubedock server \
 | `--lock` | Wait for any other run in the Okteto Namespace to finish before starting. |
 | `--prune-start` | Delete what a cancelled run left behind, once kubedock holds the lock. |
 
-Get a local copy of the sample application:
-
-```bash
-git clone https://github.com/okteto-community/testcontainers-kubedock
-cd testcontainers-kubedock
-```
-
-Run the tests with:
+Now run the tests:
 
 ```bash
 okteto test unit
+```
+
+kubedock starts, the tests get their Postgres container, and they pass:
+
+```console
+ i  Executing test container 'unit'
+ i  Running './start-kubedock.sh'
+ ✓  Command './start-kubedock.sh' successfully executed
+ i  Running 'DOCKER_HOST=tcp://127.0.0.1:2475 TESTCONTAINERS_RYUK_DISABLED=true mvn -B test'
+...
+[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Creating container for image: postgres:15-alpine
+[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Container postgres:15-alpine started in PT4.924507558S
+[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Container is started (JDBC URL: jdbc:postgresql://127.0.0.1:39011/test?loggerLevel=OFF)
+- greeting is rendered
+- postgres container answers a query
+Run completed in 6 seconds, 229 milliseconds.
+Total number of tests run: 2
+Suites: completed 2, aborted 0
+Tests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0
+All tests passed.
+...
+ ✓  Test container 'unit' passed
 ```
 
 ## Keeping the tests out of the build
