@@ -13,9 +13,9 @@ This tutorial runs the Testcontainers test suite of a sample application with `o
 
 ## Prerequisites
 
-Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](/docs/get-started/install-okteto-cli) if you haven't done it yet.
+Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](/docs/get-started/install-okteto-cli/) if you haven't done it yet.
 
-This tutorial doesn't support the [BuildKit server](/docs/self-hosted/helm-configuration#buildkit) of Okteto in rootless mode or with `network.mode` set to `host`.
+This tutorial doesn't support the [BuildKit server](/docs/self-hosted/helm-configuration/#buildkit) of Okteto in rootless mode or with `network.mode` set to `host`.
 
 ## kubedock
 
@@ -49,16 +49,16 @@ test:
       - /root/.m2
       - /root/.kubedock
     commands:
-      - ./start-kubedock.sh
-      - DOCKER_HOST=tcp://127.0.0.1:2475 TESTCONTAINERS_RYUK_DISABLED=true mvn -B test
+      - ./with-kubedock.sh mvn -B test
     artifacts:
       - target/test-reports
 ```
 
-`okteto test` runs these commands in a container in the cluster, with [Remote Execution](/docs/core/remote-execution), and that container already has your Kubernetes credentials. kubedock only needs to start in that container before the tests do:
+`okteto test` runs this command in a container in the cluster, with [Remote Execution](/docs/core/remote-execution/), and that container already has your Kubernetes credentials. `with-kubedock.sh` runs the tests with kubedock next to them:
 
-1. `start-kubedock.sh` downloads kubedock, starts it in the background on `tcp://127.0.0.1:2475`, and waits until it answers. kubedock keeps running for the next command.
-2. `mvn -B test` runs the tests with `DOCKER_HOST` set to that address, so Testcontainers talks to kubedock instead of a Docker daemon. `TESTCONTAINERS_RYUK_DISABLED=true` turns off Ryuk, the container that Testcontainers uses to clean up after a crashed run, because it needs the Docker socket and kubedock doesn't provide it.
+1. It downloads kubedock, starts it in the background on `tcp://127.0.0.1:2475`, and waits until it answers.
+2. It runs `mvn -B test` with `DOCKER_HOST` set to that address, so Testcontainers talks to kubedock instead of a Docker daemon. It also sets `TESTCONTAINERS_RYUK_DISABLED=true` to turn off Ryuk, the container that Testcontainers uses to clean up after a crashed run: Ryuk mounts the Docker socket, and `--disable-dind` turns off the Docker socket support of kubedock.
+3. When the tests end, it stops kubedock, which deletes its pods and releases its lock on the Okteto Namespace.
 
 This is how the script starts kubedock:
 
@@ -92,25 +92,24 @@ kubedock starts, the tests get their Postgres container, and they pass:
 
 ```console
  i  Executing test container 'unit'
- i  Running './start-kubedock.sh'
- ✓  Command './start-kubedock.sh' successfully executed
- i  Running 'DOCKER_HOST=tcp://127.0.0.1:2475 TESTCONTAINERS_RYUK_DISABLED=true mvn -B test'
+ i  Running './with-kubedock.sh mvn -B test'
 ...
 [ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Creating container for image: postgres:15-alpine
-[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Container postgres:15-alpine started in PT4.924507558S
-[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Container is started (JDBC URL: jdbc:postgresql://127.0.0.1:39011/test?loggerLevel=OFF)
+[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Container postgres:15-alpine started in PT3.363441756S
+[ScalaTest-main-running-DiscoverySuite] INFO tc.postgres:15-alpine - Container is started (JDBC URL: jdbc:postgresql://127.0.0.1:44173/test?loggerLevel=OFF)
 - greeting is rendered
 - postgres container answers a query
-Run completed in 6 seconds, 229 milliseconds.
+Run completed in 4 seconds, 400 milliseconds.
 Total number of tests run: 2
 Suites: completed 2, aborted 0
 Tests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0
 All tests passed.
 ...
+ ✓  Command './with-kubedock.sh mvn -B test' successfully executed
  ✓  Test container 'unit' passed
 ```
 
-That's all. If you want to run Testcontainers with your own application in Okteto, copy `start-kubedock.sh` and the `test` section of the Okteto Manifest of the sample, and change `mvn -B test` for the command that runs your tests.
+That's all. If you want to run Testcontainers with your own application in Okteto, copy `with-kubedock.sh` and the `test` section of the Okteto Manifest of the sample, and replace `mvn -B test` with the command that runs your tests.
 
 ## Conclusion
 
