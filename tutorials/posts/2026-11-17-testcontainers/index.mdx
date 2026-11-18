@@ -19,17 +19,16 @@ This tutorial doesn't support the [BuildKit server](/docs/self-hosted/helm-confi
 
 ## kubedock
 
-[kubedock](https://github.com/joyrex2001/kubedock) implements the Docker API on top of Kubernetes. Instead of running containers itself, it translates each Docker API call into Kubernetes resources.
+[kubedock](https://github.com/joyrex2001/kubedock) implements the Docker API, but it doesn't run containers itself: it translates each call into Kubernetes resources. Testcontainers talks to it as it would to a Docker daemon.
 
-When Testcontainers asks kubedock for a Postgres container:
+When a test asks for a Postgres container:
 
-1. kubedock creates a pod that runs the `postgres` image.
-2. It waits until the pod is running and makes its ports reachable to the test.
-3. When the test stops the container, kubedock deletes the pod.
+1. kubedock creates a pod that runs the `postgres` image, and waits until it's running.
+2. It makes the ports of the pod reachable to the test.
+3. When the test reads the logs of the container, runs a command in it, or copies a file to it, kubedock does the same on the pod.
+4. When the test stops the container, kubedock deletes the pod.
 
-Testcontainers doesn't know the difference: it sees a Docker API.
-
-Vincent van Dam has maintained kubedock since 2021, and it works very well. It covers far more of the Docker API than a test suite usually needs, and it has the options that make it safe on a shared cluster, which this tutorial relies on. If it's useful to you too, give [the repository](https://github.com/joyrex2001/kubedock) a star.
+[Vincent van Dam](https://github.com/joyrex2001) started kubedock in 2021 to run tests that need Docker containers without Docker-in-Docker, and still maintains it. It covers far more of the Docker API than a test suite usually needs, and it has the options that make it safe on a shared cluster, which this tutorial relies on. If it's useful to you too, give [the repository](https://github.com/joyrex2001/kubedock) a star.
 
 ## Running Testcontainers safely on a shared cluster
 
