@@ -1,13 +1,13 @@
 ---
 title: Getting Started with Okteto and Go
-description: Deploy, test, develop, and debug a Go application in a Development Container with Okteto.
+description: Deploy, develop, and debug a Go application in a Development Container with Okteto.
 sidebar_label: Go
 id: golang
 ---
 
 import Image from "@theme/Image";
 
-Okteto runs your Go application in a Development Container on Kubernetes, so you write code on your local machine and run, test, and debug it in the cluster. This guide uses the [Go Sample App](https://github.com/okteto/go-getting-started), a web server that responds with `Hello world!`.
+Okteto runs your Go application in a Development Container on Kubernetes, so you write code on your local machine and run and debug it in the cluster. This guide uses the [Go Sample App](https://github.com/okteto/go-getting-started), a web server that responds with `Hello world!`.
 
 ## Prerequisites
 
@@ -57,58 +57,7 @@ Log into your Okteto instance and click on the URL of the application:
 
 The endpoint uses HTTPS because Okteto [creates the certificates](core/endpoints/automatic-ssl.mdx) for the endpoints of your application when you deploy it.
 
-## Step 2: Running the tests
-
-The [test](reference/okteto-manifest.mdx#test-object-optional) section defines the Test Containers of the Go Sample App:
-
-```yaml title="okteto.yml"
-test:
-  unit:
-    image: ghcr.io/okteto/golang:1
-    caches:
-      - /go
-      - /root/.cache
-    commands:
-      - go vet ./...
-      - go test -v ./...
-  e2e:
-    depends_on:
-      - unit
-    image: ghcr.io/okteto/golang:1
-    commands:
-      - curl -fsS --retry 5 --retry-connrefused http://hello-world.${OKTETO_NAMESPACE}:8080/ | grep -q "Hello world!"
-```
-
-- `unit` runs `go vet` and the unit tests in `main_test.go`. The `caches` field keeps the Go module and build caches between runs.
-- `e2e` runs after `unit` passes. It sends a request to the `hello-world` Service that `okteto deploy` created and checks that the response is `Hello world!`. Test Containers reach the Services of your Namespace through the hostname `<service>.${OKTETO_NAMESPACE}`.
-
-Run every Test Container with [Okteto Test](reference/okteto-cli.mdx#test). The `e2e` Test Container needs the application deployed with `okteto deploy` first:
-
-```bash
-$ okteto test
-```
-
-```bash
- i  Using cindy @ okteto.example.com as context
- i  Executing test container 'unit'
- i  Running 'go vet ./...'
- ✓  Command 'go vet ./...' successfully executed
- i  Running 'go test -v ./...'
-=== RUN   TestHelloServer
---- PASS: TestHelloServer (0.00s)
-PASS
-ok  	github.com/okteto/go-getting-started	0.004s
- ✓  Command 'go test -v ./...' successfully executed
- ✓  Test container 'unit' passed
- i  Executing test container 'e2e'
- i  Running 'curl -fsS --retry 5 --retry-connrefused http://hello-world.${OKTETO_NAMESPACE}:8080/ | grep -q "Hello world!"'
- ✓  Command 'curl -fsS --retry 5 --retry-connrefused http://hello-world.${OKTETO_NAMESPACE}:8080/ | grep -q "Hello world!"' successfully executed
- ✓  Test container 'e2e' passed
-```
-
-The tests run with [Remote Execution](core/remote-execution.mdx) in your Okteto instance, not on your local machine.
-
-## Step 3: Activate your development container
+## Step 2: Activate your development container
 
 The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the Go Sample App:
 
@@ -175,7 +124,7 @@ Starting hello-world server...
 
 Go back to the browser, and reload the page to test that your application is running.
 
-## Step 4: Remote Development with Okteto
+## Step 3: Remote Development with Okteto
 
 Open the file `main.go` in your favorite local IDE and modify the response message on line 17 to be _Hello world from Okteto!_. Save your changes.
 
@@ -199,9 +148,7 @@ Starting hello-world server...
 
 Go back to the browser and reload the page. The response shows your change without a commit, build, or push.
 
-The `unit` and `e2e` Test Containers both expect `Hello world!`. While your development container is running, the `hello-world` Service sends requests to it, so `e2e` gets your new response too. If you run `okteto test` after this change, update the expected response in `TestHelloServer` in `main_test.go` and in the `e2e` command in `okteto.yml`.
-
-## Step 5: Remote debugging with Okteto
+## Step 4: Remote debugging with Okteto
 
 Okteto enables you to debug your applications directly from your favorite IDE.
 Let's take a look at how that works in VS Code, one of the most popular IDEs for Go development.
@@ -261,7 +208,7 @@ Your code runs in Okteto, and you debug it from your local machine without extra
 
 ## Next steps
 
-You developed, tested, and debugged a Go application in Okteto.
+You developed and debugged a Go application in Okteto.
 
 Okteto lets you develop your applications directly on Kubernetes. This way you can:
 
