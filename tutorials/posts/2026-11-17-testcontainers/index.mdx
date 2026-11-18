@@ -15,7 +15,7 @@ This tutorial runs a Testcontainers test suite with `okteto test` and kubedock. 
 
 - Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli#context) configured.
 - The [Okteto CLI](/docs/get-started/install-okteto-cli) installed on your machine.
-- On Self-Hosted installations, the [BuildKit server](/docs/self-hosted/helm-configuration#buildkit) with `network.mode` set to `auto` (the default) or `bridge`, and rootless mode disabled. In `host` mode and in rootless mode, every `okteto test` shares the network of the BuildKit pod: two runs at the same time collide on the port of kubedock, and the tests of one run can use the kubedock of the other, with its credentials.
+- The [BuildKit server](/docs/self-hosted/helm-configuration#buildkit) with `network.mode` set to `cni`, `bridge`, or `auto` (the default), and rootless mode disabled. The tutorial doesn't work in `host` mode or in rootless mode.
 - A local copy of the sample application:
 
 ```bash
@@ -61,7 +61,7 @@ Vincent van Dam has maintained kubedock since 2021, and it works very well. It c
 Running Testcontainers through kubedock in `okteto test` avoids the problems that Docker-in-Docker brings to a shared cluster:
 
 - **No privileged containers.** The test container and the pods kubedock creates are regular pods.
-- **Nobody else can use kubedock.** It only listens on `127.0.0.1`, in the network that BuildKit gives each test container in `auto` and `bridge` modes, and it only lives while `okteto test` runs. Nothing is deployed in your Namespace.
+- **Nobody else can use kubedock.** It only listens on `127.0.0.1` inside the test container, and it only lives while `okteto test` runs. Nothing is deployed in your Namespace.
 - **Your own permissions.** kubedock creates the pods in your Namespace with your Kubernetes credentials, so it can't do anything you couldn't already do with `kubectl`.
 - **No collisions between runs.** Testcontainers can give a container a network alias, such as `db`, and kubedock creates a Service with that name. Two runs using the same alias in the same Namespace would collide, so `--lock` makes them run one at a time.
 - **No leftovers.** kubedock deletes each pod when the test stops its container. If a run is cancelled before that, the next run deletes what it left behind (`--prune-start`).
