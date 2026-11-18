@@ -30,17 +30,6 @@ When a test asks for a Postgres container:
 
 [Vincent van Dam](https://github.com/joyrex2001) started kubedock in 2021 to run tests that need Docker containers without Docker-in-Docker, and still maintains it. It covers far more of the Docker API than a test suite usually needs, and it has the options that make it safe on a shared cluster, which this tutorial relies on. If it's useful to you too, give [the repository](https://github.com/joyrex2001/kubedock) a star.
 
-## Running Testcontainers safely on a shared cluster
-
-Running Testcontainers through kubedock in `okteto test` avoids the problems that Docker-in-Docker brings to a shared cluster:
-
-- **No privileged containers.** The test container and the pods kubedock creates are regular pods.
-- **Nobody else can use kubedock.** It only listens on `127.0.0.1` inside the test container, and it only lives while `okteto test` runs. Nothing is deployed in your Okteto Namespace.
-- **Your own permissions.** kubedock creates the pods in your Okteto Namespace with your Kubernetes credentials, so it can't do anything you couldn't already do with `kubectl`.
-- **No collisions between runs.** Testcontainers can give a container a network alias, such as `db`, and kubedock creates a Service with that name. Two runs using the same alias in the same Okteto Namespace would collide, so `--lock` makes them run one at a time.
-- **No leftovers.** kubedock deletes each pod when the test stops its container. If a run is cancelled before that, the next run deletes what it left behind (`--prune-start`).
-- **Visible to Kubernetes.** The containers are pods, so your logs, metrics, and policies see them like any other workload.
-
 ## Running the tests with okteto test
 
 `okteto test` runs your test commands in a container in the cluster, with [Remote Execution](/docs/core/remote-execution), and that container already has your Kubernetes credentials. kubedock only needs to start in that container before the tests do.
@@ -155,3 +144,14 @@ The sample avoids downloading or uploading anything twice:
 ## Using kubedock in your project
 
 To run your own Testcontainers tests the same way, copy `start-kubedock.sh` and the `test` section of the Okteto Manifest, and change `mvn -B test` for the command that runs your tests.
+
+## Running Testcontainers safely on a shared cluster
+
+Running Testcontainers through kubedock in `okteto test` avoids the problems that Docker-in-Docker brings to a shared cluster:
+
+- **No privileged containers.** The test container and the pods kubedock creates are regular pods.
+- **Nobody else can use kubedock.** It only listens on `127.0.0.1` inside the test container, and it only lives while `okteto test` runs. Nothing is deployed in your Okteto Namespace.
+- **Your own permissions.** kubedock creates the pods in your Okteto Namespace with your Kubernetes credentials, so it can't do anything you couldn't already do with `kubectl`.
+- **No collisions between runs.** Testcontainers can give a container a network alias, such as `db`, and kubedock creates a Service with that name. Two runs using the same alias in the same Okteto Namespace would collide, so `--lock` makes them run one at a time.
+- **No leftovers.** kubedock deletes each pod when the test stops its container. If a run is cancelled before that, the next run deletes what it left behind (`--prune-start`).
+- **Visible to Kubernetes.** The containers are pods, so your logs, metrics, and policies see them like any other workload.
