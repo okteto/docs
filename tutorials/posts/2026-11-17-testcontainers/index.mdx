@@ -7,23 +7,15 @@ image: ./img/cover.jpg
 image_alt: "Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace"
 ---
 
-Testcontainers is a widely adopted library that runs the real dependencies of your tests, such as a Postgres database or a Kafka broker, as throwaway containers. It needs access to Docker-in-Docker: a privileged container, which can run any kind of untrusted code. That's a problem on Kubernetes, where you can't run a privileged container just to run your Testcontainers tests. Luckily, an open source project, [kubedock](https://github.com/joyrex2001/kubedock), comes to the rescue: it starts those containers as regular pods in your Okteto Namespace.
+[Testcontainers](https://testcontainers.com) is a widely adopted library that runs the real dependencies of your tests, such as a Postgres database or a Kafka broker, as throwaway containers. It's available for Java, Go, .NET, Node.js, Python, and other languages. A test asks for a Postgres container, runs against a real database instead of a mock, and the container is removed when the test ends. To start those containers, Testcontainers needs the Docker API, set in `DOCKER_HOST` or through the local Docker socket. On a laptop, that's Docker Desktop. On Kubernetes, it's Docker-in-Docker: a privileged container, which can run any kind of untrusted code, and you can't run one just to run your Testcontainers tests. Luckily, an open source project, [kubedock](https://github.com/joyrex2001/kubedock), comes to the rescue: it starts those containers as regular pods in your Okteto Namespace.
 
-This tutorial runs a Testcontainers test suite with `okteto test` and kubedock. The containers your tests start are regular pods in your Okteto Namespace. It uses the sample repository [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock): a small Scala web application, built with Maven, whose tests start a Postgres container.
+This tutorial runs a Testcontainers test suite with `okteto test` and kubedock. It uses the sample repository [okteto-community/testcontainers-kubedock](https://github.com/okteto-community/testcontainers-kubedock): a small Scala web application, built with Maven, whose tests start a Postgres container.
 
 ## Prerequisites
 
 Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](/docs/get-started/install-okteto-cli) if you haven't done it yet.
 
 This tutorial doesn't support the [BuildKit server](/docs/self-hosted/helm-configuration#buildkit) of Okteto in rootless mode or with `network.mode` set to `host`.
-
-## Testcontainers
-
-[Testcontainers](https://testcontainers.com) is a library that starts containers from your test code. It's available for Java, Go, .NET, Node.js, Python, and other languages.
-
-A test asks for a Postgres container, Testcontainers starts it, and the test runs against a real database instead of a mock. When the test ends, the container is removed.
-
-To start those containers, Testcontainers needs the Docker API: the Docker daemon set in `DOCKER_HOST`, or the local Docker socket. On a laptop, that's Docker Desktop.
 
 ## Testcontainers on Okteto
 
