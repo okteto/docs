@@ -19,7 +19,6 @@ module.exports = {
           link: { type: 'doc', id: 'get-started/install/index' },
           items: [
             'get-started/install/amazon-eks',
-            'get-started/install/civo',
             'get-started/install/digitalocean-doks',
             'get-started/install/google-gke',
             'get-started/install/microsoft-aks',

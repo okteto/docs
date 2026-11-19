@@ -1,6 +1,6 @@
 ---
 title: Nutanix Kubernetes Platform (NKP)
-description: How to install Okteto onto a Nutanix Kubernetes Platform (NKP) workload cluster
+description: Install Okteto in a Nutanix Kubernetes Platform (NKP) workload cluster with the Okteto Helm chart.
 sidebar_label: Nutanix NKP
 id: nutanix-nkp
 pagination_prev: get-started/install/index
@@ -30,38 +30,38 @@ Install Okteto on an NKP **workload cluster**, not on the NKP management cluster
 
 ## Installation Requirements
 
-Make sure you have the following CLIs installed in your machine:
+Install these CLIs on your machine:
 
-- `okteto` >= {variables.cliVersion} ([okteto installation guides](get-started/install-okteto-cli.mdx))
-- `nkp` >= 2.17 ([NKP CLI installation guide](https://portal.nutanix.com/page/documents/details?targetId=Nutanix-Kubernetes-Platform-v2_17:Nutanix-Kubernetes-Platform-v2_17))
-- `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
-- `helm` >= 3.14 ([helm installation guides](https://helm.sh/docs/intro/install/))
+- `okteto` >= {variables.cliVersion} ([installation guide](get-started/install-okteto-cli.mdx))
+- `nkp` >= 2.17 ([installation guide](https://portal.nutanix.com/page/documents/details?targetId=Nutanix-Kubernetes-Platform-v2_17:Nutanix-Kubernetes-Platform-v2_17))
+- `kubectl` >= 1.28 ([installation guide](https://kubernetes.io/docs/tasks/tools/#kubectl))
+- `helm` >= 3.14 ([installation guide](https://helm.sh/docs/intro/install/))
 
-You'll also need the following:
+You also need:
 
-- An Okteto License
-- A Domain and the ability to create wildcard DNS records for it
+- An Okteto license
+- A domain where you can create wildcard DNS records
 - An NKP management cluster, and a workload cluster managed by it
 
 ## Getting your Okteto License
 
-A license is mandatory to use Okteto. You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+Okteto requires a license. Your Okteto subscription includes a license key. If you haven't received it, [open a support ticket](https://okteto.com/support).
 
-If you are interested in evaluating Okteto, [sign up for our Free Tier (5 users and 500 environments per month, one-year license)](https://www.okteto.com/free-tier/). No credit card required.
+To evaluate Okteto, [sign up for the free tier](https://www.okteto.com/free-tier/): 5 users and 500 environments per month, with a one-year license. No credit card required.
 
 ## A Domain and the ability to create wildcard DNS records for it
 
-You'll need sufficient access to a [subdomain](self-hosted/helm-configuration.mdx#subdomain) to add a wildcard DNS record, such as `dev.example.com`.
-By default, all endpoints created by Okteto for your development environments will be exposed on the wildcard subdomain you choose.
+You need enough access to a [subdomain](self-hosted/helm-configuration.mdx#subdomain), such as `dev.example.com`, to add a wildcard DNS record to it.
+By default, Okteto exposes the endpoints of your Development Environments on that subdomain.
 
 NKP doesn't create this record for you, so make sure you can add it in your DNS provider.
 
 ## Prepare your NKP workload cluster
 
-Our installation guides assume Okteto will be running in a new dedicated workload cluster.
+This guide assumes Okteto runs in a new, dedicated workload cluster.
 
 :::note
-If you plan on installing Okteto in an existing workload cluster with other workloads, read this section to make sure your cluster satisfies the requirements to install Okteto.
+To install Okteto in an existing workload cluster with other workloads, read this section to check that your cluster meets the requirements.
 :::
 
 ### Create the workload cluster
@@ -69,7 +69,7 @@ If you plan on installing Okteto in an existing workload cluster with other work
 Create a workload cluster from your NKP management cluster using the NKP Dashboard or the `nkp create cluster` command for your infrastructure provider.
 Follow the [NKP documentation](https://portal.nutanix.com/page/documents/details?targetId=Nutanix-Kubernetes-Platform-v2_17:Nutanix-Kubernetes-Platform-v2_17) for the provider-specific options.
 
-For initial evaluation, we recommend a node pool of 3 worker nodes with 4 vCPUs, 16 GB of memory, and 250 GB of disk each (for example, `m5.xlarge` on AWS).
+For an initial evaluation, we recommend a node pool of 3 worker nodes with 4 vCPUs, 16 GB of memory, and 250 GB of disk each (for example, `m5.xlarge` on AWS).
 
 :::note
 Okteto supports Kubernetes versions {variables.kubernetesMinVersion} through {variables.kubernetesMaxVersion}.
@@ -115,8 +115,7 @@ On Amazon EKS, the kubeconfig returned by `nkp get kubeconfig` authenticates wit
 
 ### Verify the default storage class
 
-Okteto uses persistent volumes to persist the cache of the [Okteto Build](core/build-service.mdx) service (BuildKit).
-The default installation also uses persistent volumes to store your container images in the [Okteto Registry](core/container-registry.mdx).
+Okteto uses persistent volumes for the cache of the [Okteto Build Service](core/build-service.mdx) (BuildKit) and, in the default installation, to store your container images in the [Okteto Registry](core/container-registry.mdx).
 
 NKP deploys a CSI driver and a default storage class on every cluster. Confirm there is one marked as `(default)`:
 
@@ -155,11 +154,11 @@ If you already use Argo CD, or you want a GitOps-based installation, you can ins
 It replaces [Add the Okteto Helm repository](#add-the-okteto-helm-repository) and [Installing the Okteto Helm chart](#installing-the-okteto-helm-chart). Every other step on this page still applies, including the DNS record, sign-in, and CLI context.
 :::
 
-Okteto is installed using a Helm chart. Let's start the process:
+You install Okteto with its Helm chart.
 
 ### Add the Okteto Helm repository
 
-You'll need to add the Okteto Helm repository to be able to install Okteto:
+Add the Okteto Helm repository:
 
 ```bash
 helm repo add okteto https://charts.okteto.com
@@ -168,8 +167,7 @@ helm repo update
 
 ### Create the Helm configuration file
 
-In order to install Okteto you need to first create a `config.yaml` for the installation process.
-Replace `license` and `subdomain` with your own values, and pick the configuration for your infrastructure provider:
+Create a `config.yaml` file with the configuration for your infrastructure provider, replacing `license` and `subdomain` with your own values:
 
 <Tabs
   defaultValue="ahv"
@@ -277,19 +275,19 @@ Google Cloud allocates a public load balancer for the Okteto ingress controller 
 </TabItem>
 </Tabs>
 
-_Note: This is the minimum configuration. The [Helm configuration](self-hosted/helm-configuration.mdx) lists every setting._
+This is the minimum configuration. The [Helm configuration](self-hosted/helm-configuration.mdx) lists every setting.
 
 Okteto installs its own NGINX ingress controller, which runs alongside the Traefik ingress that NKP deploys on every cluster. The two don't conflict: Okteto only manages ingresses for the endpoints of your development environments.
 
 ### Installing the Okteto Helm chart
 
-Install the latest version of Okteto by running:
+Install the Okteto Helm chart:
 
 <CodeBlock language="bash">
   {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
 </CodeBlock>
 
-After a few seconds, all the resources will be created. The output will look something like this:
+After a few seconds, Helm creates all the resources. The output looks like this:
 
 ```bash
 Release "okteto" has been installed. Happy Helming!
@@ -301,20 +299,20 @@ STATUS: deployed
 
 ### Retrieve the Ingress Controller address
 
-Use `kubectl` to fetch the address allocated to the NGINX Ingress Controller installed as a part of Okteto:
+Use `kubectl` to get the address allocated to the NGINX ingress controller that Okteto installs:
 
 ```bash
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
 ```
 
-The output will look something like this:
+The output looks like this:
 
 ```
 NAME                             TYPE           CLUSTER-IP   EXTERNAL-IP    PORT(S)                                     AGE
 okteto-ingress-nginx-controller  LoadBalancer   10.0.7.73    10.38.12.151   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
 ```
 
-Take the `EXTERNAL-IP` value and add a wildcard DNS record for the domain you have chosen to use:
+Take the `EXTERNAL-IP` value and add a wildcard DNS record for your domain:
 
 - If it's an IP address (MetalLB), create an `A` record with the name `*` pointing to it.
 - If it's a hostname (for example, an AWS NLB), create a `CNAME` record with the name `*` pointing to it, or an alias record if your DNS provider supports it.
@@ -323,24 +321,23 @@ Take the `EXTERNAL-IP` value and add a wildcard DNS record for the domain you ha
 
 :::warning
 
-**Important**: The default installation is not recommended for production use. We highly advise configuring a [wildcard certificate](self-hosted/install/certificates/index.mdx) and [Okteto Registry storage](self-hosted/install/okteto-registry-storage/index.mdx) after finishing your evaluation and giving your team access to your Okteto instance.
+The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure a [wildcard certificate](self-hosted/install/certificates/index.mdx) and [Okteto Registry storage](self-hosted/install/okteto-registry-storage/index.mdx).
 
 NKP deploys cert-manager on workload clusters by default, so you can follow the [cert-manager and Let's Encrypt guide](self-hosted/install/certificates/cert-manager.mdx) without installing cert-manager yourself. Only create the DNS01 `Issuer` and the wildcard `Certificate`.
 
 :::
 
-After a successful installation, you can access your Okteto instance at `https://okteto.SUBDOMAIN`. Your account will be automatically created as part of the login process. The first user to successfully login into the instance will be automatically assigned the `administrator` role.
+Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. Okteto creates your account the first time you log in, and the first user to log in gets the Admin role.
 
 ### Configure the Okteto CLI
 
-[Install the Okteto CLI](get-started/install-okteto-cli.mdx) if you haven't done it yet and set the Okteto CLI context with your Okteto instance.
-To do this, run the following command, replacing `SUBDOMAIN`:
+[Install the Okteto CLI](get-started/install-okteto-cli.mdx) if you haven't yet, then point it to your Okteto instance, replacing `SUBDOMAIN` with your subdomain:
 
 ```bash
 okteto context use https://okteto.SUBDOMAIN
 ```
 
-Once your Okteto instance is up and running and your Okteto CLI properly configured, you are going to [deploy your first app](get-started/deploy-your-app/index.mdx) to Okteto 😎
+With your Okteto instance running and the Okteto CLI configured, [deploy your first app](get-started/deploy-your-app/index.mdx).
 
 ## Support for joint Okteto and Nutanix customers
 
