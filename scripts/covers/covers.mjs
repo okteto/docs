@@ -182,39 +182,43 @@ const moviesEnvironment = (cx, y, w, h) => box(cx - w / 2, y, w, h, { color: C.b
 // The URL and /api pills sit on the border of the environment, ending at the same x.
 const urlPill = (right, cy) => box(right - 390, cy - 28, 390, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, right - 195, cy + 7, 18, { color: C.blue });
 const apiPill = (right, cy) => box(right - 100, cy - 28, 100, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text('/api', right - 50, cy + 8, 22, { color: C.blue });
-// The two models of an application environment (the docs home): a full
-// replica runs every service in each environment, and Divert runs only the
-// services that change and shares a Namespace with the rest.
-const FULL_REPLICA_ALT = 'Full replica: the environment of a developer and the environment of a coding agent each run the frontend, the API, and MongoDB';
-const DIVERT_ALT = 'Divert: the environment of a developer runs only the API, the environment of a coding agent runs only the frontend, and both use a Shared Namespace that runs the frontend, the API, and MongoDB';
-const MODEL_SERVICES = [['box', 'frontend'], ['box', 'api'], ['database', 'MongoDB']];
+// The two models of an application environment (the docs home), with the
+// application of the Divert docs: a full replica runs every service in each
+// environment, and Divert runs only the services that change and shares a
+// Namespace with the rest.
+const FULL_REPLICA_ALT = 'Full replica: the environment of a developer and the environment of a coding agent each run the whole application, with its API gateway, the rent service and its MongoDB database, and the catalog service and its MongoDB database';
+const DIVERT_ALT = 'Divert: the environment of a developer runs only the rent service and its MongoDB database, the environment of a coding agent runs only the catalog service, and both use a Shared Namespace that runs the whole application';
+// A database is indented under the service that owns it.
+const MODEL_SERVICES = [['box', 'API Gateway'], ['box', 'Rent'], ['database', 'MongoDB', true], ['box', 'Catalog'], ['database', 'MongoDB', true]];
 function modelRows(x, y, w, rows, changed = false) {
-  return rows.map(([name, label], i) => {
-    const ry = y + i * 62;
-    return box(x, ry, w, 50, { color: changed ? C.teal : C.dim, fill: changed ? '#e2f5f3' : C.row, radius: 12, strokeWidth: 2 })
-      + icon(name, x + 30, ry + 25, 26, changed ? C.teal : C.blue) + text(label, x + 58, ry + 33, 24, { anchor: 'start' });
+  return rows.map(([name, label, indent], i) => {
+    const rx = x + (indent ? 26 : 0);
+    const ry = y + i * 56;
+    return box(rx, ry, w - (indent ? 26 : 0), 46, { color: changed ? C.teal : C.dim, fill: changed ? '#e2f5f3' : C.row, radius: 12, strokeWidth: 2 })
+      + icon(name, rx + 28, ry + 23, 26, changed ? C.teal : C.blue) + text(label, rx + 54, ry + 31, 24, { anchor: 'start' });
   }).join('');
 }
+const modelHeight = (rows) => 66 + rows * 56;
 // An environment with its owner (a developer or an agent) on its top edge.
 function modelEnvironment(x, y, w, [owner, color], rows, changed = false) {
-  const h = 126 + (rows.length - 1) * 62;
-  return box(x, y, w, h, { color: C.blue, radius: 20 }) + circle(x + w / 2, y, 30, { color }) + icon(owner, x + w / 2, y, 32, color)
+  return box(x, y, w, modelHeight(rows.length), { color: C.blue, radius: 20 }) + circle(x + w / 2, y, 30, { color }) + icon(owner, x + w / 2, y, 32, color)
     + modelRows(x + 20, y + 50, w - 40, rows, changed);
 }
 const DEVELOPER = () => ['user', C.teal];
 const AGENT = () => ['bot', C.purple];
-function fullReplica(dx, dy) {
-  return modelEnvironment(dx + 40, dy + 170, 250, DEVELOPER(), MODEL_SERVICES)
-    + modelEnvironment(dx + 320, dy + 170, 250, AGENT(), MODEL_SERVICES);
+// 540 wide and 376 tall, from (x, y - 30).
+function fullReplica(x, y) {
+  return modelEnvironment(x, y, 260, DEVELOPER(), MODEL_SERVICES) + modelEnvironment(x + 280, y, 260, AGENT(), MODEL_SERVICES);
 }
-function divert(dx, dy) {
-  const x = dx + 900;
-  const y = dy + 150;
-  return modelEnvironment(dx + 630, dy + 150, 220, DEVELOPER(), [['box', 'api']], true)
-    + modelEnvironment(dx + 630, dy + 314, 220, AGENT(), [['box', 'frontend']], true)
-    + arrow(dx + 856, dy + 213, dx + 892, dy + 213, { color: C.dim }) + arrow(dx + 856, dy + 377, dx + 892, dy + 377, { color: C.dim })
-    + box(x, y, 260, 290, { color: C.blue, radius: 20 }) + logo('kubernetes', x + 130, y, 64) + text('Shared Namespace', x + 130, y + 64, 24)
-    + modelRows(x + 20, y + 84, 220, MODEL_SERVICES);
+// 570 wide and 410 tall, from (x, y - 30).
+function divert(x, y) {
+  const agentY = y + modelHeight(2) + 52;
+  return modelEnvironment(x, y, 260, DEVELOPER(), [['box', 'Rent'], ['database', 'MongoDB', true]], true)
+    + modelEnvironment(x, agentY, 260, AGENT(), [['box', 'Catalog']], true)
+    + arrow(x + 266, y + modelHeight(2) / 2, x + 302, y + modelHeight(2) / 2, { color: C.dim })
+    + arrow(x + 266, agentY + modelHeight(1) / 2, x + 302, agentY + modelHeight(1) / 2, { color: C.dim })
+    + box(x + 310, y, 260, 380, { color: C.blue, radius: 20 }) + logo('kubernetes', x + 440, y, 64) + text('Shared Namespace', x + 440, y + 64, 24)
+    + modelRows(x + 330, y + 84, 220, MODEL_SERVICES);
 }
 
 // A light agent sandbox with the Okteto CLI, and the application environment
@@ -1062,32 +1066,32 @@ const covers = [
   {
     out: 'static/img/environment-full-replica.webp',
     background: 'white',
-    height: 360,
+    height: 430,
     alt: FULL_REPLICA_ALT,
-    svg: () => fullReplica(295, -100),
+    svg: () => fullReplica(330, 50),
   },
   {
     out: 'static/img/environment-full-replica-mobile.webp',
     background: 'white',
     width: 600,
-    height: 340,
+    height: 430,
     alt: FULL_REPLICA_ALT,
-    svg: () => fullReplica(-5, -110),
+    svg: () => fullReplica(30, 50),
   },
   {
     out: 'static/img/environment-divert.webp',
     background: 'white',
-    height: 400,
+    height: 460,
     alt: DIVERT_ALT,
-    svg: () => divert(-295, -80),
+    svg: () => divert(315, 50),
   },
   {
     out: 'static/img/environment-divert-mobile.webp',
     background: 'white',
     width: 600,
-    height: 380,
+    height: 460,
     alt: DIVERT_ALT,
-    svg: () => divert(-595, -90),
+    svg: () => divert(15, 50),
   },
   {
     out: 'static/img/agent-sandbox.webp',
