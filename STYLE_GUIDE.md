@@ -94,6 +94,10 @@ description: Understand the foundational concepts that power your Okteto develop
 description: A comprehensive guide to getting the most out of Okteto.
 ```
 
+### Category index pages
+
+Every category of the sidebar has an index page: set it as the `link` of the category, so clicking the category opens a page instead of only expanding the list. The index opens with what the category covers and lists its pages, with a link and one line for each. A parent index lists its child categories, not every page under them, so the same list isn't repeated at two levels.
+
 ### Section headings
 
 Use noun phrases, not imperative verbs or questions.

@@ -162,6 +162,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Cluster Management',
+          link: { type: 'doc', id: 'admin/cluster-management' },
           items: [
             'admin/overview',
             'admin/installation',
@@ -176,6 +177,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Settings',
+          link: { type: 'doc', id: 'admin/settings' },
           items: [
             'admin/cli',
             'admin/deployments',
@@ -188,6 +190,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Integrations',
+          link: { type: 'doc', id: 'admin/integrations' },
           items: [
             'admin/general-integrations',
             'admin/admin-access-tokens',
