@@ -1,23 +1,23 @@
 ---
 title: Okteto Registry with Amazon S3 Bucket
-description: Configure the Okteto Registry with Amazon S3 Bucket
+description: Configure the Okteto Registry to store container images in an Amazon S3 bucket.
 sidebar_label: AWS S3 Bucket
 id: aws-s3-bucket
 ---
 
-The Okteto Registry can store your container images in S3 storage.
+The Okteto Registry can store your container images in an Amazon S3 bucket.
 
 ## Requirements
 
-Make sure you have the following CLI installed in your machine:
+You need the following CLIs installed on your machine:
 
-- `eksctl` >= 0.171 ([eksctl installation guides](https://eksctl.io/installation/))
-- `aws` >= 2.15 ([aws installation guides](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions))
-- `kubectl` >= 1.28 ([kubectl installation guides](https://kubernetes.io/docs/tasks/tools/#kubectl))
+- `eksctl` >= 0.171 ([eksctl installation guide](https://eksctl.io/installation/))
+- `aws` >= 2.15 ([AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions))
+- `kubectl` >= 1.28 ([kubectl installation guide](https://kubernetes.io/docs/tasks/tools/#kubectl))
 
 ## Setting up environment variables
 
-We recommend configuring the following environment variables to help you scripting the Okteto Registry configuration:
+The following environment variables help you script the Okteto Registry configuration.
 
 Your Kubernetes cluster name:
 
@@ -32,7 +32,7 @@ export BUCKET_NAME="${CLUSTER_NAME}-registry-bucket"
 ```
 
 :::tip
-S3 bucket names must be globally unique. Ensure you select a unique name for your bucket. You may include a random string in the bucket name to guarantee its uniqueness.
+S3 bucket names must be globally unique. Add a random string to the bucket name to make sure it's unique.
 :::
 
 Your AWS Account ID:
@@ -66,7 +66,7 @@ aws s3api create-bucket \
 
 ## Create IAM Role
 
-Save the following IAM Policy definition to a file and update the `Resource` field to match your S3 bucket name:
+Save the following IAM Policy definition to a file, and update the `Resource` fields to match your S3 bucket name:
 
 ```json title="okteto-registry-iam-policy.json"
 {
@@ -99,7 +99,7 @@ Save the following IAM Policy definition to a file and update the `Resource` fie
 ```
 
 :::note
-The IAM policy is maintained by the `distribution/distribution` project. The latest version is in the [S3 permission scopes](https://distribution.github.io/distribution/storage-drivers/s3/#s3-permission-scopes) of the project documentation.
+The `distribution/distribution` project maintains this IAM policy. The latest version is in the [S3 permission scopes](https://distribution.github.io/distribution/storage-drivers/s3/#s3-permission-scopes) section of the project's documentation.
 :::
 
 Create the IAM Policy with the following command:
@@ -110,7 +110,7 @@ aws iam create-policy \
   --policy-document="file://okteto-registry-iam-policy.json"
 ```
 
-Configure your Kubernetes context to the cluster where Okteto is installed and get the Okteto Registry service account name with the following command:
+Point your Kubernetes context to the cluster where Okteto is installed, and get the Okteto Registry service account name with the following command:
 
 ```bash
 export OKTETO_REGISTRY_SERVICE_ACCOUNT_NAME="$(kubectl get sa -n=okteto -l=app.kubernetes.io/component=registry -o=jsonpath='{.items[0].metadata.name}')"
@@ -138,7 +138,7 @@ Set the IAM Role ARN with the following command:
 export ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}-okteto-registry-role"
 ```
 
-Apply the following snippet to your Okteto Helm configuration file and replace the highlighted values:
+Add the following snippet to your Okteto Helm configuration file and replace the highlighted values:
 
 ```yaml title="config.yaml"
 registry:
@@ -158,5 +158,5 @@ registry:
       eks.amazonaws.com/role-arn: "REPLACE_ME_WITH_YOUR_ROLE_ARN"
 ```
 
-Finally, [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
-We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) to apply the new configuration.
+Upgrade to the same version you already run: it keeps the changes to a minimum and makes any issue easier to troubleshoot.

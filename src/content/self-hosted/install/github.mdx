@@ -1,6 +1,6 @@
 ---
 title: GitHub integration
-description: Use our GitHub Integration so your users can access private repositories in their development environments
+description: Configure a GitHub App so your developers can access private GitHub repositories from Okteto.
 sidebar_label: GitHub integration
 id: github-integration
 ---
@@ -10,68 +10,64 @@ import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 import TiersList from "@theme/TiersList";
 
-You can configure Okteto to use a GitHub App to give your developers access to private GitHub repositories.
+The GitHub integration uses a GitHub App to give your developers access to private GitHub repositories. With it:
 
-There are several reasons for considering this approach including:
-
-- Your users can select a repo from a list, instead of having to type the full repository URL.
-- Give everyone on your cluster read-only access to private repositories.
-- Control access to Okteto and the repositories at the Organization level, or per repository.
-- The pipelines use an app-scoped token, instead of a shared ssh key.
+- Your users select a repository from a list, instead of typing the full repository URL.
+- Everyone in your cluster gets read-only access to private repositories.
+- You control access to Okteto and to the repositories for the whole organization, or per repository.
+- Pipelines use an app-scoped token instead of a shared SSH key.
 
 ## Configuration Steps
 
-Setting up the GitHub integration requires several steps in both GitHub and your Okteto instance. Complete the following steps in GitHub:
+Setting up the GitHub integration takes steps in GitHub and in your Okteto instance. In GitHub:
 
-1. [Create the GitHub Application](#creating-the-github-app)
+1. [Create the GitHub App](#creating-the-github-app)
 1. [Generate a private key for the GitHub App](#generating-a-private-key-for-the-github-app)
 
-Complete the following steps in your Okteto Self-Hosted instance:
+In your Okteto instance:
 
-1. [Adding the GitHub App Configuration to Okteto](#adding-the-github-app-configuration-to-okteto)
+1. [Add the GitHub App configuration to Okteto](#adding-the-github-app-configuration-to-okteto)
 1. [Verify your installation](#verifying-your-installation)
 
-Once this configuration has been completed, your instance of Okteto will use the GitHub Application you authenticate during the clone repository step of any Okteto pipelines.
+Once you complete these steps, your Okteto instance authenticates with the GitHub App when it clones repositories in Okteto pipelines.
 
 ### Creating the GitHub App
 
 1. In the upper-right corner of any page in GitHub, select your `profile icon > Organizations`.
-1. Click on the `settings` of the organization you want to use to create the application.
+1. Click the `settings` of the organization where you want to create the app.
 1. In the left navigation, select `Developer settings > GitHub Apps`.
 1. Select `New GitHub App`.
-1. Complete the following fields as follows:
-   - `GitHub App Name:` enter an appropriate name for your application (for example, `okteto-$YOUR_GITHUB_ORGANIZATION`)
+1. Fill in the following fields:
+   - `GitHub App Name:` a name for your app (for example, `okteto-$YOUR_GITHUB_ORGANIZATION`)
    - `Homepage URL:` https://okteto.$SUBDOMAIN
-   - `Callback URL:` https://okteto.$SUBDOMAIN/auth/callback?origin=github (Necessary if you are going to use GitHub as your auth provider)
+   - `Callback URL:` https://okteto.$SUBDOMAIN/auth/callback?origin=github (required if you use GitHub as your authentication provider)
 1. Uncheck the `Expire user authorization tokens` option.
 1. Check the `Request user authorization (OAuth) during installation` option.
-1. On the `Post Installation` section, check the `Redirect on update` option.
-1. On the `Webhook` section, uncheck the `Active` option.
-1. On the `Repository permissions` section, set the `Contents` permission to `Read-only`.
-1. On the `Organization permissions` section, set the `Members` permission to `Read-only`.
-1. On the `Account permissions` section, set the `Email addresses` permission to `Read-only`.
-1. On the `Where can this GitHub App be installed?` section, select the `Any account` option. This will allow your users to install the application in their own GitHub account and deploy personal repositories in your Okteto instance.
-1. Press the `Create GitHub App` button.
-1. On the next screen, copy the values of `App Id` and `Client Id`, you'll need to pass those to your Okteto instance in a future step.
+1. In the `Post Installation` section, check the `Redirect on update` option.
+1. In the `Webhook` section, uncheck the `Active` option.
+1. In the `Repository permissions` section, set the `Contents` permission to `Read-only`.
+1. In the `Organization permissions` section, set the `Members` permission to `Read-only`.
+1. In the `Account permissions` section, set the `Email addresses` permission to `Read-only`.
+1. In the `Where can this GitHub App be installed?` section, select the `Any account` option. This lets your users install the app in their own GitHub accounts and deploy their personal repositories in your Okteto instance.
+1. Click the `Create GitHub App` button.
+1. On the next screen, copy the `App Id` and `Client Id` values. You add them to your Okteto configuration in [Adding the GitHub App Configuration to Okteto](#adding-the-github-app-configuration-to-okteto).
 
-> See [Creating a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app) for more information on creating a GitHub App from GitHub’s Developer guide.
+GitHub's developer guide covers [creating a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app) in more detail.
 
 ### Generating a private key for the GitHub App
 
-After you have created the GitHub App, you will need to generate a private key for authenticating to the GitHub App.
-
-To generate a private key authenticating to the GitHub App:
+After you create the GitHub App, generate a client secret and a private key to authenticate to it:
 
 1. In the upper-right corner of any page in GitHub, select your `profile icon > Organizations`.
-1. Click on the `settings` of the organization you want to use to create the application.
+1. Click the `settings` of the organization where you created the app.
 1. In the left navigation, select `Developer settings > GitHub Apps`.
 1. Select the GitHub App.
-1. On the `Client secrets` section, press the `Generate a new client secret` button. Copy the value and save it in a safe place, since it won't be displayed again. You'll need to pass those to your Okteto instance in a future step.
-1. On the `Private keys` section (it's at the bottom of the page), press the `Generate a private key` button. A file with the private key will be saved in your computer.
+1. In the `Client secrets` section, click the `Generate a new client secret` button. Copy the value and save it somewhere safe: GitHub doesn't display it again. You add it to your Okteto configuration in [Adding the GitHub App Configuration to Okteto](#adding-the-github-app-configuration-to-okteto).
+1. In the `Private keys` section, at the bottom of the page, click the `Generate a private key` button. A file with the private key is saved to your computer.
 
 ### Adding the GitHub App Configuration to Okteto
 
-Add the values we generated in the previous steps to your existing Helm configuration file:
+Add the values you generated in GitHub to your Helm configuration file:
 
 ```yaml
 github:
@@ -87,35 +83,35 @@ github:
     -----END RSA PRIVATE KEY-----
 ```
 
-> You can also [use a secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the clientSecret and the appPrivateKey.
+> You can also store the `clientSecret` and the `appPrivateKey` in a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
 
-- `clientID` and `clientSecret` refers to the values of the GitHub App you just created.
+- `clientID` and `clientSecret` are the values of the GitHub App you created.
 - `appPrivateKey` is the private key you generated.
 
-> You can also use the appId and clientId values of your GitHub application in the `auth.github` section of your Helm configuration file if you're using GitHub as your [authentication provider](self-hosted/install/auth/github.mdx).
+> If you use GitHub as your [authentication provider](self-hosted/install/auth/github.mdx), you can also use your GitHub App's `appId` and `clientId` values in the `auth.github` section of your Helm configuration file.
 
-Once you have updated your Helm configuration file, run the following command to reconfigure your Okteto instance:
+After you update your Helm configuration file, run the following command to reconfigure your Okteto instance:
 
-```
+```bash
 helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto
 ```
 
-If you're doing this as part of a fresh install, then run the following command:
+For a new installation, run the following command instead:
 
-```
+```bash
 helm install okteto okteto/okteto -f config.yaml --namespace=okteto
 ```
 
 ### Verifying your installation
 
-If the installation was successful, you should now see a `GitHub` option in the `Deploy from Git` dialog.
+If the installation succeeded, the `Deploy from Git` dialog shows a `GitHub` option.
 
 <p align="center">
   <Image
     src={require("@site/static/img/verify-installation+1.46.jpg").default}
-    alt="verify your installation"
+    alt="The Deploy Dev Environment dialog with the GitHub tab selected and a list of repositories"
     width="650"
   />
 </p>
 
-When you click on it, you should see the list of repositories that you added in the previous step. [This document](development/deploy/from-private-repositories.mdx) has further information on how to deploy a private repository.
+When you click it, you see the list of repositories that you added. [From private repositories](development/deploy/from-private-repositories.mdx) explains how to deploy a private repository.

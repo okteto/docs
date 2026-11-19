@@ -1,21 +1,20 @@
 ---
 title: Configuring BuildKit for High Performance
-description: Configuring BuildKit for High Performance
+description: Speed up BuildKit in your Okteto instance with a dedicated node pool, more CPU, SSD storage, autoscaling, and Dockerfile best practices.
 id: buildkit-high-performance
 sidebar_label: BuildKit High Performance
 ---
 
 # Configuring BuildKit for High Performance
 
-Optimizing BuildKit performance is essential for a smooth development experience with Okteto.
-A high-performance BuildKit setup accelerates image builds, [test executions](reference/okteto-cli.mdx#test), and deploy commands when using [Remote Execution](core/remote-execution.mdx).
+A high-performance BuildKit setup speeds up image builds, [tests](reference/okteto-cli.mdx#test), and the deploy commands that run with [Remote Execution](core/remote-execution.mdx).
 
 ## 1. Dedicated Node Pool for BuildKit
 
 BuildKit is resource-intensive.
-We recommend deploying BuildKit in a dedicated node pool for optimal performance and to minimize interference from other workloads.
+We recommend running BuildKit in a dedicated node pool, for the best performance and to keep other workloads from interfering with it.
 
-To deploy BuildKit on a dedicated build pool, you can add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and then add the following settings to your Okteto Helm configuration:
+To run BuildKit in a dedicated node pool, add [taints and tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) to the BuildKit node pool in Kubernetes, and add the following settings to your Okteto Helm configuration:
 
 ```yaml
 buildkit:
@@ -28,16 +27,16 @@ buildkit:
       value: build
 ```
 
-## 2. Scale Vertically: Increase CPUs for Faster Builds
+## 2. Vertical Scaling for Faster Builds
 
-BuildKit performance depends heavily on allocated CPU and memory resources.
-Start with 2 nodes for higher availability, with the following recommended instance types (4 CPUs and 16GB RAM):
+BuildKit performance depends heavily on the CPU and memory it gets.
+Start with 2 nodes for higher availability, with these recommended instance types (4 CPUs and 16 GB of RAM):
 
 - Amazon Web Services: `m6a.xlarge`
 - Google Cloud Platform: `t2d-standard-4`
 - Microsoft Azure Cloud Platform: `Standard_D4as_v5`
 
-Set the replicaCount to match the number of nodes in the BuildKit node pool:
+Set `replicaCount` to the number of nodes in the BuildKit node pool:
 
 ```yaml
 buildkit:
@@ -45,12 +44,12 @@ buildkit:
 ```
 
 Monitor performance and adjust node resources as needed.
-For instance, upgrading your BuildKit nodes to 8 CPUs and 32 GB of memory each can provide approximately a 2x performance improvement 😎.
+For example, upgrading your BuildKit nodes to 8 CPUs and 32 GB of memory each can roughly double their performance.
 
-## 3. Configure SSD Storage
+## 3. SSD Storage
 
-BuildKit is I/O intensive, especially for pulling, extracting, and pushing container images.
-Using a SSD storage class can significantly improve your BuildKit performance.
+BuildKit is I/O-intensive, especially when it pulls, extracts, and pushes container images.
+An SSD storage class can significantly improve BuildKit performance:
 
 ```yaml
 buildkit:
@@ -59,7 +58,7 @@ buildkit:
     class: <<your-ssd-storage-class>>
 ```
 
-You may also increase the size of the BuildKit cache to increase the number of BuildKit cache hits (default: 100 GB):
+You can also increase the size of the BuildKit cache (100 GB by default) to get more cache hits:
 
 ```yaml
 buildkit:
@@ -68,24 +67,24 @@ buildkit:
     size: 200Gi
 ```
 
-## 4. Enable HPA to Optimize Performance and Costs
+## 4. HPA for Performance and Costs
 
-Horizontal Pod Autoscaler (HPA) dynamically adjusts the number of BuildKit pods based on active build workloads.
-This ensures you have enough capacity during peak times while reducing costs during idle periods.
+The Horizontal Pod Autoscaler (HPA) adjusts the number of BuildKit pods to the active builds.
+You get enough capacity at peak times, and lower costs when builds are idle.
 
 :::info Build Queue System and HPA
-The [Build Queue System](core/build-service.mdx#build-queue-system) distributes builds across BuildKit instances and queues builds when instances exceed resource thresholds. This keeps build performance consistent, but the Build Queue System does not scale BuildKit pods.
+The [Build Queue System](core/build-service.mdx#build-queue-system) distributes builds across BuildKit instances and queues builds when instances exceed resource thresholds. This keeps build performance consistent, but the Build Queue System doesn't scale BuildKit pods.
 
-Without HPA, you must choose between running fewer BuildKit instances (which queues more builds during peak usage, increasing wait times) or running many replicas at all times (which wastes resources during idle periods). HPA complements the Build Queue System by automatically adding and removing BuildKit pods based on demand, providing enough build capacity at peak times while reducing costs when demand is low.
+Without HPA, you choose between running fewer BuildKit instances, which queues more builds at peak times and increases wait times, and running many replicas at all times, which wastes resources when they're idle. HPA complements the Build Queue System: it adds and removes BuildKit pods with demand, so you have enough build capacity at peak times and lower costs when demand is low.
 :::
 
 Okteto supports the following metrics for HPA scaling:
-- `okteto_build_active_builds` - Number of active builds (recommended)
-- `okteto_build_cpu_pressure` - CPU pressure in 10-second intervals
-- `okteto_build_memory_usage` - Memory usage as a percentage out of 100%
-- `okteto_build_io_pressure` - I/O pressure in 10-second intervals
+- `okteto_build_active_builds`: number of active builds (recommended)
+- `okteto_build_cpu_pressure`: CPU pressure in 10-second intervals
+- `okteto_build_memory_usage`: memory usage, as a percentage
+- `okteto_build_io_pressure`: I/O pressure in 10-second intervals
 
-By default, HPA is configured to scale based on the `okteto_build_active_builds` metric, with the following settings:
+By default, HPA scales on the `okteto_build_active_builds` metric, with the following settings:
 
 ```yaml
 buildkit:
@@ -121,17 +120,17 @@ This configuration:
 - Maintains between 1 and 5 BuildKit pods based on active builds
 
 :::info Metrics Adapter
-Okteto includes a built-in metrics adapter that exposes BuildKit metrics via the `v1beta2.custom.metrics.k8s.io` API. This adapter is automatically deployed when HPA is enabled.
+Okteto includes a metrics adapter that exposes BuildKit metrics through the `v1beta2.custom.metrics.k8s.io` API. Okteto deploys it automatically when HPA is enabled.
 
-If you're already using your own custom metrics adapter (such as [Prometheus Adapter](https://github.com/kubernetes-sigs/prometheus-adapter)), you can disable Okteto's built-in adapter by setting `buildkit.hpa.adapter.enabled: false` in your Helm configuration. In that case, you can scrape metrics directly from the BuildKit pods on port 8080. All metrics have the `okteto_build` prefix.
+If you already run your own custom metrics adapter, such as [Prometheus Adapter](https://github.com/kubernetes-sigs/prometheus-adapter), disable Okteto's adapter by setting `buildkit.hpa.adapter.enabled: false` in your Helm configuration. Your adapter can then scrape the metrics directly from the BuildKit pods on port 8080. All metrics have the `okteto_build` prefix.
 :::
 
-## 5. Follow Best Practices for Dockerfiles and Remote Execution
+## 5. Best Practices for Dockerfiles and Remote Execution
 
-Even the best BuildKit setup cannot compensate for un-optimized Dockerfiles or inefficient [Remote Execution](core/remote-execution.mdx) configurations.
-To make the most of your BuildKit configuration, we have the following recommendations:
+A fast BuildKit setup doesn't make up for unoptimized Dockerfiles or inefficient [Remote Execution](core/remote-execution.mdx) configurations.
+To get the most out of BuildKit, we recommend that you:
 
-- Adhere to [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/).
-- Reduce file transfer times to BuildKit by using [.dockerignore](https://docs.docker.com/reference/dockerfile/#dockerignore-file) and [.oktetoignore](core/remote-execution.mdx#ignoring-files) files.
-- Use [BuildKit cache mounts](https://docs.docker.com/build/cache/optimize/) to persist cache folders between image builds. This can significantly speed up build times by caching dependencies and build artifacts.
-- Use [Test Container caches](reference/okteto-manifest.mdx#caches-string-optional) to persist cache folders between test executions. This ensures that test dependencies are cached, reducing the time taken for subsequent test runs.
+- Follow the [Dockerfile best practices](https://docs.docker.com/build/building/best-practices/).
+- Reduce file transfer times to BuildKit with [.dockerignore](https://docs.docker.com/reference/dockerfile/#dockerignore-file) and [.oktetoignore](core/remote-execution.mdx#ignoring-files) files.
+- Use [BuildKit cache mounts](https://docs.docker.com/build/cache/optimize/) to persist cache folders between image builds. Caching dependencies and build artifacts can significantly speed up builds.
+- Use [Okteto Test caches](reference/okteto-manifest.mdx#caches-string-optional) to persist cache folders between test executions. Test dependencies stay cached, so later test runs take less time.

@@ -1,35 +1,35 @@
 ---
-title: Use Gitlab as your Authentication Provider
-description: Use Gitlab as the authentication provider of your Okteto Self-hosted instance
+title: Use GitLab as your Authentication Provider
+description: Configure GitLab as the authentication provider for your Okteto instance.
 sidebar_label: GitLab
 id: gitlab
 ---
 
 import Image from "@theme/Image";
 
-# Use Gitlab as your Authentication Provider
+# Use GitLab as your Authentication Provider
 
-You can configure GitLab as the authentication provider for your Okteto instance.
+Okteto can use GitLab as its authentication provider.
 
-Please refer to [GitLab's official documentation](https://docs.gitlab.com/ee/integration/openid_connect_provider.html) on Open ID Connect for more information.
+[GitLab's OpenID Connect documentation](https://docs.gitlab.com/ee/integration/openid_connect_provider.html) has more details.
 
 ## Prerequisites
 
 - A working installation of [Okteto](get-started/install/index.mdx)
-- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine.
-- Access to a [Gitlab account](https://gitlab.com) with permissions to enable and configure OAuth and OpenID. This can either gitlab.com, or self-hosted GitLab.
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed on your local machine
+- Access to a [GitLab account](https://gitlab.com) with permissions to enable and configure OAuth and OpenID, on gitlab.com or on a self-hosted GitLab instance
 
 :::note
-This guide will use https://gitlab.com in the examples. If you're using GitLab self-hosted, replace `gitlab.com` with the URL of your GitLab instance.
+The examples use `https://gitlab.com`. If you use a self-hosted GitLab instance, replace `gitlab.com` with your GitLab instance's URL.
 :::
 
 ## Create the GitLab Application
 
-Create a new OAuth application integration, using the following values:
+Create a new OAuth application with the following values:
 
 - Name: "okteto"
 - Redirect URI: "https://okteto.${YOUR_DOMAIN}.com/auth/callback"
-- Unselect the `Confidential` checkbox
+- Clear the `Confidential` checkbox
 - Select the following scopes:
   - `openid`
   - `profile`
@@ -48,7 +48,7 @@ Create a new OAuth application integration, using the following values:
   />
 </p>
 
-Once the application has been created, copy the values of the `Application ID` and the `Secret`. You'll need them to configure Okteto.
+After you create the application, copy the `Application ID` and `Secret` values. You need them to configure Okteto.
 
 <p align="center">
   <Image
@@ -57,7 +57,7 @@ Once the application has been created, copy the values of the `Application ID` a
   />
 </p>
 
-Finally, browse to https://gitlab.com/.well-known/openid-configuration, and copy the values of `issuer` and `authorization_endpoint`. You'll need them to configure Okteto.
+Open `https://gitlab.com/.well-known/openid-configuration` and copy the `issuer` and `authorization_endpoint` values. You need them to configure Okteto.
 
 <p align="center">
   <Image
@@ -68,7 +68,7 @@ Finally, browse to https://gitlab.com/.well-known/openid-configuration, and copy
 
 ## Configure Okteto
 
-Once you have the GitLab application ready, update the `auth` section of your Okteto Helm configuration file with the values you obtained on the first step of this guide:
+When the GitLab application is ready, update the `auth` section of your Okteto Helm configuration file with the values you copied in [Create the GitLab Application](#create-the-gitlab-application):
 
 ```yaml title="config.yaml"
 auth:
@@ -85,30 +85,30 @@ auth:
       externalIDKey: email
 ```
 
-> You can also store the value of clientSecret [as a secret directly in Kubernetes](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
+> You can also store the `clientSecret` value [in a Kubernetes secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
 
-[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
-We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) to apply the new configuration.
+Upgrade to the same version you already run: it keeps the changes to a minimum and makes any issue easier to troubleshoot.
 
-Once the upgrade has been completed, go to your instance and click on the **Log In** button to access your instance. If everything is configured correctly, Okteto will now use Gitlab for user authentication.
+After the upgrade completes, open your Okteto instance and click **Log In**. If the configuration is correct, Okteto authenticates users with GitLab.
 
 <p align="center">
   <Image
     src={require("@site/static/img/with-azure.png").default}
-    alt="Log in with Gitlab"
+    alt="Log in with GitLab"
   />
 </p>
 
 ## Customize the attributes that Okteto consumes
 
-By default, Okteto will use the following attributes when creating a user:
+By default, Okteto uses the following attributes when it creates a user:
 
-- `Name` as the display name of the user.
-- `Nickname` as the username of the user.
+- `Name` as the user's display name.
+- `Nickname` as the user's username.
 - `Email` as the email. Addresses must contain only lowercase alphanumeric characters, '-', or '.'
 - `Picture URL` for the user's profile picture.
 
-If you are not using some of those values, or you want to customize which attributes get mapped, you can customize that by using the `mapping` field inside the `openid` key in your Helm configuration file.
+If you don't use some of those values, or you want to change which attributes Okteto maps, set the `mapping` field inside the `openid` key in your Helm configuration file.
 
 ```yaml title="config.yaml"
 auth:
@@ -126,4 +126,4 @@ auth:
       pictureKey: picture
 ```
 
-The value of every key in the `mapping` section must match a `claim` in your Gitlab OpenID configuration, and it must contain a non-empty value. You can see the available claims in the `claims_supported` section of https://gitlab.com/.well-known/openid-configuration.
+The value of every key in the `mapping` section must match a `claim` in your GitLab OpenID configuration, and it must contain a non-empty value. The `claims_supported` section of `https://gitlab.com/.well-known/openid-configuration` lists the available claims.
