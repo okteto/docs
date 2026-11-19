@@ -979,15 +979,16 @@ const covers = [
     background: 'white',
     alt: 'Movies app architecture',
     svg: () => {
-      let out = circle(90, 289, 46, { color: C.teal }) + icon('user', 90, 289, 48, C.teal) + text('Developer', 90, 369, 26);
+      let out = circle(215, 289, 46, { color: C.teal }) + icon('user', 215, 289, 48, C.teal) + text('Developer', 215, 369, 26);
       out += moviesEnvironment(895, 110, 510, 450);
-      out += arrow(140, 289, 302, 289, { color: C.blue });
+      out += arrow(265, 289, 302, 289, { color: C.blue });
       out += curve('M530 317 V379 H600', { color: C.blue });
       out += arrow(700, 289, 737, 289, { color: C.blue }) + arrow(700, 379, 737, 379, { color: C.blue });
       out += urlPill(700, 289) + apiPill(700, 379);
       out += service(745, 260, 300, 'box', 'frontend') + service(745, 350, 300, 'box', 'api') + service(745, 470, 300, 'database', 'MongoDB');
       out += arrow(895, 416, 895, 462, { color: C.dim, both: true });
-      return out;
+      // Shifted left so the drawing is centered on the canvas.
+      return `<g transform="translate(-52 0)">${out}</g>`;
     },
   },
   {
