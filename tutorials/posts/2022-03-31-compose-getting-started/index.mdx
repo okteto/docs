@@ -7,7 +7,7 @@ image: ./img/cover.jpg
 image_alt: "The Docker logo with an arrow to the Kubernetes logo"
 ---
 
-Okteto deploys an application defined in a [Docker Compose](/docs/reference/docker-compose/) file to Kubernetes, with no Kubernetes manifests, and then lets you test and develop each service in that environment. This tutorial uses a voting application written in Python and Redis: Okteto builds its application image and its development image from one Dockerfile, runs its unit tests in a Test Container, and reloads it with the Flask reloader when you save a file.
+Okteto deploys an application defined in a [Docker Compose](/docs/reference/docker-compose/) file to Kubernetes, with no Kubernetes manifests, and then lets you test and develop each service in that environment. This tutorial uses a voting application written in Python and Redis: Okteto builds its application image and its development image from one Dockerfile, runs its unit tests in a Test Container, and reloads it with `uvicorn --reload` when you save a file.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ cd compose-getting-started
 
 ## The Sample Application
 
-The application has two services: `vote`, a Flask application that shows two options and counts the votes, and `redis`, which stores the votes. The `docker-compose.yml` file at the root of the repository defines both:
+The application has two services: `vote`, a [FastAPI](https://fastapi.tiangolo.com/) application that shows two options and counts the votes, and `redis`, which stores the votes. The `docker-compose.yml` file at the root of the repository defines both:
 
 ```yaml title="docker-compose.yml"
 services:
@@ -72,7 +72,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY static static
 COPY templates templates
-CMD ["python", "app.py"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
 ```
 
 - `dev` is the development image. It contains Python, the dependencies of `requirements.txt`, and the source code. `requirements.txt` is copied and installed before the source code, so a change to `app.py` doesn't reinstall the dependencies.
@@ -105,9 +105,7 @@ test:
 dev:
   vote:
     image: ${OKTETO_BUILD_DEV_IMAGE}
-    command: python app.py
-    environment:
-      - FLASK_DEBUG=1
+    command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
     sync:
       - vote:/usr/src/app
     persistentVolume:
@@ -151,7 +149,7 @@ Open the endpoint in your browser and vote.
 
 ## Testing the Application
 
-The `test` section of the Okteto Manifest defines a [Test Container](/docs/reference/okteto-manifest/#test-object-optional) that runs the unit tests of `vote/test_app.py` with [pytest](https://docs.pytest.org/) and the Flask test client:
+The `test` section of the Okteto Manifest defines a [Test Container](/docs/reference/okteto-manifest/#test-object-optional) that runs the unit tests of `vote/test_app.py` with [pytest](https://docs.pytest.org/) and the FastAPI `TestClient`:
 
 ```yaml title="okteto.yml"
 test:
@@ -184,18 +182,19 @@ okteto test
  i  Images were already built. To rebuild your images run 'okteto build'
  i  Executing test container 'unit'
  i  Running 'pip install -r vote/requirements-test.txt'
-Successfully installed Pygments-2.21.0 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pytest-9.2.0
+Successfully installed Pygments-2.21.0 httpcore2-2.16.2 httpx2-2.16.2 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pytest-9.2.0 truststore-0.10.5
  ✓  Command 'pip install -r vote/requirements-test.txt' successfully executed
  i  Running 'pytest vote --junitxml=report.xml'
 ============================= test session starts ==============================
 platform linux -- Python 3.15.2, pytest-9.2.0, pluggy-1.7.0
 rootdir: /okteto/src
+plugins: anyio-4.16.0
 collected 2 items
 
 vote/test_app.py ..                                                      [100%]
 
 ------------------ generated xml file: /okteto/src/report.xml ------------------
-============================== 2 passed in 0.17s ===============================
+============================== 2 passed in 0.36s ===============================
  ✓  Command 'pytest vote --junitxml=report.xml' successfully executed
  ✓  Test container 'unit' passed
 ```
@@ -212,9 +211,7 @@ The `dev` section of the Okteto Manifest defines the [Development Container](/do
 dev:
   vote:
     image: ${OKTETO_BUILD_DEV_IMAGE}
-    command: python app.py
-    environment:
-      - FLASK_DEBUG=1
+    command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
     sync:
       - vote:/usr/src/app
     persistentVolume:
@@ -222,8 +219,7 @@ dev:
 ```
 
 - `image`: the development image built in the `build` section.
-- `command`: starts the application.
-- `environment`: `FLASK_DEBUG=1` runs Flask in debug mode, so the Flask reloader restarts the application every time a `.py` file changes.
+- `command`: starts the application with Uvicorn. `--reload` restarts it every time a `.py` file changes.
 - `sync`: synchronizes the `vote` folder with `/usr/src/app`, the working directory of the development image.
 - `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the dependencies come from the development image, so there's no volume to create and attach.
 
@@ -233,7 +229,7 @@ Start the Development Container:
 okteto up
 ```
 
-Okteto replaces the `vote` Deployment with the Development Container, synchronizes your files, and starts the application with the Flask reloader:
+Okteto replaces the `vote` Deployment with the Development Container, synchronizes your files, and starts the application with `uvicorn --reload`:
 
 ```console
  i  Using cindy @ okteto.example.com as context
@@ -245,13 +241,12 @@ Okteto replaces the `vote` Deployment with the Development Container, synchroniz
     Namespace: cindy
     Name:      vote
 
- * Serving Flask app 'app'
- * Debug mode: on
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:8080
-Press CTRL+C to quit
- * Restarting with stat
- * Debugger is active!
+INFO:     Will watch for changes in these directories: ['/usr/src/app']
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     Started reloader process [83] using StatReload
+INFO:     Started server process [85]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
 ```
 
 Edit the options in `vote/app.py` on your machine:
@@ -263,12 +258,17 @@ def getOptions():
     return option_a, option_b
 ```
 
-Okteto synchronizes `app.py` to the Development Container, and the Flask reloader restarts the application:
+Okteto synchronizes `app.py` to the Development Container, and Uvicorn restarts the application:
 
 ```console
- * Detected change in '/usr/src/app/app.py', reloading
- * Restarting with stat
- * Debugger is active!
+WARNING:  StatReload detected changes in 'app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85]
+INFO:     Started server process [94]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
 ```
 
 Open the endpoint again to see the new options: no build, no push, and no redeploy. Press `Ctrl+C` to exit `okteto up`, and run `okteto down` to restore the `vote` Deployment with the application image:

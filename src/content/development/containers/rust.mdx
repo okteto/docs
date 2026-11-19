@@ -5,7 +5,7 @@ sidebar_label: Rust
 id: rust
 ---
 
-Okteto replaces your Rust application in Kubernetes with a Development Container that rebuilds it every time you save a file. The [Rust Sample App](https://github.com/okteto/rust-getting-started) is a hello world HTTP server, built with [hyper](https://hyper.rs), that builds its application image and its development image from one Dockerfile, runs its unit tests in a Test Container, reloads with [watchexec](https://github.com/watchexec/watchexec) when a source file changes, and runs [lldb-server](https://lldb.llvm.org/use/remote.html) so you can debug it from VS Code.
+Okteto replaces your Rust application in Kubernetes with a Development Container that rebuilds it every time you save a file. The [Rust Sample App](https://github.com/okteto/rust-getting-started) is a hello world HTTP server, built with [axum](https://github.com/tokio-rs/axum), that builds its application image and its development image from one Dockerfile, runs its unit tests in a Test Container, reloads with [watchexec](https://github.com/watchexec/watchexec) when a source file changes, and runs [lldb-server](https://lldb.llvm.org/use/remote.html) so you can debug it from VS Code.
 
 :::tip
 The `.dockerignore`, `.oktetoignore`, and `.stignore` files are key to performance. They decide which files Okteto sends to the image builds, to Remote Execution, and to File Sync. Without them, every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` transfers the whole repository, `.git` folder included, and a change to any file invalidates the build cache.
@@ -147,7 +147,7 @@ Open the endpoint in your browser to see the `Hello world!` response. Okteto cre
 
 ## Testing the Rust Sample App
 
-The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit test of `src/main.rs`:
+The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit test of `src/main.rs`, which sends a request to the axum router without opening a network connection:
 
 ```yaml title="okteto.yml"
 test:
@@ -189,9 +189,8 @@ okteto test
  i  Images were already built. To rebuild your images run 'okteto build'
  i  Executing test container 'unit'
  i  Running 'bash -o pipefail -c "cargo test 2>&1 | tee test-report.txt"'
-   Compiling hello-world v0.1.0 (/okteto/src)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.59s
-     Running unittests src/main.rs (target/debug/build/hello-world/605d3047dd4a7a31/out/hello_world-605d3047dd4a7a31)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/main.rs (target/debug/build/hello-world/25a5528f67278982/out/hello_world-25a5528f67278982)
 running 1 test
 test tests::hello_returns_hello_world ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
@@ -277,16 +276,16 @@ Okteto synchronizes your files and starts watchexec, which builds and runs the a
                2346 -> 2346
 
 [Running: cargo run]
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.62s
      Running `target/debug/hello-world`
 Starting hello-world server on 0.0.0.0:8080...
 ```
 
-Open `src/main.rs` in your local IDE, change the response message on line 15 to `Hello world from Okteto!`, and save the file:
+Open `src/main.rs` in your local IDE, change the response message on line 7 to `Hello world from Okteto!`, and save the file:
 
 ```rust title="src/main.rs"
-async fn hello<B>(_: Request<B>) -> Result<Response<Full<Bytes>>, Infallible> {
-    Ok(Response::new(Full::new(Bytes::from("Hello world from Okteto!"))))
+async fn hello() -> &'static str {
+    "Hello world from Okteto!"
 }
 ```
 
@@ -295,7 +294,7 @@ Okteto synchronizes `src/main.rs` to the Development Container, and watchexec re
 ```console
 [Running: cargo run]
    Compiling hello-world v0.1.0 (/usr/src/app)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.62s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.79s
      Running `target/debug/hello-world`
 Starting hello-world server on 0.0.0.0:8080...
 ```
@@ -339,7 +338,7 @@ The `.vscode/launch.json` file of the Rust Sample App attaches VS Code to the ap
 
 `program` is the binary that `cargo run` builds in the Development Container: CodeLLDB attaches to the process that runs it and downloads it from the Development Container to read its debug symbols. `sourceMap` maps `/usr/src/app`, the path in the `sync` field of the Okteto Manifest, to your local folder. If you synchronize your code to another path, change both to match it.
 
-Open the Rust Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. Add a breakpoint on line 15 of `src/main.rs` and reload the endpoint in your browser. The execution stops at the breakpoint, and you can inspect the call stack and the variables.
+Open the Rust Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. Add a breakpoint on line 7 of `src/main.rs` and reload the endpoint in your browser. The execution stops in the `hello` function, and you can inspect the call stack and the variables.
 
 When you save a file, watchexec restarts the application and the debugging session ends. Run the **Connect to okteto** configuration again to attach to the new process. Press `Ctrl+C` in the terminal of `okteto exec` to stop `lldb-server`.
 

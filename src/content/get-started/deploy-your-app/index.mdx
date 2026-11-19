@@ -24,7 +24,7 @@ Run the commands of the series from the root of this folder, on the `main` branc
 
 The Movies app has three services, deployed by the Helm chart in the `chart` folder:
 
-- `frontend`: a React application that lists movies.
+- `frontend`: a React application, built with Vite, that lists movies.
 - `api`: a Node.js API that reads the movies from MongoDB.
 - `mongodb`: a MongoDB database, with the official `mongo` image. A `seed` job loads the movies into it on every deployment.
 
@@ -59,22 +59,19 @@ deploy:
 
 test:
   frontend:
-    image: node:26
+    image: node:26.13.1-trixie-slim
     context: frontend
     caches:
-      - yarn/.cache
-      - node_modules
+      - /root/.npm
     commands:
-      - npm install --global yarn
-      - yarn install
-      - yarn test
+      - npm ci
+      - npm test
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
     caches:
-      - yarn/.cache
-      - node_modules
+      - /root/.npm
     commands:
       - bash run_tests.sh
     artifacts:

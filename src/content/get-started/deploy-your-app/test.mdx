@@ -14,28 +14,26 @@ This page uses the [Movies app](https://github.com/okteto/getting-started), depl
 
 ## Unit tests for the `frontend` service
 
-The `frontend` Test Container runs the unit tests of the `frontend` service:
+The `frontend` Test Container runs the unit tests of the `frontend` service, written with [Vitest](https://vitest.dev/):
 
 ```yaml title="okteto.yaml"
 test:
   frontend:
-    image: node:26
+    image: node:26.13.1-trixie-slim
     context: frontend
     caches:
-      - yarn/.cache
-      - node_modules
+      - /root/.npm
     commands:
-      - npm install --global yarn
-      - yarn install
-      - yarn test
+      - npm ci
+      - npm test
 ```
 
 `frontend` is the name of the Test Container. The meaning of the rest of the fields is:
 
-- `image`: the image used as the runtime of your Test Container. `node:26` is the official Node.js image for the current Active LTS release.
+- `image`: the image used as the runtime of your Test Container. `node:26.13.1-trixie-slim` is the official Node.js image for Node.js 26, the current Active LTS release, pinned to an exact version on Debian trixie.
 - `context`: the folder that Okteto sends to the Test Container.
-- `caches`: a list of folders to persist between executions of the Test Container. Caches skip dependency installation on later runs.
-- `commands`: a list of commands to execute your tests. The Test Container fails if any command exits with a non-zero code. The official Node.js image doesn't include Yarn, so the first command installs it.
+- `caches`: a list of folders to persist between executions of the Test Container. `/root/.npm` is the cache of npm, so later runs don't download the packages again.
+- `commands`: a list of commands to execute your tests. The Test Container fails if any command exits with a non-zero code. `npm ci` installs the exact dependencies of `package-lock.json`, and `npm test` runs Vitest.
 
 Run the `frontend` unit tests:
 
@@ -46,30 +44,28 @@ okteto test frontend
 ```bash
  i  Using cindy @ okteto.example.com as context
  i  Executing test container 'frontend'
- i  Running 'npm install --global yarn'
-added 1 package in 1s
- ✓  Command 'npm install --global yarn' successfully executed
- i  Running 'yarn install'
-yarn install v1.22.22
+ i  Running 'npm ci'
+added 90 packages, and audited 91 packages in 2s
+21 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+ ✓  Command 'npm ci' successfully executed
+ i  Running 'npm test'
+> okteto-movies-frontend@0.2.0 test
+> vitest run
+ RUN  v5.1.1 /okteto/src
+ ✓ src/components/TitleList.test.jsx (4 tests) 105ms
+ ✓ src/components/Hero.test.jsx (4 tests) 107ms
+ ✓ src/components/App.test.jsx (4 tests) 191ms
+ ✓ src/components/UserProfile.test.jsx (3 tests) 63ms
+ ✓ src/components/Item.test.jsx (3 tests) 87ms
+ ✓ src/components/ListToggle.test.jsx (2 tests) 38ms
+ Test Files  6 passed (6)
+      Tests  20 passed (20)
+   Start at  05:22:44
+   Duration  1.84s (environment 66%, tests 13%, setup 10%, import 6%, transform 4%, worker 1%)
  ...
-Done in 15.37s.
- ✓  Command 'yarn install' successfully executed
- i  Running 'yarn test'
-yarn run v1.22.22
-$ jest
-PASS src/components/TitleList.test.jsx
-PASS src/components/Hero.test.jsx
-PASS src/components/UserProfile.test.jsx
-PASS src/components/App.test.jsx
-PASS src/components/Item.test.jsx
-PASS src/components/ListToggle.test.jsx
-Test Suites: 6 passed, 6 total
-Tests:       20 passed, 20 total
-Snapshots:   0 total
-Time:        2.267 s
-Ran all test suites.
-Done in 3.06s.
- ✓  Command 'yarn test' successfully executed
+ ✓  Command 'npm test' successfully executed
  ✓  Test container 'frontend' passed
 ```
 
@@ -86,8 +82,7 @@ test:
     image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
     caches:
-      - yarn/.cache
-      - node_modules
+      - /root/.npm
     commands:
       - bash run_tests.sh
     artifacts:
@@ -95,7 +90,7 @@ test:
       - playwright-report
 ```
 
-`mcr.microsoft.com/playwright:v1.65.1-noble` is the official Playwright image. It includes Yarn and the browsers of Playwright 1.65.1, the version of `@playwright/test` in `e2e/package.json`. When you upgrade `@playwright/test`, change the image tag to the same version: each Playwright release only runs with the browsers it was built for.
+`mcr.microsoft.com/playwright:v1.65.1-noble` is the official Playwright image. It includes Node.js, npm, and the browsers of Playwright 1.65.1, the version of `@playwright/test` in `e2e/package.json`. When you upgrade `@playwright/test`, change the image tag to the same version: each Playwright release only runs with the browsers it was built for.
 
 The `artifacts` field lists files and folders that Okteto exports to your local filesystem after the tests run, in this case the Playwright results and HTML report.
 
@@ -109,19 +104,18 @@ okteto test e2e
  i  Using cindy @ okteto.example.com as context
  i  Executing test container 'e2e'
  i  Running 'bash run_tests.sh'
-yarn install v1.22.22
- ...
-yarn run v1.22.22
-$ playwright test
+added 15 packages, and audited 16 packages in 756ms
+found 0 vulnerabilities
+> e2e@1.0.0 test
+> playwright test
 Running 6 tests using 1 worker
-  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.9s)
-  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (1.8s)
-  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (636ms)
-  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (956ms)
-  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (582ms)
-  ✓  6 [chromium] › tests/main.spec.js:10:1 › matches screenshot (1.3s)
-  6 passed (8.7s)
-Done in 9.56s.
+  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.2s)
+  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (989ms)
+  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (194ms)
+  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (328ms)
+  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (130ms)
+  ✓  6 [chromium] › tests/main.spec.js:10:1 › matches screenshot (1.7s)
+  6 passed (5.6s)
  ✓  Command 'bash run_tests.sh' successfully executed
  ✓  Test container 'e2e' passed
 ```
