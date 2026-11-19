@@ -32,11 +32,11 @@ module.exports = {
           label: 'Deploy your app',
           link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
           items: [
-            'get-started/deploy-your-app/deploy',
-            'get-started/deploy-your-app/dependencies',
-            'get-started/deploy-your-app/endpoints',
             'get-started/deploy-your-app/build',
+            'get-started/deploy-your-app/deploy',
+            'get-started/deploy-your-app/inspect',
             'get-started/deploy-your-app/test',
+            'get-started/deploy-your-app/develop',
           ],
         },
         {
@@ -129,6 +129,7 @@ module.exports = {
             'development/containers/php',
             'development/containers/python',
             'development/containers/ruby',
+            'development/containers/rust',
           ],
         },
         'development/images',

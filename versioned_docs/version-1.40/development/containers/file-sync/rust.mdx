@@ -1,0 +1,336 @@
+---
+title: Getting Started with Okteto and Rust
+description: Build, deploy, test, develop, and debug a Rust application with Okteto.
+sidebar_label: Rust
+id: rust
+---
+
+import Image from "@theme/Image";
+
+Okteto runs your Rust application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Rust Sample App](https://github.com/okteto/rust-getting-started), a hello world HTTP server, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](/docs/agentic/).
+
+## Prerequisites
+
+- The Okteto CLI, installed and configured to access your Okteto instance. See the [installation guide](get-started/install-okteto-cli.mdx).
+- To debug the application: [VS Code](https://code.visualstudio.com/) with the [CodeLLDB extension](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb).
+
+Clone the Rust Sample App:
+
+```bash
+git clone https://github.com/okteto/rust-getting-started
+cd rust-getting-started
+```
+
+## The Dockerfile
+
+The `Dockerfile` of the Rust Sample App defines two images, one per stage:
+
+```dockerfile title="Dockerfile"
+FROM rust:1.100.0-trixie AS dev
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends lldb-19=1:19.1.7-3+b1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    cargo install --locked --root /usr/local watchexec-cli@2.8.0
+
+WORKDIR /usr/src/app
+COPY Cargo.toml Cargo.lock ./
+RUN cargo fetch
+COPY . .
+RUN cargo build && \
+    cargo build --release && \
+    cp target/release/hello-world /usr/local/bin/hello-world
+
+FROM debian:trixie-slim AS prod
+
+COPY --from=dev /usr/local/bin/hello-world /usr/local/bin/hello-world
+CMD ["/usr/local/bin/hello-world"]
+```
+
+- `dev` is the development image. It contains the Rust toolchain, [watchexec](https://github.com/watchexec/watchexec) for hot reload, [LLDB](https://lldb.llvm.org/use/remote.html) for debugging, the dependencies, and the source code. `cargo fetch` downloads the dependencies in their own layer, so the image only downloads them again when `Cargo.toml` or `Cargo.lock` change. `cargo build` compiles the dependencies in the `target` folder of the image, so the first build in the Development Container only compiles the code of the application.
+- `prod` is the application image. It contains only the binary built in release mode in the `dev` stage.
+
+The `dev` stage follows the recommendations for [development images](development/images.mdx): every version is pinned, and the stage that builds the application doubles as the development image.
+
+## The Okteto Manifest
+
+The `okteto.yml` file is the [Okteto Manifest](reference/okteto-manifest.mdx) of the Rust Sample App.
+
+### Build
+
+The [build](reference/okteto-manifest.mdx#build-object-optional) section builds both images:
+
+```yaml title="okteto.yml"
+build:
+  dev:
+    context: .
+    target: dev
+  hello-world:
+    context: .
+    target: prod
+    depends_on:
+      - dev
+```
+
+`target` selects a stage of the `Dockerfile`. `depends_on` makes Okteto build the `dev` image first, so `hello-world` reuses its cached layers. Okteto pushes both images to the [Okteto Registry](core/container-registry.mdx) and stores their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+### Deploy
+
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section installs the Helm chart in the `chart` folder, with the application image that Okteto built:
+
+```yaml title="okteto.yml"
+deploy:
+  image: alpine/helm:4.3.2
+  commands:
+    - helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}
+```
+
+The command runs with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm on your machine.
+
+## Deploying the Rust Sample App
+
+Run `okteto deploy` from the root folder of the Rust Sample App:
+
+```bash
+okteto deploy
+```
+
+Okteto builds the `dev` and `hello-world` images, runs the deploy command, and prints the endpoint of the application:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Image 'registry.okteto.example.com/cindy/rust-getting-started-dev:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/rust-getting-started-hello-world:okteto' successfully pushed
+ i  Running stage 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'
+Executing command 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'...
+Release "hello-world" does not exist. Installing it now.
+NAME: hello-world
+NAMESPACE: cindy
+STATUS: deployed
+REVISION: 1
+ i  Endpoints available:
+  - https://hello-world-cindy.okteto.example.com
+ ✓  Development environment 'rust-getting-started' successfully deployed
+```
+
+Open the endpoint in your browser to see the `Hello world!` response. The Okteto UI shows the same endpoint:
+
+<Image
+  src={require("@site/static/img/okteto-ui-rust.png").default}
+  mobileSrc={require("@site/static/img/okteto-ui-rust-mobile.png").default}
+  alt="Okteto UI showing the cindy Namespace with the rust-getting-started Dev Environment deployed, its hello-world Deployment running, and its endpoint"
+/>
+
+Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the Ingress in the Helm chart.
+
+## Testing the Rust Sample App
+
+The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit test in `src/main.rs`, which sends a request to the axum router without opening a network connection:
+
+```yaml title="okteto.yml"
+test:
+  unit:
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    caches:
+      - /usr/local/cargo/registry
+      - /okteto/src/target
+    commands:
+      - bash -o pipefail -c "cargo test 2>&1 | tee test-report.txt"
+    artifacts:
+      - test-report.txt
+```
+
+- `image`: the development image, so the tests run with the same Rust toolchain as the Development Container.
+- `caches`: the Cargo registry and the `target` folder, kept between runs of the Test Container. Test Containers run in `/okteto/src`, so the `target` folder of the tests is `/okteto/src/target`.
+- `commands`: the commands that run the tests. The Test Container fails if any of them exits with a non-zero code. `cargo test` has no stable report format, so `tee` copies its output to `test-report.txt`, and `bash -o pipefail` keeps the exit code of `cargo test`.
+- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the test report.
+
+Test Containers run with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster.
+
+Run the unit tests from the root folder of the Rust Sample App:
+
+```bash
+okteto test
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Executing test container 'unit'
+ i  Running 'bash -o pipefail -c "cargo test 2>&1 | tee test-report.txt"'
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/main.rs (target/debug/build/hello-world/25a5528f67278982/out/hello_world-25a5528f67278982)
+running 1 test
+test tests::hello_returns_hello_world ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+ ✓  Command 'bash -o pipefail -c "cargo test 2>&1 | tee test-report.txt"' successfully executed
+ ✓  Test container 'unit' passed
+```
+
+The test report is now in `test-report.txt`, in the root folder of the Rust Sample App on your machine.
+
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](/docs/agentic/), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+
+## Developing in a Development Container
+
+If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+
+While `okteto up` is running, an AI agent with the [Okteto agent skills](/docs/agentic/) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
+
+### Configuration
+
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the `okteto.yml` file defines the Development Container of the Rust Sample App:
+
+```yaml title="okteto.yml"
+dev:
+  hello-world:
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    command: watchexec --restart --watch src --watch Cargo.toml -- cargo run
+    sync:
+      - .:/usr/src/app
+    persistentVolume:
+      enabled: false
+    securityContext:
+      capabilities:
+        add:
+          - SYS_PTRACE
+    forward:
+      - 2345:2345
+      - 2346:2346
+```
+
+The `hello-world` key matches the name of the Deployment in the Helm chart. These are the fields of the Development Container:
+
+- `image`: the development image built in the `build` section.
+- `command`: starts watchexec, which runs `cargo run` and restarts it every time a file of the `src` folder or `Cargo.toml` changes.
+- `sync`: synchronizes the root folder of the Rust Sample App with `/usr/src/app`, the working directory of the development image.
+- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the dependencies and the `target` folder come from the development image, so there's no volume to create and attach. In projects with many dependencies, enable it and add `/usr/local/cargo/registry` and `/usr/src/app/target` to [volumes](reference/okteto-manifest.mdx#volumes-string-optional) to keep the Cargo caches between `okteto up` sessions.
+- `securityContext`: adds the `SYS_PTRACE` capability that LLDB needs to attach to the running application.
+- `forward`: forwards ports `2345` and `2346`, where `lldb-server` listens, to your machine.
+
+### Hot reload
+
+Run `okteto up` to replace the `hello-world` Deployment with the Development Container:
+
+```bash
+okteto up
+```
+
+Okteto synchronizes your files and starts watchexec, which builds and runs the application:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  'rust-getting-started' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
+ i  Images were already built. To rebuild your images run 'okteto build'
+    Context:   okteto.example.com
+    Namespace: cindy
+    Name:      hello-world
+    Forward:   2345 -> 2345
+               2346 -> 2346
+
+[Running: cargo run]
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.62s
+     Running `target/debug/hello-world`
+Starting hello-world server on 0.0.0.0:8080...
+```
+
+Open `src/main.rs` in your IDE, change the response message on line 7 to `Hello world from Okteto!`, and save the file:
+
+```rust title="src/main.rs"
+async fn hello() -> &'static str {
+    "Hello world from Okteto!"
+}
+```
+
+Okteto synchronizes `src/main.rs` to the Development Container, and watchexec rebuilds and restarts the application:
+
+```console
+[Running: cargo run]
+   Compiling hello-world v0.1.0 (/usr/src/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.79s
+     Running `target/debug/hello-world`
+Starting hello-world server on 0.0.0.0:8080...
+```
+
+Reload the endpoint in your browser to see the new message. The change runs in your cluster without building an image or redeploying the application.
+
+Press `Ctrl+C` to stop watchexec and exit `okteto up`.
+
+### Debugging with VS Code
+
+`lldb-server` runs next to watchexec, so you debug the application that `okteto up` runs with hot reload. With `okteto up` running, start `lldb-server` in the Development Container from another terminal, in the root folder of the Rust Sample App:
+
+```bash
+okteto exec hello-world -- lldb-server-19 platform --server --listen '*:2345' --gdbserver-port 2346
+```
+
+`lldb-server` waits for a debugger on port `2345`, and starts a debugging session on port `2346` for each debugger that connects. It prints `Connection established.` every time VS Code connects.
+
+The `.vscode/launch.json` file of the Rust Sample App attaches VS Code to the application through the ports that `okteto up` forwards to your machine:
+
+```json title=".vscode/launch.json"
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Connect to okteto",
+      "type": "lldb",
+      "request": "attach",
+      "program": "/usr/src/app/target/debug/hello-world",
+      "initCommands": [
+        "platform select remote-linux",
+        "platform connect connect://127.0.0.1:2345"
+      ],
+      "sourceMap": {
+        "/usr/src/app": "${workspaceFolder}"
+      }
+    }
+  ]
+}
+```
+
+`program` is the binary that `cargo run` builds in the Development Container: CodeLLDB attaches to the process that runs it and downloads it from the Development Container to read its debug symbols. `sourceMap` maps `/usr/src/app`, the path in the `sync` field of the Okteto Manifest, to your local folder. If you synchronize your code to another path, change both to match it.
+
+Open the Rust Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. Add a breakpoint on line 7 of `src/main.rs` and reload the endpoint in your browser. Execution stops in the `hello` function, and you can inspect the call stack and the variables.
+
+When you save a file, watchexec restarts the application and the debugging session ends. Run the **Connect to okteto** configuration again to attach to the new process. Press `Ctrl+C` in the `okteto exec` terminal to stop `lldb-server`.
+
+## Cleaning up
+
+`okteto down` stops the Development Container and brings back the `hello-world` Deployment with the application image:
+
+```bash
+okteto down
+```
+
+When you're done, `okteto destroy` uninstalls the Helm release of the Rust Sample App from your Namespace:
+
+```bash
+okteto destroy
+```
+
+## FAQ
+
+### How do I make builds, deploys, and `okteto up` faster?
+
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](/docs/agentic/) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
+
+### How do I deploy an application with several services and a database?
+
+Follow [Deploy Your Application to Okteto](get-started/deploy-your-app/index.mdx) if you deploy with a Helm chart, or [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) if you use Docker Compose. If your services live in several repositories, see [Deploy a multi-repo application with dependencies](/tutorials/dependencies/).
+
+### Do I need to deploy the whole application in every Namespace?
+
+No. [Divert](core/divert.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
+
+### How do I start each environment with realistic data?
+
+Create its database from a [Volume Snapshot](core/use-volume-snapshots.mdx) instead of running a seed script on every deploy. [Data from Volume Snapshots](/tutorials/optimize-your-development-environment/#data-from-volume-snapshots) shows how.
+
+### How do I create resources outside Kubernetes, such as a cloud database?
+
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own cloud resources. [Create cloud infrastructure with Terraform](/tutorials/cloud-infrastructure/) shows how, with an Amazon S3 bucket for each environment.
+
+### Where can I find every field of the Okteto Manifest?
+
+The [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every field of `build`, `deploy`, `destroy`, `test`, and `dev`.

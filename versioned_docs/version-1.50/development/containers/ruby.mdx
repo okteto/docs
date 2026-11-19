@@ -1,193 +1,326 @@
 ---
 title: Getting Started with Okteto and Ruby
-description: This tutorial will show you how to develop and debug a Ruby application using Okteto
+description: Build, deploy, test, develop, and debug a Ruby application with Okteto.
 sidebar_label: Ruby
 id: ruby
 ---
 
 import Image from "@theme/Image";
 
-Okteto is a platform that simplifies the process of launching cloud development environments without requiring the expertise to do this yourself. This enables developers to automatically spin up fully-managed development environments that emulate production as closely as possible. Okteto eliminates the friction of local development environments, the many deviations that can exist for the same engineering organization, and the troubleshooting that comes with them.
-
-This tutorial will show you how to develop and debug a Ruby application using Okteto.
+Okteto runs your Ruby application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Ruby Sample App](https://github.com/okteto/ruby-getting-started), a hello world HTTP server, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](agentic/index.mdx).
 
 ## Prerequisites
 
-Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
+- The Okteto CLI, installed and configured to access your Okteto instance. See the [installation guide](get-started/install-okteto-cli.mdx).
+- To debug the application: [VS Code](https://code.visualstudio.com/) with the [VSCode rdbg Ruby Debugger extension](https://marketplace.visualstudio.com/items?itemName=KoichiSasada.vscode-rdbg).
 
-## Step 1: Deploy the Ruby Sample App
-
-Get a local version of the Ruby Sample App by executing the following commands:
+Clone the Ruby Sample App:
 
 ```bash
-$ git clone https://github.com/okteto/ruby-getting-started
-$ cd ruby-getting-started
+git clone https://github.com/okteto/ruby-getting-started
+cd ruby-getting-started
 ```
 
-At the root of the directory, you'll find the `okteto.yml` file. This file describes how to [deploy](reference/okteto-manifest.mdx#deploy-string-optional) the Ruby Sample App.
+## The Dockerfile
+
+The `Dockerfile` of the Ruby Sample App defines two images, one per stage:
+
+```dockerfile title="Dockerfile"
+FROM ruby:4.0.10-trixie AS dev
+
+RUN gem install debug -v 1.11.1
+
+ENV APP_ENV=development
+WORKDIR /opt/app
+COPY Gemfile Gemfile.lock ./
+RUN BUNDLE_FROZEN=true bundle install
+COPY . .
+
+FROM ruby:4.0.10-slim-trixie AS prod
+
+ENV APP_ENV=production
+WORKDIR /opt/app
+COPY Gemfile Gemfile.lock ./
+RUN BUNDLE_FROZEN=true BUNDLE_WITHOUT=test bundle install
+COPY . .
+CMD ["ruby", "app.rb"]
+```
+
+- `dev` is the development image. It contains Ruby, the gems in `Gemfile.lock` (among them [`sinatra/reloader`](https://sinatrarb.com/contrib/reloader) for hot reload), the [debug gem](https://github.com/ruby/debug) (`rdbg`) for debugging, and the source code. `APP_ENV=development` runs Sinatra in development mode, where `sinatra/reloader` reloads `app.rb` when it changes.
+- `prod` is the application image. It's based on the slim Ruby image and contains the source code and the gems in `Gemfile.lock`, without the `test` group. `APP_ENV=production` runs Sinatra in production mode, without the reloader.
+
+Both stages follow the recommendations for [development images](development/images.mdx): every version is pinned, and `bundle install` runs before `COPY . .`, so a change to the source code doesn't invalidate the layer with the gems.
+
+## The Okteto Manifest
+
+The `okteto.yml` file is the [Okteto Manifest](reference/okteto-manifest.mdx) of the Ruby Sample App.
+
+### Build
+
+The [build](reference/okteto-manifest.mdx#build-object-optional) section builds both images:
+
+```yaml title="okteto.yml"
+build:
+  dev:
+    context: .
+    target: dev
+  hello-world:
+    context: .
+    target: prod
+    depends_on:
+      - dev
+```
+
+`target` selects a stage of the `Dockerfile`. `depends_on` makes Okteto build the `dev` image before the `hello-world` image. Okteto pushes both images to the [Okteto Registry](core/container-registry.mdx) and stores their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+### Deploy
+
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section installs the Helm chart in the `chart` folder, with the application image that Okteto built:
 
 ```yaml title="okteto.yml"
 deploy:
-  - kubectl apply -f k8s.yml
+  image: alpine/helm:4.3.2
+  commands:
+    - helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}
 ```
 
-Deploy your development environment by executing:
+The command runs with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm on your machine.
+
+## Deploying the Ruby Sample App
+
+Run `okteto deploy` from the root folder of the Ruby Sample App:
 
 ```bash
-$ okteto deploy
+okteto deploy
 ```
 
-```bash
+Okteto builds the `dev` and `hello-world` images, runs the deploy command, and prints the endpoint of the application:
+
+```console
  i  Using cindy @ okteto.example.com as context
- i  Running kubectl apply -f k8s.yml
-deployment.apps/hello-world created
-service/hello-world created
-ingress.networking.k8s.io/hello-world created
+ ✓  Image 'registry.okteto.example.com/cindy/ruby-getting-started-dev:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/ruby-getting-started-hello-world:okteto' successfully pushed
+ i  Running stage 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'
+Executing command 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'...
+Release "hello-world" does not exist. Installing it now.
+NAME: hello-world
+NAMESPACE: cindy
+STATUS: deployed
+REVISION: 1
+ i  Endpoints available:
+  - https://hello-world-cindy.okteto.example.com
  ✓  Development environment 'ruby-getting-started' successfully deployed
- i  Run 'okteto up' to activate your development container
 ```
 
-Log into your Okteto instance and click on the URL of the application:
+Open the endpoint in your browser to see the `Hello world!` response. The Okteto UI shows the same endpoint:
 
 <Image
-  src={require("@site/static/img/okteto-ui+1.32.png").default}
-  alt="Okteto dashboard showing the hello-world deployment running with endpoints and logs"
+  src={require("@site/static/img/okteto-ui-ruby.png").default}
+  mobileSrc={require("@site/static/img/okteto-ui-ruby-mobile.png").default}
+  alt="Okteto UI showing the cindy Namespace with the ruby-getting-started Dev Environment deployed, its hello-world Deployment running, and its endpoint"
 />
 
-Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto will [automatically create them](core/endpoints/automatic-ssl.mdx) for you when you deploy your application. Cool no 😎?
+Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the [Ingress](core/endpoints/ingress.mdx) in the Helm chart. If your application uses the Gateway API, it does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx).
 
-## Step 2: Activate your development container
+## Testing the Ruby Sample App
 
-The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the Ruby Sample App:
+The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit tests in `test/app_test.rb`, written with Minitest and Rack::Test:
+
+```yaml title="okteto.yml"
+test:
+  unit:
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    caches:
+      - /usr/local/bundle
+    commands:
+      - bundle install
+      - bundle exec ruby test/app_test.rb
+    artifacts:
+      - coverage
+```
+
+- `image`: the development image, so the tests run with the same Ruby version as the Development Container.
+- `caches`: the folder where Bundler installs the gems, kept between runs of the Test Container. `bundle install` only installs the gems that aren't in the cache yet.
+- `commands`: the commands that run the tests. The Test Container fails if any of them exits with a non-zero code.
+- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the `coverage` folder with the report of SimpleCov.
+
+Test Containers run with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster.
+
+Run the unit tests from the root folder of the Ruby Sample App:
+
+```bash
+okteto test
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Executing test container 'unit'
+ i  Running 'bundle install'
+Bundle complete! 7 Gemfile dependencies, 17 gems now installed.
+ ✓  Command 'bundle install' successfully executed
+ i  Running 'bundle exec ruby test/app_test.rb'
+Run options: --seed 39873
+# Running:
+.
+Finished in 0.009812s, 101.9161 runs/s, 203.8323 assertions/s.
+1 runs, 2 assertions, 0 failures, 0 errors, 0 skips
+Coverage report generated for Unit Tests to coverage/index.html
+Line coverage: 8 / 8 (100.00%)
+ ✓  Command 'bundle exec ruby test/app_test.rb' successfully executed
+ ✓  Test container 'unit' passed
+```
+
+The coverage report is now in the `coverage` folder, in the root folder of the Ruby Sample App on your machine. Open `coverage/index.html` in your browser to see the lines that the tests run.
+
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](agentic/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+
+## Developing in a Development Container
+
+If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+
+While `okteto up` is running, an AI agent with the [Okteto agent skills](agentic/index.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
+
+### Configuration
+
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the `okteto.yml` file defines the Development Container of the Ruby Sample App:
 
 ```yaml title="okteto.yml"
 dev:
   hello-world:
-    command: bash
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    command: ruby app.rb
     sync:
-      - .:/opt/app/
+      - .:/opt/app
+    persistentVolume:
+      enabled: false
     forward:
       - 1234:1234
-    volumes:
-      - /usr/local/bundle/cache
 ```
 
-The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+The `hello-world` key matches the name of the Deployment in the Helm chart. These are the fields of the Development Container:
 
-- `command`: the start command of the development container.
-- `sync`: the folders that will be synchronized between your local machine and the development container.
-- `forward`: a list of ports to forward from your development container to localhost in your machine. This is needed to configure the Ruby remote debugger.
-- `volumes`: a list of paths in your development container to be mounted as persistent volumes. For example, this is useful to persist the bundle cache.
+- `image`: the development image built in the `build` section.
+- `command`: starts the application. The development image runs Sinatra in development mode, so `sinatra/reloader` loads `app.rb` again on the first request after the file changes.
+- `sync`: synchronizes the root folder of the Ruby Sample App with `/opt/app`, the working directory of the development image.
+- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the gems come from the development image, so there's no volume to create and attach. When you add a gem to the `Gemfile`, run `okteto deploy` to build the development image again.
+- `forward`: forwards port `1234`, where `rdbg` listens, to your machine.
 
-Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
-This is useful to avoid synchronizing binaries, build artifacts or git metadata.
+### Hot reload
 
-Next, execute the following command to activate your development container:
+Run `okteto up` to replace the `hello-world` Deployment with the Development Container:
 
 ```bash
-$ okteto up
+okteto up
 ```
 
-```bash
- ✓  Persistent volume successfully attached
+Okteto synchronizes your files and starts the application:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  'ruby-getting-started' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
  ✓  Images successfully pulled
  ✓  Files synchronized
+    Context:   okteto.example.com
     Namespace: cindy
     Name:      hello-world
     Forward:   1234 -> 1234
 
-Welcome to your development container. Happy coding!
-cindy:hello-world app>
+[2026-11-19 04:04:25] INFO  WEBrick 1.9.2
+[2026-11-19 04:04:25] INFO  ruby 4.0.10 (2026-11-19) [x86_64-linux]
+== Sinatra (v4.2.2) has taken the stage on 8080 for development with backup from WEBrick
+[2026-11-19 04:04:25] INFO  Rackup::Handler::WEBrick::Server#start: pid=83 port=8080
 ```
 
-Working in your development container is the same as working on your local machine.
-Start the application in hot-reload mode by running the following command:
+Open `app.rb` in your IDE, change the response message on line 10 to `Hello world from Okteto!`, and save the file:
 
-```bash
-cindy:hello-world app> ruby app.rb
-```
-
-```bash
-[2022-07-04 16:50:53] INFO  WEBrick 1.6.1
-[2022-07-04 16:50:53] INFO  ruby 2.7.6 (2022-04-12) [x86_64-linux]
-== Sinatra (v2.0.8.1) has taken the stage on 8080 for production with backup from WEBrick
-[2022-07-04 16:50:53] INFO  WEBrick::HTTPServer#start: pid=79 port=8080
-```
-
-Go back to the browser and reload the page to test that your application is running.
-
-## Step 3: Remote Development with Okteto
-
-Open the `app.rb` file in your favorite local IDE and modify the response message on line 7 to be _Hello world from Okteto!_. Save your changes.
-
-```ruby
-get "/" do
-  message = "Hello world from Okteto!"
+```ruby title="app.rb"
+get '/' do
+  message = 'Hello world from Okteto!'
   message
 end
 ```
 
-Okteto will synchronize your changes to your development container in Kubernetes and Sinatra automatically detects them and reloads your application.
+Okteto synchronizes `app.rb` to the Development Container, and `sinatra/reloader` loads it again on the next request, without restarting the server. Reload the endpoint in your browser to see the new message. The change runs in your cluster without building an image or redeploying the application.
 
-Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎!
+Press `Ctrl+C` to stop Sinatra and exit `okteto up`.
 
-## Step 4: Remote debugging with Okteto
+### Debugging with VS Code
 
-Okteto enables you to debug your applications directly from your favorite IDE. Let's take a look at how that works in VS Code, one of the most popular IDEs for Ruby development. If you haven't done it yet, install the [Ruby extension](https://marketplace.visualstudio.com/items?itemName=rebornix.Ruby) available from Visual Studio marketplace. This extension comes with debug definitions covering the default `ruby-debug-ide` client setup.
-
-Now, cancel the execution of `ruby app.rb` from the development container shell by pressing `ctrl + c`. Rerun your application in debug mode:
+`rdbg` runs the application with the debugger, so start the Development Container with `rdbg` instead of `ruby app.rb`. The command after `--` replaces the `command` of the Okteto Manifest:
 
 ```bash
-cindy:hello-world app> rdebug-ide --host 0.0.0.0 app.rb
+okteto up -- rdbg --open --nonstop --host 0.0.0.0 --port 1234 app.rb
 ```
 
-```bash
-Fast Debugger (ruby-debug-ide 0.7.0, debase 0.2.4.1, file filtering is supported) listens on 0.0.0.0:1234
+`--open --host 0.0.0.0 --port 1234` makes `rdbg` listen for a debugger on port `1234` of the Development Container, and `--nonstop` starts the application without waiting for the debugger to attach:
+
+```console
+DEBUGGER: Debugger can attach via TCP/IP (0.0.0.0:1234)
+[2026-11-19 04:06:26] INFO  WEBrick 1.9.2
+[2026-11-19 04:06:26] INFO  ruby 4.0.10 (2026-11-19) [x86_64-linux]
+== Sinatra (v4.2.2) has taken the stage on 8080 for development with backup from WEBrick
 ```
 
-Open the _Run_ view in VS Code and run the _Connect to okteto_ debug configuration (or press the F5 shortcut):
+The `.vscode/launch.json` file of the Ruby Sample App attaches VS Code to `rdbg` through the port that `okteto up` forwards to your machine:
 
-```json
+```json title=".vscode/launch.json"
 {
   "version": "0.2.0",
   "configurations": [
     {
       "name": "Connect to okteto",
-      "type": "Ruby",
+      "type": "rdbg",
       "request": "attach",
-      "remotePort": "1234",
-      "remoteHost": "localhost",
-      "remoteWorkspaceRoot": "/opt/app",
-      "cwd": "${workspaceRoot}"
+      "debugPort": "localhost:1234",
+      "localfsMap": "/opt/app:${workspaceFolder}"
     }
   ]
 }
 ```
 
-:::note
+`localfsMap` maps `/opt/app`, the path in the `sync` field of the Okteto Manifest, to the folder that you open in VS Code. If you synchronize your code to another path, change `/opt/app` to match it.
 
-You should be replacing the value of `remoteWorkspaceRoot` with wherever your application code is.
+Open the Ruby Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. Add a breakpoint on line 10 of `app.rb` and reload the endpoint in your browser. Execution stops at the breakpoint, and you can inspect the request and the variables.
 
-:::
+Press `Ctrl+C` to stop the application and `rdbg` and exit `okteto up`, and then run `okteto up` to go back to `ruby app.rb`.
 
-Add a breakpoint on `app.rb`, line 8. Go back to the browser and reload the page. The execution will halt at your breakpoint. You can then inspect the request, the available variables, etc...
+## Cleaning up
 
-<Image
-  src={require("@site/static/img/ruby-halt.png").default}
-  alt="debugging in Okteto with Ruby"
-  width="850"
-/>
+`okteto down` stops the Development Container and brings back the `hello-world` Deployment with the application image:
 
-Your code is executing in Okteto, but you can debug it from your local machine without any extra services or tools. Pretty cool no? 😉
+```bash
+okteto down
+```
 
-## Next steps
+When you're done, `okteto destroy` uninstalls the Helm release of the Ruby Sample App from your Namespace:
 
-Congratulations, you just developed **your first application in Okteto** 🚀.
+```bash
+okteto destroy
+```
 
-Okteto lets you develop your applications directly on Kubernetes. This way you can:
+## FAQ
 
-- Eliminate integration issues by developing in a realistic environment
-- Test your application end to end as fast as you type code
-- No more CPU cycles wasted in your machine. Develop at the speed of the cloud!
+### How do I make builds, deploys, and `okteto up` faster?
 
-Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](agentic/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
+
+### How do I deploy an application with several services and a database?
+
+Follow [Deploy Your Application to Okteto](get-started/deploy-your-app/index.mdx) if you deploy with a Helm chart, or [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) if you use Docker Compose. If your services live in several repositories, see [Deploy a multi-repo application with dependencies](/tutorials/dependencies/).
+
+### Do I need to deploy the whole application in every Namespace?
+
+No. [Divert](development/divert/index.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
+
+### How do I start each environment with realistic data?
+
+Create its database from a [Volume Snapshot](core/use-volume-snapshots.mdx) instead of running a seed script on every deploy. [Data from Volume Snapshots](/tutorials/optimize-your-development-environment/#data-from-volume-snapshots) shows how.
+
+### How do I create resources outside Kubernetes, such as a cloud database?
+
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own cloud resources. [Create cloud infrastructure with Terraform](/tutorials/cloud-infrastructure/) shows how, with an Amazon S3 bucket for each environment.
+
+### Where can I find every field of the Okteto Manifest?
+
+The [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every field of `build`, `deploy`, `destroy`, `test`, and `dev`.

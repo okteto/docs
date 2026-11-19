@@ -6,7 +6,7 @@ cards with the cover of each tutorial, and the same page layout as a post.
 
 ```
 tutorials/
-  posts/2026-11-14-helm/
+  posts/2022-03-31-compose-getting-started/
     index.mdx          the tutorial
     img/               its images (img/cover.jpg is the cover)
 ```
@@ -21,7 +21,7 @@ tutorials/
    ---
    title: "Develop a Helm application with Okteto"
    description: "One functional sentence for search results, link previews and the card."
-   slug: helm                     # URL: /tutorials/helm/. Never change it once published.
+   slug: compose-getting-started  # URL: /tutorials/compose-getting-started/. Never change it once published.
    date: 2026-11-14               # orders the tutorials (newest first); never shown
    image: ./img/cover.jpg         # cover, card image and social card
    image_alt: "The Helm logo with an arrow to the Kubernetes logo"
@@ -33,7 +33,7 @@ tutorials/
    [`AGENTS.md`](../AGENTS.md#images).
 3. Write the tutorial in MDX, following [`STYLE_GUIDE.md`](../STYLE_GUIDE.md).
    Link docs pages with root-relative URLs (`/docs/reference/okteto-cli/`) and
-   other tutorials the same way (`/tutorials/helm/`).
+   other tutorials the same way (`/tutorials/compose-getting-started/`).
 4. Run `yarn develop:tutorials` and open http://localhost:8082/tutorials/.
 5. Open a pull request. Merging to `main` publishes it.
 

@@ -225,7 +225,6 @@ module.exports = {
         docs: {
           path: docsContentPath,
           routeBasePath: '/',
-          editUrl: 'https://github.com/okteto/docs/edit/main',
           breadcrumbs: false,
           // Also feeds dateModified in the page JSON-LD (src/theme/DocItem/Metadata).
           showLastUpdateTime: true,

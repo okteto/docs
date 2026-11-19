@@ -92,6 +92,16 @@ Use noun phrases, not imperative verbs or questions.
 | Why use Preview Environments? | (just write the section) |
 | Understanding namespaces | Namespaces |
 
+**Exception: a `## FAQ` section.** At the end of a guide or a tutorial, its `###` headings are the questions a reader asks, ending with a question mark, and each answer starts with the direct answer (`No.`, a command, or the link to follow) before any explanation. Use it for questions that come up after following the page (performance, related setups, where to go next), not for the steps of the page, and keep it short. The section heading itself is `FAQ`.
+
+```mdx
+## FAQ
+
+### Do I need to deploy the whole application in every Namespace?
+
+No. [Divert](development/divert/index.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
+```
+
 ---
 
 ## Formatting

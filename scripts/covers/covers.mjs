@@ -642,11 +642,6 @@ const covers = [
     svg: row([mark('docker', { size: 230 }), 'arrow', kubernetes()]),
   },
   {
-    out: tutorial('2026-11-14-helm'),
-    alt: 'The Helm logo with an arrow to the Kubernetes logo',
-    svg: row([mark('helm', { size: 200 }), 'arrow', kubernetes()]),
-  },
-  {
     out: tutorial('2026-11-17-testcontainers'),
     alt: 'Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace',
     svg: row([
@@ -656,6 +651,20 @@ const covers = [
       'arrow',
       group('Namespace', [item('database'), item('box')], { top: 'kubernetes' }),
     ]),
+  },
+  {
+    out: tutorial('2026-11-19-dependencies'),
+    alt: 'Okteto deploys the mongodb and frontend repositories in parallel, and the api repository once mongodb is deployed',
+    svg: (() => {
+      const repo = (cx, cy, name, label) => box(cx - 115, cy - 85, 230, 170)
+        + icon(name, cx, cy - 20, 66) + text(label, cx, cy + 56, 34);
+      return logo('okteto', 215, 315, 190)
+        + arrow(320, 280, 430, 205) + arrow(320, 350, 430, 425)
+        + repo(565, 185, 'database', 'mongodb')
+        + repo(565, 445, 'globe', 'frontend')
+        + arrow(700, 185, 800, 185)
+        + repo(935, 185, 'server', 'api');
+    })(),
   },
   {
     out: tutorial('2026-11-13-cloud-infrastructure'),
