@@ -9,13 +9,13 @@ The Okteto Registry can store your container images in Google Cloud Storage.
 
 Create a Cloud Storage bucket in GCP, as described in [Create buckets](https://cloud.google.com/storage/docs/creating-buckets) in the Google Cloud documentation. The default settings work. Make sure your bucket doesn't have public access enabled.
 
-Create a Google Cloud service account with access to your bucket, for example `GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com`.
+Create a Google Cloud service account with access to your bucket, for example `GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com`. The commands on this page use `$GSA_NAME` and `$GSA_PROJECT` for the name and the project of that service account, and `$GCP_PROJECT` for the project of your GKE cluster.
 
 Run the following command to let the `okteto-registry` Kubernetes service account impersonate that Google Cloud service account through Workload Identity. With the `roles/iam.workloadIdentityUser` role binding, the Kubernetes service account authenticates as the Google Cloud service account, so it accesses the Cloud Storage bucket securely without long-lived service account keys:
 
 ```bash
 gcloud iam service-accounts add-iam-policy-binding \
-  GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com \
+  $GSA_NAME@$GSA_PROJECT.iam.gserviceaccount.com \
   --role roles/iam.workloadIdentityUser \
   --member "serviceAccount:$GCP_PROJECT.svc.id.goog[okteto/okteto-registry]" \
   --project $GCP_PROJECT
@@ -31,7 +31,7 @@ registry:
     provider:
       gcp:
         enabled: true
-        bucket: <<vbucket-name>>
+        bucket: <bucket-name>
         project: <<your-project-id>>
         workloadIdentity:
           enabled: true
@@ -44,10 +44,10 @@ With Workload Identity, the Okteto Registry serves image layers itself. To have 
 
 ```bash
 gcloud iam service-accounts add-iam-policy-binding \
-  GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com \
+  $GSA_NAME@$GSA_PROJECT.iam.gserviceaccount.com \
   --role roles/iam.serviceAccountTokenCreator \
-  --member "serviceAccount:GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com" \
-  --project GSA_PROJECT
+  --member "serviceAccount:$GSA_NAME@$GSA_PROJECT.iam.gserviceaccount.com" \
+  --project $GSA_PROJECT
 ```
 
 Then enable the redirects in your Okteto Helm configuration file:

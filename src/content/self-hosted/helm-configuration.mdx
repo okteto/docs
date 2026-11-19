@@ -57,7 +57,7 @@ Overrides the public URL where Okteto is available. It replaces `okteto.$SUBDOMA
 publicOverride: "example.com"
 ```
 
-After you set it in your Helm configuration file, use your DNS provider to point this domain to the IP address of the Okteto Ingress Controller. Get the IP address with the same command you run during [installation](get-started/install/amazon-eks.mdx#retrieve-the-ingress-controller-ip-address):
+After you set it in your Helm configuration file, use your DNS provider to point this domain to the IP address of the Okteto Ingress Controller. Get the IP address with the same command that the [installation guides](get-started/install/index.mdx) use:
 
 ```bash
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
@@ -185,7 +185,7 @@ autoscaler:
     increment: 1
     min: 1
     max: 10
-    podLabel: cloud.google.com/gke-nodepool
+    poolLabel: cloud.google.com/gke-nodepool
   slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
@@ -200,7 +200,7 @@ The [Okteto Build Service](core/build-service.mdx). `okteto build` uses it to bu
 - `hpa.min`: Minimum number of BuildKit pods to keep running. Defaults to `1`.
 - `hpa.max`: Maximum number of BuildKit pods to scale to. Defaults to `5`.
 - `hpa.metrics`: The [target metrics](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics) that make the HPA scale the BuildKit pods. Defaults to the `okteto_build_active_builds` metric with an average value target of `0.99`.
-- `hpa.behavior`: The [scaling behavior](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior) of the HPA for the BuildKit pods. By default, it scales up quickly (30-second stabilization window) and scales down conservatively (600-second stabilization window).
+- `hpa.behavior`: The [scaling behavior](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior) of the HPA for the BuildKit pods. By default, it adds up to one pod every 30 seconds when builds pile up, and after a 600-second stabilization window it removes up to one pod every 150 seconds.
 - `hpa.adapter.enabled`: Creates the metrics adapter Deployment, Service, and APIService. Enabled by default when the HPA is enabled. The adapter exposes BuildKit metrics through the Kubernetes custom metrics API.
 - `hpa.adapter.extraEnv`: Environment variables for the adapter containers.
 - `hpa.adapter.priorityClassName`: The priority class for the adapter pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
@@ -337,14 +337,14 @@ If you mirror the Okteto images to a private registry, override `rootless.image`
 Settings for the Okteto CLI. The `cli` section sets the Docker image that the Okteto CLI uses for cluster-wide operations. Change it to use your own Docker images.
 
 - `image`: The image settings for the Okteto CLI.
-  - `registry`: The registry where the Okteto CLI image is hosted. Defaults to `docker.io`.
+  - `registry`: The registry where the Okteto CLI image is hosted. Defaults to `ghcr.io`.
   - `repository`: The repository path for the Okteto CLI image. Defaults to `okteto/okteto`.
 
 ```yaml
 cli:
   image:
     registry: "my-custom-registry:5000"
-    repository: "okteto/cli"
+    repository: "okteto/okteto"
 ```
 :::note
 - Changing these settings changes the image for every Okteto CLI user in the cluster.
@@ -369,7 +369,7 @@ The daemonset runs these tasks on each node:
 - [Overrides](self-hosted/helm-configuration.mdx#overrideregistryresolution) the Okteto Registry hostname resolution to use internal IPs.
 - [Overrides](self-hosted/helm-configuration.mdx#overridefilewatchers) the default kernel values for file watchers on every node.
 - Configures the kubelet with registry credentials for [private registries](self-hosted/helm-configuration.mdx#daemonset) (if `configurePrivateRegistriesInNodes.enabled=true` and `regcredsManager.pullSecrets.enabled=false`).
-- Installs your private CA, if you provide one (`wildcardCertificate.privateCA: true`), into each node's trust store. Setting `injectCA.enabled: false` disables this task.
+- Installs your private CA, if you provide one (`wildcardCertificate.privateCA.enabled: true`), into each node's trust store. Setting `injectCA.enabled: false` disables this task.
 - Installs the Okteto-generated CA into each node's trust store when using self-signed certificates (`wildcardCertificate.create: true`). Setting `injectCA.enabled: false` disables this task.
 
 To restrict the nodes where the daemonset runs, use the `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
@@ -687,7 +687,7 @@ The controller manager runs as a Deployment and manages the private registry cre
 regcredsManager:
   priorityClassName:
   pullSecrets:
-    enabled: false
+    enabled: true
   podLabels: {}
   podAnnotations: {}
   webhookTimeout: 30
@@ -1082,17 +1082,6 @@ ingressLimits:
   connections: 40
   rps: 40
   rpm: 400
-```
-
-### injectDevelopmentBinaries
-
-Injects the `kubectl`, `helm`, and `okteto` binaries into every Development Container and into the pipeline runner.
-
-If you disable it, provide your own image in `installer.image`.
-
-```yaml
-injectDevelopmentBinaries:
-  enabled: true
 ```
 
 ### internalCertificate
@@ -1603,12 +1592,12 @@ Okteto sets specific values on the embedded ingress-nginx chart to enable featur
 - `ingress-nginx`:
 
   ```
-  helm get values okteto/okteto --jsonpath '{.ingress-nginx}'
+  helm show values okteto/okteto --jsonpath '{.ingress-nginx}'
   ```
 
 - `okteto-nginx`:
   ```
-  helm get values okteto/okteto --jsonpath '{.okteto-nginx}'
+  helm show values okteto/okteto --jsonpath '{.okteto-nginx}'
   ```
 
 #### Using Your Own Ingress Controller

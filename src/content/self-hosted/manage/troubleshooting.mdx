@@ -20,24 +20,6 @@ Run [`okteto doctor`](reference/okteto-cli.mdx#doctor) to generate a doctor file
 
 Use the [Okteto Diagnostics tool](self-hosted/manage/diagnostics.mdx) to create a support bundle with cluster information, logs for the Okteto components, and other relevant information.
 
-## BYOC log access
-
-In Okteto Bring Your Own Cloud (BYOC), log access depends on the cloud provider. Besides the log views available to Okteto users, anyone with access to the cloud provider's logging solution for the account or project can review the logs forwarded there for some or all workloads in the cluster. The logs are stored in the default locations of each logging service. You can filter them by namespace, node, pod, and similar resource attributes, with labels or the service's query system.
-
-### AWS BYOC
-
-On AWS, Okteto BYOC sends all cluster logs to [Amazon CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html). Inspect CloudWatch when you need workload, application, or cluster-level logs directly from AWS.
-The logs are stored in CloudWatch Logs log groups in the same AWS account and Region, commonly under the EKS and Container Insights log groups, such as `/aws/eks/<cluster>/cluster` and `/aws/containerinsights/<cluster>/...`.
-
-The AWS setup for BYOC grants Okteto the access it needs to operate the platform, as the [AWS BYOC onboarding guide](byoc/aws/index.mdx) describes. To review workload logs in CloudWatch, use your own AWS access.
-
-### GCP BYOC
-
-On GCP, Okteto BYOC sends the system logs and the logs from the `okteto` namespace to [Google Cloud Logging](https://cloud.google.com/logging/docs). Sending all cluster logs to Cloud Logging is opt-in: ask your Okteto technical contact to activate it.
-The logs are stored in Cloud Logging log buckets, typically the system-managed `_Default` and `_Required` buckets.
-
-The current GCP BYOC onboarding flow grants Okteto administrative access in your project, as the [GCP BYOC onboarding guide](byoc/gcp/index.mdx) describes. To review the system logs and the `okteto` namespace logs in Cloud Logging, use your own GCP access.
-
 ## How to Check That Your Okteto Instance is Healthy
 ### 1. Sanity check the Okteto Helm release
 
@@ -110,7 +92,7 @@ wildcardCertificate:
 </Tabs>
 
 
-### 2. Wait for workloads to become “Available”
+### 2. Wait for workloads to become "Available"
 
 Check that all Deployments and StatefulSets have completed their rollouts and that all Pods are in the Ready state:
 
@@ -143,9 +125,9 @@ kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto -o custom-colu
 Check that every resource the Okteto Helm release creates is healthy:
 
 ```bash
-kubectl get all -l app.kubernetes.io/instance="okteto"
-kubectl get ingress,service -l app.kubernetes.io/instance="okteto"
-kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto"
+kubectl get all -l app.kubernetes.io/instance="okteto" -n okteto
+kubectl get ingress,service -l app.kubernetes.io/instance="okteto" -n okteto
+kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto" -n okteto
 ```
 
 The commands return output like this:
@@ -161,7 +143,7 @@ The commands return output like this:
 <TabItem value="kubectl-get-all">
 
 ```bash
-~ % kubectl get all -l app.kubernetes.io/instance="okteto"
+~ % kubectl get all -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                                      READY   STATUS    RESTARTS   AGE
 pod/okteto-api-d6ccbfc8d-8fgb5                            1/1     Running   0          3m7s
 pod/okteto-api-d6ccbfc8d-bqrlp                            1/1     Running   0          3m7s
@@ -251,7 +233,7 @@ cronjob.batch/okteto-telemetry             @daily        <none>     False     0 
 <TabItem value="kubectl-get-ingress-service">
 
 ```bash
-~ % kubectl get ingress,service -l app.kubernetes.io/instance="okteto"
+~ % kubectl get ingress,service -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                                CLASS                       HOSTS                       ADDRESS        PORTS     AGE
 ingress.networking.k8s.io/okteto                    okteto-controlplane-nginx   okteto.jona.okteto.me       34.21.79.137   80, 443   202d
 ingress.networking.k8s.io/okteto-buildkit           okteto-controlplane-nginx   buildkit.jona.okteto.me     34.21.79.137   80, 443   202d
@@ -275,36 +257,13 @@ service/okteto-regcreds                       ClusterIP      34.118.226.123   <n
 service/okteto-registry                       ClusterIP      34.118.225.14    <none>                                 5000/TCP                     202d
 service/okteto-ssh-agent                      ClusterIP      34.118.232.197   <none>                                 3000/TCP                     202d
 
-NAME                                        DATA   AGE
-configmap/okteto                            167    202d
-configmap/okteto-helm-release-meta          6      91d
-configmap/okteto-ingress-config             1      202d
-configmap/okteto-ingress-nginx-controller   15     202d
-configmap/okteto-okteto-nginx-controller    14     202d
-configmap/okteto-preflight                  1      202d
-configmap/okteto-redactor                   1      202d
-configmap/okteto-redis-configuration        4      202d
-configmap/okteto-redis-health               6      202d
-configmap/okteto-redis-scripts              1      202d
-configmap/okteto-registry-config            1      202d
-configmap/okteto-support-bundle             1      202d
-
-NAME                                 TYPE                DATA   AGE
-secret/okteto                        Opaque              2      202d
-secret/okteto-mutation-webhook       kubernetes.io/tls   3      202d
-secret/okteto-regcreds               kubernetes.io/tls   3      202d
-secret/okteto-registry-http-secret   Opaque              1      202d
-
-NAME                                                         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-persistentvolumeclaim/storage-okteto-buildkit-7c80387317-0   Bound    pvc-79219185-22de-4ccb-acd8-3228b3bb7323   100Gi      RWO            standard-rwo   <unset>                 86d
-persistentvolumeclaim/storage-okteto-buildkit-7c80387317-1   Bound    pvc-9e19e7f8-6f2f-4685-8a2d-dc340f4639e1   100Gi      RWO            standard-rwo   <unset>                 86d
 ```
 
 </TabItem>
 <TabItem value="kubectl-get-cm-secret-pvc">
 
 ```bash
-~ % kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto"
+~ % kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                        DATA   AGE
 configmap/okteto                            167    202d
 configmap/okteto-helm-release-meta          6      91d
@@ -429,12 +388,12 @@ kubectl get events -n okteto --sort-by=.lastTimestamp | tail -n 40
 kubectl describe pod <pod-name>
 ```
 
-## Daemon fails with “open /etc/hosts: permission denied”
+## Daemon fails with "open /etc/hosts: permission denied"
 
 The node's operating system doesn't allow Okteto to modify the `/etc/hosts` file. Okteto needs write access to `/etc/hosts` on the cluster nodes to configure [internal registry resolution](self-hosted/helm-configuration.mdx#overrideregistryresolution). When it can't write to it, the `okteto-daemon` pods fail with an error like this one:
 
 ```json
-{“level”:”fatal”,”service”:”daemon”,”error”:”open /etc/hosts: permission denied”,”timestamp”:”...”,”message”:”tasks initialization failed”}
+{"level":"fatal","service":"daemon","error":"open /etc/hosts: permission denied","timestamp":"...","message":"tasks initialization failed"}
 ```
 
 This commonly happens with an unsupported node OS, such as [Bottlerocket](https://aws.amazon.com/bottlerocket/) on AWS EKS. Bottlerocket uses a read-only root filesystem, which prevents Okteto from writing to `/etc/hosts`.
@@ -452,12 +411,12 @@ To fix it:
    ```
 3. **Drain and delete the old node group** running the unsupported OS.
 
-## UPGRADE FAILED: “okteto” has no deployed releases
+## UPGRADE FAILED: "okteto" has no deployed releases
 
 This error occurs on your second install or upgrade when your initial install failed. Delete the failed install before you try again:
 
 ```bash
-helm uninstall okteto
+helm uninstall okteto --namespace okteto
 ```
 
 ## Registry pods keep restarting
