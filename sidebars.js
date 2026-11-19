@@ -49,6 +49,7 @@ module.exports = {
         {
           type: 'category',
           label: 'Credentials',
+          link: { type: 'doc', id: 'core/credentials/index' },
           items: [
             'core/credentials/kubernetes-credentials',
             'core/credentials/personal-access-tokens',
