@@ -165,14 +165,6 @@ function environmentBox(x, y, w) {
   return out;
 }
 
-// The loop of an application environment: deploy, optionally up, and test,
-// repeated until the change works (the Application Environments page).
-const LOOP_ALT = 'The loop in an application environment, an Okteto Namespace: okteto deploy, optionally okteto up, and okteto test, repeated until the change works';
-function loopStep(x, y, w, command, optional) {
-  return box(x, y, w, 88, { color: optional ? C.dim : C.teal, dashed: optional, radius: 12, strokeWidth: 3 })
-    + text(command, x + w / 2, optional ? y + 42 : y + 53, 24, { mono: true })
-    + (optional ? text('optional', x + w / 2, y + 72, 22, { color: C.dim }) : '');
-}
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
@@ -971,40 +963,6 @@ const covers = [
       + arrow(230, 455, 230, 590, { color: C.teal }) + text('deploy, test', 210, 530, 24, { color: C.teal, anchor: 'end' })
       + arrow(370, 590, 370, 455, { color: C.dim }) + text('results, logs', 390, 530, 24, { color: C.dim, anchor: 'start' })
       + environmentBox(60, 640, 480),
-  },
-  {
-    out: 'static/img/environment-loop.webp',
-    background: 'white',
-    alt: LOOP_ALT,
-    svg: () => {
-      let out = box(150, 90, 900, 470, { color: C.blue }) + logo('kubernetes', 600, 90, 80)
-        + text('Application environment', 600, 172, 30) + text('Okteto Namespace', 600, 206, 22, { color: C.dim });
-      ['okteto deploy', 'okteto up', 'okteto test'].forEach((command, i) => {
-        out += loopStep(195 + i * 285, 270, 240, command, i === 1);
-        if (i < 2) out += arrow(443 + i * 285, 314, 472 + i * 285, 314, { color: C.teal });
-      });
-      out += curve('M885 366 V470 H315 V380', { color: C.dim }) + arrow(315, 392, 315, 368, { color: C.dim })
-        + `<rect x="450" y="452" width="300" height="36" fill="${C.ink}"/>` + text('repeat until it works', 600, 478, 24, { color: C.dim });
-      return out;
-    },
-  },
-  {
-    out: 'static/img/environment-loop-mobile.webp',
-    background: 'white',
-    width: 600,
-    height: 670,
-    alt: LOOP_ALT,
-    svg: () => {
-      let out = box(40, 60, 520, 570, { color: C.blue }) + logo('kubernetes', 300, 60, 80)
-        + text('Application environment', 300, 142, 30) + text('Okteto Namespace', 300, 176, 22, { color: C.dim });
-      ['okteto deploy', 'okteto up', 'okteto test'].forEach((command, i) => {
-        out += loopStep(90, 220 + i * 140, 260, command, i === 1);
-        if (i < 2) out += arrow(220, 314 + i * 140, 220, 352 + i * 140, { color: C.teal });
-      });
-      out += curve('M356 544 H430 V264', { color: C.dim }) + arrow(430, 264, 362, 264, { color: C.dim })
-        + text('repeat', 444, 412, 24, { color: C.dim, anchor: 'start' });
-      return out;
-    },
   },
 ];
 
