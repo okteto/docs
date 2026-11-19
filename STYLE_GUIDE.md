@@ -32,6 +32,18 @@ This guide covers voice, tone, formatting, images, and terminology for everythin
 | Guides, references, and tutorials. | _Remove. It adds nothing._ |
 | Power your Okteto development experience. | _Remove or replace with specific capability._ |
 
+**Natural.** Write the way a native English speaker would explain it to a colleague. Prefer possessives and "for" over chains of "of", put one idea in each sentence, and use contractions where they read naturally ("it's", "that's", "doesn't"). Make the subject of each verb the actor that does it: Okteto doesn't develop your application, you do.
+
+| Avoid | Use instead |
+|-------|-------------|
+| the sandbox of a coding agent | a coding agent's sandbox |
+| the images of your services | the images for your services |
+| Okteto exposes the endpoints of the application on HTTPS. | Okteto serves the application's endpoints over HTTPS. |
+| runs the commands in a container of the `image` you set, in the cluster | runs the commands inside the cluster, in a container started from the `image` you set |
+| defines how Okteto builds, deploys, tests, and develops your application | defines how to build, deploy, test, and develop your application |
+| Okteto builds an image from the `api` folder, and the deploy commands get it from the `OKTETO_BUILD_API_IMAGE` variable. | Okteto builds an image from the `api` folder. Your deploy commands reference it through the `OKTETO_BUILD_API_IMAGE` variable. |
+| The [`build` reference](reference/okteto-manifest.mdx#build-object-optional) describes every option. | See the [`build` reference](reference/okteto-manifest.mdx#build-object-optional) for every option. |
+
 **Second person.** Address the reader as "you". Use "we" only for what Okteto runs as a company, as in the BYOC docs.
 
 ---
