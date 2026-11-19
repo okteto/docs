@@ -975,13 +975,14 @@ const covers = [
     background: 'white',
     alt: 'Movies app architecture',
     svg: () => {
-      let out = circle(100, 140, 48, { color: C.teal }) + icon('user', 100, 140, 50, C.teal) + text('Developer', 100, 222, 26);
-      out += arrow(152, 140, 200, 140, { color: C.blue });
-      out += box(210, 112, 520, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, 470, 148, 22, { color: C.blue });
-      out += box(230, 230, 920, 360, { color: C.dim }) + logo('okteto', 230, 230, 70) + text('Development Environment', 330, 290, 30, { anchor: 'start' });
-      out += curve('M290 168 V492', { color: C.blue }) + arrow(290, 342, 412, 342, { color: C.blue }) + arrow(290, 492, 412, 492, { color: C.blue }) + apiPill(356, 492);
-      out += service(420, 310, 260, 'box', 'frontend') + service(420, 460, 260, 'box', 'api') + service(800, 460, 300, 'database', 'MongoDB');
-      out += arrow(690, 492, 790, 492, { color: C.dim, both: true });
+      let out = circle(80, 315, 46, { color: C.teal }) + icon('user', 80, 315, 48, C.teal) + text('Developer', 80, 395, 26);
+      out += box(540, 130, 645, 410, { color: C.dim }) + logo('okteto', 540, 130, 70) + text('Development Environment', 590, 200, 30, { anchor: 'start' });
+      out += curve('M500 343 V465 H542', { color: C.blue }) + arrow(618, 465, 672, 465, { color: C.blue }) + apiPill(580, 465);
+      out += arrow(130, 315, 150, 315, { color: C.blue });
+      out += box(158, 287, 490, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, 403, 323, 22, { color: C.blue });
+      out += arrow(648, 315, 672, 315, { color: C.blue });
+      out += service(680, 283, 200, 'box', 'frontend') + service(680, 433, 200, 'box', 'api') + service(940, 433, 222, 'database', 'MongoDB');
+      out += arrow(890, 465, 932, 465, { color: C.dim, both: true });
       return out;
     },
   },
