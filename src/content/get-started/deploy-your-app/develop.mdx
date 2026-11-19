@@ -5,9 +5,9 @@ sidebar_label: Develop
 id: develop
 ---
 
-If you use AI agents, this step is optional: agents work well with the `okteto deploy` and `okteto test` cycle of the previous steps, and don't need a Development Container. To get the experience of developing on your machine, with hot reload and a debugger on every change, configure a Development Container in your Okteto Manifest. When you run `okteto up`, Okteto replaces a Deployment of your application with the Development Container, synchronizes your local files with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+If you use AI agents, this step is optional: agents work well with the `okteto deploy` and `okteto test` cycle of the previous steps, and don't need a Development Container. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces one of your Deployments with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
 
-While `okteto up` runs, an AI agent with the [Okteto agent skills](agentic/index.mdx) doesn't run the build and deploy cycle on every change: your changes reach the Development Container through File Sync, and you tell the agent what to run next.
+While `okteto up` is running, an AI agent with the [Okteto agent skills](agentic/index.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
 
 This page uses the [Movies app](https://github.com/okteto/getting-started), deployed with `okteto deploy` as described in [Deploy](deploy.mdx). Run the commands from the root of your clone of the repository.
 
@@ -36,12 +36,12 @@ dev:
       enabled: false
 ```
 
-The `api` and `frontend` keys match the names of the Deployments in the Helm chart. The fields of each Development Container are:
+The `api` and `frontend` keys match the names of the Deployments in the Helm chart. Each Development Container has these fields:
 
 - `image`: the development image of the service, built in the [`build` section](build.mdx). It contains Node.js, the dependencies of the service, and its source code.
 - `command`: the command that runs in the Development Container.
-  - `api`: starts the API in watch mode (`--watch`), which restarts it every time a file that it loads changes, with the [inspector](https://nodejs.org/en/learn/getting-started/debugging) (`--inspect`) listening for debuggers on port `9229`.
-  - `frontend`: starts the [Vite](https://vite.dev/) dev server, which updates the page in your browser every time you save a file, without reloading it. The `frontend/vite.config.js` file makes it listen on port `80`, the port of the `frontend` Service, and accept the hosts of your Okteto endpoints. The Ingress keeps sending the requests to `/api` to the `api` service.
+  - `api`: starts the API in watch mode (`--watch`), which restarts it whenever one of its files changes, and with the [inspector](https://nodejs.org/en/learn/getting-started/debugging) (`--inspect`) listening for debuggers on port `9229`.
+  - `frontend`: starts the [Vite](https://vite.dev/) dev server, which updates the page in your browser every time you save a file, without a full reload. `frontend/vite.config.js` makes it listen on port `80`, the port of the `frontend` Service, and accept requests for your Okteto endpoints. The Ingress still sends `/api` requests to the `api` service.
 - `sync`: synchronizes the folder of the service with `/usr/src/app`, the working directory of the development image.
 - `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the dependencies in `node_modules` come from the development image, so there's no volume to create and attach.
 - `forward`: forwards port `9229`, where the inspector of the API listens, to your machine. To debug the API, attach a Node.js debugger, such as the one built into VS Code, to `127.0.0.1:9229`.
@@ -82,7 +82,7 @@ curl https://movies-cindy.okteto.example.com/api
 I'm a Teapot
 ```
 
-Open `api/server.js` in your local IDE, change the response of the `/api` route on line 39, and save the file:
+Open `api/server.js` in your IDE, change the response of the `/api` route on line 39, and save the file:
 
 ```javascript title="api/server.js"
 app.get("/api", (req, res) => {
@@ -100,7 +100,7 @@ For help, see: https://nodejs.org/learn/getting-started/debugging
 Server running on port 8080.
 ```
 
-Call the endpoint again to get the new response, a few seconds after you save the file:
+A few seconds after you save the file, call the endpoint again to get the new response:
 
 ```bash
 curl https://movies-cindy.okteto.example.com/api
@@ -142,7 +142,7 @@ Okteto synchronizes the `frontend` folder and starts the Vite dev server:
   ➜  press h + enter to show help
 ```
 
-Open `https://movies-cindy.okteto.example.com`, with your Namespace and Okteto Subdomain, in your browser. Then open `frontend/src/components/Hero.jsx` in your local IDE, change the title on line 19 to `Bohemian Rhapsody on Okteto`, and save the file:
+Open `https://movies-cindy.okteto.example.com`, with your Namespace and Okteto Subdomain, in your browser. Then open `frontend/src/components/Hero.jsx` in your IDE, change the title on line 19 to `Bohemian Rhapsody on Okteto`, and save the file:
 
 ```jsx title="frontend/src/components/Hero.jsx"
           <h1>Bohemian Rhapsody on Okteto</h1>
@@ -158,7 +158,7 @@ A few seconds after you save the file, the page shows the new title without relo
 
 ## Restoring the Deployments
 
-`okteto down` deactivates a Development Container and restores the Deployment with the application image that `okteto deploy` deployed:
+`okteto down` stops a Development Container and brings back the original Deployment, with the application image from your last `okteto deploy`:
 
 ```bash
 okteto down api
@@ -169,11 +169,11 @@ okteto down api
  ✓  Development container 'api' deactivated
 ```
 
-Run `okteto down frontend` to restore the `frontend` Deployment the same way. `okteto down` doesn't undo the changes to your local files: run `okteto deploy` to deploy them with new images.
+Run `okteto down frontend` to restore the `frontend` Deployment the same way. `okteto down` doesn't undo the changes in your local files: to deploy them, run `okteto deploy`, which builds new images.
 
 ## Cleaning up
 
-`okteto destroy` uninstalls the Helm release of the Movies app from your Namespace, MongoDB and its data included:
+When you're done, `okteto destroy` uninstalls the Helm release of the Movies app from your Namespace, including MongoDB and its data:
 
 ```bash
 okteto destroy

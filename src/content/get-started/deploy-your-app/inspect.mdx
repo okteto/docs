@@ -5,11 +5,11 @@ sidebar_label: Inspect
 id: inspect
 ---
 
-Okteto deploys your application to Kubernetes, so you can inspect it at the Kubernetes level with `kubectl`, like any other Kubernetes application: the pods, their logs, and the events of your Namespace. Come back to these commands at any step of this series when something doesn't work.
+Your application runs on Kubernetes, so you can inspect it with `kubectl` like any other Kubernetes application: its pods, their logs, and the events of your Namespace. Come back to this page at any step of the series when something doesn't work.
 
 This page uses the [Movies app](https://github.com/okteto/getting-started), deployed with `okteto deploy` as described in [Deploy](deploy.mdx).
 
-Okteto deploys the Movies app to Kubernetes, so `kubectl` inspects it like any other Kubernetes application. Configure `kubectl` with the credentials and the Namespace of your Okteto Context:
+First, configure `kubectl` with the credentials and the Namespace of your Okteto Context:
 
 ```bash
 okteto kubeconfig
@@ -19,7 +19,7 @@ okteto kubeconfig
  ✓  Updated kubernetes context 'okteto_example_com/cindy' in '/Users/cindy/.kube/config'
 ```
 
-These commands only read the state of your Namespace, and don't change anything in it.
+The commands on this page only read the state of your Namespace: they don't change anything in it.
 
 List the pods of the application. The `seed` job runs once per deployment and stays `Completed`:
 
@@ -35,7 +35,7 @@ mongodb-5db5b9d9b-ztnl5    1/1     Running     0          62s
 seed-wdgmc                 0/1     Completed   0          62s
 ```
 
-Check the logs of the `api` service, with a line per request to the endpoints of the API:
+Check the logs of the `api` service, which prints a line for every request it gets:
 
 ```bash
 kubectl logs deploy/api
@@ -47,7 +47,7 @@ GET /api/movies
 GET /api/watching
 ```
 
-List the events of your Namespace, the most recent last:
+List the events of your Namespace, with the most recent ones last:
 
 ```bash
 kubectl get events --sort-by=.lastTimestamp
@@ -63,8 +63,8 @@ LAST SEEN   TYPE      REASON                   OBJECT                          M
 38s         Normal    Completed                job/seed                        Job completed
 ```
 
-The `Unhealthy` warning of `mongodb` is expected: MongoDB listens on the IP of its pod only after its init script creates the `okteto` user, and its readiness probe keeps it out of its Service until then. When a pod doesn't start, its events show why, for example an image that can't be pulled or a failing probe.
+The `Unhealthy` warning for `mongodb` is expected: MongoDB only listens on the IP of its pod after its init script creates the `okteto` user, and until then its readiness probe keeps it out of its Service. When a pod doesn't start, its events tell you why, for example an image that can't be pulled or a failing probe.
 
 An AI agent with the [Okteto agent skills](agentic/index.mdx) runs these same read-only commands to find out why a service doesn't start or a test fails.
 
-You know how to look inside your Namespace. In the next step, [test the Movies app](test.mdx) against its endpoints with Okteto Test.
+Now you know how to look inside your Namespace. In the next step, [test the Movies app](test.mdx) against its endpoints with Okteto Test.

@@ -7,9 +7,9 @@ id: deploy
 
 import Image from "@theme/Image";
 
-The `deploy` section of the Okteto Manifest lists the commands that deploy your application. `okteto deploy` runs them against your Okteto Namespace.
+The `deploy` section of the Okteto Manifest lists the commands that deploy your application. `okteto deploy` runs them in your Okteto Namespace.
 
-This page uses the [Movies app](https://github.com/okteto/getting-started). Run the commands from the root of your clone of the repository, as described in the [requirements of the series](get-started/deploy-your-app/index.mdx#requirements).
+This page uses the [Movies app](https://github.com/okteto/getting-started). Run the commands from the root of your local copy, as described in the [requirements of the series](get-started/deploy-your-app/index.mdx#requirements).
 
 ## The `deploy` Section
 
@@ -26,14 +26,14 @@ deploy:
           --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-The meaning of these fields is:
+These are its fields:
 
-- `image`: the container image where the commands run. `okteto deploy` runs them with [Remote Execution](core/remote-execution.mdx), in a container of this image inside your cluster, so you don't need Helm on your machine. `alpine/helm` is a widely used image with the Helm CLI, pinned here to Helm 4.3.2 (the Helm project doesn't publish an official image). The image must include `/bin/sh` and every tool that the commands run.
+- `image`: the container image that runs the commands. `okteto deploy` runs them with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster, so you don't need Helm on your machine. The Helm project doesn't publish an official image, so the Movies app uses `alpine/helm`, a widely used image with the Helm CLI, pinned to Helm 4.3.2. Any image works, as long as it includes `/bin/sh` and every tool your commands run.
 - `commands`: the list of commands to run, in order.
-- `name`: a label for the command in the output of `okteto deploy` and in the Okteto UI.
-- `command`: the command to run. It installs the Helm chart of the `chart` folder as the `movies` release, with the images of the `build` section. `OKTETO_BUILD_API_IMAGE` and `OKTETO_BUILD_FRONTEND_IMAGE` hold the references of those images, as described in [Build](build.mdx#image-variables).
+- `name`: the label of the command in the output of `okteto deploy` and in the Okteto UI.
+- `command`: the command to run. Here, it installs the Helm chart in the `chart` folder as the `movies` release, with the images from the `build` section: `OKTETO_BUILD_API_IMAGE` and `OKTETO_BUILD_FRONTEND_IMAGE` hold their references, as described in [Build](build.mdx#image-variables).
 
-The Movies app uses Helm, but you can also deploy with [Docker Compose](reference/docker-compose.mdx) or with [any other tool](core/remote-execution.mdx#defining-your-own-image), setting `image` to an image that has it. For examples, see [How do I deploy with Docker Compose or tools other than Helm?](https://community.okteto.com/t/how-do-i-deploy-with-docker-compose-or-tools-other-than-helm/1495) in the Okteto Community forum.
+The Movies app uses Helm, but you can deploy with [Docker Compose](reference/docker-compose.mdx) or with [any other tool](core/remote-execution.mdx#defining-your-own-image): set `image` to an image that includes it. [How do I deploy with Docker Compose or tools other than Helm?](https://community.okteto.com/t/how-do-i-deploy-with-docker-compose-or-tools-other-than-helm/1495) in the Okteto Community forum has examples.
 
 ## The Helm Chart
 
@@ -79,11 +79,11 @@ Command 'Helm Install' successfully executed
  ✓  Development environment 'getting-started' successfully deployed
 ```
 
-The `--wait` flag makes `okteto deploy` wait until the pods of the application are healthy. Okteto names the deployment `getting-started`, after the repository, and lists it in the Okteto UI with its resources.
+The `--wait` flag makes `okteto deploy` wait until the pods of the application are healthy. Okteto names the deployment `getting-started`, after the repository, and shows it in the Okteto UI with all its resources.
 
 ## Endpoints
 
-Okteto serves the Ingress objects deployed in your Namespace on public HTTPS endpoints. The `chart/templates/ingress.yaml` file of the Movies app defines one Ingress, `movies`:
+Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for every [Ingress](core/endpoints/ingress.mdx) in your Namespace. If your application uses the Gateway API, it does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx). The Movies app defines one Ingress, `movies`, in `chart/templates/ingress.yaml`:
 
 ```yaml title="chart/templates/ingress.yaml"
 apiVersion: networking.k8s.io/v1
@@ -112,9 +112,7 @@ spec:
                   number: 8080
 ```
 
-Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the [Ingress](core/endpoints/ingress.mdx) of the Helm chart. If your application uses the Gateway API, Okteto does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx).
-
-The `dev.okteto.com/generate-host: "true"` annotation makes Okteto generate the host of the Ingress in the [Okteto Subdomain](self-hosted/helm-configuration.mdx#subdomain): `<ingress-name>-<namespace>.<okteto-subdomain>`. For the `movies` Ingress in the `cindy` Namespace, with the Okteto Subdomain `okteto.example.com`, the host is `movies-cindy.okteto.example.com`. Requests to `/` go to the `frontend` service and requests to `/api` go to the `api` service.
+The `dev.okteto.com/generate-host: "true"` annotation tells Okteto to generate the host of the Ingress under the [Okteto Subdomain](self-hosted/helm-configuration.mdx#subdomain), as `<ingress-name>-<namespace>.<okteto-subdomain>`. For the `movies` Ingress in the `cindy` Namespace of an instance whose subdomain is `okteto.example.com`, that's `movies-cindy.okteto.example.com`. Requests to `/` go to the `frontend` service, and requests to `/api` go to the `api` service.
 
 If you deploy with Docker Compose, define your endpoints in the [`endpoints` section of your Docker Compose file](reference/docker-compose.mdx#endpoints-object-optional) instead.
 
@@ -131,7 +129,7 @@ okteto endpoints
   - https://movies-cindy.okteto.example.com/api
 ```
 
-The Okteto UI shows the same endpoints next to your deployment.
+The Okteto UI shows the same endpoints, next to the resources of your deployment:
 
 <Image
   src={require("@site/static/img/okteto-ui-movies.png").default}
@@ -139,7 +137,7 @@ The Okteto UI shows the same endpoints next to your deployment.
   alt="Okteto UI showing the cindy Namespace with the getting-started Dev Environment deployed: the api, frontend, and mongodb Deployments running, the seed Job completed, and the two endpoints of the Movies app"
 />
 
-Open `https://movies-cindy.okteto.example.com`, with your Namespace and Okteto Subdomain, in your browser to see the Movies app:
+Open your endpoint in a browser (`https://movies-cindy.okteto.example.com`, with your own Namespace and Okteto Subdomain) to see the Movies app:
 
 <p align="center">
   <Image

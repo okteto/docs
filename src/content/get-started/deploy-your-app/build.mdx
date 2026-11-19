@@ -5,9 +5,9 @@ sidebar_label: Build
 id: build
 ---
 
-The `build` section of the Okteto Manifest lists the container images of your application. `okteto build` builds them with the [Okteto Build Service](core/build-service.mdx), in your cluster, and pushes them to the [Okteto Registry](core/container-registry.mdx), so you don't need Docker on your machine.
+The `build` section of the Okteto Manifest lists the container images of your application. `okteto build` builds them in your cluster with the [Okteto Build Service](core/build-service.mdx) and pushes them to the [Okteto Registry](core/container-registry.mdx), so you don't need Docker on your machine.
 
-This page uses the [Movies app](https://github.com/okteto/getting-started). Run the commands from the root of your clone of the repository, as described in the [requirements of the series](get-started/deploy-your-app/index.mdx#requirements).
+This page uses the [Movies app](https://github.com/okteto/getting-started). Run the commands from the root of your local copy, as described in the [requirements of the series](get-started/deploy-your-app/index.mdx#requirements).
 
 ## The `build` Section
 
@@ -36,12 +36,12 @@ build:
       - frontend-dev
 ```
 
-Each key is the name of an image. `context` is the folder that Okteto sends to the Build Service, and Okteto builds the `Dockerfile` of that folder. `target` selects a stage of the `Dockerfile`:
+Each key is the name of an image. `context` is the folder that Okteto sends to the Build Service, which builds the `Dockerfile` it finds there. `target` selects one of the stages of that `Dockerfile`:
 
-- `dev`: the development image. It contains Node.js, the dependencies that `npm ci` installs from `package-lock.json`, and the source code. The [Test](test.mdx) and [Develop](develop.mdx) pages run it.
+- `dev`: the development image. It contains Node.js, the dependencies that `npm ci` installs from `package-lock.json`, and the source code. [Test](test.mdx) and [Develop](develop.mdx) use it.
 - `prod`: the application image that the Helm chart deploys.
 
-`depends_on` makes Okteto build the development image first, so the build of the application image reuses its cached layers. The `frontend/Dockerfile` builds the application in its `dev` stage, and its `prod` stage copies the result into an nginx image:
+`depends_on` makes Okteto build the development image first, so the application image reuses its cached layers. In `frontend/Dockerfile`, the `dev` stage builds the application and the `prod` stage copies the result into an nginx image:
 
 ```dockerfile title="frontend/Dockerfile"
 FROM node:26.13.1-trixie-slim AS dev
@@ -84,9 +84,9 @@ okteto build
  ✓  Image 'registry.okteto.example.com/cindy/getting-started-frontend:okteto' successfully pushed
 ```
 
-Okteto names each image after the repository and the image (`getting-started-api`), and pushes it to the Okteto Registry of your Namespace with the `okteto` tag. Run `okteto build api` to build only the `api` image.
+Okteto names each image after the repository and its key in the `build` section (`getting-started-api`), and pushes it to your Namespace in the Okteto Registry with the `okteto` tag. To build a single image, name it: `okteto build api`.
 
-Okteto skips the build of an image when its context hasn't changed since the last build ([Smart Builds](core/build-service.mdx#smart-builds)). In that case, `okteto build` prints:
+With [Smart Builds](core/build-service.mdx#smart-builds), Okteto skips an image whose context hasn't changed since its last build. In that case, `okteto build` prints:
 
 ```bash
  i  Okteto Smart Builds is skipping build of "api" because it's already built from cache.
@@ -96,8 +96,8 @@ To build the images again anyway, run `okteto build --no-cache`.
 
 ## Image Variables
 
-After a build, Okteto sets an `OKTETO_BUILD_<IMAGE>_IMAGE` variable with the reference of each image, with dashes turned into underscores: `OKTETO_BUILD_API_IMAGE`, `OKTETO_BUILD_FRONTEND_IMAGE`, `OKTETO_BUILD_API_DEV_IMAGE`, and `OKTETO_BUILD_FRONTEND_DEV_IMAGE` for the Movies app. The `deploy` section passes the application images to Helm, so your application runs the images built from your local code, and the `test` and `dev` sections run the development images. The [built-in environment variables for images](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) list the other variables of each image.
+After a build, Okteto stores the reference of each image in an `OKTETO_BUILD_<IMAGE>_IMAGE` variable, with dashes turned into underscores. For the Movies app, they are `OKTETO_BUILD_API_IMAGE`, `OKTETO_BUILD_FRONTEND_IMAGE`, `OKTETO_BUILD_API_DEV_IMAGE`, and `OKTETO_BUILD_FRONTEND_DEV_IMAGE`. The `deploy` section passes the application images to Helm, so your application runs the code you have on your machine, and the `test` and `dev` sections use the development images. Each image has [other built-in variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) too.
 
 `okteto deploy` also builds the images that aren't built yet, so you can deploy without running `okteto build` first.
 
-The Okteto Registry now has the images built from your local code. In the next step, [deploy the Movies app](deploy.mdx) with those images.
+Your images are now in the Okteto Registry, built from your local code. In the next step, [deploy the Movies app](deploy.mdx) with them.
