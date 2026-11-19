@@ -196,7 +196,7 @@ Use these terms exactly as written. Capitalization matters.
 | **Okteto Registry** | Capitalized. Never "the registry" on first reference. |
 | **Okteto Catalog** | Capitalized. |
 | **Okteto Insights** | Capitalized. |
-| **Okteto Test** | Capitalized as a product feature. The CLI command is `okteto test` (lowercase, code-formatted). |
+| **Okteto Test** | Capitalized as a product feature. The CLI command is `okteto test` (lowercase, code-formatted). Don't write "Test Containers" or "test containers" for the entries of the `test` section: readers confuse them with Testcontainers, the testing library. Name the feature Okteto Test, and each entry a test (for example, "the `unit` test"). |
 | **Okteto AI** | Capitalized. |
 | **Okteto API** | Capitalized. |
 | **Okteto Platform** | Capitalized when referring to the product as a whole. |
