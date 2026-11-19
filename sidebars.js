@@ -191,9 +191,9 @@ module.exports = {
         {
           type: 'category',
           label: 'Integrations',
-          link: { type: 'doc', id: 'admin/integrations' },
+          link: { type: 'doc', id: 'admin/integrations-overview' },
           items: [
-            'admin/general-integrations',
+            'admin/integrations',
             'admin/admin-access-tokens',
             {
               type: 'category',
