@@ -141,6 +141,32 @@ function scaleCluster(cx, y0, width, tile, gap) {
   return out;
 }
 // What the platform team controls, in two groups: access and cost.
+// The Okteto CLI wherever it runs, and the application environment it deploys
+// and tests in the cluster (the Application Environments page).
+const WORKFLOW_ALT = 'The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the services of the application and its tests, and gets back the results and the logs';
+function cliBox(x, y, w) {
+  let out = box(x, y, w, 370, { color: C.teal }) + circle(x + w / 2, y, 42, { color: C.teal }) + logo('okteto', x + w / 2, y, 50)
+    + text('Okteto CLI', x + w / 2, y + 85, 30);
+  [['bot', 'Agent sandbox', C.purple], ['laptop', 'Laptop', C.teal], ['git-pull-request', 'CI job', C.teal]].forEach(([name, label, color], i) => {
+    const ry = y + 118 + i * 80;
+    out += box(x + 30, ry, w - 60, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + icon(name, x + 70, ry + 31, 30, color)
+      + text(label, x + 105, ry + 40, 26, { anchor: 'start' });
+  });
+  return out;
+}
+function environmentBox(x, y, w) {
+  let out = box(x, y, w, 510, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
+    + text('Application environment', x + w / 2, y + 82, 30) + text('Okteto Namespace', x + w / 2, y + 116, 22, { color: C.dim });
+  [['box', 'frontend'], ['box', 'api'], ['database', 'database'], ['database', 'queue']].forEach(([name, label], i) => {
+    const ry = y + 138 + i * 70;
+    out += box(x + 30, ry, w - 60, 58, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 }) + icon(name, x + 68, ry + 29, 30, C.blue)
+      + text(label, x + 102, ry + 38, 26, { anchor: 'start' });
+  });
+  out += box(x + 30, y + 428, w - 60, 58, { color: C.teal, fill: '#e2f5f3', radius: 12, strokeWidth: 2.5 }) + icon('circle-check', x + 68, y + 457, 30, C.teal)
+    + text('tests', x + 102, y + 466, 26, { anchor: 'start' });
+  return out;
+}
+
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
@@ -919,6 +945,26 @@ const covers = [
     height: 1200,
     alt: SCALE_ALT,
     svg: () => scaleCluster(300, 60, 480, 88, 18) + arrow(300, 640, 300, 548, { color: C.blue }) + scaleFeatures(100, 650, 400),
+  },
+  {
+    out: 'static/img/environment-workflow.webp',
+    background: 'white',
+    alt: WORKFLOW_ALT,
+    svg: () => cliBox(40, 150, 400)
+      + arrow(470, 330, 640, 330, { color: C.teal }) + text('deploy, test', 555, 308, 24, { color: C.teal })
+      + arrow(640, 390, 470, 390, { color: C.dim }) + text('results, logs', 555, 432, 24, { color: C.dim })
+      + environmentBox(670, 90, 490),
+  },
+  {
+    out: 'static/img/environment-workflow-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 1190,
+    alt: WORKFLOW_ALT,
+    svg: () => cliBox(80, 60, 440)
+      + arrow(230, 455, 230, 590, { color: C.teal }) + text('deploy, test', 210, 530, 24, { color: C.teal, anchor: 'end' })
+      + arrow(370, 590, 370, 455, { color: C.dim }) + text('results, logs', 390, 530, 24, { color: C.dim, anchor: 'start' })
+      + environmentBox(60, 640, 480),
   },
 ];
 

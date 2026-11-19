@@ -5,7 +5,29 @@ sidebar_label: Application Environments
 id: application-environments
 ---
 
+import Image from "@theme/Image";
+
 An application environment is a running copy of your application on Kubernetes: its services, its data, and the cloud resources it depends on, deployed in an [Okteto Namespace](core/namespaces.mdx) from the Okteto Manifest (`okteto.yaml`) in your repository. Developers, pull requests, and AI coding agents create application environments from the same definition, so a change that works in one environment works in the others.
+
+## Environment workflows
+
+Developers, pull requests, and coding agents go through the same steps with an application environment, from the same `okteto.yaml`:
+
+1. **Namespace:** the environment runs in its own [Okteto Namespace](core/namespaces.mdx). A developer uses their personal Namespace, `okteto preview deploy` creates one for each pull request, and a coding agent creates one for its task with `okteto namespace create`.
+2. **Deploy:** `okteto deploy` builds the images of the [`build`](#build) section and runs the commands of the [`deploy`](#deploy) section. A developer runs it, or deploys from the Okteto UI, and gets a [Development Environment](development/index.mdx) where `okteto up` syncs local code. In a pull request, the CI pipeline runs `okteto preview deploy`, or the `okteto/deploy-preview` GitHub Action, and gets a [Preview Environment](previews/index.mdx) with its own URL. With [Divert](development/divert/index.mdx), the environment deploys only the services that change, on top of a shared Namespace that runs the rest of the application.
+3. **Test:** `okteto test` runs the Test Containers of the [`test`](#test) section against the environment, so developers, coding agents, and CI validate a change with the same tests.
+4. **Destroy:** `okteto destroy` deletes the resources of the environment and runs the commands of the [`destroy`](#destroy) section. The CI pipeline destroys a Preview Environment when its pull request closes, with `okteto preview destroy` or the `okteto/destroy-preview` GitHub Action. The [Garbage Collector](admin/cleanup.mdx) scales idle environments to zero and deletes the unused ones, after the periods the Admin configures.
+
+Okteto runs every step in the cluster with [Remote Execution](core/remote-execution.mdx): the [Okteto Build Service](core/build-service.mdx) builds the images, and the deploy, test, and destroy commands run in the cluster. No step depends on the machine where the Okteto CLI runs, whether it's the sandbox of a coding agent, a developer's laptop, or a CI job. That machine needs the Okteto CLI and access to your Okteto instance, not a Docker daemon or the dependencies of your application:
+
+<Image
+  src={require("@site/static/img/environment-workflow.webp").default}
+  mobileSrc={require("@site/static/img/environment-workflow-mobile.webp").default}
+  borderless
+  alt="The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the services of the application and its tests, and gets back the results and the logs"
+/>
+
+A coding agent reads and edits code in its sandbox, and the application runs in the application environment, so the agent uses application environments the same way whether it runs in your cluster, in a hosted runtime, or on a developer's laptop. [Agentic Workflows](agentic/index.mdx) covers the skills that teach the agent these commands.
 
 ## Okteto Manifest
 
@@ -31,11 +53,13 @@ build:
     context: frontend
 
 deploy:
-  - name: Helm Install
-    command: |
-      helm upgrade --install movies chart \
-        --set api.image=${OKTETO_BUILD_API_IMAGE} \
-        --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  image: ghcr.io/okteto/pipeline-runner:1.0.0
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 
 test:
   e2e:
@@ -45,39 +69,13 @@ test:
       - bash run_tests.sh
 ```
 
-Okteto runs the `deploy` and `test` commands in the cluster with [Remote Execution](core/remote-execution.mdx), and exposes the endpoints of the application on HTTPS. The deploy commands can also create cloud resources, such as a database or a queue, with the [Cloud Credentials](admin/cloud-credentials/index.mdx) that the Admin configures, and delete them in the `destroy` section.
-
-## Environments for each workflow
-
-Every workflow deploys the same `okteto.yaml`:
-
-| Workflow | How the environment is created |
-|---|---|
-| Development | A developer runs `okteto deploy`, or deploys from the Okteto UI. The result is a [Development Environment](development/index.mdx), and `okteto up` syncs local code to it. |
-| Pull requests | The CI pipeline runs `okteto preview deploy`, or the `okteto/deploy-preview` GitHub Action. The result is a [Preview Environment](previews/index.mdx) with its own URL, destroyed when the pull request closes. |
-| Coding agents | The agent creates a Namespace for its task with `okteto namespace create`, then runs `okteto deploy` and `okteto test` in it. [Agentic Workflows](agentic/index.mdx) covers the skills that teach the agent these commands. |
-
-`okteto test` runs the same Test Containers in all three, so developers, agents, and CI validate a change with the same tests.
-
-With [Divert](development/divert/index.mdx), an environment deploys only the services that change, on top of a shared Namespace that runs the rest of the application.
-
-## Application environments and agent sandboxes
-
-A coding agent runs in an agent sandbox, where it reads and edits code and runs commands. The application runs in the application environment. Okteto keeps the two apart: the agent runs the Okteto CLI, and Okteto builds the images and runs the deploy and test commands in the cluster. The agent sandbox needs the Okteto CLI and access to your Okteto instance, not a Docker daemon or the dependencies of your application.
-
-Because the sandbox doesn't run the application, the agent uses application environments the same way whether it runs in your cluster, in a hosted runtime, or on a developer's laptop.
-
-## Lifecycle of an application environment
-
-- `okteto destroy` deletes the resources of an environment and runs the commands of the `destroy` section.
-- The CI pipeline destroys a Preview Environment when its pull request closes, with `okteto preview destroy` or the `okteto/destroy-preview` GitHub Action.
-- The [Garbage Collector](admin/cleanup.mdx) scales idle environments to zero and deletes the unused ones, after the periods the Admin configures.
+Okteto exposes the endpoints of the application on HTTPS. The deploy commands can also create cloud resources, such as a database or a queue, with the [Cloud Credentials](admin/cloud-credentials/index.mdx) that the Admin configures, and delete them in the `destroy` section.
 
 ## Sections of the Okteto Manifest
 
 ### Build
 
-The `build` section defines the images of your services. Okteto builds them with the [Okteto Build Service](core/build-service.mdx):
+The `build` section defines the images of your services. The [Okteto Build Service](core/build-service.mdx) builds them in the cluster:
 
 ```yaml
 build:
@@ -85,12 +83,9 @@ build:
     context: api
   frontend:
     context: frontend
-    dockerfile: Dockerfile
-    secrets:
-      npmrc: .npmrc
 ```
 
-Okteto builds the `api` image from the `api` folder, and the `frontend` image from the `frontend` folder with its `Dockerfile` and the `.npmrc` file as a build secret. The [`build` reference](reference/okteto-manifest.mdx#build-object-optional) describes every option.
+Okteto builds an image from the `api` folder and another from the `frontend` folder, and the deploy commands get them from the `OKTETO_BUILD_API_IMAGE` and `OKTETO_BUILD_FRONTEND_IMAGE` variables. The [`build` reference](reference/okteto-manifest.mdx#build-object-optional) describes every option.
 
 ### Dependencies
 
@@ -103,72 +98,61 @@ dependencies:
     wait: true
 ```
 
-Okteto deploys the `okteto/mongodb` repository and, because of `wait: true`, waits until its resources are ready before it runs the commands of the `deploy` section. The [`dependencies` reference](reference/okteto-manifest.mdx#dependencies-string-optional) describes every option.
+Okteto deploys the `okteto/mongodb` repository from its own Okteto Manifest, and waits until it's ready before it deploys your application. The [`dependencies` reference](reference/okteto-manifest.mdx#dependencies-string-optional) describes every option.
 
 ### Deploy
 
-The `deploy` section lists the commands that deploy your application, usually `helm`, `kubectl`, and `okteto` commands. The Okteto UI shows every resource these commands create as part of one application environment. Resources outside the cluster appear in the Okteto UI when you list them in the [`external`](#external) section.
+The `deploy` section lists the commands that deploy your application, such as `helm` or `kubectl` commands:
 
 ```yaml
 deploy:
-  - name: Deploy PostgreSQL
-    command: helm upgrade --install postgresql postgresql/postgresql-11.6.21.tgz -f postgresql/values.yml --version 11.6.21
-  - name: Deploy Frontend
-    command: helm upgrade --install frontend frontend/chart --set image=${OKTETO_BUILD_FRONTEND_IMAGE}
-  - name: Deploy API
-    command: helm upgrade --install api api/chart --set image=${OKTETO_BUILD_API_IMAGE} --set load=${API_LOAD_DATA:-true}
+  image: ghcr.io/okteto/pipeline-runner:1.0.0
+  commands:
+    - name: Deploy PostgreSQL
+      command: helm upgrade --install postgresql postgresql/chart
+    - name: Deploy the Movies app
+      command: |
+        helm upgrade --install movies chart \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-Okteto runs the three commands in order: it deploys a PostgreSQL database, then the `frontend` Helm chart, then the `api` Helm chart. Each chart gets the image that Okteto built for it from the `OKTETO_BUILD_FRONTEND_IMAGE` and `OKTETO_BUILD_API_IMAGE` variables. The [`deploy` reference](reference/okteto-manifest.mdx#deploy-string-optional) describes every option.
+Okteto runs the commands in order, in a container of the `image` you set, in the cluster. The Okteto UI shows every resource they create as part of the application environment. The [`deploy` reference](reference/okteto-manifest.mdx#deploy-string-optional) describes every option.
 
 ### Destroy
 
-The `destroy` section lists the commands that delete the resources of your application outside the cluster. `okteto destroy` deletes the Kubernetes resources that `okteto deploy` created, and then runs these commands:
+The `destroy` section lists the commands that delete the resources of your application outside the cluster:
 
 ```yaml
 destroy:
-  image: ghcr.io/okteto/pipeline-runner:1.0.0-sam
+  image: ghcr.io/okteto/tfenv-ci:1.4
   commands:
-    - name: destroy worker service
-      command: |
-        sam delete --no-prompts --stack-name "${OKTETO_NAMESPACE}-worker" --region us-east-1
+    - name: Delete the cloud resources
+      command: terraform destroy --auto-approve
 ```
 
-The command deletes the worker service that the application runs in AWS, so it doesn't stay active after the environment is gone. The [`destroy` reference](reference/okteto-manifest.mdx#destroy-string-optional) describes every option.
+`okteto destroy` deletes the Kubernetes resources of the environment, and then runs these commands in a container of the `image` you set, in the cluster, to delete the cloud resources that the deploy commands created. The [`destroy` reference](reference/okteto-manifest.mdx#destroy-string-optional) describes every option.
 
 ### Dev
 
-The `dev` section defines the Development Containers of your application. `okteto up` replaces a service with its Development Container and syncs your local code to it, so you see your changes in the application environment as you edit, and debug the service from your computer:
+The `dev` section defines the Development Containers of your application:
 
 ```yaml
 dev:
   api:
-    command: ["bash"]
-    forward:
-      - 8080:8080
-      - 9229:9229
+    command: bash
     sync:
       - api:/usr/src/app
-  frontend:
-    command: yarn start
-    sync:
-      - frontend:/usr/src/app
 ```
 
-The `api` Development Container syncs the local `api` folder to `/usr/src/app`, opens a shell, and forwards ports `8080` and `9229` to your computer. The `frontend` Development Container syncs the local `frontend` folder and runs `yarn start`. The [`dev` reference](reference/okteto-manifest.mdx#dev-object-optional) describes every option.
+`okteto up api` replaces the `api` service with a Development Container, syncs the local `api` folder to `/usr/src/app`, and opens a shell in it, so you run your changes in the application environment as you edit them. The [`dev` reference](reference/okteto-manifest.mdx#dev-object-optional) describes every option.
 
 ### External
 
-The `external` section lists resources outside the cluster that are part of your application, such as cloud resources or dashboards, so the Okteto UI shows them with the rest of the environment:
+The `external` section lists resources outside the cluster that are part of your application, such as cloud resources or dashboards:
 
 ```yaml
 external:
-  readme:
-    icon: okteto
-    notes: README.md
-    endpoints:
-      - name: Try it out!
-        url: https://github.com/okteto/voting-app-with-external-resources
   lambda:
     icon: aws
     notes: docs/lambda.md
@@ -176,33 +160,18 @@ external:
       - name: function
 ```
 
-This section only describes the resources and links to them. It doesn't create anything in a cloud provider: the commands of the [`deploy`](#deploy) and [`destroy`](#destroy) sections create and delete them. The [`external` reference](reference/okteto-manifest.mdx#external-object-optional) describes every option.
+The Okteto UI shows the `lambda` function with the rest of the environment, with its notes and its endpoint. This section only describes the resources: the commands of the [`deploy`](#deploy) and [`destroy`](#destroy) sections create and delete them. The [`external` reference](reference/okteto-manifest.mdx#external-object-optional) describes every option.
 
 ### Test
 
-The `test` section defines the Test Containers of your application. `okteto test` runs them with [Remote Execution](core/remote-execution.mdx#how-remote-execution-works) against the environment, so the tests behave the same in a [Development Environment](development/index.mdx), in a [Preview Environment](previews/index.mdx), and in CI:
+The `test` section defines the Test Containers of your application:
 
 ```yaml
 test:
   unit:
     image: ghcr.io/okteto/golang:1
-    artifacts:
-      - coverage.out
-    caches:
-      - /go
-      - /root/.cache
     commands:
-      - "go test . -v"
-
-  integration:
-    depends_on:
-      - unit
-    image: ghcr.io/okteto/golang:1
-    context: integration
-    commands:
-      - make tests
+      - go test ./...
 ```
 
-`okteto test` runs every Test Container. To run one, pass its name as an argument, for example `okteto test unit`.
-
-To run a single Test Container with different commands without editing your Okteto Manifest, pass them after `--` or with the `--command` flag, for example `okteto test unit -- go test ./pkg/api -run TestLogin`. The [`okteto test` reference](reference/okteto-cli.mdx#overriding-the-commands-of-a-test-container) describes the override rules.
+`okteto test` runs each Test Container in a container of its `image`, in the cluster, against the application environment. The [`test` reference](reference/okteto-manifest.mdx#test-object-optional) describes every option.
