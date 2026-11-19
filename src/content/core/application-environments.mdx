@@ -7,11 +7,11 @@ id: application-environments
 
 import Image from "@theme/Image";
 
-An application environment is a running copy of your application, deployed in an [Okteto Namespace](core/namespaces.mdx) on Kubernetes from the definition in your Okteto Manifest. Developers, pull requests, and AI coding agents create application environments from the same definition, so a change that works in one environment works in the others.
+An application environment is a running copy of your application. It runs in an [Okteto Namespace](core/namespaces.mdx) on Kubernetes, and Okteto creates it from the definition in your Okteto Manifest. Developers, pull requests, and AI coding agents all create their environments from that same definition, so a change that works in one environment works in the others.
 
 ## Application environment workflow
 
-The Okteto CLI builds, deploys, and tests your application with [Remote Execution](core/remote-execution.mdx): every operation runs in containers in the cluster. Nothing depends on the configuration of the machine where the CLI runs, whether it's a developer's laptop, a CI job, or the sandbox of a coding agent:
+The Okteto CLI builds, deploys, and tests your application with [Remote Execution](core/remote-execution.mdx): every operation runs in a container inside the cluster. Nothing depends on how the machine running the CLI is set up, whether that's a developer's laptop, a CI job, or a coding agent's sandbox:
 
 <Image
   src={require("@site/static/img/environment-workflow.webp").default}
@@ -20,18 +20,18 @@ The Okteto CLI builds, deploys, and tests your application with [Remote Executio
   alt="The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue of the application, and gets back the results and the logs"
 />
 
-The Okteto CLI manages an application environment in these steps:
+Working with an application environment takes three steps:
 
-1. `okteto namespace create` creates the [Okteto Namespace](core/namespaces.mdx) of the environment.
-2. Until the change works, you repeat this loop:
-   - `okteto deploy` builds the images of your services and deploys the application.
+1. `okteto namespace create` creates the [Okteto Namespace](core/namespaces.mdx) for the environment.
+2. Repeat this loop until your change works:
+   - `okteto deploy` builds the images for your services and deploys the application.
    - Optionally, `okteto up` speeds up the inner feedback loop with hot reloading and debuggers.
    - `okteto test` runs your tests against the application.
-3. `okteto namespace delete` deletes the Okteto Namespace with the application.
+3. `okteto namespace delete` deletes the Okteto Namespace and the application in it.
 
 ## Okteto Manifest
 
-The Okteto Manifest (`okteto.yaml`) is the file in your repository that defines how Okteto builds, deploys, tests, and develops your application. The [Okteto Manifest reference](reference/okteto-manifest.mdx) describes every option. A minimal Okteto Manifest that builds two images, deploys them with Helm, and runs the end-to-end tests looks like this:
+The Okteto Manifest (`okteto.yaml`) is a file in your repository that defines how to build, deploy, test, and develop your application. The [Okteto Manifest reference](reference/okteto-manifest.mdx) covers every option. This minimal Okteto Manifest builds two images, deploys them with Helm, and runs the end-to-end tests:
 
 ```yaml title="okteto.yaml"
 build:
@@ -57,11 +57,11 @@ test:
       - bash run_tests.sh
 ```
 
-Okteto exposes the endpoints of the application on HTTPS. The deploy commands can also create cloud resources, such as a database or a queue, with the [Cloud Credentials](admin/cloud-credentials/index.mdx) that the Admin configures, and delete them in the `destroy` section.
+Okteto serves the application's endpoints over HTTPS. The deploy commands can also create cloud resources, such as a database or a queue, using the [Cloud Credentials](admin/cloud-credentials/index.mdx) your Admin configures. The commands in the `destroy` section delete them.
 
 ### Build
 
-The `build` section defines the images of your services. The [Okteto Build Service](core/build-service.mdx) builds them in the cluster:
+The `build` section defines the images for your services. The [Okteto Build Service](core/build-service.mdx) builds them inside the cluster:
 
 ```yaml
 build:
@@ -71,11 +71,11 @@ build:
     context: frontend
 ```
 
-Okteto builds an image from the `api` folder and another from the `frontend` folder, and the deploy commands get them from the `OKTETO_BUILD_API_IMAGE` and `OKTETO_BUILD_FRONTEND_IMAGE` variables. The [`build` reference](reference/okteto-manifest.mdx#build-object-optional) describes every option.
+Okteto builds one image from the `api` folder and another from the `frontend` folder. Your deploy commands reference them through the `OKTETO_BUILD_API_IMAGE` and `OKTETO_BUILD_FRONTEND_IMAGE` variables. See the [`build` reference](reference/okteto-manifest.mdx#build-object-optional) for every option.
 
 ### Dependencies
 
-The `dependencies` section lists other Git repositories that Okteto deploys with your application:
+The `dependencies` section lists other Git repositories that Okteto deploys along with your application:
 
 ```yaml
 dependencies:
@@ -84,11 +84,11 @@ dependencies:
     wait: true
 ```
 
-Okteto deploys the `okteto/mongodb` repository from its own Okteto Manifest, and waits until it's ready before it deploys your application. The [`dependencies` reference](reference/okteto-manifest.mdx#dependencies-string-optional) describes every option.
+Okteto deploys the `okteto/mongodb` repository using that repository's own Okteto Manifest, and waits for it to be ready before deploying your application. See the [`dependencies` reference](reference/okteto-manifest.mdx#dependencies-string-optional) for every option.
 
 ### Deploy
 
-The `deploy` section lists the commands that deploy your application, such as `helm` or `kubectl` commands:
+The `deploy` section lists the commands that deploy your application, typically `helm` or `kubectl` commands:
 
 ```yaml
 deploy:
@@ -103,11 +103,11 @@ deploy:
           --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-Okteto runs the commands in order, in a container of the `image` you set, in the cluster. The Okteto UI shows every resource they create as part of the application environment. The [`deploy` reference](reference/okteto-manifest.mdx#deploy-string-optional) describes every option.
+Okteto runs the commands in order, inside the cluster, in a container started from the `image` you set. Every resource they create shows up in the Okteto UI as part of the application environment. See the [`deploy` reference](reference/okteto-manifest.mdx#deploy-string-optional) for every option.
 
 ### Destroy
 
-The `destroy` section lists the commands that delete the resources of your application outside the cluster:
+The `destroy` section lists the commands that delete the resources your application uses outside the cluster:
 
 ```yaml
 destroy:
@@ -117,11 +117,11 @@ destroy:
       command: terraform destroy --auto-approve
 ```
 
-`okteto destroy` deletes the Kubernetes resources of the environment, and then runs these commands in a container of the `image` you set, in the cluster, to delete the cloud resources that the deploy commands created. The [`destroy` reference](reference/okteto-manifest.mdx#destroy-string-optional) describes every option.
+`okteto destroy` deletes the environment's Kubernetes resources, then runs these commands inside the cluster, in a container started from the `image` you set. Here, they delete the cloud resources that the deploy commands created with Terraform. See the [`destroy` reference](reference/okteto-manifest.mdx#destroy-string-optional) for every option.
 
 ### Dev
 
-The `dev` section defines the Development Containers of your application:
+The `dev` section defines the Development Containers for your application:
 
 ```yaml
 dev:
@@ -131,11 +131,11 @@ dev:
       - api:/usr/src/app
 ```
 
-`okteto up api` replaces the `api` service with a Development Container, syncs the local `api` folder to `/usr/src/app`, and opens a shell in it, so you run your changes in the application environment as you edit them. The [`dev` reference](reference/okteto-manifest.mdx#dev-object-optional) describes every option.
+`okteto up api` replaces the `api` service with a Development Container, syncs your local `api` folder to `/usr/src/app`, and opens a shell in it. Your changes run in the application environment as you save them. See the [`dev` reference](reference/okteto-manifest.mdx#dev-object-optional) for every option.
 
 ### External
 
-The `external` section lists resources outside the cluster that are part of your application, such as cloud resources or dashboards:
+The `external` section lists the resources that are part of your application but run outside the cluster, such as cloud services or dashboards:
 
 ```yaml
 external:
@@ -146,7 +146,7 @@ external:
       - name: function
 ```
 
-The Okteto UI shows the `lambda` function with the rest of the environment, with its notes and its endpoint. This section only describes the resources: the commands of the [`deploy`](#deploy) and [`destroy`](#destroy) sections create and delete them. The [`external` reference](reference/okteto-manifest.mdx#external-object-optional) describes every option.
+The Okteto UI shows the `lambda` function alongside the rest of the environment, with its notes and its endpoint. This section only describes the resources. The commands in the [`deploy`](#deploy) and [`destroy`](#destroy) sections create and delete them. See the [`external` reference](reference/okteto-manifest.mdx#external-object-optional) for every option.
 
 ### Test
 
@@ -160,4 +160,4 @@ test:
       - go test ./...
 ```
 
-`okteto test` runs each test in a container of its `image`, in the cluster, against the application environment. The [`test` reference](reference/okteto-manifest.mdx#test-object-optional) describes every option.
+`okteto test` runs each test inside the cluster, in a container started from its `image`, against the application environment. See the [`test` reference](reference/okteto-manifest.mdx#test-object-optional) for every option.
