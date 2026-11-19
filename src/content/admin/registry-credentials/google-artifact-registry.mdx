@@ -1,36 +1,35 @@
 ---
 title: Google Artifact Registry
-description: Get Private Registry credentials from Google Artifact Registry 
+description: Configure Registry Credentials so Okteto can pull images from your private Google Artifact Registry.
 sidebar_label: Google Artifact Registry
 id: google-artifact-registry
 ---
 
 import Image from "@theme/Image";
 
-This tutorial will guide you on how to use your private Google Artifact Registry with Okteto.
-It's recommended that you have the [gcloud CLI installed](https://cloud.google.com/sdk/docs/install) to follow this tutorial.
+Okteto pulls images from your private Google Artifact Registry with the [Registry Credentials](admin/registry-credentials/index.mdx) you configure in the Admin Dashboard. The commands on this page use the [gcloud CLI](https://cloud.google.com/sdk/docs/install).
 
-The steps to configure your private Google Artifact Registry with Okteto are: 
+Configuring access to your private Google Artifact Registry takes three steps:
 
-- Create a service account with access to your private Google Artifact Registry
-- Retrieve the service account credentials
-- Configure the credentials in Okteto
+- Creating a service account with access to your private Google Artifact Registry
+- Getting the service account's credentials
+- Configuring the credentials in Okteto
 
-## Step 1: Create a service account with access to your private Google Artifact Registry
+## Step 1: Creating a service account with access to your private Google Artifact Registry
 
-Export the name your want to use for your service account:
+Export the name you want for your service account:
 
 ```bash
 export SA_NAME=<<your-service-account-name>>
 ```
 
-Create a service account with the [gcloud CLI](https://cloud.google.com/sdk/gcloud/reference/iam/service-accounts/create) by executing the following command:
+Create the service account with the [gcloud CLI](https://cloud.google.com/sdk/gcloud/reference/iam/service-accounts/create):
 
 ```bash
 gcloud iam service-accounts create ${SA_NAME} --display-name="My Service Account for Okteto"
 ```
 
-Add a policy to grant read access to your private Google Artifact Registry:
+Add a policy that grants the service account read access to your private Google Artifact Registry:
 
 ```bash
 gcloud projects add-iam-policy-binding {PROJECT_ID} \
@@ -38,30 +37,27 @@ gcloud projects add-iam-policy-binding {PROJECT_ID} \
     --role=roles/artifactregistry.reader
 ```
 
-## Step 2: Retrieve the service account credentials
+## Step 2: Getting the service account's credentials
 
-Create an Access Key to use these credentials by executing the following command: 
+Create a key for the service account:
 
 ```bash
 gcloud iam service-accounts keys create SA_KEY_FILE.json \
     --iam-account=SA_NAME@PROJECT_ID.iam.gserviceaccount.com
 ```
 
-The command will create a file `SA_KEY_FILE.json` with the required credentials. You will use this file in the next step.
+The command creates a file named `SA_KEY_FILE.json` with the credentials. You enter its content in Okteto in [Step 3: Configuring the credentials in Okteto](#step-3-configuring-the-credentials-in-okteto).
 
-## Step 3: Configure the credentials in Okteto
+## Step 3: Configuring the credentials in Okteto
 
-Add the following registry credentials to the [Admin Registry Credentials view](index.mdx#add-registry-credentials) in the Okteto Admin Dashboard:
+Go to **Admin > Integrations > Registry Credentials**, click **Add Credential**, and enter these values, as [Adding Registry Credentials](admin/registry-credentials/index.mdx#adding-registry-credentials) explains:
 
-Start by navigating to **Admin -> Registry Credentials** under the Integrations section.
-
-Click "Add Credential" and use the following settings:
 - **Type**: `Static`
-- **Hostname**: your private Google Artifact Registry endpoint, for example `europe-west1-docker.pkg.dev`
+- **Hostname**: your private Google Artifact Registry's endpoint, for example `europe-west1-docker.pkg.dev`
 - **Username**: `_json_key`
-- **Password**: the content of the file `SA_KEY_FILE.json`
+- **Password**: the content of `SA_KEY_FILE.json`
 
-You can also use `_json_key_base64` as `username` and encode your `SA_KEY_FILE.json` as the value of the `password`:
+You can also set the **Username** to `_json_key_base64` and the **Password** to the Base64-encoded content of `SA_KEY_FILE.json`:
 
 ```bash
 cat SA_KEY_FILE.json | base64

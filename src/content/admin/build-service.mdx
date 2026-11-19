@@ -1,114 +1,106 @@
 ---
-title: Build Service Management
-description: Monitor and manage BuildKit performance and resource utilization
+title: Build Service
+description: The Build Service section of the Admin Dashboard shows the BuildKit pods of the Okteto Build Service, their metrics, and the thresholds that mark them as busy.
 sidebar_label: Build Service
 id: build-service
 ---
 
 import Image from "@theme/Image";
 
-# Build Service Management
+**Admin > Build Service** shows the BuildKit pods that run the Okteto Build Service, with the metrics and status of each one. From there, Admins set the resource thresholds for the pods and restart a pod.
 
-The Build Service admin view monitors your BuildKit infrastructure.
-This interface allows administrators to track real-time performance metrics, configure resource thresholds, and ensure optimal build performance across your Okteto instance.
+<Image
+  src={require("@site/static/img/admin-build-service.png").default}
+  alt="The Build Service section of the Admin Dashboard, with the CPU Pressure, Memory Usage, and I/O Pressure thresholds, and a table of BuildKit pods with their metrics, status, and a Restart button"
+/>
 
 ## Overview
 
-The Build Service uses BuildKit, a high-performance image builder, to power fast image builds and [remote executions](core/remote-execution.mdx).
-The admin dashboard provides visibility into BuildKit pod health, resource utilization, and active build workloads.
+The Okteto Build Service uses BuildKit to build images and to run [Remote Execution](core/remote-execution.mdx). **Admin > Build Service** shows the health of the BuildKit pods, their resource usage, and their active builds.
 
-For more information about optimizing BuildKit performance, see the [BuildKit High Performance guide](self-hosted/install/buildkit-high-performance.mdx).
+To tune BuildKit for many builds, see [BuildKit High Performance](self-hosted/install/buildkit-high-performance.mdx).
 
 ## Build queue
 
-The build queue routes builds to the least-loaded server and holds requests when all servers are at capacity. This prevents overload during peak usage and delivers more predictable build performance.
+The build queue routes each build to the least loaded BuildKit pod, and holds builds while every pod is at capacity. This prevents overload at peak times and keeps build times predictable.
 
-The build queue is enabled by default. To disable it, set the `OKTETO_BUILD_QUEUE_ENABLED` [feature flag](reference/feature-flags.mdx) to `false`.
-
-## Accessing the Build Service Dashboard
-
-Navigate to **Admin → Build Service** in the Okteto UI to access the Build Service management interface.
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/admin_build.png").default}
-    alt="Build Service Admin Dashboard"
-    width="850"
-  />
-</p>
+The build queue is on by default. To turn it off, set the `OKTETO_BUILD_QUEUE_ENABLED` [feature flag](reference/feature-flags.mdx) to `false`.
 
 ## Metrics
 
-The Build Service dashboard displays key metrics for each BuildKit pod:
+The table shows these metrics for each BuildKit pod:
 
-- **CPU Pressure**: indicates how much any process is waiting for CPU in the last 10s. A value greater than 50% is a potential signal of build performance degradation.
-- **Memory Usage**: a percentage out of 100%. A value close to 70% increases your chances to face Out-Of-Memory kill events.
-- **IO Pressure**: indicates how much any process is waiting for IO in the last 10s. A value greater than 30% is a potential signal of build performance degradation.
-- **Active Builds**: number of concurrent builds.
+- **CPU Pressure**: how long processes waited for CPU over the last 10 seconds. A value above 50% can signal that builds are slowing down.
+- **Memory Usage**: the percentage of the pod's memory in use. A value close to 70% raises the risk of Out-Of-Memory (OOM) kills.
+- **I/O Pressure**: how long processes waited for I/O over the last 10 seconds. A value above 30% can signal that builds are slowing down.
+- **Active Builds**: the number of builds that the pod runs at the same time.
 
 ### Configurable Thresholds
 
-You can configure the following thresholds from the admin UI:
+You set these thresholds in **Admin > Build Service**:
 
 #### CPU Pressure Threshold
+
 - **Default**: 50%
-- **Description**: Maximum CPU pressure allowed before a BuildKit pod is marked as busy. CPU pressure is measured in 10-second intervals and indicates how much the pod is CPU-constrained.
-- **When to adjust**: Increase if builds are being queued unnecessarily when CPU usage is acceptable. Decrease if you notice build performance degradation at current levels.
+- **Description**: The maximum CPU pressure before Okteto marks a BuildKit pod as busy. CPU pressure is measured over 10-second intervals and shows how constrained the pod is on CPU.
+- **When to adjust**: Increase it if builds wait in the queue while CPU usage is acceptable. Decrease it if builds slow down at the current value.
 
-#### Memory Pressure Threshold
+#### Memory Usage Threshold {#memory-pressure-threshold}
+
 - **Default**: 70%
-- **Description**: Maximum memory usage allowed before a BuildKit pod is marked as busy. Memory usage is reported as a percentage out of 100%.
-- **When to adjust**: Increase if you have sufficient memory headroom and want to maximize pod utilization. Decrease if memory pressure is causing OOM issues.
+- **Description**: The maximum memory usage before Okteto marks a BuildKit pod as busy, as a percentage of the pod's memory.
+- **When to adjust**: Increase it if the pods have spare memory and you want to use more of it. Decrease it if the pods hit OOM kills.
 
-#### IOPS Pressure Threshold
+#### I/O Pressure Threshold {#iops-pressure-threshold}
+
 - **Default**: 30%
-- **Description**: Maximum I/O pressure allowed before a BuildKit pod is marked as busy. I/O pressure is measured in 10-second intervals and indicates disk I/O contention.
-- **When to adjust**: Increase if using high-performance SSDs with greater I/O capacity. Decrease if experiencing I/O-related build slowdowns.
+- **Description**: The maximum I/O pressure before Okteto marks a BuildKit pod as busy. I/O pressure is measured over 10-second intervals and shows disk I/O contention.
+- **When to adjust**: Increase it if your nodes use high-performance SSDs with more I/O capacity. Decrease it if builds slow down because of I/O.
 
-### Understanding Pod Status
+### Pod Status
 
-Each BuildKit pod displays one of the following statuses:
+Each BuildKit pod shows one of these statuses:
 
-- **Ready**: The pod is healthy and below all recommended thresholds.
-- **Busy**: One or more metrics exceed the recommended thresholds.
-- **Starting**: The pod is initializing and not yet ready to accept builds.
-- **Stopping**: The pod is gracefully terminating, allowing active builds to complete.
-- **Error**: The pod has encountered an error.
+- **Ready**: The pod is healthy and below every threshold.
+- **Busy**: One or more metrics are above their threshold.
+- **Starting**: The pod is starting and doesn't accept builds yet.
+- **Stopping**: The pod is shutting down and lets its active builds finish.
+- **Error**: The pod has an error.
 
 ### Restarting a BuildKit Pod
 
-Administrators can restart individual BuildKit pods directly from the dashboard. This terminates the existing pod and creates a new one.
+Admins can restart a BuildKit pod from **Admin > Build Service**. Okteto deletes the pod and creates a new one.
 
-#### When to Restart
+#### Reasons to Restart
 
-- **Stuck builds**: A build appears hung with no progress
-- **Repeated failures**: Builds are failing consistently on a specific pod
-- **Pod errors**: The pod shows an error status that hasn't self-resolved
-- **Performance degradation**: A pod is underperforming compared to others
+- **Stuck builds**: A build shows no progress.
+- **Repeated failures**: Builds keep failing on one pod.
+- **Pod errors**: The pod shows the **Error** status and doesn't recover on its own.
+- **Slow pod**: A pod performs worse than the others.
 
-#### What Happens When You Restart
+#### Effects of a Restart
 
-- **Active builds are retried**: Builds running on that pod are automatically retried on another available pod, or on this pod once it's recreated
-- **Queued builds reroute**: If the build queue is enabled, waiting builds are routed to other available pods
-- **Cache is preserved**: The build cache is stored on a persistent volume and survives the restart
-- **Typical recovery time**: 30-60 seconds for the new pod to become ready
+- **Active builds are retried**: The builds that run on the pod are retried on another pod, or on the same pod once Okteto recreates it.
+- **Queued builds are rerouted**: If the build queue is on, the builds waiting for the pod go to other pods.
+- **The cache is kept**: The build cache is stored on a persistent volume, so it survives the restart.
+- **Recovery time**: The new pod is usually ready in 30 to 60 seconds.
 
-#### How to Restart
+#### Restart Steps
 
-1. Locate the pod you want to restart in the Build Service dashboard
-2. Click the **Restart** button
-3. Review the confirmation dialog and click **Delete and recreate** to confirm
+1. Find the pod in the table of **Admin > Build Service**.
+2. Click **Restart**.
+3. Read the confirmation dialog and click **Delete and recreate**.
 
 ## Best Practices
 
 ### Threshold Configuration
 
-- **Start with defaults**: The default thresholds (50% CPU, 70% memory, 30% IOPS) work well for most workloads
-- **Monitor and adjust**: Watch the metrics over time and adjust thresholds based on actual performance patterns
-- **Balance utilization and performance**: Higher thresholds maximize resource utilization but may impact build performance
+- **Start with the defaults**: The default thresholds (50% CPU, 70% memory, 30% I/O) work for most workloads.
+- **Monitor and adjust**: Watch the metrics over time and adjust the thresholds to match how your builds perform.
+- **Balance usage and speed**: Higher thresholds use more of each pod's resources, but builds can get slower.
 
 ## Related Documentation
 
-- [Build Service Overview](core/build-service.mdx) - Learn about how the Okteto Build service works
-- [BuildKit High Performance](self-hosted/install/buildkit-high-performance.mdx) - Detailed guide on optimizing BuildKit performance at high scale
-- [BuildKit Helm Configuration](self-hosted/helm-configuration.mdx#buildkit) - Configure BuildKit settings in your Helm chart
+- [Okteto Build Service](core/build-service.mdx) explains how the Okteto Build Service works.
+- [BuildKit High Performance](self-hosted/install/buildkit-high-performance.mdx) explains how to tune BuildKit for many builds.
+- [BuildKit Helm configuration](self-hosted/helm-configuration.mdx#buildkit) lists the BuildKit settings of the Helm chart.

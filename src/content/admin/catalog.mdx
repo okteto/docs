@@ -1,60 +1,47 @@
 ---
 title: Catalog
-description: Administrators can create a Catalog of pre-defined development environments for developers to use.
+description: The Catalog section of the Admin Dashboard lists the preconfigured applications that developers deploy from the Okteto UI.
 sidebar_label: Catalog
 id: catalog
 ---
 
 import Image from "@theme/Image";
-import Tabs from "@theme/Tabs";
-import TabItem from "@theme/TabItem";
-import TiersList from "@theme/TiersList";
 
-# Catalog <TiersList tiers="Scale Enterprise Self-Hosted" />
+**Admin > Catalog** lists the applications that Admins preconfigure for developers. Each Catalog item sets a repository, a branch, an Okteto Manifest path, and environment variables, so developers deploy an application environment from the Okteto UI without configuring any of them.
 
-The **Catalog** feature allows `admins` to pre-configure a list of applications from the Okteto Admin Dashboard.
-These applications are available to developers in the same Okteto instance when launching a development environment from the UI.
-By using Catalog entries, developers can quickly deploy their environments without needing to manually configure Okteto manifests or set up environment variables.
+<Image
+  src={require("@site/static/img/admin-catalog.png").default}
+  alt="The Catalog section of the Admin Dashboard, with a table of Catalog items, their names and repository URLs, an Edit button on each row, and the Add Item button"
+/>
 
-This feature allows Okteto administrators to enhance the developer experience by streamlining workflows, making it easier for developers to begin their projects.
-
-  <Image
-    src={require("@site/static/img/admin_catalog_view+1.32.png").default}
-    alt="Catalog table view"
-    width="900"
-  />
+Only Admins can manage the Catalog.
 
 :::note
-If you see a “Read-only” tag next to catalog items in the interface, it means that these items were defined using Custom Resource Definitions (CRDs). Such items cannot be modified through the Admin Dashboard. To make changes, you will need to update the associated CRD directly.
-For more information, refer to the [Managing Catalog Items using CRDs documentation](self-hosted/manage/crds.mdx#catalog-items).
+A **Read-only** tag next to a Catalog item means that the item is defined with a Custom Resource Definition (CRD). You can't change it from the Admin Dashboard: update its CRD instead, as [Catalog items in the CRDs reference](self-hosted/manage/crds.mdx#catalog-items) explains.
 :::
 
-## Create your Catalog
+## Creating the Catalog
 
-You have two options for creating and managing Catalog items:
-1. [Create Catalog items via the Dashboard](#create-and-manage-catalog-items-via-the-dashboard) or
-1. [Create Catalog items using Custom Resource Definitions (CRDs)](#create-and-manage-catalog-items-via-custom-resource-definitions-crds)
+You create and manage Catalog items in one of two ways:
 
-:::info
-_Only accounts with the administrator role can use this feature._
-:::
+1. [From the Admin Dashboard](#create-and-manage-catalog-items-via-the-dashboard)
+1. [With Custom Resource Definitions (CRDs)](#create-and-manage-catalog-items-via-custom-resource-definitions-crds)
 
-### Create and Manage Catalog Items via the Dashboard
-Within the Okteto Dashboard, navigate to **Admin -> Catalog** under the Cluster Management section. On this page, click the **Add Item** button to open the **Add Catalog Item** form.
+### Managing Catalog Items from the Admin Dashboard {#create-and-manage-catalog-items-via-the-dashboard}
 
-#### Add an application to the Catalog
+Go to **Admin > Catalog** and click **Add Item** to open the **Add Catalog Item** form.
 
-Completing this form adds an entry to your Catalog, which is basically a pre-defined application configuration that enables a developer to one-click deploy a development environment using that repository and the definition you’ve provided for it.
+#### Adding an Application to the Catalog {#add-an-application-to-the-catalog}
 
-Fill out as much of the form that makes sense for you. You will see:
+The form adds a Catalog item: a preconfigured application that developers deploy with one click, from its repository and the settings you provide. It has these fields:
 
-- Name\*
-- Repository URL\*
-- [Default Branch](#define-a-default-branch)
-- [Manifest Path](#define-a-manifest-path)
-- [Environment Variables](#add-environment-variables)
+- **Name** (required)
+- **Repository URL** (required)
+- [**Default Branch**](#define-a-default-branch)
+- [**Manifest Path**](#define-a-manifest-path)
+- [**Environment Variables**](#add-environment-variables)
 
-Only the `Name` and `Repository URL` fields are required. When done, click `Save`.
+Fill in the ones you need and click **Save**.
 
 <p align="center">
   <Image
@@ -64,19 +51,19 @@ Only the `Name` and `Repository URL` fields are required. When done, click `Save
   />
 </p>
 
-#### Define a Default Branch
+#### Default Branch {#define-a-default-branch}
 
-The default branch you specify here will be the default branch used when a developer selects this Catalog item to deploy a development environment.
+**Default Branch** is the branch selected by default when a developer deploys the Catalog item.
 
-You can specify multiple Catalog entries for the same `Repository URL` and set a different `Default Branch` for each one if your use case necessitates that.
+You can add several Catalog items for the same **Repository URL**, each with a different **Default Branch**.
 
-#### Define a Manifest Path
+#### Manifest Path {#define-a-manifest-path}
 
-This field should (optionally) point to where your Okteto manifest resides. This provides additional control to provide a smoother experience for developers who deploy a development environment from the Catalog.
+**Manifest Path** is the path to your Okteto Manifest in the repository. It's optional.
 
-#### Add Environment Variables
+#### Environment Variables {#add-environment-variables}
 
-You can also (optionally) add Environment Variables to your Catalog entry to standardize how the development environment is deployed. Similar to the Default Branch entry, you could specify multiple catalog entries for the same Repository URL each with different Environment Variables.
+**Environment Variables** sets the variables that Okteto passes to every deployment of the Catalog item, so they're the same for every developer. They're optional. As with **Default Branch**, you can add several Catalog items for the same **Repository URL**, each with different environment variables.
 
 <p align="center">
   <Image
@@ -86,22 +73,19 @@ You can also (optionally) add Environment Variables to your Catalog entry to sta
   />
 </p>
 
-### Create and Manage Catalog Items via Custom Resource Definitions (CRDs)
+### Managing Catalog Items with Custom Resource Definitions (CRDs) {#create-and-manage-catalog-items-via-custom-resource-definitions-crds}
 
-You can also manage your [catalog using Custom Resource Definitions (CRDs)](self-hosted/manage/crds.mdx#catalog-items) to configure and manage items programmatically.
-This approach suits teams that use GitOps workflows or automate deployments with tools like kubectl.
-This approach can be useful if you'd like to have a default Catalog on installation.
+You can also define Catalog items with [Custom Resource Definitions (CRDs)](self-hosted/manage/crds.mdx#catalog-items) and apply them to your cluster. This fits teams that work with GitOps or automate deployments with tools like `kubectl`, and it gives your instance a default Catalog from installation.
 
-Using CRDs for catalog items allows you to define configurations as code, which can then be applied to your cluster.
-Once applied, these catalog items will appear in the Okteto UI, but they cannot be modified through the dashboard. They will be shown with the tag "Read-only." If you prefer to manage Catalog items directly via the UI, you should create them there instead.
+Catalog items defined with CRDs appear in the Okteto UI with the **Read-only** tag, and you can't change them from the Admin Dashboard. To manage a Catalog item from the UI, create it there instead.
 
-For detailed instructions on using CRDs in Okteto, including examples, refer to the [Custom Resource Definitions documentation](self-hosted/manage/crds.mdx#catalog-items).
+The [CRDs reference](self-hosted/manage/crds.mdx#catalog-items) has the instructions and examples.
 
-## Deploy a Dev Environment from your Catalog
+## Deploying from the Catalog {#deploy-a-dev-environment-from-your-catalog}
 
-Once you’ve defined your Catalog entries, you can navigate to `Namespaces` → `Deploy Dev Environment` → `Catalog`.
+To deploy a Catalog item, go to **Namespaces**, click **Deploy Dev Environment**, and select **Catalog**.
 
-This view lists all of the repositories you’ve added (and pre-configured). Select an entry you wish to use and click `Deploy`.
+The list shows every Catalog item. Select the one you want and click **Deploy**.
 
 <p align="center">
   <Image
