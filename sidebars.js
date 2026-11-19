@@ -34,8 +34,9 @@ module.exports = {
           items: [
             'get-started/deploy-your-app/build',
             'get-started/deploy-your-app/deploy',
-            'get-started/deploy-your-app/endpoints',
+            'get-started/deploy-your-app/inspect',
             'get-started/deploy-your-app/test',
+            'get-started/deploy-your-app/develop',
           ],
         },
         {

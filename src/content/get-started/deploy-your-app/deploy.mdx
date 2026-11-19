@@ -1,9 +1,11 @@
 ---
 title: Deploy your application
-description: Deploy the Movies app and its MongoDB database to your Okteto Namespace with okteto deploy.
+description: Deploy the Movies app and its MongoDB database to your Okteto Namespace with okteto deploy, and open it on its public HTTPS endpoints.
 sidebar_label: Deploy
 id: deploy
 ---
+
+import Image from "@theme/Image";
 
 The `deploy` section of the Okteto Manifest lists the commands that deploy your application. `okteto deploy` runs them against your Okteto Namespace.
 
@@ -40,7 +42,7 @@ The [templates of the Helm chart](https://github.com/okteto/getting-started/tree
 - `frontend` and `api`: a Deployment and a Service for each service.
 - `mongodb`: a Deployment with the official `mongo` image, its Service, a PersistentVolumeClaim for the data, and a ConfigMap with an init script that creates the `okteto` user. A readiness probe marks MongoDB as ready when it accepts connections.
 - `seed`: a Job that loads the movies into MongoDB. It's a Helm hook, so Helm runs it after every install or upgrade and waits for it to complete.
-- `movies`: the Ingress that exposes the `frontend` and `api` services, described in [Endpoints](endpoints.mdx).
+- `movies`: the Ingress that exposes the `frontend` and `api` services, described in [Endpoints](#endpoints).
 
 The `api` service and the `seed` job connect to MongoDB through its Service, at the hostname `mongodb`.
 
@@ -54,13 +56,15 @@ okteto deploy --wait
 
 ```bash
  i  Using cindy @ okteto.example.com as context
+ i  Okteto Smart Builds is skipping build of "frontend-dev" because it's already built from cache.
+ i  Okteto Smart Builds is skipping build of "api-dev" because it's already built from cache.
  i  Okteto Smart Builds is skipping build of "frontend" because it's already built from cache.
  i  Okteto Smart Builds is skipping build of "api" because it's already built from cache.
  i  Running stage 'Helm Install'
 Executing command 'Helm Install'...
 Release "movies" does not exist. Installing it now.
 NAME: movies
-LAST DEPLOYED: Thu Nov 19 05:21:11 2026
+LAST DEPLOYED: Thu Nov 19 11:19:37 2026
 NAMESPACE: cindy
 STATUS: deployed
 REVISION: 1
@@ -77,20 +81,72 @@ Command 'Helm Install' successfully executed
 
 The `--wait` flag makes `okteto deploy` wait until the pods of the application are healthy. Okteto names the deployment `getting-started`, after the repository, and lists it in the Okteto UI with its resources.
 
-Check the logs of the `api` service:
+## Endpoints
+
+Okteto serves the Ingress objects deployed in your Namespace on public HTTPS endpoints. The `chart/templates/ingress.yaml` file of the Movies app defines one Ingress, `movies`:
+
+```yaml title="chart/templates/ingress.yaml"
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the [Ingress](core/endpoints/ingress.mdx) of the Helm chart. If your application uses the Gateway API, Okteto does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx).
+
+The `dev.okteto.com/generate-host: "true"` annotation makes Okteto generate the host of the Ingress in the [Okteto Subdomain](self-hosted/helm-configuration.mdx#subdomain): `<ingress-name>-<namespace>.<okteto-subdomain>`. For the `movies` Ingress in the `cindy` Namespace, with the Okteto Subdomain `okteto.example.com`, the host is `movies-cindy.okteto.example.com`. Requests to `/` go to the `frontend` service and requests to `/api` go to the `api` service.
+
+If you deploy with Docker Compose, define your endpoints in the [`endpoints` section of your Docker Compose file](reference/docker-compose.mdx#endpoints-object-optional) instead.
+
+`okteto deploy` prints the endpoints when it finishes. To list them at any time, run:
 
 ```bash
-okteto logs api
+okteto endpoints
 ```
 
 ```bash
  i  Using cindy @ okteto.example.com as context
-+ api-7bb6c5fc9d-fs2qb › api
-api-7bb6c5fc9d-fs2qb api Server running on port 8080.
+ i  Endpoints available:
+  - https://movies-cindy.okteto.example.com
+  - https://movies-cindy.okteto.example.com/api
 ```
 
-`okteto logs` keeps following the logs. Press `Ctrl+C` to stop it.
+The Okteto UI shows the same endpoints next to your deployment.
 
-## Next Steps
+<Image
+  src={require("@site/static/img/okteto-ui-movies.png").default}
+  mobileSrc={require("@site/static/img/okteto-ui-movies-mobile.png").default}
+  alt="Okteto UI showing the cindy Namespace with the getting-started Dev Environment deployed: the api, frontend, and mongodb Deployments running, the seed Job completed, and the two endpoints of the Movies app"
+/>
 
-[Expose the Movies app on public endpoints](endpoints.mdx) and open it in your browser.
+Open `https://movies-cindy.okteto.example.com`, with your Namespace and Okteto Subdomain, in your browser to see the Movies app:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/next-ui-movies.png").default}
+    alt="UI showing the movies app"
+    width="850"
+  />
+</p>
+
+The Movies app now runs in your Namespace, on its public HTTPS endpoints. In the next step, [inspect the Movies app](inspect.mdx) at the Kubernetes level with `kubectl`.

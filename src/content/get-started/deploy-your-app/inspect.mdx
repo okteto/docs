@@ -1,0 +1,70 @@
+---
+title: Inspect your application in Kubernetes
+description: Inspect the pods, logs, and events of the Movies app in your Okteto Namespace with kubectl.
+sidebar_label: Inspect
+id: inspect
+---
+
+Okteto deploys your application to Kubernetes, so you can inspect it at the Kubernetes level with `kubectl`, like any other Kubernetes application: the pods, their logs, and the events of your Namespace. Come back to these commands at any step of this series when something doesn't work.
+
+This page uses the [Movies app](https://github.com/okteto/getting-started), deployed with `okteto deploy` as described in [Deploy](deploy.mdx).
+
+Okteto deploys the Movies app to Kubernetes, so `kubectl` inspects it like any other Kubernetes application. Configure `kubectl` with the credentials and the Namespace of your Okteto Context:
+
+```bash
+okteto kubeconfig
+```
+
+```bash
+ ✓  Updated kubernetes context 'okteto_example_com/cindy' in '/Users/cindy/.kube/config'
+```
+
+These commands only read the state of your Namespace, and don't change anything in it.
+
+List the pods of the application. The `seed` job runs once per deployment and stays `Completed`:
+
+```bash
+kubectl get pods
+```
+
+```bash
+NAME                       READY   STATUS      RESTARTS   AGE
+api-75cb79d67f-zjvr8       1/1     Running     0          62s
+frontend-7c9d54574-mnd7k   1/1     Running     0          62s
+mongodb-5db5b9d9b-ztnl5    1/1     Running     0          62s
+seed-wdgmc                 0/1     Completed   0          62s
+```
+
+Check the logs of the `api` service, with a line per request to the endpoints of the API:
+
+```bash
+kubectl logs deploy/api
+```
+
+```bash
+Server running on port 8080.
+GET /api/movies
+GET /api/watching
+```
+
+List the events of your Namespace, the most recent last:
+
+```bash
+kubectl get events --sort-by=.lastTimestamp
+```
+
+```bash
+LAST SEEN   TYPE      REASON                   OBJECT                          MESSAGE
+...
+65s         Normal    ScalingReplicaSet        deployment/api                  Scaled up replica set api-75cb79d67f from 0 to 1
+63s         Normal    Started                  pod/api-75cb79d67f-zjvr8        Container started
+55s         Normal    Pulled                   pod/mongodb-5db5b9d9b-ztnl5     Successfully pulled image "mongo:9.0.8" in 107ms (107ms including waiting). Image size: 393136372 bytes.
+52s         Warning   Unhealthy                pod/mongodb-5db5b9d9b-ztnl5     Readiness probe failed: dial tcp 10.8.2.88:27017: connect: connection refused
+38s         Normal    Completed                job/seed                        Job completed
+```
+
+The `Unhealthy` warning of `mongodb` is expected: MongoDB listens on the IP of its pod only after its init script creates the `okteto` user, and its readiness probe keeps it out of its Service until then. When a pod doesn't start, its events show why, for example an image that can't be pulled or a failing probe.
+
+An AI agent with the [Okteto agent skills](agentic/index.mdx) runs these same read-only commands to find out why a service doesn't start or a test fails.
+
+You know how to look inside your Namespace. In the next step, [test the Movies app](test.mdx) against its endpoints with Okteto Test.

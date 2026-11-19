@@ -19,7 +19,7 @@ The `frontend` Test Container runs the unit tests of the `frontend` service, wri
 ```yaml title="okteto.yaml"
 test:
   frontend:
-    image: node:26.13.1-trixie-slim
+    image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
     context: frontend
     caches:
       - /root/.npm
@@ -30,7 +30,7 @@ test:
 
 `frontend` is the name of the Test Container. The meaning of the rest of the fields is:
 
-- `image`: the image used as the runtime of your Test Container. `node:26.13.1-trixie-slim` is the official Node.js image for Node.js 26, the current Active LTS release, pinned to an exact version on Debian trixie.
+- `image`: the image used as the runtime of your Test Container: the development image of the `frontend` service, built in the [`build` section](build.mdx), so the tests run with the same Node.js version as the [Development Container](develop.mdx).
 - `context`: the folder that Okteto sends to the Test Container.
 - `caches`: a list of folders to persist between executions of the Test Container. `/root/.npm` is the cache of npm, so later runs don't download the packages again.
 - `commands`: a list of commands to execute your tests. The Test Container fails if any command exits with a non-zero code. `npm ci` installs the exact dependencies of `package-lock.json`, and `npm test` runs Vitest.
@@ -43,9 +43,10 @@ okteto test frontend
 
 ```bash
  i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
  i  Executing test container 'frontend'
  i  Running 'npm ci'
-added 90 packages, and audited 91 packages in 2s
+added 90 packages, and audited 91 packages in 3s
 21 packages are looking for funding
   run `npm fund` for details
 found 0 vulnerabilities
@@ -54,16 +55,16 @@ found 0 vulnerabilities
 > okteto-movies-frontend@0.2.0 test
 > vitest run
  RUN  v5.1.1 /okteto/src
- ✓ src/components/TitleList.test.jsx (4 tests) 105ms
- ✓ src/components/Hero.test.jsx (4 tests) 107ms
- ✓ src/components/App.test.jsx (4 tests) 191ms
+ ✓ src/components/Hero.test.jsx (4 tests) 134ms
+ ✓ src/components/TitleList.test.jsx (4 tests) 116ms
+ ✓ src/components/App.test.jsx (4 tests) 225ms
  ✓ src/components/UserProfile.test.jsx (3 tests) 63ms
- ✓ src/components/Item.test.jsx (3 tests) 87ms
- ✓ src/components/ListToggle.test.jsx (2 tests) 38ms
+ ✓ src/components/Item.test.jsx (3 tests) 76ms
+ ✓ src/components/ListToggle.test.jsx (2 tests) 39ms
  Test Files  6 passed (6)
       Tests  20 passed (20)
-   Start at  05:22:44
-   Duration  1.84s (environment 66%, tests 13%, setup 10%, import 6%, transform 4%, worker 1%)
+   Start at  11:21:01
+   Duration  1.93s (environment 65%, tests 13%, setup 10%, import 5%, transform 5%, worker 1%)
  ...
  ✓  Command 'npm test' successfully executed
  ✓  Test container 'frontend' passed
@@ -104,18 +105,18 @@ okteto test e2e
  i  Using cindy @ okteto.example.com as context
  i  Executing test container 'e2e'
  i  Running 'bash run_tests.sh'
-added 15 packages, and audited 16 packages in 756ms
+added 15 packages, and audited 16 packages in 1s
 found 0 vulnerabilities
 > e2e@1.0.0 test
 > playwright test
 Running 6 tests using 1 worker
-  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.2s)
-  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (989ms)
-  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (194ms)
-  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (328ms)
-  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (130ms)
+  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.4s)
+  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (706ms)
+  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (180ms)
+  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (288ms)
+  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (133ms)
   ✓  6 [chromium] › tests/main.spec.js:10:1 › matches screenshot (1.7s)
-  6 passed (5.6s)
+  6 passed (6.2s)
  ✓  Command 'bash run_tests.sh' successfully executed
  ✓  Test container 'e2e' passed
 ```
@@ -129,12 +130,6 @@ Test Containers run inside your Okteto Namespace, which gives them two ways to r
 
 Run `okteto test` without arguments to run every Test Container in your Okteto Manifest.
 
-## Next Steps
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](agentic/index.mdx), the agent runs this loop in a Namespace of its own and reports the tests it ran, the endpoints of the application, and a link to its Namespace.
 
-- [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) deploys an application defined in a Docker Compose file, with no Helm chart or Kubernetes manifests, and develops one of its services with hot reload.
-- [Deploy a multi-repo application with dependencies](/tutorials/dependencies/) deploys an application whose services live in several repositories, with the `dependencies` section of the Okteto Manifest: Okteto deploys the repositories in parallel and orders them with `depends_on`.
-
-To keep working on the Movies app:
-
-- [Development Environments](development/index.mdx) sync your local changes to the services running in your Okteto Namespace.
-- [Preview Environments](previews/index.mdx) deploy your application and run these same Test Containers on every pull or merge request.
+The unit and end-to-end tests of the Movies app pass in your cluster. In the next step, [develop the Movies app in Development Containers](develop.mdx): `okteto up` reloads your changes in the `api` and `frontend` services as you save them.
