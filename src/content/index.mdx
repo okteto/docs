@@ -7,7 +7,7 @@ import Image from "@theme/Image";
 
 Okteto creates application environments on your Kubernetes infrastructure: isolated copies of your application, with its real dependencies, for every developer, pull request, and coding agent. They all come from one definition in your repository, so everyone builds, deploys, and tests the application the same way.
 
-Without that definition, developers run the application one way on their laptops, coding agents another way in their sandboxes, and CI a third way with its own scripts. Changes wait for a shared staging environment that other developers and agents are using at the same time, and the issues that only show up with real dependencies don't appear until staging or production.
+Without that definition, developers run the application one way on their laptops, coding agents another way in their sandboxes, and CI a third way with its own scripts. Changes queue up for a shared staging environment, and the issues that only show up with real dependencies stay hidden until staging or production.
 
 <Image
   src={require("@site/static/img/one-definition.webp").default}
@@ -31,7 +31,7 @@ Okteto supports two models for an environment, and you choose one for each appli
   alt="Full replica: the environment of a developer and the environment of a coding agent each run the whole application, with its API gateway, the rent service and its MongoDB database, and the catalog service and its MongoDB database"
 />
 
-**[Divert](development/divert/index.mdx):** the environment deploys only the services that change, and shares a Namespace that runs the rest of the application. A request with the environment's divert header reaches its own services, and the shared version of everything else. For applications with dozens of services, hundreds of environments cost little more than the services that change.
+**[Divert](development/divert/index.mdx):** the environment deploys only the services that change, and relies on a shared Namespace for the rest of the application. A request that carries the environment's divert header reaches the environment's own services, and the shared version of everything else. For an application with dozens of services, hundreds of environments cost little more than the services they change.
 
 <Image
   src={require("@site/static/img/environment-divert.webp").default}
@@ -40,16 +40,16 @@ Okteto supports two models for an environment, and you choose one for each appli
   alt="Divert: the environment of a developer runs only the rent service and its MongoDB database, the environment of a coding agent runs only the catalog service, and both use a Shared Namespace that runs the whole application"
 />
 
-Environments are ephemeral: you create one for a pull request or an agent task, and delete it when the work is done. Every environment gets HTTPS URLs that anyone on the team can open in the browser.
+Environments are ephemeral: you create one for a pull request or an agent task, and delete it when the work is done. Every environment gets its own HTTPS URLs, which anyone on the team can open in a browser.
 
-A dedicated environment for every change, with real dependencies, changes how a team tests:
+A dedicated environment for every change, with real dependencies, gives a team:
 
 - **Isolation:** developers, coding agents, and pull requests test in parallel, without competing for a shared staging environment or breaking each other's work.
 - **Issues that reproduce:** the change runs against the application's real services and dependencies, so integration and configuration issues show up before the code merges, not in staging or in production.
 - **Better output from coding agents:** agents exercise the running application. They call its endpoints, run the tests, and read the logs, and they fix what fails before they open a pull request.
 - **One standard for every workflow:** developers, agents, and CI use the same definition, so their environments don't drift apart, and a test that fails in CI fails the same way in a developer's environment.
 
-Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot use the definition through the Okteto skills, which teach them to build, deploy, and test their changes in their own environment. Builds, deployments, and tests run in the cluster, so the agent's sandbox stays light: it needs no Docker daemon and none of your application's dependencies.
+Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot use the same definition through the Okteto skills, which teach them to build, deploy, and test their changes in their own environment. Builds, deployments, and tests run in the cluster, so the agent's sandbox stays light: it needs the Okteto CLI, but no Docker daemon and none of your application's dependencies.
 
 <Image
   src={require("@site/static/img/agent-sandbox.webp").default}
@@ -60,23 +60,23 @@ Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot use the def
 
 ## Governance and cost control for platform teams
 
-Platform teams set the rules once, and Okteto applies them to every application environment, including the ones that coding agents create. People sign in with your company's identity provider, and the kubeconfig that the Okteto CLI generates uses time-bound tokens, so nobody creates, distributes, or rotates cluster credentials.
+Platform teams set the rules once, and Okteto applies them to every application environment, including the ones that coding agents create. People sign in with your company's identity provider, and the kubeconfig that the Okteto CLI generates uses time-bound tokens, so nobody has to create, distribute, or rotate cluster credentials.
 
 <Image
   src={require("@site/static/img/environments-at-scale.webp").default}
   mobileSrc={require("@site/static/img/environments-at-scale-mobile.webp").default}
   borderless
-  alt="A Kubernetes cluster managed by Okteto with many environments, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, Smart Tests, and Okteto Insights"
+  alt="Many application environments in Okteto Namespaces, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, Smart Tests, and Okteto Insights"
 />
 
-Every developer, coding agent, and pull request works in its own Namespaces, isolated from the others:
+Access controls keep every developer, coding agent, and pull request in its own Namespaces, isolated from the others:
 
 - **RBAC:** Developers manage their own Namespaces, and Admins manage every Namespace and the platform.
 - **Quotas:** a limit on CPU, memory, pods, and storage for each Namespace.
 - **Network policies:** isolate the traffic of each Namespace, and block destinations such as the cloud metadata service.
 - **Cloud and Registry Credentials:** deploy commands reach your cloud account and your private registries without anyone holding static keys.
 
-With an environment for every developer, pull request, and agent task, a team runs hundreds of them at the same time, and most sit idle most of the day. Okteto keeps their cost close to what's actually in use:
+With an environment for every developer, pull request, and agent task, a team runs hundreds of environments at once, and most of them sit idle most of the day. Cost controls keep the spend close to what's actually in use:
 
 - **Garbage Collector:** sleeps idle environments, and deletes the ones nobody uses.
 - **Resource Manager:** sets the CPU and memory requests of each service from its real usage.

@@ -131,12 +131,12 @@ function environments(cx, y0) {
 
 // The scale diagram of the docs home: a cluster full of environments, some
 // of them asleep, and what keeps their cost down.
-const SCALE_ALT = 'A Kubernetes cluster managed by Okteto with many environments, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, Smart Tests, and Okteto Insights';
+const SCALE_ALT = 'Many application environments in Okteto Namespaces, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, Smart Tests, and Okteto Insights';
 function scaleCluster(cx, y0, width, tile, gap) {
   const rows = [[1, 1, 0, 1], [1, 0, 1, 0], [0, 1, 1, 0]];
   const height = 154 + rows.length * (tile + gap) + 10;
-  let out = box(cx - width / 2, y0, width, height, { color: C.blue }) + logo('okteto', cx, y0, 84)
-    + text('Application environments', cx, y0 + 84, 30) + text('Kubernetes cluster', cx, y0 + 116, 22, { color: C.dim });
+  let out = box(cx - width / 2, y0, width, height, { color: C.blue }) + logo('kubernetes', cx, y0, 80)
+    + text('Application environments', cx, y0 + 84, 30) + text('Okteto Namespaces', cx, y0 + 116, 22, { color: C.dim });
   const x0 = cx - (4 * tile + 3 * gap) / 2;
   rows.forEach((row, r) => row.forEach((running, c) => {
     const x = x0 + c * (tile + gap);
@@ -212,7 +212,8 @@ function fullReplica(x, y) {
 }
 // 570 wide and 410 tall, from (x, y - 30).
 function divert(x, y) {
-  const agentY = y + modelHeight(2) + 52;
+  // The two environments span the height of the Shared Namespace.
+  const agentY = y + 380 - modelHeight(1);
   return modelEnvironment(x, y, 260, DEVELOPER(), [['box', 'Rent'], ['database', 'MongoDB', true]], true)
     + modelEnvironment(x, agentY, 260, AGENT(), [['box', 'Catalog']], true)
     + arrow(x + 266, y + modelHeight(2) / 2, x + 302, y + modelHeight(2) / 2, { color: C.dim })
