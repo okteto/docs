@@ -32,6 +32,18 @@ This guide covers voice, tone, formatting, images, and terminology for everythin
 | Guides, references, and tutorials. | _Remove. It adds nothing._ |
 | Power your Okteto development experience. | _Remove or replace with specific capability._ |
 
+**Natural.** Write the way a native English speaker would explain it to a colleague. Prefer possessives and "for" over chains of "of", put one idea in each sentence, and use contractions where they read naturally ("it's", "that's", "doesn't"). Make the subject of each verb the actor that does it: Okteto doesn't develop your application, you do.
+
+| Avoid | Use instead |
+|-------|-------------|
+| the sandbox of a coding agent | a coding agent's sandbox |
+| the images of your services | the images for your services |
+| Okteto exposes the endpoints of the application on HTTPS. | Okteto serves the application's endpoints over HTTPS. |
+| runs the commands in a container of the `image` you set, in the cluster | runs the commands inside the cluster, in a container started from the `image` you set |
+| defines how Okteto builds, deploys, tests, and develops your application | defines how to build, deploy, test, and develop your application |
+| Okteto builds an image from the `api` folder, and the deploy commands get it from the `OKTETO_BUILD_API_IMAGE` variable. | Okteto builds an image from the `api` folder. Your deploy commands reference it through the `OKTETO_BUILD_API_IMAGE` variable. |
+| The [`build` reference](reference/okteto-manifest.mdx#build-object-optional) describes every option. | See the [`build` reference](reference/okteto-manifest.mdx#build-object-optional) for every option. |
+
 **Second person.** Address the reader as "you". Use "we" only for what Okteto runs as a company, as in the BYOC docs.
 
 ---
@@ -173,6 +185,10 @@ Diagrams and covers are drawn with `scripts/covers` in the docs, the tutorials, 
 
 Never hardcode the Okteto CLI, Helm chart, or Kubernetes versions. Import them from `src/content/variables.json` (`import variables from '../variables.json';`, with the path relative to the page) and write `{variables.cliVersion}`, or `${variables.cliVersion}` inside a template literal.
 
+### Images in samples
+
+Don't use `ghcr.io/okteto/pipeline-runner` in samples, in the `image` of a `deploy` or `destroy` section or anywhere else. Use the public image of the tool that the commands run, with a pinned tag, such as `alpine/helm:4.3.2` for Helm commands.
+
 ### Mechanics
 
 - Present tense: "Okteto creates the Namespace", not "Okteto will create the Namespace".
@@ -196,7 +212,7 @@ Use these terms exactly as written. Capitalization matters.
 | **Okteto Registry** | Capitalized. Never "the registry" on first reference. |
 | **Okteto Catalog** | Capitalized. |
 | **Okteto Insights** | Capitalized. |
-| **Okteto Test** | Capitalized as a product feature. The CLI command is `okteto test` (lowercase, code-formatted). |
+| **Okteto Test** | Capitalized as a product feature. The CLI command is `okteto test` (lowercase, code-formatted). Don't write "Test Containers" or "test containers" for the entries of the `test` section: readers confuse them with Testcontainers, the testing library. Name the feature Okteto Test, and each entry a test (for example, "the `unit` test"). |
 | **Okteto AI** | Capitalized. |
 | **Okteto API** | Capitalized. |
 | **Okteto Platform** | Capitalized when referring to the product as a whole. |
@@ -209,7 +225,8 @@ Use these terms exactly as written. Capitalization matters.
 
 | Term | When to use |
 |------|-------------|
-| **Development Environment** | Capitalized when referring to an Okteto Development Environment specifically. Lowercase "development environment" when referring to the concept generically. |
+| **application environment** | Lowercase. The default term for what Okteto deploys: your application, its services, and its cloud dependencies, in a Namespace, from the Okteto Manifest. Use it instead of "Development Environment" whenever you mean the environments Okteto creates in general, for developers, pull requests, or coding agents. Development Environments and Preview Environments are application environments. Don't confuse it with the agent sandbox, where a coding agent runs. |
+| **Development Environment** | Only for the environment a developer works in with `okteto up`, on a page about that workflow. Capitalized. Everywhere else, write "application environment": "Okteto exposes the endpoints of your application environments", not "of your Development Environments". |
 | **Preview Environment** | Capitalized when referring to the Okteto feature. Lowercase when generic. |
 | **Namespace** | Capitalize when referring to an Okteto Namespace. Lowercase for generic Kubernetes namespace references. |
 | **Development Container** | Capitalized. |
@@ -221,7 +238,7 @@ Other products use near-synonyms for these concepts. Don't use them for Okteto c
 |-------|-------------|
 | workspace, remote workspace | Development Environment, or Namespace |
 | devbox, cloud IDE | Development Environment |
-| ephemeral environment | Preview Environment, when it is created per pull request |
+| ephemeral environment | Preview Environment, when you name the feature. The term itself is fine, and worth using for search, to describe an application environment that lives for one pull request or one agent task |
 
 ### Access and roles
 

@@ -19,7 +19,6 @@ module.exports = {
           link: { type: 'doc', id: 'get-started/install/index' },
           items: [
             'get-started/install/amazon-eks',
-            'get-started/install/civo',
             'get-started/install/digitalocean-doks',
             'get-started/install/google-gke',
             'get-started/install/microsoft-aks',
@@ -39,15 +38,6 @@ module.exports = {
             'get-started/deploy-your-app/develop',
           ],
         },
-        {
-          type: 'category',
-          label: 'For Developers',
-          link: { type: 'doc', id: 'get-started/dev-quickstart' },
-          items: [
-            'get-started/using-okteto-cli-and-dashboard',
-            'get-started/advanced-commands-and-concepts',
-          ],
-        },
       ],
     },
     {
@@ -55,6 +45,7 @@ module.exports = {
       label: 'Core Concepts',
       link: { type: 'doc', id: 'core/index' },
       items: [
+        'core/application-environments',
         {
           type: 'category',
           label: 'Credentials',
@@ -80,7 +71,6 @@ module.exports = {
         'core/namespaces',
         'core/build-service',
         'core/okteto-insights-dashboards',
-        'core/okteto-manifest',
         'core/container-registry',
         'core/okteto-variables',
         'core/remote-execution',

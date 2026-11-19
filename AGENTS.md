@@ -49,11 +49,15 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Manifest filename | `okteto.yaml` | Lowercase, code-formatted (backticks). The product name is `Okteto Manifest`. |
 | CLI commands | `okteto up`, `okteto deploy`, `okteto test`, `okteto build` | Lowercase, in backticks. |
 | Deployment models | `Self-Hosted`, `BYOC`, `SaaS` | All capitalized exactly as shown. `BYOC` is always uppercase. First reference: `Bring Your Own Cloud (BYOC)`. |
-| Environments | `Development Environment`, `Preview Environment`, `Development Container` | Capitalized when referring to the Okteto feature. Lowercase when generic. |
+| Environments | `application environment`, `Development Environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the default term for what Okteto deploys: use it instead of `Development Environment`, which is only for the environment a developer works in with `okteto up`. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
 | Namespaces | `Namespace` (Okteto) vs. `namespace` (generic Kubernetes) | Capitalization signals which one you mean. |
 | Roles | `Admin`, `Developer`, `Personal Access Token` | Capitalized when referring to the Okteto role. |
 | Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
+
+### Search terms
+
+`ephemeral environment` (lowercase) is a term people search for a lot. Use it in the docs where it's true: for the application environments that live for one pull request or one agent task, Okteto creates them on demand and deletes them when the work ends. It describes how long an environment lives, so it doesn't replace `application environment` (the category, as opposed to the agent sandbox) or the feature names (`Preview Environment`, `Development Environment`).
 
 ## Confidential information
 
@@ -97,9 +101,19 @@ When you draw the subject:
 - Leave a margin of about 80px on each side: the blog cards crop the sides of the image. Keep the labels readable on any background: away from the corners (`dots`, `sun`, `hexagons`) and off the bottom edge (`grid`, `sun`).
 - Draw one or two covers first and iterate on them with the user before applying a change of style to many.
 
-Images inside a blog post or a tutorial are shown at the width of the cover (at most 40rem), centered. The styles do it for every image (`src/styles/blog.scss` and `src/styles/main.scss`), so don't size or align images one by one.
+Images inside a blog post or a tutorial, and diagrams in the docs (the `Image` component with `borderless`), are shown at the width of the cover (at most 40rem), centered. The styles do it (`src/styles/blog.scss`, `src/styles/main.scss`, and `src/theme/Image/styles.module.scss`), so don't size or align images one by one.
 
-Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post or a tutorial, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
+Images inside a page (a blog post, a tutorial, or a docs page) have a white background. In a docs page, show a diagram with the `borderless` prop of `Image`, so it has no frame around it; the frame is for screenshots of the product. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post or a tutorial, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
+
+Diagrams in the docs share these shapes. The `deploy-movies-app` and `environment-workflow` entries of `scripts/covers/covers.mjs` are the reference:
+
+- **Light theme:** white background, white or light gray fills, and colored outlines. No dark boxes and no glow: don't set `theme: 'neon'` on a diagram of the docs.
+
+- **An application environment** is a blue box with the Kubernetes mark on the middle of its top edge, the title "Application environment" and "Okteto Namespace" under it, and its services as stacked rows: a line icon (`box` for a service, `database` for a database or a queue) and the name. The rows are narrower than the box and centered in it.
+- **A person or an agent** is a circle with a line icon and the label under it: `user` for a developer, `bot` for a coding agent.
+- **An endpoint** (a URL, a path such as `/api`) is a pill: a rounded box whose radius is half its height. Pills that lead into an environment sit on its border, with the same height, and end at the same point inside it. A long URL can go down to 18px so its pill doesn't take the whole width.
+- **Arrows** are short, and the arrows of the same flow have the same length. Draw only the connections the page explains.
+- **Balance:** center the drawing on the canvas, with the same white space on each side.
 
 ### Logos and icons
 

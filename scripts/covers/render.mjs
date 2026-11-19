@@ -7,7 +7,8 @@
 //
 // With filters, it renders only the covers whose output path contains one of
 // them (for example, `helm` or `2026-11-08`). The images of the blog and the
-// tutorials (covers and diagrams) are 2400x1260; the others are 1200x630.
+// tutorials (covers and diagrams) and the diagrams of the docs are
+// 2400x1260; the others are 1200x630.
 //
 // Needs Google Chrome. Set CHROME to its binary if it isn't in the default
 // macOS location.
@@ -60,19 +61,24 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'covers-html-'));
 const { result: { targetId } } = await send('Target.createTarget', { url: 'about:blank' });
 const { result: { sessionId } } = await send('Target.attachToTarget', { targetId, flatten: true });
 await send('Page.enable', {}, sessionId);
-let scale = 0;
+let viewport = '';
 for (const [index, cover] of selected.entries()) {
-  const wanted = /^(blog|tutorials)\//.test(cover.out) ? 2 : 1;
-  if (wanted !== scale) {
-    scale = wanted;
-    await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: scale, mobile: false }, sessionId);
+  const scale = /^(blog|tutorials|static\/img)\//.test(cover.out) ? 2 : 1;
+  // A diagram can set its own canvas, such as a stacked version for phones.
+  const width = cover.width ?? W;
+  const height = cover.height ?? H;
+  if (`${width}x${height}@${scale}` !== viewport) {
+    viewport = `${width}x${height}@${scale}`;
+    await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: scale, mobile: false }, sessionId);
   }
   const html = path.join(tmp, `${index}.html`);
   // Images inside an article have a white background and the light theme. Their
   // subject is a function, so it is drawn after the theme is set.
-  setTheme(cover.background === 'white' ? 'light' : 'dark');
+  // `theme: 'neon'` draws an image inside an article in the look of okteto.com.
+  const theme = cover.theme ?? (cover.background === 'white' ? 'light' : 'dark');
+  setTheme(theme);
   const subject = typeof cover.svg === 'function' ? cover.svg() : cover.svg;
-  fs.writeFileSync(html, page(subject, cover.background));
+  fs.writeFileSync(html, page(subject, cover.background, width, height, theme !== 'light'));
   await send('Page.navigate', { url: `file://${html}` }, sessionId);
   // Wait for the font and the logo files.
   await send('Runtime.evaluate', {
