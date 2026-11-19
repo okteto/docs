@@ -38,7 +38,7 @@ function linkTo(site, target, path, label) {
 }
 
 // Remark plugin for the Markdown of a site: a root-relative link to a page of
-// another site (in the docs, `/tutorials/helm/`; in a tutorial,
+// another site (in the docs, `/tutorials/compose-getting-started/`; in a tutorial,
 // `/docs/reference/okteto-cli/`) becomes the same plain link as linkTo above,
 // written as `<a href="pathname://..." autoAddBaseUrl={false} target="_self">`.
 // Without it, Docusaurus looks for the page among the routes of the current

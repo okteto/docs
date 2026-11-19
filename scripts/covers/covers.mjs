@@ -642,11 +642,6 @@ const covers = [
     svg: row([mark('docker', { size: 230 }), 'arrow', kubernetes()]),
   },
   {
-    out: tutorial('2026-11-14-helm'),
-    alt: 'The Helm logo with an arrow to the Kubernetes logo',
-    svg: row([mark('helm', { size: 200 }), 'arrow', kubernetes()]),
-  },
-  {
     out: tutorial('2026-11-17-testcontainers'),
     alt: 'Tests talk to kubedock, which runs their containers, such as a database, as pods in a Kubernetes namespace',
     svg: row([
