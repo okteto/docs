@@ -94,6 +94,10 @@ description: Understand the foundational concepts that power your Okteto develop
 description: A comprehensive guide to getting the most out of Okteto.
 ```
 
+### Admin Dashboard and CRDs
+
+The Administration pages document the Admin Dashboard: what each section shows and what you can do in it. Settings that you can also manage with Custom Resource Definitions (CRDs), such as Catalog items, Registry Credentials, or Cloud Credentials, are documented in the [CRDs page of Self-Hosted](src/content/self-hosted/manage/crds.mdx). An Administration page doesn't repeat those instructions: it links to the CRDs page where it mentions them, for example to explain the **Read-only** tag of an item defined with a CRD.
+
 ### Category index pages
 
 Every category of the sidebar has an index page: set it as the `link` of the category, so clicking the category opens a page instead of only expanding the list. The index opens with what the category covers and lists its pages, with a link and one line for each. A parent index lists its child categories, not every page under them, so the same list isn't repeated at two levels.
