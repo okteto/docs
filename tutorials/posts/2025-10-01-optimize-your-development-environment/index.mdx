@@ -9,7 +9,7 @@ image_alt: "A snail goes through the optimizations (builds, remote execution, Vo
 
 Every minute an environment takes to be ready, someone is waiting: a developer who ran `okteto up` or opened a pull request, a test suite in CI, an AI agent that wants to check its change. Agents wait the most, because they deploy and test many times a day, often in several environments at once.
 
-That wait has mainly four sources: images that build from scratch, context transfer for remote builds, deploys, tests, and `okteto up`, databases filled by seed scripts, and environments with many containers that all have to start. Each section of this page removes one of them, and they add up: an environment whose images are already built, whose files are already in place, whose database starts from a snapshot, and that deploys only the services you change is ready in a fraction of the time.
+That wait has mainly four sources: images that build from scratch, context transfer for remote builds, deploys, tests, and `okteto up`, environments with many containers that all have to start, and databases filled by seed scripts. Each section of this page removes one of them, and they add up: an environment whose images are already built, whose files are already in place, that deploys only the services you change, and whose database starts from a snapshot is ready in a fraction of the time.
 
 An AI agent with the [Okteto agent skills](/docs/agentic/) applies these optimizations to your application: it measures your builds and deploys, configures the ignore files and the caches, iterates on what improves them, and reports how much faster they get.
 
@@ -170,6 +170,19 @@ Ignore three kinds of files:
 
 With fewer files to synchronize, `okteto up` starts sooner and keeps up with your changes. [Ignoring files](/docs/reference/file-synchronization/#ignoring-files) describes the syntax.
 
+## Smaller Environments with Shared Services
+
+A full copy of a large application in every environment has a cost that grows with the application: every environment waits for dozens of services nobody is changing to build, start, and become healthy, a deploy fails when any of them fails, and every environment reserves the resources of all of them. That cost multiplies with every developer, pull request, and AI agent that needs an environment.
+
+Most changes touch one or two services. With [Divert](/docs/development/divert/), the full application runs once in a Shared Namespace, and each environment deploys only the services it changes in its own Namespace. Requests that carry the divert header of an environment reach its version of those services, and the shared version of everything else.
+
+- **Faster:** an environment is ready in the time it takes to deploy the services you change, not the whole application.
+- **Cheaper:** an environment uses only the resources of the services you change, so you can run many more of them, for example one per agent.
+- **More reliable:** a deploy no longer fails because of a service you don't own and aren't touching.
+- **Up to date:** every environment tests its changes against the same shared services, which you keep up to date with your main branch.
+
+A full copy is still the better fit when a change touches most of the application, or when you need control over the version of every service. The [Divert](/docs/development/divert/) docs explain [when to use it](/docs/development/divert/#when-to-use-divert), how it routes requests, and how to set up the [Shared Namespace](/docs/development/divert/shared-namespace/), and [Why flexibility is key to scaling development environments](/blog/why-flexibility-is-key-to-scaling-development-environments/) explains the tradeoffs.
+
 ## Data from Volume Snapshots
 
 An environment without data isn't useful, so many teams fill its database with a seed script on every deploy. Seed scripts are slow, because they insert every row one by one, and they get slower as the dataset grows. They break when the schema changes, and the data they create is a handful of fixtures that rarely looks like the data your application handles in production.
@@ -189,16 +202,3 @@ metadata:
 - **Isolated:** each environment writes to its own copy, so nobody's changes or tests affect anyone else's data.
 
 The [Volume Snapshots](/docs/core/use-volume-snapshots/) docs cover the requirements, how to create snapshots, and how to restore them, and [Data Cloning](/docs/development/divert/data-cloning/) explains how to combine them with Divert.
-
-## Smaller Environments with Shared Services
-
-A full copy of a large application in every environment has a cost that grows with the application: every environment waits for dozens of services nobody is changing to build, start, and become healthy, a deploy fails when any of them fails, and every environment reserves the resources of all of them. That cost multiplies with every developer, pull request, and AI agent that needs an environment.
-
-Most changes touch one or two services. With [Divert](/docs/development/divert/), the full application runs once in a Shared Namespace, and each environment deploys only the services it changes in its own Namespace. Requests that carry the divert header of an environment reach its version of those services, and the shared version of everything else.
-
-- **Faster:** an environment is ready in the time it takes to deploy the services you change, not the whole application.
-- **Cheaper:** an environment uses only the resources of the services you change, so you can run many more of them, for example one per agent.
-- **More reliable:** a deploy no longer fails because of a service you don't own and aren't touching.
-- **Up to date:** every environment tests its changes against the same shared services, which you keep up to date with your main branch.
-
-A full copy is still the better fit when a change touches most of the application, or when you need control over the version of every service. The [Divert](/docs/development/divert/) docs explain [when to use it](/docs/development/divert/#when-to-use-divert), how it routes requests, and how to set up the [Shared Namespace](/docs/development/divert/shared-namespace/), and [Why flexibility is key to scaling development environments](/blog/why-flexibility-is-key-to-scaling-development-environments/) explains the tradeoffs.
