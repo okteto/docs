@@ -185,7 +185,8 @@ const apiPill = (right, cy) => box(right - 100, cy - 28, 100, 56, { color: C.blu
 // The two models of an application environment (the docs home): a full
 // replica runs every service in each environment, and Divert runs only the
 // services that change and shares a Namespace with the rest.
-const MODELS_ALT = 'Two models for application environments. Full replica: the environment of a developer and the environment of a coding agent each run the frontend, the API, and MongoDB. Divert: each environment runs only the service it changes, and uses a Shared Namespace that runs the frontend, the API, and MongoDB';
+const FULL_REPLICA_ALT = 'Full replica: the environment of a developer and the environment of a coding agent each run the frontend, the API, and MongoDB';
+const DIVERT_ALT = 'Divert: the environment of a developer runs only the API, the environment of a coding agent runs only the frontend, and both use a Shared Namespace that runs the frontend, the API, and MongoDB';
 const MODEL_SERVICES = [['box', 'frontend'], ['box', 'api'], ['database', 'MongoDB']];
 function modelRows(x, y, w, rows, changed = false) {
   return rows.map(([name, label], i) => {
@@ -203,15 +204,13 @@ function modelEnvironment(x, y, w, [owner, color], rows, changed = false) {
 const DEVELOPER = () => ['user', C.teal];
 const AGENT = () => ['bot', C.purple];
 function fullReplica(dx, dy) {
-  return text('Full replica', dx + 305, dy + 70, 30)
-    + modelEnvironment(dx + 40, dy + 170, 250, DEVELOPER(), MODEL_SERVICES)
+  return modelEnvironment(dx + 40, dy + 170, 250, DEVELOPER(), MODEL_SERVICES)
     + modelEnvironment(dx + 320, dy + 170, 250, AGENT(), MODEL_SERVICES);
 }
 function divert(dx, dy) {
   const x = dx + 900;
   const y = dy + 150;
-  return text('Divert', dx + 895, dy + 70, 30)
-    + modelEnvironment(dx + 630, dy + 150, 220, DEVELOPER(), [['box', 'api']], true)
+  return modelEnvironment(dx + 630, dy + 150, 220, DEVELOPER(), [['box', 'api']], true)
     + modelEnvironment(dx + 630, dy + 314, 220, AGENT(), [['box', 'frontend']], true)
     + arrow(dx + 856, dy + 213, dx + 892, dy + 213, { color: C.dim }) + arrow(dx + 856, dy + 377, dx + 892, dy + 377, { color: C.dim })
     + box(x, y, 260, 290, { color: C.blue, radius: 20 }) + logo('kubernetes', x + 130, y, 64) + text('Shared Namespace', x + 130, y + 64, 24)
@@ -1061,18 +1060,32 @@ const covers = [
     },
   },
   {
-    out: 'static/img/environment-models.webp',
+    out: 'static/img/environment-full-replica.webp',
     background: 'white',
-    alt: MODELS_ALT,
-    svg: () => fullReplica(0, 75) + `<path d="M600 110 V520" stroke="${C.dim}" stroke-width="3" stroke-dasharray="4 12" stroke-linecap="round"/>` + divert(0, 75),
+    alt: FULL_REPLICA_ALT,
+    svg: () => scaled(fullReplica(295, 35), 1.3),
   },
   {
-    out: 'static/img/environment-models-mobile.webp',
+    out: 'static/img/environment-full-replica-mobile.webp',
     background: 'white',
     width: 600,
-    height: 920,
-    alt: MODELS_ALT,
-    svg: () => fullReplica(-5, -20) + divert(-595, 440),
+    height: 340,
+    alt: FULL_REPLICA_ALT,
+    svg: () => fullReplica(-5, -110),
+  },
+  {
+    out: 'static/img/environment-divert.webp',
+    background: 'white',
+    alt: DIVERT_ALT,
+    svg: () => scaled(divert(-295, 35), 1.3),
+  },
+  {
+    out: 'static/img/environment-divert-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 380,
+    alt: DIVERT_ALT,
+    svg: () => divert(-595, -90),
   },
   {
     out: 'static/img/agent-sandbox.webp',
