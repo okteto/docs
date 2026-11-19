@@ -225,8 +225,8 @@ Use these terms exactly as written. Capitalization matters.
 
 | Term | When to use |
 |------|-------------|
-| **application environment** | Lowercase. Your application, its services, and its cloud dependencies, deployed in a Namespace from the Okteto Manifest. Development Environments and Preview Environments are application environments. Don't confuse it with the agent sandbox, where a coding agent runs. |
-| **Development Environment** | Capitalized when referring to an Okteto Development Environment specifically. Lowercase "development environment" when referring to the concept generically. |
+| **application environment** | Lowercase. The default term for what Okteto deploys: your application, its services, and its cloud dependencies, in a Namespace, from the Okteto Manifest. Use it instead of "Development Environment" whenever you mean the environments Okteto creates in general, for developers, pull requests, or coding agents. Development Environments and Preview Environments are application environments. Don't confuse it with the agent sandbox, where a coding agent runs. |
+| **Development Environment** | Only for the environment a developer works in with `okteto up`, on a page about that workflow. Capitalized. Everywhere else, write "application environment": "Okteto exposes the endpoints of your application environments", not "of your Development Environments". |
 | **Preview Environment** | Capitalized when referring to the Okteto feature. Lowercase when generic. |
 | **Namespace** | Capitalize when referring to an Okteto Namespace. Lowercase for generic Kubernetes namespace references. |
 | **Development Container** | Capitalized. |

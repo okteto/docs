@@ -49,7 +49,7 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Manifest filename | `okteto.yaml` | Lowercase, code-formatted (backticks). The product name is `Okteto Manifest`. |
 | CLI commands | `okteto up`, `okteto deploy`, `okteto test`, `okteto build` | Lowercase, in backticks. |
 | Deployment models | `Self-Hosted`, `BYOC`, `SaaS` | All capitalized exactly as shown. `BYOC` is always uppercase. First reference: `Bring Your Own Cloud (BYOC)`. |
-| Environments | `Development Environment`, `Preview Environment`, `Development Container` | Capitalized when referring to the Okteto feature. Lowercase when generic. |
+| Environments | `application environment`, `Development Environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the default term for what Okteto deploys: use it instead of `Development Environment`, which is only for the environment a developer works in with `okteto up`. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
 | Namespaces | `Namespace` (Okteto) vs. `namespace` (generic Kubernetes) | Capitalization signals which one you mean. |
 | Roles | `Admin`, `Developer`, `Personal Access Token` | Capitalized when referring to the Okteto role. |
 | Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
