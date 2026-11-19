@@ -143,9 +143,9 @@ function scaleCluster(cx, y0, width, tile, gap) {
 // What the platform team controls, in two groups: access and cost.
 // The Okteto CLI wherever it runs, and the application environment it deploys
 // and tests in the cluster (the Application Environments page).
-const WORKFLOW_ALT = 'The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the services of the application and its tests, and gets back the results and the logs';
+const WORKFLOW_ALT = 'The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue of the application, and gets back the results and the logs';
 function cliBox(x, y, w) {
-  let out = box(x, y, w, 370, { color: C.teal }) + circle(x + w / 2, y, 42, { color: C.teal }) + logo('okteto', x + w / 2, y, 50)
+  let out = box(x, y, w, 370, { color: C.teal }) + logo('okteto', x + w / 2, y, 84)
     + text('Okteto CLI', x + w / 2, y + 85, 30);
   [['bot', 'Agent sandbox', C.purple], ['laptop', 'Laptop', C.teal], ['git-pull-request', 'CI job', C.teal]].forEach(([name, label, color], i) => {
     const ry = y + 118 + i * 80;
@@ -157,13 +157,11 @@ function cliBox(x, y, w) {
 function environmentBox(x, y, w) {
   let out = box(x, y, w, 510, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
     + text('Application environment', x + w / 2, y + 82, 30) + text('Okteto Namespace', x + w / 2, y + 116, 22, { color: C.dim });
-  [['box', 'frontend'], ['box', 'api'], ['database', 'database'], ['database', 'queue']].forEach(([name, label], i) => {
+  [['box', 'frontend'], ['box', 'api'], ['box', 'worker'], ['database', 'database'], ['database', 'queue']].forEach(([name, label], i) => {
     const ry = y + 138 + i * 70;
     out += box(x + 30, ry, w - 60, 58, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 }) + icon(name, x + 68, ry + 29, 30, C.blue)
       + text(label, x + 102, ry + 38, 26, { anchor: 'start' });
   });
-  out += box(x + 30, y + 428, w - 60, 58, { color: C.teal, fill: '#e2f5f3', radius: 12, strokeWidth: 2.5 }) + icon('circle-check', x + 68, y + 457, 30, C.teal)
-    + text('tests', x + 102, y + 466, 26, { anchor: 'start' });
   return out;
 }
 

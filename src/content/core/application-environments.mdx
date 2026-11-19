@@ -9,25 +9,23 @@ import Image from "@theme/Image";
 
 An application environment is a running copy of your application, deployed in an [Okteto Namespace](core/namespaces.mdx) on Kubernetes from the definition in your Okteto Manifest. Developers, pull requests, and AI coding agents create application environments from the same definition, so a change that works in one environment works in the others.
 
-## Environment workflows
+## Application environment workflow
 
-Developers, pull requests, and coding agents go through the same steps with an application environment, from the same `okteto.yaml`:
-
-1. **Namespace:** the environment runs in its own [Okteto Namespace](core/namespaces.mdx). A developer uses their personal Namespace, `okteto preview deploy` creates one for each pull request, and a coding agent creates one for its task with `okteto namespace create`.
-2. **Deploy:** `okteto deploy` builds the images of the [`build`](#build) section and runs the commands of the [`deploy`](#deploy) section. A developer runs it, or deploys from the Okteto UI, and gets a [Development Environment](development/index.mdx) where `okteto up` syncs local code. In a pull request, the CI pipeline runs `okteto preview deploy`, or the `okteto/deploy-preview` GitHub Action, and gets a [Preview Environment](previews/index.mdx) with its own URL. With [Divert](development/divert/index.mdx), the environment deploys only the services that change, on top of a shared Namespace that runs the rest of the application.
-3. **Test:** `okteto test` runs the Test Containers of the [`test`](#test) section against the environment, so developers, coding agents, and CI validate a change with the same tests.
-4. **Destroy:** `okteto destroy` deletes the resources of the environment and runs the commands of the [`destroy`](#destroy) section. The CI pipeline destroys a Preview Environment when its pull request closes, with `okteto preview destroy` or the `okteto/destroy-preview` GitHub Action. The [Garbage Collector](admin/cleanup.mdx) scales idle environments to zero and deletes the unused ones, after the periods the Admin configures.
-
-Okteto runs every step in the cluster with [Remote Execution](core/remote-execution.mdx): the [Okteto Build Service](core/build-service.mdx) builds the images, and the deploy, test, and destroy commands run in the cluster. No step depends on the machine where the Okteto CLI runs, whether it's the sandbox of a coding agent, a developer's laptop, or a CI job. That machine needs the Okteto CLI and access to your Okteto instance, not a Docker daemon or the dependencies of your application:
+The Okteto CLI builds, deploys, and tests your application with [Remote Execution](core/remote-execution.mdx): every operation runs in containers in the cluster. Nothing depends on the configuration of the machine where the CLI runs, whether it's a developer's laptop, a CI job, or the sandbox of a coding agent:
 
 <Image
   src={require("@site/static/img/environment-workflow.webp").default}
   mobileSrc={require("@site/static/img/environment-workflow-mobile.webp").default}
   borderless
-  alt="The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the services of the application and its tests, and gets back the results and the logs"
+  alt="The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue of the application, and gets back the results and the logs"
 />
 
-A coding agent reads and edits code in its sandbox, and the application runs in the application environment, so the agent uses application environments the same way whether it runs in your cluster, in a hosted runtime, or on a developer's laptop. [Agentic Workflows](agentic/index.mdx) covers the skills that teach the agent these commands.
+The Okteto CLI manages an application environment in four steps:
+
+1. `okteto namespace create` creates the [Okteto Namespace](core/namespaces.mdx) of the environment.
+2. `okteto deploy` builds the images of your services and deploys the application.
+3. `okteto test` runs your tests against the application.
+4. `okteto destroy` deletes the application and its resources.
 
 ## Okteto Manifest
 
