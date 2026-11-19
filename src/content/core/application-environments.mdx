@@ -29,19 +29,7 @@ The Okteto CLI manages an application environment in four steps:
 
 ## Okteto Manifest
 
-The Okteto Manifest (`okteto.yaml`) is the file in your repository that defines how Okteto builds, deploys, tests, and develops your application. These are its main sections:
-
-| Section | What it defines |
-|---|---|
-| [`build`](#build) | The images of your services, built by the [Okteto Build Service](core/build-service.mdx) |
-| [`dependencies`](#dependencies) | Other Git repositories deployed with the application, such as a database |
-| [`deploy`](#deploy) | The commands that deploy the application: Helm, `kubectl`, [Docker Compose](reference/docker-compose.mdx), or your own scripts |
-| [`destroy`](#destroy) | The commands that delete the resources of the application outside the cluster |
-| [`dev`](#dev) | The Development Containers that `okteto up` syncs your local code to |
-| [`external`](#external) | Cloud resources and dashboards that are part of the application, shown in the Okteto UI |
-| [`test`](#test) | The tests that [`okteto test`](reference/okteto-cli.mdx#test) runs against the environment |
-
-The [Okteto Manifest reference](reference/okteto-manifest.mdx) describes every option. A minimal Okteto Manifest that builds two images, deploys them with Helm, and runs the end-to-end tests looks like this:
+The Okteto Manifest (`okteto.yaml`) is the file in your repository that defines how Okteto builds, deploys, tests, and develops your application. The [Okteto Manifest reference](reference/okteto-manifest.mdx) describes every option. A minimal Okteto Manifest that builds two images, deploys them with Helm, and runs the end-to-end tests looks like this:
 
 ```yaml title="okteto.yaml"
 build:
@@ -61,15 +49,13 @@ deploy:
 
 test:
   e2e:
-    image: ghcr.io/okteto/playwright:chromium
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
     commands:
       - bash run_tests.sh
 ```
 
 Okteto exposes the endpoints of the application on HTTPS. The deploy commands can also create cloud resources, such as a database or a queue, with the [Cloud Credentials](admin/cloud-credentials/index.mdx) that the Admin configures, and delete them in the `destroy` section.
-
-## Sections of the Okteto Manifest
 
 ### Build
 
@@ -123,7 +109,7 @@ The `destroy` section lists the commands that delete the resources of your appli
 
 ```yaml
 destroy:
-  image: ghcr.io/okteto/tfenv-ci:1.4
+  image: hashicorp/terraform:1.17.2
   commands:
     - name: Delete the cloud resources
       command: terraform destroy --auto-approve
@@ -167,7 +153,7 @@ The `test` section defines the tests that Okteto Test runs against your applicat
 ```yaml
 test:
   unit:
-    image: ghcr.io/okteto/golang:1
+    image: golang:1.26
     commands:
       - go test ./...
 ```
