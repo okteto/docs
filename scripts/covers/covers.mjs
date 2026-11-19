@@ -182,6 +182,54 @@ const moviesEnvironment = (cx, y, w, h) => box(cx - w / 2, y, w, h, { color: C.b
 // The URL and /api pills sit on the border of the environment, ending at the same x.
 const urlPill = (right, cy) => box(right - 390, cy - 28, 390, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, right - 195, cy + 7, 18, { color: C.blue });
 const apiPill = (right, cy) => box(right - 100, cy - 28, 100, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text('/api', right - 50, cy + 8, 22, { color: C.blue });
+// The two models of an application environment (the docs home): a full
+// replica runs every service in each environment, and Divert runs only the
+// services that change and shares a Namespace with the rest.
+const MODELS_ALT = 'Two models for application environments. Full replica: the environment of a developer and the environment of a coding agent each run the frontend, the API, and MongoDB. Divert: each environment runs only the service it changes, and uses a Shared Namespace that runs the frontend, the API, and MongoDB';
+const MODEL_SERVICES = [['box', 'frontend'], ['box', 'api'], ['database', 'MongoDB']];
+function modelRows(x, y, w, rows, changed = false) {
+  return rows.map(([name, label], i) => {
+    const ry = y + i * 62;
+    return box(x, ry, w, 50, { color: changed ? C.teal : C.dim, fill: changed ? '#e2f5f3' : C.row, radius: 12, strokeWidth: 2 })
+      + icon(name, x + 30, ry + 25, 26, changed ? C.teal : C.blue) + text(label, x + 58, ry + 33, 24, { anchor: 'start' });
+  }).join('');
+}
+// An environment with its owner (a developer or an agent) on its top edge.
+function modelEnvironment(x, y, w, [owner, color], rows, changed = false) {
+  const h = 126 + (rows.length - 1) * 62;
+  return box(x, y, w, h, { color: C.blue, radius: 20 }) + circle(x + w / 2, y, 30, { color }) + icon(owner, x + w / 2, y, 32, color)
+    + modelRows(x + 20, y + 50, w - 40, rows, changed);
+}
+const DEVELOPER = () => ['user', C.teal];
+const AGENT = () => ['bot', C.purple];
+function fullReplica(dx, dy) {
+  return text('Full replica', dx + 305, dy + 70, 30)
+    + modelEnvironment(dx + 40, dy + 170, 250, DEVELOPER(), MODEL_SERVICES)
+    + modelEnvironment(dx + 320, dy + 170, 250, AGENT(), MODEL_SERVICES);
+}
+function divert(dx, dy) {
+  const x = dx + 900;
+  const y = dy + 150;
+  return text('Divert', dx + 895, dy + 70, 30)
+    + modelEnvironment(dx + 630, dy + 150, 220, DEVELOPER(), [['box', 'api']], true)
+    + modelEnvironment(dx + 630, dy + 314, 220, AGENT(), [['box', 'frontend']], true)
+    + arrow(dx + 856, dy + 213, dx + 892, dy + 213, { color: C.dim }) + arrow(dx + 856, dy + 377, dx + 892, dy + 377, { color: C.dim })
+    + box(x, y, 260, 290, { color: C.blue, radius: 20 }) + logo('kubernetes', x + 130, y, 64) + text('Shared Namespace', x + 130, y + 64, 24)
+    + modelRows(x + 20, y + 84, 220, MODEL_SERVICES);
+}
+
+// A light agent sandbox with the Okteto CLI, and the application environment
+// it deploys and tests (the docs home).
+const AGENT_ALT = 'A light agent sandbox with the agent binary, Git access, and the Okteto CLI deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue, and gets back the results and the logs';
+function agentSandbox(x, y, w) {
+  let out = box(x, y, w, 370, { color: C.purple }) + circle(x + w / 2, y, 40, { color: C.purple }) + icon('bot', x + w / 2, y, 44, C.purple)
+    + text('Light agent sandbox', x + w / 2, y + 85, 30, { color: C.purple });
+  ['Agent binary', 'Git access', 'Okteto CLI'].forEach((label, i) => {
+    out += box(x + 30, y + 118 + i * 80, w - 60, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text(label, x + w / 2, y + 158 + i * 80, 26);
+  });
+  return out;
+}
+
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
@@ -1011,6 +1059,40 @@ const covers = [
       out += arrow(360, 606, 360, 652, { color: C.dim, both: true });
       return out;
     },
+  },
+  {
+    out: 'static/img/environment-models.webp',
+    background: 'white',
+    alt: MODELS_ALT,
+    svg: () => fullReplica(0, 75) + `<path d="M600 110 V520" stroke="${C.dim}" stroke-width="3" stroke-dasharray="4 12" stroke-linecap="round"/>` + divert(0, 75),
+  },
+  {
+    out: 'static/img/environment-models-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 920,
+    alt: MODELS_ALT,
+    svg: () => fullReplica(-5, -20) + divert(-595, 440),
+  },
+  {
+    out: 'static/img/agent-sandbox.webp',
+    background: 'white',
+    alt: AGENT_ALT,
+    svg: () => agentSandbox(40, 150, 400)
+      + arrow(470, 330, 640, 330, { color: C.purple }) + text('deploy, test', 555, 308, 24, { color: C.purple })
+      + arrow(640, 390, 470, 390, { color: C.dim }) + text('results, logs', 555, 432, 24, { color: C.dim })
+      + environmentBox(670, 90, 490),
+  },
+  {
+    out: 'static/img/agent-sandbox-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 1190,
+    alt: AGENT_ALT,
+    svg: () => agentSandbox(80, 60, 440)
+      + arrow(230, 455, 230, 590, { color: C.purple }) + text('deploy, test', 210, 530, 24, { color: C.purple, anchor: 'end' })
+      + arrow(370, 590, 370, 455, { color: C.dim }) + text('results, logs', 390, 530, 24, { color: C.dim, anchor: 'start' })
+      + environmentBox(60, 640, 480),
   },
 ];
 
