@@ -6,6 +6,8 @@
 //        none: comparisons get `stars`, and the other posts one of the five
 //        backgrounds of ROTATION, by date order (see below).
 //   alt: what the image shows (the post's `image_alt`)
+//   width, height: the canvas, when it isn't 1200x630 (for example, the
+//        stacked version of a diagram for phones, shown with `mobileSrc`)
 //   svg: the subject, built with the helpers of style.mjs. For a diagram
 //        inside an article it is a function, drawn with the light theme.
 //
@@ -59,6 +61,104 @@ function pills(cx, cy, labels, { color = C.teal, size = 18, gap = 10, fill = C.p
     x += widths[i] + gap;
     return out;
   }).join('');
+}
+
+// The governance diagram of the docs home, in a wide and a stacked version.
+const GOVERNANCE_ALT = 'Developers, coding agents, and pull requests reach their own Namespaces in a Kubernetes cluster managed by Okteto with time-bound credentials, while the platform team operates the cluster with RBAC, quotas, network policies, Cloud Credentials, and Registry Credentials';
+const GOVERNANCE_USERS = () => [['users', 'Developers', C.teal], ['bot', 'Coding agents', C.purple], ['git-pull-request', 'Pull requests', C.teal]];
+function governanceCluster(cx, y0, width) {
+  let out = box(cx - width / 2, y0, width, 480, { color: C.blue }) + logo('okteto', cx, y0, 84) + text('Kubernetes', cx, y0 + 88, 30, { color: C.onInk });
+  [['alice', C.teal], ['agent-42', C.purple], ['pr-128', C.teal]].forEach(([name, color], i) => {
+    const y = y0 + 120 + i * 112;
+    out += box(cx - width / 2 + 35, y, width - 70, 88, { color, dashed: true, radius: 16, strokeWidth: 3 })
+      + text('Namespace', cx, y + 34, 22, { color: C.dim }) + text(name, cx, y + 68, 26, { color: C.onInk });
+  });
+  return out;
+}
+function governanceControls(x, y0, width) {
+  return [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['cloud', 'Cloud Credentials'], ['layers', 'Registry Credentials']].map(([name, label], i) => {
+    const y = y0 + i * 72;
+    return box(x, y, width, 58, { color: C.blue, radius: 12, strokeWidth: 2.5, fill: C.row })
+      + icon(name, x + 30, y + 29, 30, C.blue) + text(label, x + 56, y + 37, 22, { anchor: 'start', color: C.onInk });
+  }).join('');
+}
+
+// The preview URL diagram of the docs home, redrawn from "A URL for every
+// change" of okteto.com: an agent's change gets a URL that reviewers open.
+const PREVIEW_ALT = 'A coding agent deploys its change to an environment with its own URL, pr-142.acme.dev, that developers, product managers, and customers open in the browser';
+const PREVIEW_REVIEWERS = () => [['user', 'Developers'], ['user', 'Product'], ['users', 'Customers']];
+function browser(x, y, width, height) {
+  let out = box(x, y, width, height, { color: C.blue });
+  out += `<path d="M${x} ${y + 62} H${x + width}" stroke="${C.blue}" stroke-width="3" opacity="0.5"/>`;
+  [C.red, C.amber, C.teal].forEach((color, i) => { out += `<circle cx="${x + 38 + i * 30}" cy="${y + 32}" r="9" fill="${color}"/>`; });
+  out += box(x + 30, y + 88, width - 60, 64, { color: C.teal, radius: 32, strokeWidth: 3.5, fill: C.pill })
+    + icon('link', x + 66, y + 120, 32) + text('pr-142.acme.dev', x + width / 2 + 16, y + 131, 30);
+  out += icon('globe', x + width / 2, y + 152 + (height - 152) / 2, 110);
+  return out;
+}
+
+// The hero diagram of the docs home, redrawn from "One manifest, every
+// environment" of okteto.com: developers, coding agents, and test pipelines
+// create their environments on Kubernetes from the same okteto.yaml.
+const MANIFEST_ALT = 'Developers, coding agents, and test pipelines create their environments on Kubernetes from the same okteto.yaml';
+const MANIFEST_USERS = () => [['users', 'Developers', C.teal], ['bot', 'Coding agents', C.purple], ['flask-conical', 'Test pipelines', C.amber]];
+// A file with a folded corner, the Okteto logo on its top edge, and its name under it.
+function manifestFile(cx, cy) {
+  const w = 130;
+  const h = 150;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  return `<path d="M${x + 14} ${y} H${x + w - 36} L${x + w} ${y + 36} V${y + h - 14} Q${x + w} ${y + h} ${x + w - 14} ${y + h} H${x + 14} Q${x} ${y + h} ${x} ${y + h - 14} V${y + 14} Q${x} ${y} ${x + 14} ${y}Z" fill="${C.ink}" stroke="${C.teal}" stroke-width="4" stroke-linejoin="round" filter="url(#glow)"/>`
+    + `<path d="M${x + w - 36} ${y} V${y + 36} H${x + w}" fill="none" stroke="${C.teal}" stroke-width="4" stroke-linejoin="round"/>`
+    + logo('okteto', cx, y, 58) + icon('code', cx, cy + 10, 56) + text('okteto.yaml', cx, y + h + 46, 26, { mono: true });
+}
+// The cluster with four environments.
+function environments(cx, y0, width) {
+  let out = box(cx - width / 2, y0, width, 400, { color: C.blue }) + logo('kubernetes', cx, y0, 84) + text('Kubernetes', cx, y0 + 88, 30, { color: C.onInk });
+  [[-1, 0], [1, 0], [-1, 1], [1, 1]].forEach(([dx, row]) => {
+    const x = cx + dx * 80 - 62;
+    const y = y0 + 122 + row * 140;
+    out += box(x, y, 124, 124, { color: C.teal, dashed: true, radius: 18, strokeWidth: 3 }) + icon('box', x + 62, y + 62, 56);
+  });
+  return out;
+}
+
+// The scale diagram of the docs home: a cluster full of environments, some
+// of them asleep, and what keeps their cost down.
+const SCALE_ALT = 'A Kubernetes cluster managed by Okteto with many environments, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, and Okteto Insights';
+function scaleCluster(cx, y0, width, tile, gap) {
+  const rows = [[1, 1, 0, 1], [1, 0, 1, 0], [0, 1, 1, 0]];
+  const height = 140 + rows.length * (tile + gap) + 10;
+  let out = box(cx - width / 2, y0, width, height, { color: C.blue }) + logo('okteto', cx, y0, 84) + text('Kubernetes', cx, y0 + 88, 30, { color: C.onInk });
+  const x0 = cx - (4 * tile + 3 * gap) / 2;
+  rows.forEach((row, r) => row.forEach((running, c) => {
+    const x = x0 + c * (tile + gap);
+    const y = y0 + 128 + r * (tile + gap);
+    out += running
+      ? box(x, y, tile, tile, { color: C.teal, radius: 16, strokeWidth: 3 }) + icon('box', x + tile / 2, y + tile / 2, tile * 0.5)
+      : box(x, y, tile, tile, { color: C.dim, dashed: true, radius: 16, strokeWidth: 3 }) + icon('moon', x + tile / 2, y + tile / 2, tile * 0.46, C.dim);
+  }));
+  return out;
+}
+// What the platform team controls, in two groups: access and cost.
+function scaleFeatures(x, y0, width) {
+  const groups = [
+    ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
+    ['Cost', C.teal, [['moon', 'Garbage Collector'], ['cpu', 'Resource Manager'], ['zap', 'Smart Builds'], ['eye', 'Okteto Insights']]],
+  ];
+  let out = '';
+  let y = y0;
+  for (const [title, color, rows] of groups) {
+    out += text(title, x, y + 22, 24, { anchor: 'start', color });
+    y += 38;
+    for (const [name, label] of rows) {
+      out += box(x, y, width, 46, { color, radius: 12, strokeWidth: 2.5, fill: C.row })
+        + icon(name, x + 30, y + 23, 28, color) + text(label, x + 58, y + 31, 22, { anchor: 'start', color: C.onInk });
+      y += 54;
+    }
+    y += 18;
+  }
+  return out;
 }
 
 const covers = [
@@ -681,6 +781,144 @@ const covers = [
       'arrow',
       badge('rocket', null, { color: C.teal, r: 86 }),
     ]),
+  },
+
+  // -------------------------------------------------------------------------
+  // Docs
+  {
+    out: 'static/img/platform-governance.webp',
+    background: 'white',
+    theme: 'neon',
+    alt: GOVERNANCE_ALT,
+    svg: () => {
+      let out = '';
+      // Who uses the environments, each joined to the same entry point.
+      GOVERNANCE_USERS().forEach(([name, label, color], i) => {
+        const y = 98 + i * 195;
+        out += circle(100, y, 48, { color }) + icon(name, 100, y, 50, color) + text(label, 100, y + 84, 26);
+        out += curve(`M150 ${y} C250 ${y} 240 315 330 315`, { color, strokeWidth: 6 });
+      });
+      out += arrow(330, 315, 460, 315);
+      out += icon('key-round', 395, 205, 40, C.amber) + text('Time-bound', 395, 255, 22, { color: C.amber }) + text('credentials', 395, 283, 22, { color: C.amber });
+      // Okteto on Kubernetes, with a Namespace for each of them.
+      out += governanceCluster(650, 80, 360);
+      // The platform team operates the cluster with these controls.
+      out += circle(1040, 100, 46, { color: C.blue }) + icon('wrench', 1040, 100, 46, C.blue) + text('Platform team', 1040, 184, 26);
+      out += arrow(892, 388, 840, 388, { color: C.blue });
+      out += governanceControls(900, 215, 280);
+      return out;
+    },
+  },
+  {
+    out: 'static/img/platform-governance-mobile.webp',
+    background: 'white',
+    theme: 'neon',
+    width: 600,
+    height: 1410,
+    alt: GOVERNANCE_ALT,
+    svg: () => {
+      let out = '';
+      GOVERNANCE_USERS().forEach(([name, label, color], i) => {
+        const x = 105 + i * 195;
+        out += circle(x, 70, 46, { color }) + icon(name, x, 70, 48, color) + text(label, x, 152, 24);
+        out += curve(`M${x} 178 C${x} 215 300 200 300 228`, { color, strokeWidth: 6 });
+      });
+      out += arrow(300, 228, 300, 290);
+      out += icon('key-round', 345, 240, 34, C.amber) + text('Time-bound', 372, 250, 24, { color: C.amber, anchor: 'start' }) + text('credentials', 372, 280, 24, { color: C.amber, anchor: 'start' });
+      out += governanceCluster(300, 340, 380);
+      out += arrow(300, 872, 300, 800, { color: C.blue });
+      out += governanceControls(150, 880, 300);
+      out += circle(300, 1290, 46, { color: C.blue }) + icon('wrench', 300, 1290, 46, C.blue) + text('Platform team', 300, 1373, 26);
+      return out;
+    },
+  },
+  {
+    out: 'static/img/preview-url.webp',
+    background: 'white',
+    alt: PREVIEW_ALT,
+    svg: () => {
+      let out = circle(130, 315, 62, { color: C.purple }) + icon('bot', 130, 315, 64, C.purple);
+      out += arrow(212, 315, 282, 315);
+      out += browser(300, 115, 440, 400);
+      PREVIEW_REVIEWERS().forEach(([name, label], i) => {
+        const y = 165 + i * 150;
+        out += arrow(758, 315 + (i - 1) * 70, 848, y + (1 - i) * 30);
+        out += circle(910, y, 50) + icon(name, 910, y, 50) + text(label, 980, y + 10, 30, { anchor: 'start' });
+      });
+      return out;
+    },
+  },
+  {
+    out: 'static/img/preview-url-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 900,
+    alt: PREVIEW_ALT,
+    svg: () => {
+      let out = circle(300, 80, 54, { color: C.purple }) + icon('bot', 300, 80, 56, C.purple);
+      out += arrow(300, 148, 300, 200);
+      out += browser(60, 215, 480, 380);
+      PREVIEW_REVIEWERS().forEach(([name, label], i) => {
+        const x = 105 + i * 195;
+        out += arrow(300 + (i - 1) * 60, 612, x, 680);
+        out += circle(x, 740, 48) + icon(name, x, 740, 48) + text(label, x, 826, 26);
+      });
+      return out;
+    },
+  },
+  {
+    out: 'static/img/one-definition.webp',
+    background: 'white',
+    theme: 'neon',
+    alt: MANIFEST_ALT,
+    svg: () => {
+      let out = '';
+      MANIFEST_USERS().forEach(([name, label, color], i) => {
+        const y = 140 + i * 175;
+        out += circle(95, y, 52, { color }) + icon(name, 95, y, 52, color) + text(label, 162, y + 10, 28, { anchor: 'start' });
+        out += curve(`M398 ${y} C470 ${y} 450 315 520 315`, { color, strokeWidth: 7 });
+      });
+      out += manifestFile(600, 300);
+      out += arrow(682, 300, 762, 300);
+      out += environments(965, 100, 380);
+      return out;
+    },
+  },
+  {
+    out: 'static/img/one-definition-mobile.webp',
+    background: 'white',
+    theme: 'neon',
+    width: 600,
+    height: 1090,
+    alt: MANIFEST_ALT,
+    svg: () => {
+      let out = '';
+      MANIFEST_USERS().forEach(([name, label, color], i) => {
+        const x = 105 + i * 195;
+        out += circle(x, 70, 46, { color }) + icon(name, x, 70, 48, color) + text(label, x, 152, 24);
+        out += curve(`M${x} 178 C${x} 215 300 200 300 228`, { color, strokeWidth: 7 });
+      });
+      out += manifestFile(300, 330);
+      out += arrow(300, 470, 300, 530);
+      out += environments(300, 590, 400);
+      return out;
+    },
+  },
+  {
+    out: 'static/img/environments-at-scale.webp',
+    background: 'white',
+    theme: 'neon',
+    alt: SCALE_ALT,
+    svg: () => scaleCluster(330, 85, 540, 96, 24) + arrow(745, 330, 620, 330, { color: C.blue }) + scaleFeatures(765, 62, 330),
+  },
+  {
+    out: 'static/img/environments-at-scale-mobile.webp',
+    background: 'white',
+    theme: 'neon',
+    width: 600,
+    height: 1200,
+    alt: SCALE_ALT,
+    svg: () => scaleCluster(300, 60, 480, 88, 18) + arrow(300, 640, 300, 548, { color: C.blue }) + scaleFeatures(100, 650, 400),
   },
 ];
 

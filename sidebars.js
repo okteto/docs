@@ -55,6 +55,7 @@ module.exports = {
       label: 'Core Concepts',
       link: { type: 'doc', id: 'core/index' },
       items: [
+        'core/application-environments',
         {
           type: 'category',
           label: 'Credentials',
@@ -80,7 +81,6 @@ module.exports = {
         'core/namespaces',
         'core/build-service',
         'core/okteto-insights-dashboards',
-        'core/okteto-manifest',
         'core/container-registry',
         'core/okteto-variables',
         'core/remote-execution',

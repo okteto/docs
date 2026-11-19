@@ -1,30 +1,53 @@
 ---
-title: Okteto Manifest Overview
-description: An overview of the Okteto Manifest and its core features.
-sidebar_label: Okteto Manifest Overview
-id: okteto-manifest
+title: Application Environments
+description: An application environment is your application, its services, and its cloud dependencies, deployed in an Okteto Namespace from the Okteto Manifest.
+sidebar_label: Application Environments
+id: application-environments
 ---
 
-import Tabs from "@theme/Tabs";
-import TabItem from "@theme/TabItem";
+An application environment is a running copy of your application on Kubernetes: its services, its data, and the cloud resources it depends on, deployed in an Okteto [Namespace](core/namespaces.mdx) from the Okteto Manifest (`okteto.yaml`) in your repository. Developers, pull requests, and AI coding agents create application environments from the same definition, so a change that works in one environment works in the others.
 
-The Okteto Manifest is how you configure the behavior for building, deploying, testing, and developing your application in Okteto.
-These are the main sections of the Okteto Manifest:
+## Okteto Manifest
 
-| Section                       | Description                                                                                                                                                                                 |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [build](#build)               | Configure a list of images to build for your application                                                                                                                        |
-| [dependencies](#dependencies) | Configure a list of git repositories to deploy as part of your application                                                                                              |
-| [deploy](#deploy)             | Configure a list of commands to deploy your application. You can also refer to [Docker Compose](reference/docker-compose.mdx) files                                                                                                                         |
-| [destroy](#destroy)           | Configure a list of commands to destroy your application                                                                                                                        |
-| [dev](#dev)                   | Configure a list of Development Containers to define how `okteto up` works when you are iterating on your application                               |
-| [external](#external)         | Configure a list of External Resources that exist outside of the Kubernetes cluster (for example, cloud resources, dashboards).               |
-| [test](#test)                 | Configure a list of Test Containers to define how [`okteto test`](reference/okteto-cli.mdx#test) runs tests for your application                               |
+The Okteto Manifest (`okteto.yaml`) is the file in your repository that defines how Okteto builds, deploys, tests, and develops your application. These are its main sections:
 
-There are other sections to help you build your ideal development experience in Okteto, but this document focuses solely on introducing you to the core concepts of the Okteto Manifest.
-The [Okteto Manifest reference](reference/okteto-manifest.mdx) describes the other options.
+| Section | What it defines |
+|---|---|
+| [`build`](#build) | The images of your services, built by the [Okteto Build Service](core/build-service.mdx) |
+| [`dependencies`](#dependencies) | Other Git repositories deployed with the application, such as a database |
+| [`deploy`](#deploy) | The commands that deploy the application: Helm, `kubectl`, [Docker Compose](reference/docker-compose.mdx), or your own scripts |
+| [`destroy`](#destroy) | The commands that delete the resources of the application outside the cluster |
+| [`dev`](#dev) | The Development Containers that `okteto up` syncs your local code to |
+| [`external`](#external) | Cloud resources and dashboards that are part of the application, shown in the Okteto UI |
+| [`test`](#test) | The Test Containers that [`okteto test`](reference/okteto-cli.mdx#test) runs against the environment |
 
-## Build
+The [Okteto Manifest reference](reference/okteto-manifest.mdx) describes every option. A minimal Okteto Manifest that builds two images, deploys them with Helm, and runs the end-to-end tests looks like this:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+  frontend:
+    context: frontend
+
+deploy:
+  - name: Helm Install
+    command: |
+      helm upgrade --install movies chart \
+        --set api.image=${OKTETO_BUILD_API_IMAGE} \
+        --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+
+test:
+  e2e:
+    image: ghcr.io/okteto/playwright:chromium
+    context: e2e
+    commands:
+      - bash run_tests.sh
+```
+
+Okteto runs the `deploy` and `test` commands in the cluster with [Remote Execution](core/remote-execution.mdx), and exposes the endpoints of the application on HTTPS. The deploy commands can also create cloud resources, such as a database or a queue, with the [Cloud Credentials](admin/cloud-credentials/index.mdx) that the Admin configures, and delete them in the `destroy` section.
+
+### Build
 
 This section contains the instructions for Okteto to build the images for each service of your application.
 
@@ -46,7 +69,7 @@ In this case, Okteto is using the `api` subfolder for the `api` image, and the `
 
 See the reference for [the `build` section](reference/okteto-manifest.mdx#build-object-optional) and how [Okteto Build works](core/build-service.mdx).
 
-## Dependencies
+### Dependencies
 
 This section tells Okteto to deploy a list of git repositories as part of the deployment of your application.
 
@@ -63,7 +86,7 @@ In this sample the `dependencies` section instructs Okteto to deploy the repo ht
 
 See the reference for [the `dependencies` section](reference/okteto-manifest.mdx#dependencies-string-optional).
 
-## Deploy
+### Deploy
 
 This section tells Okteto how to deploy your application. It typically uses a combination of `helm`, `kubectl`, and `okteto` commands.
 All the resources created by these commands will appear in the Okteto UI as part of a single Development Environment that represents the whole of your application.
@@ -92,7 +115,7 @@ See the reference for [the `deploy` section](reference/okteto-manifest.mdx#deplo
 Okteto recommends that you enable [Remote Execution](core/remote-execution.mdx) for your deploy commands
 :::
 
-## Destroy
+### Destroy
 
 This section tells Okteto how to destroy your application.
 The Okteto CLI command `okteto destroy` will automatically destroy any Kubernetes resources created by the `okteto deploy` command.
@@ -118,7 +141,7 @@ See the reference for [the `destroy` section](reference/okteto-manifest.mdx#dest
 Okteto recommends that you enable [Remote Execution](core/remote-execution.mdx) for your destroy commands
 :::
 
-## Dev
+### Dev
 
 This section contains a list of Development Containers that determine how the Okteto CLI and, specifically, the `okteto up` command behave. This section is how Okteto hot reloads and debug the code between your local computer and your Development Environment.
 
@@ -143,7 +166,7 @@ In this sample, the `api` section will tell Okteto to create a Development Conta
 
 See the reference for [the `dev` section](reference/okteto-manifest.mdx#dev-object-optional).
 
-## External
+### External
 
 This section contains a list of resources external to the Kubernetes cluster such as cloud resources or dashboards, but that are part of your application.
 Configuring your external resources enables you to build a more complete development experience in Okteto.
@@ -170,7 +193,7 @@ Creating or destroying the resources themselves is done in the [deploy](#deploy)
 
 See the reference for [the `external` section](reference/okteto-manifest.mdx#external-object-optional).
 
-## Test
+### Test
 
 Okteto Test runs your tests in your Development Environments and in your [Preview Environments](previews/why-preview-environments.mdx). This section tells Okteto how to test your application by defining one or more Test Containers.
 The Okteto CLI command `okteto test` will run your Test Containers using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
@@ -203,6 +226,30 @@ By default `okteto test` runs all tests when you run `okteto test`. You also run
 
 To run a single Test Container with different commands without editing your Okteto Manifest, pass them after `--` or with the `--command` flag, for example `okteto test unit -- go test ./pkg/api -run TestLogin`. The [`okteto test` reference](reference/okteto-cli.mdx#overriding-the-commands-of-a-test-container) describes the override rules.
 
-## Validating and Autocompleting the Okteto Manifest in your IDE
+## Environments for each workflow
 
-[Follow these instructions](reference/okteto-manifest.mdx#validating-and-autocompleting-the-okteto-manifest-in-your-ide) to enable inline suggestions and validation for Okteto Manifests in your IDE.
+Every workflow deploys the same `okteto.yaml`:
+
+| Workflow | How the environment is created |
+|---|---|
+| Development | A developer runs `okteto deploy`, or deploys from the Okteto UI. The result is a [Development Environment](development/index.mdx), and `okteto up` syncs local code to it. |
+| Pull requests | The CI pipeline runs `okteto preview deploy`, or the `okteto/deploy-preview` GitHub Action. The result is a [Preview Environment](previews/index.mdx) with its own URL, destroyed when the pull request closes. |
+| Coding agents | The agent creates a Namespace for its task with `okteto namespace create`, then runs `okteto deploy` and `okteto test` in it. [Agentic Workflows](agentic/index.mdx) covers the skills that teach the agent these commands. |
+
+`okteto test` runs the same Test Containers in all three, so developers, agents, and CI validate a change with the same tests.
+
+## Application environments and agent sandboxes
+
+A coding agent runs in an agent sandbox, where it reads and edits code and runs commands. The application runs in the application environment. Okteto keeps the two apart: the agent runs the Okteto CLI, and Okteto builds the images and runs the deploy and test commands in the cluster. The agent sandbox needs the Okteto CLI and access to your Okteto instance, not a Docker daemon or the dependencies of your application.
+
+Because the sandbox doesn't run the application, the agent uses application environments the same way whether it runs in your cluster, in a hosted runtime, or on a developer's laptop.
+
+## Lifecycle of an application environment
+
+- `okteto destroy` deletes the resources of an environment and runs the commands of the `destroy` section.
+- The [Garbage Collector](admin/cleanup.mdx) scales idle environments to zero and deletes the unused ones, after the periods the Admin configures.
+- [Divert](development/divert/index.mdx) deploys only the services that change in an environment, on top of a shared Namespace that runs the rest of the application.
+
+## Validating the Okteto Manifest in your IDE
+
+The [Okteto Manifest reference](reference/okteto-manifest.mdx#validating-and-autocompleting-the-okteto-manifest-in-your-ide) explains how to enable inline suggestions and validation for `okteto.yaml` in your IDE.

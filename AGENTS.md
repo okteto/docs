@@ -55,6 +55,10 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
 
+### Search terms
+
+`ephemeral environment` (lowercase) is a term people search for a lot. Use it in the docs where it's true: for the application environments that live for one pull request or one agent task, Okteto creates them on demand and deletes them when the work ends. It describes how long an environment lives, so it doesn't replace `application environment` (the category, as opposed to the agent sandbox) or the feature names (`Preview Environment`, `Development Environment`).
+
 ## Confidential information
 
 This repo and its PRs are public. Never include in docs, commits, PR titles or PR descriptions:
@@ -99,7 +103,7 @@ When you draw the subject:
 
 Images inside a blog post or a tutorial are shown at the width of the cover (at most 40rem), centered. The styles do it for every image (`src/styles/blog.scss` and `src/styles/main.scss`), so don't size or align images one by one.
 
-Images inside a page (a blog post, a tutorial, or a docs page) have a white background. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post or a tutorial, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
+Images inside a page (a blog post, a tutorial, or a docs page) have a white background. In a docs page, show a diagram with the `borderless` prop of `Image`, so it has no frame around it; the frame is for screenshots of the product. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post or a tutorial, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
 
 ### Logos and icons
 

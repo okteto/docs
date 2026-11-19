@@ -53,11 +53,28 @@ const LIGHT = {
   dim: '#9aa3b5',
 };
 
+// The palette of okteto.com on a light page: the neon shapes and the dark
+// boxes of the covers, with the glow, and navy labels around them.
+const NEON = {
+  ...DARK,
+  text: '#1a263e',
+  dim: '#8d97b5',
+  background: '#ffffff',
+  onInk: '#ffffff',
+};
+DARK.onInk = DARK.text;
+LIGHT.onInk = LIGHT.text;
+
 export const C = { ...DARK };
 
-/** 'dark' for covers; 'light' for the images inside an article (white background, no glow). */
+/**
+ * 'dark' for covers; 'light' for the images inside an article (white
+ * background, no glow); 'neon' for an image inside an article in the look of
+ * okteto.com (white background, dark boxes, neon lines with glow). C.onInk is
+ * the color of a text inside a box.
+ */
 export function setTheme(theme) {
-  Object.assign(C, theme === 'light' ? LIGHT : DARK);
+  Object.assign(C, { light: LIGHT, neon: NEON }[theme] ?? DARK);
 }
 
 const GLOW = 'filter="url(#glow)"';
@@ -177,27 +194,28 @@ const BACKGROUNDS = {
 
 export const backgrounds = Object.keys(BACKGROUNDS);
 
-export function page(subject, background = 'dots') {
+export function page(subject, background = 'dots', width = W, height = H, glow = background !== 'white') {
   if (!BACKGROUNDS[background]) throw new Error(`Unknown background: ${background}. Use one of: ${backgrounds.join(', ')}`);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: Circular; font-weight: 700; src: url('${fileUrl('shared/static/fonts/CircularXXWeb-Bold.woff2')}') format('woff2'); }
 html, body { margin: 0; }
-body { width: ${W}px; height: ${H}px; overflow: hidden; }
+body { width: ${width}px; height: ${height}px; overflow: hidden; }
 text { font-family: Circular, sans-serif; font-weight: 700; }
 text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
-</style></head><body><svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+</style></head><body><svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  ${background === 'white' ? ['glow', 'iconglow', 'logoglow', 'halo'].map((name) => `<filter id="${name}" x="-50%" y="-50%" width="200%" height="200%"><feOffset/></filter>`).join('') : `
-  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+  ${/* The filters cover the canvas (user space), so straight lines, whose box has no height or width, still draw. */ ''}
+  ${!glow ? ['glow', 'iconglow', 'logoglow', 'halo'].map((name) => `<filter id="${name}" filterUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}"><feOffset/></filter>`).join('') : `
+  <filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}">
     <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
-  <filter id="iconglow" x="-50%" y="-50%" width="200%" height="200%">
+  <filter id="iconglow" filterUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}">
     <feGaussianBlur stdDeviation="1.1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
-  <filter id="logoglow" x="-50%" y="-50%" width="200%" height="200%">
+  <filter id="logoglow" filterUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}">
     <feGaussianBlur stdDeviation="0.7" result="b"/><feComponentTransfer in="b" result="c"><feFuncA type="linear" slope="0.6"/></feComponentTransfer><feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
-  <filter id="halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>`}
+  <filter id="halo" filterUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}"><feGaussianBlur stdDeviation="1.1"/></filter>`}
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.background}"/><stop offset="1" stop-color="#1b203d"/></linearGradient>
   <radialGradient id="weaveglow" cx="0.3" cy="0.55" r="0.75"><stop offset="0" stop-color="#2a3b5e"/><stop offset="0.6" stop-color="${C.background}"/><stop offset="1" stop-color="#121a2e"/></radialGradient>
   <linearGradient id="gridfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.5"/></linearGradient>
@@ -208,7 +226,7 @@ text.mono { font-family: Menlo, Consolas, monospace; font-weight: 700; }
   <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.teal}"/><stop offset="0.55" stop-color="${C.blue}"/><stop offset="1" stop-color="${C.purple}"/></linearGradient>
   <radialGradient id="sunglow"><stop offset="0.75" stop-color="${C.teal}" stop-opacity="0.12"/><stop offset="1" stop-color="${C.teal}" stop-opacity="0"/></radialGradient>
 </defs>
-<rect width="${W}" height="${H}" fill="${background === 'white' ? '#ffffff' : 'url(#bg)'}"/>
+<rect width="${width}" height="${height}" fill="${background === 'white' ? '#ffffff' : 'url(#bg)'}"/>
 ${BACKGROUNDS[background]()}
 ${subject}
 </svg></body></html>`;
