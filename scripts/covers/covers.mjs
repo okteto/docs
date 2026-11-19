@@ -1062,8 +1062,9 @@ const covers = [
   {
     out: 'static/img/environment-full-replica.webp',
     background: 'white',
+    height: 360,
     alt: FULL_REPLICA_ALT,
-    svg: () => scaled(fullReplica(295, 35), 1.3),
+    svg: () => fullReplica(295, -100),
   },
   {
     out: 'static/img/environment-full-replica-mobile.webp',
@@ -1076,8 +1077,9 @@ const covers = [
   {
     out: 'static/img/environment-divert.webp',
     background: 'white',
+    height: 400,
     alt: DIVERT_ALT,
-    svg: () => scaled(divert(-295, 35), 1.3),
+    svg: () => divert(-295, -80),
   },
   {
     out: 'static/img/environment-divert-mobile.webp',
