@@ -1,0 +1,135 @@
+---
+title: Test your application with Okteto
+description: Run unit and end-to-end tests for the Movies app in Test Containers with okteto test.
+sidebar_label: Test
+id: test
+---
+
+[Okteto Test](reference/okteto-cli.mdx#test) runs your tests in Test Containers inside your Okteto Namespace, next to the application you deployed with `okteto deploy`.
+Test Containers use [Remote Execution](core/remote-execution.mdx#how-remote-execution-works), so you don't need test runtimes on your machine, and your tests can reach the private services of your application.
+
+The [`test`](reference/okteto-manifest.mdx#test-object-optional) section of the Okteto Manifest defines your Test Containers. The same `okteto test` command runs them from your machine and from your CI/CD pipeline, against a [Preview Environment](previews/index.mdx).
+
+This page uses the [Movies app](https://github.com/okteto/getting-started), deployed with `okteto deploy` as described in [Deploy](deploy.mdx). Run the commands from the root of your local copy.
+
+## Unit tests for the `frontend` service
+
+The `frontend` Test Container runs the unit tests of the `frontend` service, written with [Vitest](https://vitest.dev/):
+
+```yaml title="okteto.yaml"
+test:
+  frontend:
+    image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
+    context: frontend
+    caches:
+      - /root/.npm
+    commands:
+      - npm ci
+      - npm test
+```
+
+`frontend` is the name of the Test Container. These are its fields:
+
+- `image`: the image that runs the tests. It's the development image of the `frontend` service, built in the [`build` section](build.mdx), so the tests run with the same Node.js version as the [Development Container](develop.mdx).
+- `context`: the folder that Okteto sends to the Test Container.
+- `caches`: the folders that Okteto keeps between runs of the Test Container. `/root/.npm` is the npm cache, so later runs don't download the packages again.
+- `commands`: the commands that run your tests. The Test Container fails if any of them exits with a non-zero code. `npm ci` installs the exact dependencies in `package-lock.json`, and `npm test` runs Vitest.
+
+Run the `frontend` unit tests:
+
+```bash
+okteto test frontend
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Executing test container 'frontend'
+ i  Running 'npm ci'
+added 90 packages, and audited 91 packages in 3s
+21 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+ ✓  Command 'npm ci' successfully executed
+ i  Running 'npm test'
+> okteto-movies-frontend@0.2.0 test
+> vitest run
+ RUN  v5.1.1 /okteto/src
+ ✓ src/components/Hero.test.jsx (4 tests) 134ms
+ ✓ src/components/TitleList.test.jsx (4 tests) 116ms
+ ✓ src/components/App.test.jsx (4 tests) 225ms
+ ✓ src/components/UserProfile.test.jsx (3 tests) 63ms
+ ✓ src/components/Item.test.jsx (3 tests) 76ms
+ ✓ src/components/ListToggle.test.jsx (2 tests) 39ms
+ Test Files  6 passed (6)
+      Tests  20 passed (20)
+   Start at  11:21:01
+   Duration  1.93s (environment 65%, tests 13%, setup 10%, import 5%, transform 5%, worker 1%)
+ ...
+ ✓  Command 'npm test' successfully executed
+ ✓  Test container 'frontend' passed
+```
+
+The first run takes longer because the caches are empty. Later runs reuse them.
+
+## End-to-end tests
+
+The `e2e` folder contains [Playwright](https://playwright.dev/) tests that open the Movies app in a browser and compare the movies it shows with the data stored in MongoDB.
+The `e2e` Test Container runs them:
+
+```yaml title="okteto.yaml"
+test:
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
+    context: e2e
+    caches:
+      - /root/.npm
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+```
+
+`mcr.microsoft.com/playwright:v1.65.1-noble` is the official Playwright image. It includes Node.js, npm, and the browsers of Playwright 1.65.1, the same version of `@playwright/test` that `e2e/package.json` pins. When you upgrade `@playwright/test`, change the image tag to match: each Playwright release only works with the browsers it was built for.
+
+The `artifacts` field lists the files and folders that Okteto copies to your machine when the tests finish, in this case the Playwright results and the HTML report.
+
+Run the end-to-end tests:
+
+```bash
+okteto test e2e
+```
+
+```bash
+ i  Using cindy @ okteto.example.com as context
+ i  Executing test container 'e2e'
+ i  Running 'bash run_tests.sh'
+added 15 packages, and audited 16 packages in 1s
+found 0 vulnerabilities
+> e2e@1.0.0 test
+> playwright test
+Running 6 tests using 1 worker
+  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.4s)
+  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (706ms)
+  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (180ms)
+  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (288ms)
+  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (133ms)
+  ✓  6 [chromium] › tests/main.spec.js:10:1 › matches screenshot (1.7s)
+  6 passed (6.2s)
+ ✓  Command 'bash run_tests.sh' successfully executed
+ ✓  Test container 'e2e' passed
+```
+
+The Playwright report is now in the `e2e/playwright-report` folder on your machine.
+
+Test Containers run inside your Okteto Namespace, which gives them two ways to reach your application:
+
+- Public endpoints, built from the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` variables. The Playwright configuration [builds its `BASE_URL`](https://github.com/okteto/getting-started/blob/main/e2e/playwright.config.js#L3) this way.
+- Private services, through the hostname `<service>.${OKTETO_NAMESPACE}`. The tests [connect to MongoDB](https://github.com/okteto/getting-started/blob/main/e2e/data/getStoredData.js#L5) at `mongodb.${OKTETO_NAMESPACE}`.
+
+Run `okteto test` without arguments to run every Test Container in your Okteto Manifest.
+
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](agentic/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+
+The unit and end-to-end tests of the Movies app pass in your cluster. In the next step, [develop the Movies app in Development Containers](develop.mdx): `okteto up` reloads your changes in the `api` and `frontend` services as you save them.

@@ -1,28 +1,34 @@
 ---
 title: Deploy Your Application to Okteto
-description: In this section, we'll see how you can onboard your apps to Okteto
+description: Build, deploy, test, and develop the Movies app on Okteto with its Okteto Manifest.
 ---
 
 import Image from "@theme/Image";
 
-This guide explains how to write your first Okteto Manifest and deploy your app to Okteto.
+Okteto builds, deploys, and tests your whole application in your Kubernetes cluster. All it needs is an [Okteto Manifest](core/okteto-manifest.mdx), an `okteto.yaml` file at the root of your repository. Every developer and every AI agent gets their own copy of the application, with public HTTPS endpoints, and can run the tests against it. This series takes the [Movies app](https://github.com/okteto/getting-started), a sample application that already has a complete Okteto Manifest, through each of those steps. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](/docs/agentic/).
+
+If your application is defined in a Docker Compose file, follow [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) instead.
 
 ## Requirements
 
-Before you start this tutorial, make sure you fulfill the following requirements:
+- Access to an Okteto instance. To install one, follow the [installation guide](get-started/install/index.mdx).
+- The [Okteto CLI](get-started/install-okteto-cli.mdx) installed, with an Okteto Context configured for your Okteto instance.
+- A local copy of the Movies app:
 
-- You have access to an Okteto instance. Otherwise, follow our [installation guide](get-started/install/index.mdx)
-- You have [installed the Okteto CLI](get-started/install-okteto-cli.mdx) and configured the Okteto Context with your Okteto instance
+```bash
+git clone https://github.com/okteto/getting-started
+cd getting-started
+```
 
-## What you will be building
+Run every command in this series from the root of that folder, on the `main` branch. You don't need to edit any files, except to try hot reload in [Develop](develop.mdx).
 
-This tutorial will guide you on how to deploy the [Movies app](https://github.com/okteto/getting-started) to Okteto. The Movies app consists of:
+## The Movies App
 
-- a React frontend
-- a Node.js backend API
-- a MongoDB database
+The Movies app has three services, deployed by the Helm chart in the `chart` folder:
 
-This is a representation of the Movies app running in a Development Environment:
+- `frontend`: a React application, built with Vite, that lists movies.
+- `api`: a Node.js API that reads the movies from MongoDB.
+- `mongodb`: a MongoDB database that runs the official `mongo` image. A `seed` job loads the movies into it on every deployment.
 
 <p align="center">
   <Image
@@ -32,35 +38,88 @@ This is a representation of the Movies app running in a Development Environment:
   />
 </p>
 
-In order to deploy the Movies app, you will create your first [Okteto Manifest](core/okteto-manifest.mdx).
-This is what your Okteto Manifest will look like at the end of the tutorial:
+## The Okteto Manifest
+
+This is the `okteto.yaml` file of the Movies app:
 
 ```yaml title="okteto.yaml"
 build:
+  api-dev:
+    context: api
+    target: dev
+
   api:
     context: api
+    target: prod
+    depends_on:
+      - api-dev
+
+  frontend-dev:
+    context: frontend
+    target: dev
+
   frontend:
     context: frontend
-
-dependencies:
-  mongodb:
-    repository: https://github.com/okteto/mongodb
-    wait: true
-    variables:
-      MONGODB_PASSWORD: password    
+    target: prod
+    depends_on:
+      - frontend-dev
 
 deploy:
-  - name: Helm Install
-    command: |
-      helm upgrade --install movies chart \
-        --set api.image=${OKTETO_BUILD_API_IMAGE} \
-        --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  image: alpine/helm:4.3.2
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+
+test:
+  frontend:
+    image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
+    context: frontend
+    caches:
+      - /root/.npm
+    commands:
+      - npm ci
+      - npm test
+
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
+    context: e2e
+    caches:
+      - /root/.npm
+    commands:
+      - bash run_tests.sh
+    artifacts:
+      - test-results
+      - playwright-report
+
+dev:
+  api:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    command: node --watch --inspect server.js
+    sync:
+      - api:/usr/src/app
+    persistentVolume:
+      enabled: false
+    forward:
+      - 9229:9229
+
+  frontend:
+    image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
+    command: npm run dev
+    sync:
+      - frontend:/usr/src/app
+    persistentVolume:
+      enabled: false
 ```
 
-This guide will take you through the following sections:
+Each page of the series covers one part of that file, in this order:
 
-- `deploy`: Configure a list of commands to deploy your application
-- `dependencies`: Configure a list of git repositories to deploy as part of your application
-- `build`: Configure a list of images to build for your application
+1. [Build](build.mdx): the `build` section, which builds the application and development images of the `frontend` and `api` services with `okteto build`.
+2. [Deploy](deploy.mdx): the `deploy` section, which installs the Helm chart with `okteto deploy`, and the public HTTPS endpoints where Okteto serves the application.
+3. [Inspect](inspect.mdx): a look at the pods, logs, and events of the application with `kubectl`.
+4. [Test](test.mdx): the `test` section, which runs unit and end-to-end tests with `okteto test`.
+5. [Develop](develop.mdx): the `dev` section, which lets `okteto up` replace the `api` or the `frontend` service with a Development Container that reloads your changes as you save them.
 
-Now that you know what your are building, [start the tutorial](deploy.mdx) and deploy your app to Okteto 😎
+With the Okteto Manifest of the Movies app in your clone of the repository, you're ready to start. In the first step, [build the images of the Movies app](build.mdx) with `okteto build`.
