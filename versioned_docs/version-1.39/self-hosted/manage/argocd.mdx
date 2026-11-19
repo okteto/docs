@@ -1,37 +1,38 @@
 ---
-title: Configure Argo CD
-description: How to Install Okteto in Argo CD
+title: Argo CD
+description: Deploy Okteto with an Argo CD Application, with the sync policy and ignored differences that the Okteto Helm chart needs.
 sidebar_label: Argo CD
 id: argocd
 ---
 
-## Deploy Okteto with an Argo CD Application
+import variables from '../../variables.json';
+import CodeBlock from '@theme/CodeBlock';
 
 In this guide, we'll learn how to deploy Okteto within an [Argo CD Application manifest](https://argo-cd.readthedocs.io/en/stable/user-guide/application-specification/).
 
-## Set Up the Source
+## Source
 
-Okteto Self Hosted is distributed as a [Helm Chart](https://helm.sh/docs/topics/charts/) that can be sourced from Okteto's official repository:
+Okteto is distributed as a [Helm chart](https://helm.sh/docs/topics/charts/) in the official Okteto chart repository:
 
 ```
 helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
-To configure it in the Argo CD manifest, you'll need to add it as a [Helm type source](https://argo-cd.readthedocs.io/en/stable/user-guide/helm/):
+In the Argo CD manifest, add it as a [Helm source](https://argo-cd.readthedocs.io/en/stable/user-guide/helm/):
 
-```yaml
-source:
+<CodeBlock language="yaml">
+{`source:
   repoURL: 'https://charts.okteto.com'
   chart: 'okteto'
-  targetRevision: '[LATEST RELEASE ex: 1.17.0]'
+  targetRevision: '${variables.chartVersion}'
   helm:
-    releaseName: 'okteto'
-```
+    releaseName: 'okteto'`}
+</CodeBlock>
 
-## Set Up the Destination
+## Destination
 
-Now it is time to tell Okteto where it is going to live, specifically the cluster and namespace:
+The destination sets the cluster and the namespace where Okteto runs:
 
 ```yaml
 destination:
@@ -39,9 +40,9 @@ destination:
   namespace: 'okteto'
 ```
 
-## Configure the Sync Policy
+## Sync Policy
 
-The following [`syncOptions`](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/) are recommended for installing Okteto in Argo CD and keeping it in a healthy state:
+We recommend the following sync policy and [`syncOptions`](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/) to install Okteto with Argo CD and keep it healthy:
 
 ```yaml
 syncPolicy:
@@ -58,17 +59,17 @@ syncPolicy:
 ```
 
 - `syncPolicy.automated`
-  - `prune`: There are some objects created by Okteto whose names contain a hash derived from the configuration, so when it changes, Argo CD detects objects that no longer belong to the chart and that should be pruned. This option performs this task automatically. Otherwise, you'll need to manually set the "Prune" checkbox (or set the [operation](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-kubectl/#prune) to "prune") when performing a manual sync.
-  - `selfHeal`: This option will keep manifests consistent with the desired state and will recreate Okteto configuration in case it is deleted or modified externally by accident.
+  - `prune`: The names of some objects that Okteto creates contain a hash of the configuration. When the configuration changes, Argo CD detects objects that no longer belong to the chart and should be pruned. This option prunes them automatically. Without it, check the "Prune" checkbox (or set the [operation](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-kubectl/#prune) to "prune") when you sync manually.
+  - `selfHeal`: Keeps the manifests consistent with the desired state, and recreates the Okteto configuration if it's deleted or modified externally by accident.
 - `syncPolicy.syncOptions`
-  - `'RespectIgnoreDifferences=true'`: This option ensures sync operations respect the indications set in the ["Configure the ignore differences"](#configure-ignore-differences).
-  - `'PruneLast=true'`: Ensure that pruning takes place after syncing Okteto to the desired state.
-  - `'CreateNamespace=true'`: Optionally let Argo CD auto-create the namespace set in the ["Set Up the Destination"](#set-up-the-destination) section.
-  - `'ApplyOutOfSyncOnly=true'`: Okteto chart makes use of Helm templating to render some configurations dynamically such as internal certificates and private keys. Leaving this option enabled ensures those don't get recreated unnecessarily.
+  - `'RespectIgnoreDifferences=true'`: Makes sync operations respect the differences listed in [Ignore Differences](#ignore-differences).
+  - `'PruneLast=true'`: Prunes after Okteto is synced to the desired state.
+  - `'CreateNamespace=true'`: Lets Argo CD create the namespace set in the [destination](#destination). Optional.
+  - `'ApplyOutOfSyncOnly=true'`: The Okteto chart uses Helm templating to render some configuration dynamically, such as internal certificates and private keys. This option keeps them from being recreated unnecessarily.
 
-## Configure Ignore Differences
+## Ignore Differences
 
-Some Okteto resources are rendered via Helm templating functions that need access to the cluster's previous state. This is not possible in Argo CD; therefore, the following [`ignoreDifferences`](https://argo-cd.readthedocs.io/en/stable/user-guide/diffing/) must be configured:
+Some Okteto resources are rendered with Helm templating functions that need access to the cluster's previous state. Argo CD doesn't give them that access, so you must configure the following [`ignoreDifferences`](https://argo-cd.readthedocs.io/en/stable/user-guide/diffing/):
 
 ```yaml
 ignoreDifferences:
@@ -128,9 +129,9 @@ ignoreDifferences:
 
 ## Caveats
 
-- Changes to any part of the configuration will cause orphan resources to appear, which can be safely pruned automatically or manually by Argo CD. These resources are:
+- Any change to the configuration leaves orphan resources, which Argo CD can safely prune, automatically or manually. These resources are:
   - `clustermetrics-<hash>` job
   - `migration-<hash>` job
-- Changes to the following specific paths of the configuration may cause a small outage while syncing/applying:
-  - `.Values.webhook.internalCertificate.annotations` will cause the webhooks registered by Okteto to recreate their certificates.
-  - `.Values.wildcardCertificate.annotations` if `.Values.wildcardCertificate.create == true` will cause the self-signed certificates used for external access to recreate them.
+- Changes to the following configuration paths may cause a short outage during the sync:
+  - `.Values.webhook.internalCertificate.annotations`: the webhooks that Okteto registers recreate their certificates.
+  - `.Values.wildcardCertificate.annotations`, when `.Values.wildcardCertificate.create == true`: the self-signed certificates used for external access are recreated.

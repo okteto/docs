@@ -1,6 +1,6 @@
 ---
 title: Bring your own wildcard certificate
-description: Bring your own wildcard certificate
+description: Configure Okteto to use your own wildcard certificate and your own certificate authority.
 sidebar_label: Bring your own certificate
 id: bring-your-own-certificate
 ---
@@ -14,9 +14,9 @@ Import the secret into your kubernetes cluster by running the command below:
 ```bash
 kubectl create secret tls ${CERT_NAME} --key ${KEY_FILE} --cert ${CERT_FILE} --namespace okteto
 ```
-Where `CERT_NAME` is `your-ssl-certificate-secret`.
+In this example, `CERT_NAME` is `your-ssl-certificate-secret`.
 
-After you create the secret, add the following to your Helm configuration file to tell Okteto and NGINX to use your certificate.
+After you create the secret, add the following to your Helm configuration file to tell Okteto and NGINX to use your certificate:
 
 ```yaml title="config.yaml"
 wildcardCertificate:
@@ -32,22 +32,22 @@ ingress-nginx:
 You can use any certificate provider you are familiar with if it's compatible with the x.509 and PKCS1 standards.
 For example, we have a guide maintained by the community to [configure your certificate with GoDaddy](https://community.okteto.com/t/how-do-i-bring-my-godaddy-certificate-to-okteto/578/1).
 
-Finally, [upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation for the new configuration to be applied.
+[Upgrade](self-hosted/manage/upgrade.mdx) your Okteto installation to apply the new configuration.
 
 :::info
-If [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride) is set, its value must also be included in the certificate's `Subject Alternative Name` list. For example, if you use `dev.example.com` as the `publicOverride`, and `okteto.net` as the `subdomain`, you need to generate a certificate that includes `*.okteto.net` and `dev.example.com` in the `Subject Alternative Name` list.
+If [`publicOverride`](self-hosted/helm-configuration.mdx#publicoverride) is set, the certificate's `Subject Alternative Name` list must include its value too. For example, if you use `dev.example.com` as the `publicOverride` and `okteto.net` as the `subdomain`, generate a certificate that includes `*.okteto.net` and `dev.example.com` in the `Subject Alternative Name` list.
 :::
 
 # Bring your own Certificate Authority
 
-By default, Okteto will trust a certificate issued by any well-know certificate authority. If your certificate is self-signed, issued by a new certificate authority, or issued by a private certificate authority, you'll need to import your certificate authority's public key.
+By default, Okteto trusts certificates issued by any well-known certificate authority. If your certificate is self-signed, or issued by a new or private certificate authority, import your certificate authority's public key.
 
 First import your certificate authority by running the command below:
 
 ```bash
 kubectl create secret generic ${CA_NAME} --from-file=ca.crt=${CA_FILE} --namespace okteto
 ```
-Where `CA_NAME` is your `your-ca-secret`.
+In this example, `CA_NAME` is `your-ca-secret`.
 
 After you create the secret, add the following to your Helm configuration file to tell Okteto to use your certificate authority:
 

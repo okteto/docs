@@ -1,6 +1,6 @@
 ---
 title: Air-Gapped Networks
-description: Installing Okteto in Air-Gapped Network Environments
+description: Install Okteto in an air-gapped network, with the Okteto images in your private registry and no internet access.
 sidebar_label: Air-Gapped Networks
 id: air-gapped
 ---
@@ -14,29 +14,29 @@ import TiersList from "@theme/TiersList";
 Okteto Enterprise can be installed in air-gapped environments—isolated networks without internet access.
 This guide explains how to install, configure and use a self-hosted Okteto instance entirely offline. For personalized assistance, feel free to [talk to us](https://www.okteto.com/contact/) to guide you during the installation.
 
-## Step 1: Disable Okteto Telemetry
+## Step 1: Disabling Okteto Telemetry
 
 By default, Okteto sends [telemetry data](self-hosted/helm-configuration.mdx#telemetry) to help us understand usage patterns and prioritize improvements.
-In air-gapped environments, you can disable telemetry by adding the following to your Okteto Helm configuration:
+In an air-gapped environment, disable telemetry by adding the following to your Okteto Helm configuration:
 
 ```yaml
 telemetry:
   enabled: false
 ```
 
-Disabling telemetry ensures that no usage analytics are sent from the Okteto CLI.
+With telemetry disabled, the Okteto CLI doesn't send any usage analytics.
 
-## Step 2: Set Up a Private Registry for Required Images
+## Step 2: Setting Up a Private Registry for Required Images
 
-By default, all the images needed to deploy the Okteto Platform, and the images used by the Okteto CLI, are hosted in DockerHub.
-In air-gapped environments, you’ll need to host these images in your private registry.
+By default, the images that deploy the Okteto Platform, and the images that the Okteto CLI uses, are hosted in GitHub Container Registry (`ghcr.io`).
+In an air-gapped environment, you host these images in your private registry.
 
-### Push Images to your Private Registry
+### Pushing Images to your Private Registry
 
-For simplicity, we recommend using the same repository names and tags in your private registry.
+For simplicity, we recommend keeping the same repository names and tags in your private registry.
 
 :::info
-Since Okteto doesn’t support `imagePullSecrets`, ensure your Kubernetes cluster is pre-configured to access your private registry.
+Okteto doesn't support `imagePullSecrets`, so configure your Kubernetes cluster to access your private registry beforehand.
 :::
 
 **Required Images for Okteto Platform Installation**
@@ -59,16 +59,14 @@ For each Okteto CLI version, push the following images to your private registry:
 - **ghcr.io/okteto/okteto:{variables.cliVersion}**
 
 :::info
-For Okteto Chart {variables.chartVersion}, we recommend enforcing the usage of Okteto CLI {variables.cliVersion} in your developer's machines to reduce maintenance overhead
+For Okteto Chart {variables.chartVersion}, we recommend requiring Okteto CLI {variables.cliVersion} on your developers' machines to reduce maintenance overhead.
 :::
 
-## Step 3: Update Helm Configuration
+## Step 3: Updating the Helm Configuration
 
-These configurations ensure Okteto can pull required images from your private registry during deployment.
-Once your images are pushed to your private registry, update your Okteto Helm configuration as follows:
+Once your images are in your private registry, update your Okteto Helm configuration so Okteto pulls the required images from it during deployment.
 
-**Example Registry URL:** \
-Replace`<<your-registry-url>>` with the hostname or IP address of your private registry. It should look something like this: `my-registry.example.com:5000` Ensure it is accessible within your air-gapped environment and uses the correct protocol (https) and port.
+Replace `<<your-registry-url>>` with the hostname or IP address of your private registry, for example `my-registry.example.com:5000`. It must be accessible within your air-gapped environment and use the correct protocol (https) and port.
 
 ```yaml
 globals:
@@ -94,60 +92,58 @@ reloader:
 ```
 
 
-## Step 4: Install or Upgrade Okteto
+## Step 4: Installing or Upgrading Okteto
 
-Run the following command to install Okteto for the first time or to upgrade an existing instance:
+Run the following command to install Okteto for the first time, or to upgrade an existing instance:
 
 <CodeBlock language="bash">
   {`helm upgrade --install okteto okteto/okteto -f config.yaml --namespace=okteto --create-namespace --version=${variables.chartVersion}`}
 </CodeBlock>
 
 
-## Step 5: Install the Okteto CLI
+## Step 5: Installing the Okteto CLI
 
-The Okteto CLI needs to be installed on your own machine as well as on the machines of all developers on your team who will be using Okteto.
+Install the Okteto CLI on your machine and on the machine of every developer on your team who uses Okteto.
 
-#### Download the latest version of the Okteto CLI for your operating system:
+#### Downloading the Okteto CLI
 
-<CodeBlock language="bash">
-  {`https://github.com/okteto/okteto/releases/download/${variables.cliVersion}`}
-</CodeBlock>
+Download the binary of the Okteto CLI for your operating system from the [Okteto CLI {variables.cliVersion} release](https://github.com/okteto/okteto/releases/tag/{variables.cliVersion}), the version that matches your Okteto instance.
 
-- For Linux/MacOS, the binary is named `okteto`
-- For Windows, the binary is named `okteto.exe`
+- On Linux and macOS, the binary is named `okteto`
+- On Windows, the binary is named `okteto.exe`
 
-#### Set Up the Okteto Configuration Directory
+#### Setting Up the Okteto Configuration Directory
 
-Create a `.okteto` folder in your `$HOME` directory to store runtime configurations and dependencies for the CLI.
+Create a `.okteto` folder in your `$HOME` directory. The CLI stores its runtime configuration and dependencies there.
 
 ```bash
 mkdir -p $HOME/.okteto
 ```
 
-#### Download and Configure Syncthing
+#### Downloading and Configuring Syncthing
 
 Okteto uses [Syncthing](https://syncthing.net/) to synchronize files between your local machine and your remote Development Environments.
-Download the syncthing binary from their official releases page:
+Download the Syncthing binary from its official releases page:
 
 <CodeBlock language="bash">
   {`https://github.com/syncthing/syncthing/releases/tag/v${variables.syncthingVersion}`}
 </CodeBlock>
 
 - Uncompress the downloaded file
-- Move the syncthing binary (or syncthing.exe for Windows) to your $HOME/.okteto folder
+- Move the `syncthing` binary (`syncthing.exe` on Windows) to your `$HOME/.okteto` folder
 
-#### Set Executable Permissions (Linux/MacOS only)
+#### Setting Executable Permissions (Linux and macOS only)
 
-Finally, if you are on Linux or MacOS, make sure to give executable permissions to both `okteto` and `syncthing`:
+On Linux and macOS, give executable permissions to both `okteto` and `syncthing`:
 
 ```bash
 chmod +x okteto
 chmod +x $HOME/.okteto/syncthing
 ```
 
-### You are now ready to start using Okteto
+### Installation Support
 
-_Need help with your installation? [Contact us](https://www.okteto.com/contact/) for expert guidance._
+[Contact us](https://www.okteto.com/contact/) if you need help with your installation.
 
 :::note
 ### Browser Compatibility
@@ -158,5 +154,5 @@ The Okteto Dashboard is supported on:
 - **Microsoft Edge**: Last 8 versions
 - **Safari**: Last 2 major versions (macOS only)
 
-Ensure all users in an air-gapped setup have access to these browsers to avoid compatibility issues.
+Make sure every user in your air-gapped environment has access to one of these browsers to avoid compatibility issues.
 :::

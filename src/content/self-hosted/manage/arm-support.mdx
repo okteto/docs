@@ -1,11 +1,11 @@
 ---
 title: ARM Support
-description: How to install and configure Okteto on ARM-based Kubernetes clusters
+description: Install and configure Okteto on ARM-based Kubernetes clusters in Google GKE and Amazon EKS.
 sidebar_label: ARM Support
 id: arm-support
 ---
 
-Okteto supports installation on ARM-based Kubernetes clusters for Self-Hosted deployments. Running Okteto on ARM lets developers build and test against the same architecture as their target operational clusters, avoiding compatibility differences that can surface when developing on a different architecture than the one that runs the application.
+Okteto runs on ARM-based Kubernetes clusters. On ARM, developers build and test on the same architecture as the operational clusters that run their application, which avoids the compatibility differences that appear when you develop on a different architecture.
 
 ## Support Status
 
@@ -14,24 +14,24 @@ Okteto supports installation on ARM-based Kubernetes clusters for Self-Hosted de
 | Google GKE | Tau T2A (`t2a-standard-4`) | GA |
 | Amazon EKS | Graviton 2/3 (`m7g.xlarge`) | Beta |
 
-ARM support is covered by the same release pipeline as x86. All control plane images are published as multi-arch (amd64 + arm64).
+ARM goes through the same release pipeline as x86, and every control plane image is published as multi-arch (amd64 + arm64).
 
 :::note
-ARM support is available for **Self-Hosted deployments only**. Bring Your Own Cloud (BYOC) deployments are not supported.
+ARM support is available for **Self-Hosted deployments only**. Bring Your Own Cloud (BYOC) deployments aren't supported.
 :::
 
 ## Requirements
 
-- **Fresh installations only.** Migrating an existing x86 cluster to ARM is not supported. ARM clusters must be provisioned from scratch.
-- **Homogeneous clusters.** All nodes in the cluster must be ARM-based. Mixed architecture clusters (ARM + x86 nodes) are not supported.
+- **Fresh installations only.** Migrating an existing x86 cluster to ARM isn't supported. You provision ARM clusters from scratch.
+- **Homogeneous clusters.** Every node in the cluster must be ARM-based. Mixed architecture clusters (ARM + x86 nodes) aren't supported.
 
 ## Google GKE (GA)
 
-ARM support on GCP using Tau T2A instances is generally available. Automated tests run against ARM clusters on GCP for every release and in weekly scheduled runs.
+ARM support on GCP with Tau T2A instances is generally available. Automated tests run against ARM clusters on GCP for every release, and in weekly scheduled runs.
 
 ### Cluster Configuration
 
-We recommend creating a GKE cluster using Tau T2A nodes. The recommended instance type is `t2a-standard-4`:
+Create a GKE cluster with Tau T2A nodes. We recommend the `t2a-standard-4` instance type:
 
 ```bash
 gcloud container clusters create CLUSTER_NAME \
@@ -42,12 +42,12 @@ gcloud container clusters create CLUSTER_NAME \
 ```
 
 :::note
-Tau T2A instances are only available in certain GCP regions and zones. See the [GCP documentation](https://cloud.google.com/compute/docs/general-purpose-machines#t2a_machines) for regional availability.
+Tau T2A instances are only available in some GCP regions and zones. The [GCP documentation](https://cloud.google.com/compute/docs/general-purpose-machines#t2a_machines) lists their regional availability.
 :::
 
 ### Helm Configuration
 
-GKE automatically applies `kubernetes.io/arch=arm64:NoSchedule` taints to ARM nodes. You must add the following tolerations to your `config.yaml` so that Okteto components can be scheduled on those nodes:
+GKE automatically applies `kubernetes.io/arch=arm64:NoSchedule` taints to ARM nodes. Add the following tolerations to your `config.yaml` so the Okteto components can be scheduled on those nodes:
 
 ```yaml
 globals:
@@ -86,12 +86,12 @@ reloader:
           effect: "NoSchedule"
 ```
 
-For the full installation walkthrough, follow the [GKE installation guide](get-started/install/google-gke.mdx).
+The [GKE installation guide](get-started/install/google-gke.mdx) has the full installation steps.
 
 ## Amazon EKS (Beta)
 
 :::warning Beta
-ARM support on Amazon EKS is in **Beta**. The functionality is complete, but automated test coverage on EKS ARM is still maturing: validation is performed manually when introducing support for new Kubernetes versions. Until coverage matures, running this on operational clusters carries a higher chance of encountering an unexpected issue.
+ARM support on Amazon EKS is in **Beta**. The functionality is complete, but automated test coverage on EKS ARM is still maturing: support for new Kubernetes versions is validated manually. Until coverage matures, operational clusters on EKS ARM are more likely to run into an unexpected issue.
 :::
 
 AWS Graviton 2 and Graviton 3 instances are supported. The recommended instance type is `m7g.xlarge`, which is equivalent in size to the standard `m5.xlarge` used in the default EKS guide.
@@ -126,21 +126,17 @@ EOF
 
 ### Helm Configuration
 
-EKS does not apply architecture taints to Graviton nodes, so no additional tolerations are required for ARM scheduling.
+EKS doesn't apply architecture taints to Graviton nodes, so ARM scheduling doesn't need additional tolerations.
 
-For the full installation walkthrough, follow the [Amazon EKS installation guide](get-started/install/amazon-eks.mdx).
+The [Amazon EKS installation guide](get-started/install/amazon-eks.mdx) has the full installation steps.
 
 ## Dependencies
 
-The following dependencies bundled in the Okteto Helm chart have been validated for ARM compatibility:
+The following dependencies bundled in the Okteto Helm chart are validated for ARM compatibility:
 
 - **Reloader**
 - **Redis**
 - **ingress-nginx**
-
-:::warning
-ARM compatibility of these dependencies must be re-verified before bumping their versions. Check the relevant project release notes for architecture support before upgrading.
-:::
 
 ## Limitations
 
@@ -156,6 +152,6 @@ The following scenarios are not supported in the current release:
 | Oracle Ampere A1/A2 | Not supported |
 | Bare metal ARM | Not supported |
 | Divert | Not supported on ARM (planned for a future release) |
-| GPU workloads | The supported ARM instance types (Tau T2A, Graviton 2/3) do not offer GPUs |
+| GPU workloads | The supported ARM instance types (Tau T2A, Graviton 2/3) don't offer GPUs |
 | Windows containers | Not supported on ARM |
 | WebAssembly (WASM) runtime | Not supported on ARM |

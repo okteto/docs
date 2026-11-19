@@ -1,6 +1,6 @@
 ---
 title: Okteto BYOC on AWS
-description: How to get started with Okteto BYOC on AWS
+description: Prepare your AWS account so Okteto can install and manage Okteto Bring Your Own Cloud (BYOC) in it.
 sidebar_label: Okteto BYOC on AWS
 ---
 
@@ -16,8 +16,8 @@ This guide walks you through the steps to set up your AWS environment so Okteto 
 
 Before you start, ensure the following:
 
-- The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) is installed and configured (version 2.15 or later)
-- You have access to an **empty AWS account** dedicated to Okteto BYOC
+- The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions) (version 2.15 or later), installed and configured
+- Access to an **empty AWS account** dedicated to Okteto BYOC
 
 :::note
 AWS Account Requirements:
@@ -28,11 +28,11 @@ AWS Account Requirements:
 
 ## Step 1: Get the AWS IAM Role Assumption External ID
 
-Contact your Okteto sales representative to obtain your unique **AWS IAM Role Assumption External ID**. This is required to securely allow Okteto to assume a role in your AWS account.
+Contact your Okteto representative to get your unique **AWS IAM Role Assumption External ID**. Okteto needs it to securely assume a role in your AWS account.
 
 ## Step 2: Create the IAM Role
 
-Create a file named `trust-policy.json` with the following content or download it from <a href={useBaseUrl('/byoc/aws/trust-policy.json')} download="trust-policy.json">here</a>:
+Create a file named `trust-policy.json` with the following content, or <a href={useBaseUrl('/byoc/aws/trust-policy.json')} download="trust-policy.json">download the trust policy</a>:
 
 ```json title="trust-policy.json"
 {
@@ -56,7 +56,7 @@ Create a file named `trust-policy.json` with the following content or download i
 ```
 Replace `REPLACEME` with the External ID provided by Okteto.
 
-Then, create the IAM role using the trust policy we just created with the AWS CLI:
+Create the IAM role from the trust policy with the AWS CLI:
 
 ```bash
 aws iam create-role \
@@ -66,7 +66,7 @@ aws iam create-role \
 
 ## Step 3: Attach the Necessary Policies
 
-Attach the necessary policy to give Okteto access to manage infrastructure:
+Attach the following policies to the role to give Okteto access to manage the infrastructure:
 
 ```bash
 aws iam attach-role-policy \
@@ -102,7 +102,7 @@ aws iam attach-role-policy \
   --policy-arn arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator
 ```
 
-Additionally, include the following in-line policies:
+Also add the following inline policies to the role:
 
 ```json
 {
@@ -144,29 +144,29 @@ Additionally, include the following in-line policies:
 
 ## Step 4: Share the Role ARN With Your Okteto Representative
 
-Finally, provide the IAM Role ARN to your Okteto technical representative. They’ll complete the setup and guide you through connecting your cluster to Okteto.
+Send the IAM Role ARN to your Okteto representative. They complete the setup and guide you through connecting your cluster to Okteto.
 
-## ✅ What Happens Next
+## Next Steps
 
-Once you've shared the IAM Role ARN with your Okteto sales representative, we'll take it from here.
+After you share the IAM Role ARN with your Okteto representative, we take it from there.
 
-Our team will:
+Our team:
 
-- Install Okteto into your AWS environment
-- Ensure the platform is configured and ready for your team to use
+- Installs Okteto in your AWS account
+- Makes sure the platform is configured and ready for your team to use
 
-You'll be notified once installation is complete and receive onboarding support to help your team start developing with Okteto.
+We notify you when the installation is complete and give you onboarding support so your team can start developing with Okteto.
 
-## ⚠️ Cluster Management Guidelines
+## Cluster Management Guidelines
 
-Once Okteto is installed, **do not manually modify the EKS cluster or related infrastructure** through the AWS Console, AWS CLI, or Terraform.
+After Okteto is installed, **don't manually modify the EKS cluster or related infrastructure** through the AWS Console, AWS CLI, or Terraform.
 
 This includes:
 - EKS cluster configuration (node groups, instance types, scaling configurations)
 - Kubernetes resources in Okteto-managed namespaces
 - Networking, load balancers, or storage resources created by Okteto
 
-Manual modifications can cause service degradation, state inconsistencies, and break our SLA commitments. If you need infrastructure changes, please contact your Okteto representative.
+Manual changes can cause service degradation and state inconsistencies, and they break our SLA commitments. If you need infrastructure changes, contact your Okteto representative.
 
 For more details, see the [Cluster Management Restrictions](../#important-cluster-management-restrictions) section in the main BYOC documentation.
 

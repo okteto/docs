@@ -36,6 +36,7 @@ These patterns are the most common drift in agent-authored docs. Treat each as a
 - Address the reader as "you". Use present tense and active voice.
 - Every page stands on its own: readers, including AI coding agents, land on one section mid-task. Commands, flags, and paths are complete and exact; prerequisites and destructive steps are stated; no "above" or "below" references.
 - Links point to the `.mdx` file relative to `src/content/`. Images use `<Image>` with `alt`, never `![]()`.
+- No videos: don't embed or link YouTube tutorials or recordings of the product. They go out of date (see [`STYLE_GUIDE.md`](STYLE_GUIDE.md#videos)).
 
 If you find yourself reaching for an adjective, ask whether it adds technical meaning. If not, cut it.
 

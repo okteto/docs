@@ -1,6 +1,6 @@
 ---
 title: Custom Resource Definitions
-description: Custom resource definitions (CRDs) installed by Okteto
+description: Manage private registries, catalog items, Cloud Credentials, Okta user de-provisioning, and SSH known hosts with the Custom Resource Definitions (CRDs) that Okteto installs.
 sidebar_label: Custom Resource Definitions (CRDs)
 id: custom-resource-definitions
 ---
@@ -8,24 +8,23 @@ id: custom-resource-definitions
 import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 
-As part of Okteto's installation, several Custom Resource Definitions (CRDs) are installed in your cluster. These CRDs primarily store different types of information necessary for Okteto's functionality. You can view the list of Okteto's CRDs by exploring the `crds` folder in the templates of the [Okteto Helm Chart](https://artifacthub.io/packages/helm/okteto/okteto) or by running the following command:
+Okteto installs several Custom Resource Definitions (CRDs) in your cluster. They mainly store the different types of information Okteto needs to work. To list them, look at the `crds` folder in the templates of the [Okteto Helm Chart](https://artifacthub.io/packages/helm/okteto/okteto), or run:
 
 ```console
 kubectl get crd | grep okteto.com
 ```
 
-You can let Okteto install these CRDs or you can choose to install them manually, but be aware they are needed for Okteto to work properly. You can use the [following configuration setting](self-hosted/helm-configuration.mdx#crds) to let Okteto know if it should install them or not. By default, Okteto will install them.
+Okteto needs these CRDs to work properly. By default, Okteto installs them, but you can install them yourself instead: the [`crds` setting](self-hosted/helm-configuration.mdx#crds) tells Okteto whether to install them.
 
 ## Private Registries
 
-Private registry configurations can be managed either through the [Admin dashboard](admin/dashboard.mdx#registry-credentials) or by using one of Okteto’s installed CRDs: `admin.okteto.com`. This last case is useful, for example, if you have your own mechanism to provision credentials/secrets in your cluster.
+You can manage private registry configurations from the [Admin Dashboard](admin/dashboard.mdx#registry-credentials) or with one of the CRDs that Okteto installs: `registries.admin.okteto.com`. Use the CRD when, for example, you have your own mechanism to provision credentials or secrets in your cluster.
 
-There are 3 types of registries you can configure: Static credentials, AWS IAM User, and AWS IAM Role.
+You can configure three types of registries: static credentials, AWS IAM User, and AWS IAM Role.
 
 ### Static Credentials
 
-To define your private registries with static credentials using CRDs, you must first create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) containing the necessary data to access your private registry.
-This secret should include both the username and password for accessing the registry.
+To configure a private registry with static credentials, first create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) with the username and password to access the registry.
 
 Once the secret is created, you will need to create a resource with the `apiVersion`: `admin.okteto.com/v1` and `Registry` kind, which is one of the CRDs installed by Okteto, referring to the secret which contains the credentials.
 
@@ -33,7 +32,7 @@ The name of this new resource should be the hostname of the registry (e.g. `inde
 For example, if you want to add a configuration for Docker's registry, you will need to create a resource like this:
 
 :::note
-Defining the port through `spec.static.port` is optional and only available for static registries. It should only be used if the registry listens on a port other than the default http(s) 80/443
+`spec.static.port` is optional and only available for static registries. Set it only if the registry listens on a port other than the default HTTP(S) ports, 80 and 443.
 :::
 
 ```yaml
@@ -55,7 +54,6 @@ spec:
 
 ### AWS IAM User
 
-In the case of AWS IAM User, where you have to specify the Access Key and Access Secret, the process is similar to the static credentials CRD.
 For AWS IAM User credentials (Access Key and Secret Access Key), the process is similar to configuring static credentials.
 First, create a secret containing the Access Key and Secret Access Key values. Then, create a CRD like this (the name of the resource has to be the hostname of the registry to be configured and it has to end with `.amazonaws.com`, e.g. `111122223333.dkr.ecr.eu-central-1.amazonaws.com`):
 
@@ -98,21 +96,21 @@ You can find more information [here](admin/registry-credentials/amazon-ecr.mdx#u
 
 ## Catalog Items
 
-Catalog items are typically managed via the [Admin dashboard](admin/catalog.mdx), but can also be managed via one of the CRDs installed by Okteto: `catalogitems.git.okteto.com`.
-This approach is useful if you want to add catalog items manually with kubectl commands or manage your catalog using GitOps.
+Catalog items are usually managed from the [Admin Dashboard](admin/catalog.mdx), but you can also manage them with one of the CRDs that Okteto installs: `catalogitems.git.okteto.com`.
+Use the CRD to add catalog items with `kubectl` commands or to manage your catalog with GitOps.
 
 :::note
-If you add Catalog items using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+Catalog items you add with CRDs are displayed in the UI, but you can't modify them from the UI. To manage a catalog item from the UI, create it there.
 :::
 
 To configure a catalog item, create a resource like this:
 
-- `metadata.name`: name of the `CatalogItem` resource to be created
-- `spec.branch`: default branch for the CatalogItem. (optional)
-- `spec.manifestPath`: path to the manifest file in the repository (optional)
-- `spec.name`: Display name in the Catalog UI list
-- `spec.repositoryUrl`: URL of the repository
-- `spec.variables`: list of variables suggested to the user at deployment time. Each variable can be defined by name only, or by name and value (optional)
+- `metadata.name`: the name of the `CatalogItem` resource
+- `spec.branch`: the default branch for the catalog item (optional)
+- `spec.manifestPath`: the path to the manifest file in the repository (optional)
+- `spec.name`: the display name in the Catalog UI list
+- `spec.repositoryUrl`: the repository URL
+- `spec.variables`: the variables suggested to the user at deployment time. Define each variable by name only, or by name and value (optional)
 
 ```yaml title="my-catalog-item.yaml"
 apiVersion: git.okteto.com/v1
@@ -131,19 +129,19 @@ spec:
     - name: VARIABLE_WITHOUT_VALUE
 ```
 
-To apply the changes manually, run the command `kubectl apply -f my-catalog-item.yaml` from your terminal to add the catalog item to the your Catalog in the cluster.
+Run `kubectl apply -f my-catalog-item.yaml` to add the catalog item to the Okteto Catalog in your cluster.
 
 
 ## Cloud Credentials
 
-Cloud Credentials are mainly managed via the [Admin dashboard](admin/dashboard.mdx#cloud-credentials), but can also be managed via one of the CRDs installed by Okteto: `dynamicconfigs.admin.okteto.com`.
-Using CRDs can be useful if you would like to add Cloud Credentials manually with a simple `kubectl` command or manage your Cloud Credentials using GitOps.
+Cloud Credentials are mainly managed from the [Admin Dashboard](admin/dashboard.mdx#cloud-credentials), but you can also manage them with one of the CRDs that Okteto installs: `dynamicconfigs.admin.okteto.com`.
+Use the CRD to add Cloud Credentials with a `kubectl` command or to manage them with GitOps.
 
 :::note
-If you add credentials using CRDs they will be displayed in the UI, but they can't be modified from the UI. If you want to manage them from the UI, they must be created from there.
+Credentials you add with CRDs are displayed in the UI, but you can't modify them from the UI. To manage credentials from the UI, create them there.
 :::
 
-For example, if you want to add a configuration for **GCP Cloud Credential**, you will need to create a resource like this:
+For example, to add a configuration for a **GCP Cloud Credential**, create a resource like this:
 
 - `metadata.name`: `gcp-credentials-config`
 - `spec.audience`: This is the intended audience for the credential. It is typically a URL or a string that identifies the target service or application that will use the credential.
@@ -164,12 +162,12 @@ spec:
   workloadIdentityPoolId: <workload-identity-pool-id>
 ```
 
-Alternatively, if you would like to add a configuration for **AWS Cloud Credentials**, you will need to create a resource like this:
+To add a configuration for **AWS Cloud Credentials**, create a resource like this:
 
 - `metadata.name`: `aws-credentials-config`
-- `spec.audience`: This is the intended audience for the credential. It is typically a URL or a string that identifies the target service or application that will use the credential.
-- `spec.region`: This specifies the AWS region where the credentials will be used. It is a string that identifies the geographic area where AWS resources are located.
-- `spec.roleARN`: This is the Amazon Resource Name (ARN) of the IAM role that will be assumed. It uniquely identifies the role within AWS and is used to specify which role will be used to authenticate the credentials.
+- `spec.audience`: the intended audience for the credential, typically a URL or a string that identifies the target service or application that uses the credential.
+- `spec.region`: the AWS region where the credentials are used.
+- `spec.roleARN`: the Amazon Resource Name (ARN) of the IAM role to assume. It identifies the role used to authenticate the credentials.
 
 ```yaml title="aws-cloud-credential.yaml"
 apiVersion: admin.okteto.com/v1
@@ -191,21 +189,22 @@ Only one credential configuration is allowed per provider, meaning you can defin
 :::
 
 ## Okta User De-provisioning
-Okta user de-provisioning can be managed through the [Admin dashboard](admin/integrations/okta-user-deprovisioning.mdx), or via one of the CRDs installed by Okteto.
-This allows administrators to define deprovisioning policies declaratively, ensuring that users who are removed from Okta are also deactivated in Okteto automatically.
+
+You can manage Okta user de-provisioning from the [Admin Dashboard](admin/integrations/okta-user-deprovisioning.mdx) or with one of the CRDs that Okteto installs.
+With the CRD, Admins define de-provisioning policies declaratively, so users removed from Okta are also deactivated in Okteto automatically.
 
 ### 1. Create the Event Hook Token in Okta
-To start, **follow Step 1** in the [Okta User De-provisioning documentation](admin/integrations/okta-user-deprovisioning.mdx) to configure the event hook in Okta. When finished with Step 1, return here.
+
+Follow **Step 1** of [Okta User De-provisioning](admin/integrations/okta-user-deprovisioning.mdx) to configure the event hook in Okta. Then continue with [2. Create the Required Secret](#2-create-the-required-secret).
 
 ### 2. Create the Required Secret
-Next, you must create an [Opaque **Kubernetes secret**](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) that contains the necessary configuration for Okta user de-provisioning.
 
-That secret should contain 2 keys with the information:
-- `eventsEnabled`: A boolean (`true` or `false`, base64-encoded) indicating whether Okta user de-provisioning is enabled
-  - "true" → `dHJ1ZQ==`
-  - "false" → `ZmFsc2U=`
-- `eventsAuthSecret`: The webhook authorization secret specified when configuring the event hook in Okta
+Create an [Opaque Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret) with the configuration for Okta user de-provisioning. The secret has two keys:
 
+- `eventsEnabled`: a boolean (`true` or `false`, base64-encoded) that enables Okta user de-provisioning
+  - `true` → `dHJ1ZQ==`
+  - `false` → `ZmFsc2U=`
+- `eventsAuthSecret`: the webhook authorization secret you set when you configured the event hook in Okta
 
 
 ```yaml
@@ -222,7 +221,7 @@ data:
 
 ### 3. Create the CRD Configuration
 
-Once the secret is created, define the Okta user de-provisioning CRD referencing the secret:
+Define the Okta user de-provisioning resource, referencing the secret:
 
 ```yaml
 apiVersion: admin.okteto.com/v1
@@ -232,10 +231,12 @@ metadata:
   namespace: okteto
 secretRef: okta-deprovisioning-secret
 ```
-- `secretRef` is the secret name created in the previous step
+`secretRef` is the name of the secret you created in [2. Create the Required Secret](#2-create-the-required-secret).
 
 ### 4. Apply the Configuration
-To apply the configuration run
+
+Save the secret in `okta-deprovisioning-secret.yaml` and the `DynamicConfig` in `okta-deprovisioning-crd.yaml`, and apply them:
+
 ```sh
 kubectl apply -f okta-deprovisioning-secret.yaml
 kubectl apply -f okta-deprovisioning-crd.yaml
@@ -243,34 +244,34 @@ kubectl apply -f okta-deprovisioning-crd.yaml
 
 ### 5. Verify Okta Event Hook Integration
 
-Once the CRD and secret are configured, go back to the **Okta admin console** and verify the webhook. After verification, Okteto will start receiving `User Deactivated` and `User Deleted` events, automatically de-provisioning users from the system.
+Once the secret and the resource are applied, go back to the **Okta admin console** and verify the webhook. After verification, Okteto starts receiving `User Deactivated` and `User Deleted` events and de-provisions those users automatically.
 
 Events sent to the webhook appear in the `Reports -> System Log` tab of Okta which can be useful for troubleshooting.
 
-## Known Hosts 
+## Known Hosts
 
-SSH Known Hosts can be managed through the Admin dashboard, or via one of the CRDs installed by Okteto. Managing them with CRDs lets you define host key entries declaratively and keep them under GitOps.
+You can manage SSH known hosts from the Admin Dashboard or with one of the CRDs that Okteto installs. With CRDs, you define host key entries declaratively and keep them under GitOps.
 
 :::note
-Entries created via CRDs will be visible in the UI but treated as read-only. If you omit the label "app.kubernetes.io/managed-by: okteto", the item is shown as read-only in the UI.
+The UI shows the entries you create with CRDs as read-only. Only entries with the label `app.kubernetes.io/managed-by: okteto`, which Okteto adds to the entries you create from the UI, are editable there.
 :::
-
 
 ### 1. Prepare the known_hosts content
 
 Collect the public host keys you want to trust, one per line, in standard OpenSSH known_hosts format, e.g.:
 
-```
+```text
 github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
 ```
 
 ### 2. Create the Required Secret
 
-Create an Opaque Kubernetes Secret with two base64-encoded keys:
-- `content`: the full known_hosts file content (base64-encoded)
-- `enabled`: a boolean flag (true/false, base64-encoded)
-  - "true" → dHJ1ZQ==
-  - "false" → `ZmFsc2U=`
+Create an Opaque Kubernetes secret with two base64-encoded keys:
+
+- `content`: the full content of the `known_hosts` file
+- `enabled`: a boolean flag (`true` or `false`)
+  - `true` → `dHJ1ZQ==`
+  - `false` → `ZmFsc2U=`
 
 ```yaml
 apiVersion: v1
@@ -281,12 +282,12 @@ metadata:
 type: Opaque
 data:
   content: <base64-of-known_hosts>
-  enabled: <dHJ1ZQ==|-ZmFsc2U=>
+  enabled: <dHJ1ZQ==|ZmFsc2U=>
 ```
 
 ### 3. Create the CRD Configuration
 
-Reference the Secret from a DynamicConfig:
+Reference the secret from a `DynamicConfig`:
 
 ```yaml
 apiVersion: admin.okteto.com/v1
@@ -298,12 +299,14 @@ secretRef: ssh-known-hosts-secret
 ```
 
 ### 4. Apply the Configuration
- 
- ```sh
+
+Save the secret in `ssh-known-hosts-secret.yaml` and the `DynamicConfig` in `ssh-known-hosts-crd.yaml`, and apply them:
+
+```sh
 kubectl apply -f ssh-known-hosts-secret.yaml
 kubectl apply -f ssh-known-hosts-crd.yaml
 ```
 
 ### 5. Verify in the Admin Dashboard
 
-Open the Admin dashboard and check the SSH Known Hosts section. The entries from your CRD should be listed. If enabled is true, the configuration is active.
+Open the Admin Dashboard and check the SSH Known Hosts section. It lists the entries from your CRD. If `enabled` is `true`, the configuration is active.
