@@ -49,11 +49,13 @@ build:
     context: api
 
 deploy:
-  - name: Helm Install
-    command: |
-      helm upgrade --install movies chart \
-        --set api.image=${OKTETO_BUILD_API_IMAGE} \
-        --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+  image: alpine/helm:4.3.2
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 
 test:
   frontend:
@@ -78,20 +80,6 @@ test:
     artifacts:
       - test-results
       - playwright-report
-
-dev:
-  api:
-    command: yarn start
-    sync:
-      - api:/src
-    forward:
-      - 9229:9229
-
-  frontend:
-    image: okteto/node:20
-    command: bash
-    sync:
-      - frontend:/usr/src/app
 ```
 
 Each page of the series covers one part of it, in this order:
@@ -100,5 +88,3 @@ Each page of the series covers one part of it, in this order:
 2. [Deploy](deploy.mdx): the `deploy` section, which deploys the Helm chart, MongoDB included, with `okteto deploy`.
 3. [Endpoints](endpoints.mdx): the Ingress of the Helm chart, which Okteto serves on public HTTPS endpoints.
 4. [Test](test.mdx): the `test` section, which runs unit and end-to-end tests with `okteto test`.
-
-The `dev` section defines the Development Containers of the `api` and `frontend` services, covered in [Development Environments](development/index.mdx).
