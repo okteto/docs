@@ -30,7 +30,7 @@ These patterns are the most common drift in agent-authored docs. Treat each as a
 **Required patterns:**
 
 - Open every page with the subject (feature name or "Okteto") followed by what it does. No preamble.
-- Section headings are noun phrases (`Configuring the Garbage Collector`), not questions or imperatives.
+- Section headings are noun phrases (`Configuring the Garbage Collector`), not questions or imperatives. The only exception is the `###` questions inside a `## FAQ` section (see [`STYLE_GUIDE.md`](STYLE_GUIDE.md#section-headings)).
 - Embed links inline. Never use standalone "Learn more" lines or arrow links.
 - Frontmatter `description` is one functional sentence. No marketing language.
 - Address the reader as "you". Use present tense and active voice.
@@ -131,7 +131,7 @@ Run through this before declaring any docs change complete:
 4. **Verify links are inline**, not standalone "Learn more →" lines.
 5. **Confirm the frontmatter `description`** is a single functional sentence, with no marketing copy.
 6. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.
-7. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases.
+7. **For new feature docs:** confirm you opened with the subject + what it does, and that section headings are noun phrases (questions only inside a `## FAQ` section).
 8. **Check every image or table you added at phone width** (390px, an iPhone). Text inside images must stay readable (about 11px or more on screen): give wide diagrams a stacked version with the `mobileSrc` prop of `Image`. Tables must fit the screen without scrolling sideways. Headless Chrome can't make its window narrower than about 500px, so emulate the device (Chrome DevTools, or `Emulation.setDeviceMetricsOverride` over the DevTools protocol) instead of resizing the window.
 9. **Check for confidential information** in the docs, commit messages and PR description: no customer names, internal links or credentials (see [Confidential information](#confidential-information)).
 
