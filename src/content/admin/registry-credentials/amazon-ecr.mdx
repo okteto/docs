@@ -116,7 +116,7 @@ The response looks like this:
 Store this value in an environment variable for the next step:
 
 ```bash
-export ROLE_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
+export PROVIDER_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster
 ```
 
 ### Step 2: Creating the IAM Role and Granting Access to ECR
@@ -124,7 +124,7 @@ export ROLE_ARN=arn:aws:iam::112233445566:oidc-provider/container.googleapis.com
 Create an IAM Role with access to ECR that the OIDC identity provider from [Step 1: Registering the Identity Provider](#step-1-registering-the-identity-provider) can assume.
 
 First, create the trust policy that lets the OIDC identity provider assume the IAM Role.
-Save this content to a file named `trust-policy.json`, replacing the environment variables with their values:
+Save this content to a file named `trust-policy.json`, replacing the environment variables with their values. In the condition keys, write the value of `OIDC_ENDPOINT` without `https://`:
 
 ```yaml title="trust-policy.json"
 {
@@ -133,7 +133,7 @@ Save this content to a file named `trust-policy.json`, replacing the environment
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "${ROLE_ARN}"
+        "Federated": "${PROVIDER_ARN}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -169,14 +169,26 @@ The response looks like this:
                 {
                     "Effect": "Allow",
                     "Principal": {
-                        "Service": "ec2.amazonaws.com"
+                        "Federated": "arn:aws:iam::112233445566:oidc-provider/container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster"
                     },
-                    "Action": "sts:AssumeRole"
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:aud": "okteto.example.com/us-east-2",
+                            "container.googleapis.com/v1/projects/myProject/locations/us-central1/clusters/myCluster:sub": "system:serviceaccount:okteto:okteto"
+                        }
+                    }
                 }
             ]
         }
     }
 }
+```
+
+Store the `Arn` of the IAM Role in an environment variable for the next steps:
+
+```bash
+export ROLE_ARN=arn:aws:iam::112233445566:role/my-private-registry
 ```
 
 Attach an ECR policy that allows the IAM Role to pull from the registry:
@@ -191,7 +203,7 @@ Go to **Admin > Integrations > Registry Credentials**, click **Add Credential**,
 
 - **Type**: `AWS IAM Role (via OIDC)`
 - **Hostname**: your ECR registry endpoint, `https://{AWS_ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com`
-- **Role ARN**: the Role ARN `ROLE_ARN` from [Step 1: Registering the Identity Provider](#step-1-registering-the-identity-provider)
+- **Role ARN**: the ARN of the IAM Role, `ROLE_ARN`, from [Step 2: Creating the IAM Role and Granting Access to ECR](#step-2-creating-the-iam-role-and-granting-access-to-ecr)
 - **Audience JWT Claim**: the `AUDIENCE` you set when you registered the identity provider
 
 :::tip

@@ -17,23 +17,24 @@ Configuring access to your private Google Artifact Registry takes three steps:
 
 ## Step 1: Creating a service account with access to your private Google Artifact Registry
 
-Export the name you want for your service account:
+Export your Google Cloud project ID and the name you want for your service account:
 
 ```bash
-export SA_NAME=<<your-service-account-name>>
+export PROJECT_ID=<your-project-id>
+export SA_NAME=<your-service-account-name>
 ```
 
 Create the service account with the [gcloud CLI](https://cloud.google.com/sdk/gcloud/reference/iam/service-accounts/create):
 
 ```bash
-gcloud iam service-accounts create ${SA_NAME} --display-name="My Service Account for Okteto"
+gcloud iam service-accounts create ${SA_NAME} --project=${PROJECT_ID} --display-name="My Service Account for Okteto"
 ```
 
 Add a policy that grants the service account read access to your private Google Artifact Registry:
 
 ```bash
-gcloud projects add-iam-policy-binding {PROJECT_ID} \
-    --member=serviceAccount:{SA_NAME}@{PROJECT_ID}.iam.gserviceaccount.com \
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member=serviceAccount:${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com \
     --role=roles/artifactregistry.reader
 ```
 
@@ -43,7 +44,7 @@ Create a key for the service account:
 
 ```bash
 gcloud iam service-accounts keys create SA_KEY_FILE.json \
-    --iam-account=SA_NAME@PROJECT_ID.iam.gserviceaccount.com
+    --iam-account=${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com
 ```
 
 The command creates a file named `SA_KEY_FILE.json` with the credentials. You enter its content in Okteto in [Step 3: Configuring the credentials in Okteto](#step-3-configuring-the-credentials-in-okteto).
