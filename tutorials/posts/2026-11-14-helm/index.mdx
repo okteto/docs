@@ -9,10 +9,6 @@ image_alt: "The Helm logo with an arrow to the Kubernetes logo"
 
 Okteto deploys an application packaged as Helm charts with the same charts you use in production, and then lets you develop each service in that environment. This tutorial uses the [Helm Sample App](https://github.com/okteto/helm-getting-started), a to-do list application, to show the four sections of the [Okteto Manifest](/docs/reference/okteto-manifest) you need: `build`, `deploy`, `test`, and `dev`.
 
-:::tip
-The `.dockerignore`, `.oktetoignore`, and `.stignore` files are key to performance. They decide which files Okteto sends to the image builds, to Remote Execution, and to File Sync. Without them, every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` transfers the whole repository, `.git` folder included, and a change to any file invalidates the build cache.
-:::
-
 ## Prerequisites
 
 - Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli#context) configured.
@@ -78,7 +74,7 @@ CMD ["node", "index.js"]
 - `dev` is the development image: Node.js, the dependencies installed by `npm ci`, and the source code.
 - `prod` is the application image that the chart deploys. It runs the code and the dependencies of the `dev` stage on a smaller Node.js image.
 
-The `dev` stage of the `client` also runs `vite build`, and its `prod` stage serves the result with NGINX on port `3000`. A `.dockerignore` file in each folder sends to the build only the files that the Dockerfile needs, such as `package.json`, `package-lock.json`, and the source code.
+The `dev` stage of the `client` also runs `vite build`, and its `prod` stage serves the result with NGINX on port `3000`.
 
 ## The Okteto Manifest
 
@@ -149,25 +145,6 @@ dev:
 
 `deploy.image` sets the image of the container where Remote Execution runs the commands of `deploy.commands`. The tag of that image chooses the Helm version of your deploys, here Helm 4.3.2, so it only changes when you change the Okteto Manifest. The Helm project doesn't publish an image, so the Helm Sample App uses [`alpine/helm`](https://hub.docker.com/r/alpine/helm), an image with Helm on Alpine Linux. Any image works if it includes `/bin/sh` and every tool that your commands run. Without `deploy.image`, the commands run in the [default image of Remote Execution](/docs/core/remote-execution#enable-remote-execution-per-application), which includes Helm, `kubectl`, and other tools.
 
-The `.oktetoignore` file limits the files that the Okteto CLI sends to the Remote Execution container. The deploy commands only read the charts:
-
-```text title=".oktetoignore"
-# Files that the Okteto CLI sends to Remote Execution.
-
-# "okteto deploy" and "okteto destroy" only need the Helm charts
-[deploy]
-*
-!db/chart
-!server/chart
-!client/chart
-
-[destroy]
-*
-!db/chart
-!server/chart
-!client/chart
-```
-
 ## Deploying the Application
 
 Deploy the application from the root of the repository:
@@ -224,18 +201,7 @@ test:
 - `commands`: the commands that install the dependencies and run the tests. The Test Container fails if a command exits with a non-zero code.
 - `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the coverage report.
 
-Test Containers run with [Remote Execution](/docs/core/remote-execution#ignoring-files). The `[test]` group of the `server/.oktetoignore` file sends them only `package.json`, `package-lock.json`, and the `.js` files:
-
-```text title="server/.oktetoignore"
-# Files that the Okteto CLI sends to Remote Execution from the server folder.
-
-# "okteto test" only needs what "npm ci" and "node --test" read
-[test]
-*
-!package.json
-!package-lock.json
-!*.js
-```
+Test Containers run with [Remote Execution](/docs/core/remote-execution).
 
 Run the unit tests from the root of the repository:
 
@@ -281,25 +247,6 @@ The `dev` section of the Okteto Manifest defines a Development Container for the
 - `persistentVolume`: disables the persistent volume of the Development Container. The dependencies come from the development image, and Okteto synchronizes the files again on every `okteto up`, so there's no volume to create and attach.
 
 The [Development Container guides](/docs/development/containers/) explain how to configure Test Containers and Development Containers for each language.
-
-The `.stignore` file of each folder lists the files that [File Sync](/docs/reference/file-synchronization#ignoring-files) skips in both directions. This is the one of the `server`:
-
-```text title="server/.stignore"
-# Files that "okteto up" does not synchronize with the development container.
-
-# Dependencies installed in the development image by "npm ci"
-/node_modules
-
-# Coverage report that "okteto test" copies to your machine
-/lcov.info
-
-# Local-only files
-.vscode
-.idea
-.DS_Store
-```
-
-The `node_modules` folder of the development image stays in the Development Container, and the one of your machine, if you have it, stays on your machine.
 
 Start a Development Container for the backend:
 

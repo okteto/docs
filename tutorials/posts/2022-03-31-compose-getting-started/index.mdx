@@ -9,10 +9,6 @@ image_alt: "The Docker logo with an arrow to the Kubernetes logo"
 
 Okteto deploys an application defined in a [Docker Compose](/docs/reference/docker-compose/) file to Kubernetes, with no Kubernetes manifests, and then lets you test and develop each service in that environment. This tutorial uses a voting application written in Python and Redis: Okteto builds its application image and its development image from one Dockerfile, runs its unit tests in a Test Container, and reloads it with the Flask reloader when you save a file.
 
-:::tip
-The `.dockerignore`, `.oktetoignore`, and `.stignore` files are key to performance. They decide which files Okteto sends to the image builds, to Remote Execution, and to File Sync. Without them, every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` transfers the whole repository, `.git` folder included, and a change to any file invalidates the build cache.
-:::
-
 ## Prerequisites
 
 - Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli/#context) configured.
@@ -82,18 +78,6 @@ CMD ["python", "app.py"]
 - `dev` is the development image. It contains Python, the dependencies of `requirements.txt`, and the source code. `requirements.txt` is copied and installed before the source code, so a change to `app.py` doesn't reinstall the dependencies.
 - `prod` is the application image. It contains the slim Python runtime, the dependencies of `requirements.txt`, `app.py`, and the static files and templates that the application serves.
 
-The `vote/.dockerignore` file limits the build context to the files that `pip install` and the application need:
-
-```text title="vote/.dockerignore"
-*
-!requirements.txt
-!*.py
-!static
-!templates
-```
-
-Without it, your local virtual environment and the rest of the folder end up in the development image, and a change to any other file invalidates the build cache.
-
 ## The Okteto Manifest
 
 The Docker Compose file defines the application. The `okteto.yml` file, the [Okteto Manifest](/docs/reference/okteto-manifest/) of the repository, adds what a Docker Compose file can't define: the development image, the unit tests, and the Development Container.
@@ -134,20 +118,7 @@ dev:
 - **`deploy`** [deploys the Docker Compose file](/docs/reference/okteto-manifest/#deploy-with-compose).
 - **`test`** and **`dev`** define the Test Container and the Development Container, explained in [Testing the Application](#testing-the-application) and [Developing a Service](#developing-a-service).
 
-Okteto deploys the Docker Compose file with [Remote Execution](/docs/core/remote-execution/), in a container inside your cluster. The `[deploy]` and `[destroy]` groups of the `.oktetoignore` file limit the files that the Okteto CLI sends to Remote Execution for `okteto deploy` and `okteto destroy` to `docker-compose.yml`, the only file the deploy reads:
-
-```text title=".oktetoignore"
-# Files that the Okteto CLI sends to Remote Execution.
-
-# "okteto deploy" and "okteto destroy" only need the Docker Compose file
-[deploy]
-*
-!docker-compose.yml
-
-[destroy]
-*
-!docker-compose.yml
-```
+Okteto deploys the Docker Compose file with [Remote Execution](/docs/core/remote-execution/), in a container inside your cluster.
 
 ## Deploying the Application
 
@@ -200,17 +171,7 @@ test:
 - `commands`: the commands that install pytest and run the tests. The Test Container fails if a command exits with a non-zero code.
 - `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the JUnit report of pytest.
 
-The tests replace Redis with an in-memory fake, so they don't need the `redis` service. The `[test]` group of the `.oktetoignore` file sends the Test Container only the Python files, the templates, and the requirements of the `vote` folder:
-
-```text title=".oktetoignore"
-# "okteto test" only needs what "pip install" and "pytest" read
-[test]
-*
-!vote/requirements.txt
-!vote/requirements-test.txt
-!vote/*.py
-!vote/templates
-```
+The tests replace Redis with an in-memory fake, so they don't need the `redis` service.
 
 Run the unit tests from the root of the repository:
 
@@ -265,23 +226,6 @@ dev:
 - `environment`: `FLASK_DEBUG=1` runs Flask in debug mode, so the Flask reloader restarts the application every time a `.py` file changes.
 - `sync`: synchronizes the `vote` folder with `/usr/src/app`, the working directory of the development image.
 - `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the dependencies come from the development image, so there's no volume to create and attach.
-
-The `vote/.stignore` file lists the files that [File Sync](/docs/reference/file-synchronization/#ignoring-files) skips in both directions:
-
-```text title="vote/.stignore"
-# Files generated inside the development container
-__pycache__
-/.pytest_cache
-
-# Local-only files
-.venv
-venv
-.idea
-.vscode
-.DS_Store
-```
-
-Your virtual environment and IDE settings stay on your machine. The bytecode that Python (`__pycache__`) and pytest (`.pytest_cache`) generate in the Development Container stays in the Development Container.
 
 Start the Development Container:
 
