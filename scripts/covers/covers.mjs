@@ -131,7 +131,7 @@ function environments(cx, y0) {
 
 // The scale diagram of the docs home: a cluster full of environments, some
 // of them asleep, and what keeps their cost down.
-const SCALE_ALT = 'A Kubernetes cluster managed by Okteto with many environments, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, and Okteto Insights';
+const SCALE_ALT = 'A Kubernetes cluster managed by Okteto with many environments, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, Smart Tests, and Okteto Insights';
 function scaleCluster(cx, y0, width, tile, gap) {
   const rows = [[1, 1, 0, 1], [1, 0, 1, 0], [0, 1, 1, 0]];
   const height = 154 + rows.length * (tile + gap) + 10;
@@ -232,7 +232,7 @@ function agentSandbox(x, y, w) {
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
-    ['Cost', C.teal, [['moon', 'Garbage Collector'], ['cpu', 'Resource Manager'], ['zap', 'Smart Builds'], ['eye', 'Okteto Insights']]],
+    ['Cost', C.teal, [['moon', 'Garbage Collector'], ['cpu', 'Resource Manager'], ['zap', 'Smart Builds'], ['circle-check', 'Smart Tests'], ['eye', 'Okteto Insights']]],
   ];
   let out = '';
   let y = y0;
@@ -240,11 +240,11 @@ function scaleFeatures(x, y0, width) {
     out += text(title, x, y + 22, 24, { anchor: 'start', color });
     y += 38;
     for (const [name, label] of rows) {
-      out += box(x, y, width, 46, { color, radius: 12, strokeWidth: 2.5, fill: C.row })
-        + icon(name, x + 30, y + 23, 28, color) + text(label, x + 58, y + 31, 22, { anchor: 'start', color: C.onInk });
-      y += 54;
+      out += box(x, y, width, 44, { color, radius: 12, strokeWidth: 2.5, fill: C.row })
+        + icon(name, x + 30, y + 22, 28, color) + text(label, x + 58, y + 30, 22, { anchor: 'start', color: C.onInk });
+      y += 50;
     }
-    y += 18;
+    y += 14;
   }
   return out;
 }
@@ -995,13 +995,13 @@ const covers = [
     out: 'static/img/environments-at-scale.webp',
     background: 'white',
     alt: SCALE_ALT,
-    svg: () => scaleCluster(350, 75, 540, 96, 24) + arrow(770, 330, 645, 330, { color: C.blue }) + scaleFeatures(790, 62, 330),
+    svg: () => scaleCluster(350, 75, 540, 96, 24) + arrow(770, 330, 645, 330, { color: C.blue }) + scaleFeatures(790, 48, 330),
   },
   {
     out: 'static/img/environments-at-scale-mobile.webp',
     background: 'white',
     width: 600,
-    height: 1200,
+    height: 1220,
     alt: SCALE_ALT,
     svg: () => scaleCluster(300, 60, 480, 88, 18) + arrow(300, 640, 300, 548, { color: C.blue }) + scaleFeatures(100, 650, 400),
   },
