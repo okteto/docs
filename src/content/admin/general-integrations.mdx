@@ -1,0 +1,76 @@
+---
+title: General Integrations
+description: The General Integrations section of the Admin Dashboard has the Okteto SSH key for Git, the Okteto Insights token, the OpenID Connect details, and Okta user deprovisioning.
+sidebar_label: General Integrations
+id: general-integrations
+---
+
+import Image from "@theme/Image";
+
+**Admin > Integrations > General** has the settings that connect Okteto with other tools: the SSH key that Okteto uses for Git, the token for Okteto Insights metrics, the OpenID Connect details for your cloud provider, and, when Okta is your identity provider, Okta user deprovisioning.
+
+<Image
+  src={require("@site/static/img/admin-integrations.png").default}
+  alt="The General Integrations section of the Admin Dashboard, with the Git, Insights, and OpenID Connect integrations"
+/>
+
+## Git SSH Key
+
+Okteto generates an SSH key the first time it starts, and uses it to clone Git repositories over SSH: when it deploys a repository from the [Okteto UI](development/deploy/deploy-from-git.mdx) or with `okteto pipeline deploy`, and when the commands of a [Remote Execution](core/remote-execution.mdx) clone a private repository.
+
+Click **Show SSH Key** in the **Git** row to see its public key. Add that public key to your source code provider, preferably on a dedicated bot account for Okteto:
+
+- [GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+- [GitLab](https://docs.gitlab.com/user/ssh/)
+- [Bitbucket](https://support.atlassian.com/bitbucket-cloud/docs/set-up-an-ssh-key/)
+
+Developers can then deploy private repositories with their SSH URL, as [Private repositories](development/deploy/from-private-repositories.mdx#other-private-repositories) explains. To control which SSH hosts Okteto trusts, configure [Known Hosts](admin/ssh-known-hosts.mdx).
+
+## Okteto Insights Token
+
+Click **Show Insights Token** in the **Insights** row to see the bearer token that Prometheus, or any other tool, uses to read the metrics of your Okteto instance. [Okteto Insights Metrics](reference/okteto-insights-metrics.mdx) explains how to enable the metrics endpoint and lists every metric.
+
+## OpenID Connect (OIDC)
+
+Click **Show Details** in the **OpenID Connect (OIDC)** row to see the issuer and the subject that Okteto uses to authenticate with your cloud provider through OpenID Connect federation, without static credentials. [Registry Credentials for Amazon ECR](admin/registry-credentials/amazon-ecr.mdx#using-iam-roles-via-openid-connect-oidc-federation) explains how to use them.
+
+## Okta User Deprovisioning
+
+If Okta is your identity provider, Okteto can delete the account of every user that you deactivate or delete in Okta. Okta sends an [event hook](https://help.okta.com/en-us/content/topics/automation-hooks/event-hooks-main.htm) to Okteto for each `user.lifecycle.deactivate` and `user.lifecycle.delete.initiated` event, and Okteto ignores any other event. Okteto shows the **Okta** row in this section when your instance uses OpenID Connect for [authentication with Okta](self-hosted/install/auth/okta.mdx).
+
+### 1. Creating the event hook in Okta
+
+In the Okta admin console, go to **Workflows > Event Hooks** and create an event hook with these values:
+
+- **Name:** a name that identifies Okteto.
+- **URL:** `https://okteto.SUBDOMAIN/api/okta`, replacing `SUBDOMAIN` with the subdomain of your Okteto instance.
+- **Authentication field:** `Authorization`.
+- **Authentication secret:** a secret value that you also enter in Okteto in the next step.
+- **Events:** **User Deactivated**, **User Deleted**, or both.
+
+Okteto handles both events the same way. If you select both, Okteto skips the **User Deleted** event of a user that is already deactivated.
+
+<Image
+  src={require("@site/static/img/okta-user-deprovision.png").default}
+  alt="The event hook configuration in Okta, with its name, URL, authentication field, authentication secret, and events"
+/>
+
+### 2. Enabling deprovisioning in Okteto
+
+In the **Okta** row of **Admin > Integrations > General**, enter the authentication secret of the event hook and click **Enable**.
+
+<Image
+  src={require("@site/static/img/okta-user-deprovision-dashboard+1.32.png").default}
+  alt="The Okta row of the General Integrations section of the Admin Dashboard, with Okta deprovisioning disabled and an Enable button"
+/>
+
+### 3. Verifying the event hook
+
+Back in the Okta admin console, verify the event hook. Okta sends a one-time verification request to Okteto, which Okteto answers automatically. After the verification, Okteto deprovisions users as Okta sends their events.
+
+<Image
+  src={require("@site/static/img/okta-user-deprovision-verify.png").default}
+  alt="The verification of the event hook in the Okta admin console"
+/>
+
+Okta lists the events it sends in **Reports > System Log**, which helps you troubleshoot the integration. Okta user deprovisioning needs Okteto chart 1.30 or later: on older versions, the verification fails with a 404 error.

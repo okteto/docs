@@ -159,28 +159,38 @@ module.exports = {
       label: 'Administration',
       link: { type: 'doc', id: 'admin/index' },
       items: [
-        'admin/dashboard',
-        'admin/billing',
-        'admin/catalog',
-        'admin/build-service',
-        'admin/custom-installer-image',
-        'admin/cleanup',
-        'admin/ssh-known-hosts',
+        {
+          type: 'category',
+          label: 'Cluster Management',
+          items: [
+            'admin/overview',
+            'admin/installation',
+            'admin/catalog',
+            'admin/users',
+            'admin/build-service',
+            'admin/nodes',
+            'admin/namespaces',
+            'admin/previews',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Settings',
+          items: [
+            'admin/cli',
+            'admin/deployments',
+            'admin/admin-variables',
+            'admin/cleanup',
+            'admin/resource-manager',
+            'admin/ssh-known-hosts',
+          ],
+        },
         {
           type: 'category',
           label: 'Integrations',
           items: [
-            {
-              type: 'category',
-              label: 'Cloud Credentials',
-              link: { type: 'doc', id: 'admin/cloud-credentials/index' },
-              items: [
-                'admin/cloud-credentials/aws-cloud-credentials',
-                'admin/cloud-credentials/gcp-cloud-credentials',
-                'admin/cloud-credentials/azure-cloud-credentials',
-              ],
-            },
-            'admin/integrations/okta-user-deprovisioning',
+            'admin/general-integrations',
+            'admin/admin-access-tokens',
             {
               type: 'category',
               label: 'Registry Credentials',
@@ -192,17 +202,18 @@ module.exports = {
                 'admin/registry-credentials/google-artifact-registry',
               ],
             },
+            {
+              type: 'category',
+              label: 'Cloud Credentials',
+              link: { type: 'doc', id: 'admin/cloud-credentials/index' },
+              items: [
+                'admin/cloud-credentials/aws-cloud-credentials',
+                'admin/cloud-credentials/gcp-cloud-credentials',
+                'admin/cloud-credentials/azure-cloud-credentials',
+              ],
+            },
           ],
         },
-        'admin/okteto-api',
-        'admin/okteto-insights',
-        'admin/previews',
-        {
-          type: 'category',
-          label: 'Private Repositories',
-          items: ['admin/private-repositories/github-app', 'admin/private-repositories/ssh-key'],
-        },
-        'admin/resource-manager',
       ],
     },
     {
@@ -305,6 +316,8 @@ module.exports = {
       items: [
         'reference/okteto-cli',
         'reference/okteto-manifest',
+        'reference/okteto-api',
+        'reference/okteto-insights-metrics',
         'reference/docker-compose',
         'reference/supported-github-actions',
         'reference/file-synchronization',

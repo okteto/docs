@@ -47,7 +47,7 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
   - **Requests that match real usage**: Configure the [Resource Manager](admin/resource-manager.mdx#how-it-works) in **Automatic** mode from **Admin → Resource Manager**. It calculates the average CPU and memory usage of each container in your Development Environments and sets the resource requests of new pods based on it. The cluster autoscaler then adds and removes nodes according to what your workloads use, instead of according to requests that are too high or too low
   - **Warm nodes, coming in Okteto 1.51**: Okteto 1.51 will let you keep a number of nodes ready and warmed up. A warm node has already pulled a set of images that you configure, so when the cluster needs more capacity, new workloads start on it without waiting for those images to download
 - **Helm 4 will become the default in Okteto 1.51**: When Okteto runs the `deploy` and `destroy` commands of your Okteto Manifest [remotely](reference/okteto-manifest.mdx#deploy-remotely), it injects the `helm`, `helm3` and `helm4` binaries into the deploy image. In this release, `helm` runs Helm 3. Starting with Okteto 1.51, it runs Helm 4. Helm 4 uses server-side apply (SSA) by default, which changes how Kubernetes resources are created and tracked. Most charts work without changes, but test your `deploy` and `destroy` commands with Helm 4 before upgrading to Okteto 1.51. You can enable Helm 4 in two ways:
-  - **For the whole cluster**: Set the `OKTETO_HELM_4_ENABLED` [Admin Variable](admin/dashboard.mdx#admin-variables) to `true`. The `helm` commands in the `deploy` and `destroy` sections of every Okteto Manifest then run Helm 4. To revert, set it to `false` or remove it
+  - **For the whole cluster**: Set the `OKTETO_HELM_4_ENABLED` [Admin Variable](admin/admin-variables.mdx) to `true`. The `helm` commands in the `deploy` and `destroy` sections of every Okteto Manifest then run Helm 4. To revert, set it to `false` or remove it
   - **For a Development Environment**: Replace `helm` with `helm4` in the `deploy` and `destroy` commands of your Okteto Manifest. To revert, change `helm4` back to `helm`, or call `helm3` explicitly:
     ```yaml
     deploy:
@@ -178,7 +178,7 @@ Okteto Chart release 1.47 is designed to work with [Okteto CLI 3.22.x](https://g
 
 ### Important Notes {#important-notes-1.47}
 
-- **OCI media types enabled by default in builds**: The BuildKit bundled with Okteto was upgraded from 0.29 to 0.31, which includes several upstream CVE fixes. With this upgrade, images built with `okteto build` are pushed to the registry using OCI media types by default. This changes only how pushed images are stored; pulling images is unaffected. Major registries have supported OCI media types for years ([registry support matrix](https://github.com/moby/buildkit/issues/6171)), and the Okteto Registry supports them. If you push images to a registry that doesn't support OCI media types, set the [`OKTETO_BUILD_OCI_MEDIATYPES`](reference/feature-flags.mdx) feature flag to `false` as an [Admin Variable](admin/dashboard.mdx#admin-variables) to fall back to legacy Docker media types <!-- DEV-1427, okteto/okteto#5067 -->
+- **OCI media types enabled by default in builds**: The BuildKit bundled with Okteto was upgraded from 0.29 to 0.31, which includes several upstream CVE fixes. With this upgrade, images built with `okteto build` are pushed to the registry using OCI media types by default. This changes only how pushed images are stored; pulling images is unaffected. Major registries have supported OCI media types for years ([registry support matrix](https://github.com/moby/buildkit/issues/6171)), and the Okteto Registry supports them. If you push images to a registry that doesn't support OCI media types, set the [`OKTETO_BUILD_OCI_MEDIATYPES`](reference/feature-flags.mdx) feature flag to `false` as an [Admin Variable](admin/admin-variables.mdx) to fall back to legacy Docker media types <!-- DEV-1427, okteto/okteto#5067 -->
 
 ### New Features {#new-features-1.47}
 
@@ -310,7 +310,7 @@ Okteto Chart release 1.42 is designed to work with [Okteto CLI 3.17.x](https://g
 
 ### New Features {#new-features-1.42}
 
-- **Build Queue Enabled by Default**: The [build queue system](core/build-service.mdx#build-queue-system) introduced as opt-in in 1.41 is now enabled by default. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics, and when all build pods are busy, builds enter a queue to ensure consistent performance. Customers on significantly older CLI versions will continue using the legacy build path automatically. If you need to opt out, set the admin variable `OKTETO_BUILD_QUEUE_ENABLED` to `false` via [Admin Variables](admin/dashboard.mdx#admin-variables)
+- **Build Queue Enabled by Default**: The [build queue system](core/build-service.mdx#build-queue-system) introduced as opt-in in 1.41 is now enabled by default. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics, and when all build pods are busy, builds enter a queue to ensure consistent performance. Customers on significantly older CLI versions will continue using the legacy build path automatically. If you need to opt out, set the admin variable `OKTETO_BUILD_QUEUE_ENABLED` to `false` via [Admin Variables](admin/admin-variables.mdx)
 
 ### Improvements {#improvements-1.42}
 
@@ -352,7 +352,7 @@ Okteto Chart release 1.41 is designed to work with [Okteto CLI 3.16.x](https://g
 
 ### New Features {#new-features-1.41}
 
-- **Build Queue System**: Okteto now implements a build queue system that ensures consistent build performance and fair resource distribution. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics (CPU pressure, memory usage, and IOPS). When all build pods are busy, builds enter a queue and wait until resources become available, preventing overload and ensuring predictable build times. This behavior is disabled by default but can be enabled by setting the `OKTETO_BUILD_QUEUE_ENABLED` feature flag to `true` via [Admin Variables](admin/dashboard.mdx#admin-variables). Learn more about the [Build Queue System](core/build-service.mdx#build-queue-system)
+- **Build Queue System**: Okteto now implements a build queue system that ensures consistent build performance and fair resource distribution. Build requests are automatically routed to the optimal Okteto Build pod based on real-time metrics (CPU pressure, memory usage, and IOPS). When all build pods are busy, builds enter a queue and wait until resources become available, preventing overload and ensuring predictable build times. This behavior is disabled by default but can be enabled by setting the `OKTETO_BUILD_QUEUE_ENABLED` feature flag to `true` via [Admin Variables](admin/admin-variables.mdx). Learn more about the [Build Queue System](core/build-service.mdx#build-queue-system)
 
 ### Improvements {#improvements-1.41}
 
