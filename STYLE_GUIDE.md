@@ -185,6 +185,10 @@ Diagrams and covers are drawn with `scripts/covers` in the docs, the tutorials, 
 
 Never hardcode the Okteto CLI, Helm chart, or Kubernetes versions. Import them from `src/content/variables.json` (`import variables from '../variables.json';`, with the path relative to the page) and write `{variables.cliVersion}`, or `${variables.cliVersion}` inside a template literal.
 
+### Videos
+
+Don't embed or link videos, such as YouTube tutorials or recordings of the product. They go out of date as soon as the product or its UI changes, and nobody updates them. Explain the steps in text, with screenshots or diagrams where they help.
+
 ### Images in samples
 
 Don't use `ghcr.io/okteto/pipeline-runner` in samples, in the `image` of a `deploy` or `destroy` section or anywhere else. Use the public image of the tool that the commands run, with a pinned tag, such as `alpine/helm:4.3.2` for Helm commands.

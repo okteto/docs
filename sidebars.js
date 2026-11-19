@@ -207,21 +207,13 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Okteto BYOC',
-      link: { type: 'doc', id: 'byoc/index' },
-      items: [
-        'byoc/aws/index',
-        'byoc/gcp/index'
-      ]
-    },
-    {
-      type: 'category',
       label: 'Okteto Self-Hosted',
       link: { type: 'doc', id: 'self-hosted/index' },
       items: [
         {
           type: 'category',
           label: 'Complete the installation',
+          link: { type: 'doc', id: 'self-hosted/install/index' },
           items: [
             {
               type: 'category',
@@ -263,21 +255,23 @@ module.exports = {
             'self-hosted/install/github-integration',
             'self-hosted/install/volume-snapshots',
             'self-hosted/install/divert/index',
+            'self-hosted/install/buildkit-high-performance',
           ],
         },
         'self-hosted/helm-configuration',
         {
           type: 'category',
           label: 'Operating Okteto',
+          link: { type: 'doc', id: 'self-hosted/manage/index' },
           items: [
             'self-hosted/manage/upgrade',
             'self-hosted/manage/migrate-to-gateway-api',
             'self-hosted/manage/argocd',
             'self-hosted/manage/okteto-license',
-            'self-hosted/manage/buildkit-high-performance',
             'self-hosted/manage/backup',
             'self-hosted/manage/custom-resource-definitions',
             'self-hosted/manage/ipv6',
+            'self-hosted/manage/arm-support',
             'self-hosted/manage/air-gapped',
             'self-hosted/manage/troubleshooting',
             'self-hosted/manage/diagnostics',
@@ -285,6 +279,15 @@ module.exports = {
           ],
         },
       ],
+    },
+    {
+      type: 'category',
+      label: 'Okteto BYOC',
+      link: { type: 'doc', id: 'byoc/index' },
+      items: [
+        'byoc/aws/index',
+        'byoc/gcp/index'
+      ]
     },
     {
       // A line between the product sections and References, Release notes, and Archives.
