@@ -1,61 +1,59 @@
 ---
 title: Azure Container Registry
-description: Get Private Registry credentials from Azure Container Registry 
+description: Configure Registry Credentials so Okteto can pull images from your private Azure Container Registry (ACR).
 sidebar_label: Azure Container Registry
 id: azure-acr
 ---
 
-This tutorial will guide you on how to use your private Azure Container Registry (ACR) with Okteto.
-It's recommended that you have the [Azure CLI installed](https://learn.microsoft.com/en-us/cli/azure/) to follow this tutorial.
+Okteto pulls images from your private Azure Container Registry (ACR) with the [Registry Credentials](admin/registry-credentials/index.mdx) you configure in the Admin Dashboard. The commands on this page use the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/).
 
-The steps to configure your private ACR with Okteto are: 
+Configuring access to your private ACR takes three steps:
 
-- Create a user with access to your private ACR
-- Retrieve the user credentials
-- Configure the credentials in Okteto
+- Creating a user with access to your private ACR
+- Getting the user's credentials
+- Configuring the credentials in Okteto
 
-## Step 1: Create a user with access to your private ACR
+## Step 1: Creating a user with access to your private ACR
 
-First you need to create a `Service Principal` with `role based access control`.
+Create a service principal with role-based access control. It needs:
 
-To do so, you will need the following information: 
+- `scopes`: your Azure Container Registry's ID
+- `role`: `acrpull`, for read access to your private ACR
 
-- `scopes`: the ID of your Azure Container Registry
-- `role`: `PULL` to have read access to your private ACR
-
-You can list your current container registries with:
+List your container registries:
 
 ```bash
 az acr list
 ```
 
-Pick the name of your ACR and export it to an environment variable:
+Export your ACR's name, and a name for the service principal, as environment variables:
 
 ```bash
-export ACR_NAME=<<your-acr-name>>
+export ACR_NAME=<your-acr-name>
+export SERVICE_PRINCIPAL_NAME=okteto-acr-pull
 ```
 
-Get the ID of your ACR with the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/acr?view=azure-cli-latest#az-acr-show) by executing:
+Get your ACR's ID with the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/acr?view=azure-cli-latest#az-acr-show):
 
 ```bash
 ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query "id" --output tsv)
 ```
 
-Create the ServicePrincipal with PULL access with the [AzureCLI](https://learn.microsoft.com/en-us/cli/azure/azure-cli-sp-tutorial-2#create-a-service-principal-containing-a-password) by executing:
+Create the service principal with pull access with the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/azure-cli-sp-tutorial-2#create-a-service-principal-containing-a-password):
 
 ```bash
 az ad sp create-for-rbac --name $SERVICE_PRINCIPAL_NAME --scopes $ACR_REGISTRY_ID --role acrpull
 ```
 
-## Step 2: Retrieve the user credentials
+## Step 2: Getting the user's credentials
 
-Get the `APP ID` by executing the following command:
+Get the service principal's `APP ID`:
 
 ```bash
 APP_ID=$(az ad sp list --display-name $SERVICE_PRINCIPAL_NAME --query "[].appId" --output tsv)
 ```
 
-Create a `PASSWORD` for that `APP ID`: 
+Create a `PASSWORD` for that `APP ID`:
 
 ```bash
 az ad sp credential reset --id $APP_ID
@@ -69,16 +67,13 @@ az ad sp credential reset --id $APP_ID
 }
 ```
 
-Remember the value of `appId` and `password`. You will need them in the next step.
+Keep the values of `appId` and `password`: you enter them in Okteto in [Step 3: Configuring the credentials in Okteto](#step-3-configuring-the-credentials-in-okteto).
 
-## Step 3: Configure the credentials in Okteto
+## Step 3: Configuring the credentials in Okteto
 
-Add the following registry credentials to the [Admin Registry Credentials view](index.mdx#add-registry-credentials) in the Okteto Admin Dashboard:
+Go to **Admin > Integrations > Registry Credentials**, click **Add Credential**, and enter these values, as [Adding Registry Credentials](admin/registry-credentials/index.mdx#adding-registry-credentials) explains:
 
-Start by navigating to **Admin -> Registry Credentials** under the Integrations section.
-
-Click "Add Credential" and use the following settings:
 - **Type**: `Static`
-- **Hostname**: your Azure Container Registry name (`ACR_NAME`)
-- **Username**: `appId` from the previous step
-- **Password**: `password` from the previous step
+- **Hostname**: your Azure Container Registry's login server, `ACR_NAME.azurecr.io`
+- **Username**: the `appId` from [Step 2: Getting the user's credentials](#step-2-getting-the-users-credentials)
+- **Password**: the `password` from [Step 2: Getting the user's credentials](#step-2-getting-the-users-credentials)

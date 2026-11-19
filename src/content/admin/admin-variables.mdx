@@ -1,0 +1,43 @@
+---
+title: Admin Variables
+description: Admin Variables are variables that Okteto makes available to every application environment of your Okteto instance.
+sidebar_label: Admin Variables
+id: admin-variables
+---
+
+import Image from "@theme/Image";
+
+**Admin > Admin Variables** defines variables for your whole Okteto instance. Okteto makes them available in every Okteto Manifest, with the `$VARIABLE` syntax, and in the environment where the commands of the `deploy` section run.
+
+<Image
+  src={require("@site/static/img/admin-variables.png").default}
+  alt="The Admin Variables section of the Admin Dashboard, with a table of variable names and masked values, and an Add Variable button"
+/>
+
+Click **Add Variable** to create one.
+
+[Okteto Variables](core/okteto-variables.mdx) explains the other kinds of variables, and which one wins when two of them have the same name.
+
+## Admin Variables in Builds
+
+To use an Admin Variable in a Dockerfile, pass it as a [build secret](reference/okteto-manifest.mdx#secrets-string-optional). For example, this Okteto Manifest mounts a local `.env` file as the `my_env` secret:
+
+```yaml
+build:
+  api:
+    context: .
+    secrets:
+      my_env: .env
+```
+
+The `.env` file refers to the variable:
+
+```text
+${MY_PASSWORD}
+```
+
+Okteto replaces `$MY_PASSWORD` with its value, from an Admin Variable or any other variable, before it mounts the file. The Dockerfile reads the secret like this:
+
+```dockerfile
+RUN --mount=type=secret,id=my_env,target=/etc/secrets/.env cat /etc/secrets/.env
+```

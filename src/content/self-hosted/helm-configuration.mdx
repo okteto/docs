@@ -460,7 +460,7 @@ gc:
 
 ### insights
 
-Configures the [Okteto Insights](admin/okteto-insights.mdx) component in your Okteto instance.
+Configures the [Okteto Insights](reference/okteto-insights-metrics.mdx) component in your Okteto instance.
 
 - `enabled`: Whether to enable Okteto Insights. Defaults to `false`.
 - `bearerSecret.name`: The name of the secret that stores the token to access the Okteto Insights metrics. Defaults to `okteto-insights`.
@@ -527,7 +527,7 @@ The jobs that deploy your [application environments from Git](development/deploy
 - `annotations`: Annotations to add to the installer job pods.
 - `extraEnv`: Environment variables for the installer job containers.
 - `labels`: Labels to add to the installer job pods.
-- `runner`: Configures your [custom installer image](admin/custom-installer-image.mdx).
+- `runner`: The image that runs the deploy and destroy commands of every repository that doesn't set its own image. See [Custom installer image](#custom-installer-image).
   - `registry`: The registry where the installer image is hosted. Defaults to the value of `globals.registry`.
   - `repository`: The repository path for the installer image. Defaults to `okteto/pipeline-runner`.
   - `tag`: The image tag to deploy. Defaults to <code>{variables.chartVersion}</code>.
@@ -558,6 +558,29 @@ The jobs that deploy your [application environments from Git](development/deploy
         memory: 50Mi
 `}
 </CodeBlock>
+
+#### Custom installer image
+
+The installer runs the commands of the `deploy` and `destroy` sections in the image that `installer.runner` sets, unless the Okteto Manifest of the repository sets its own `deploy.image`. Each repository usually sets its own image. Change the default image only when you want the same tools available in every repository that doesn't.
+
+Build your image from the default pipeline runner image, so it keeps the tools that Okteto needs, and push it to a registry that your Okteto instance can pull from:
+
+<CodeBlock language="dockerfile">
+{`FROM ghcr.io/okteto/pipeline-runner:${variables.chartVersion}
+RUN apt-get update && apt-get install -y wget`}
+</CodeBlock>
+
+Then set it in your Helm configuration file and [upgrade your Okteto instance](self-hosted/manage/upgrade.mdx):
+
+```yaml
+installer:
+  runner:
+    registry: REGISTRY
+    repository: REPOSITORY
+    tag: TAG
+```
+
+The pipeline logs in the Okteto UI show the image that each deployment uses. On Okteto BYOC, [contact support](https://okteto.com/support) to set a custom installer image.
 
 ### installerChecker
 
@@ -769,7 +792,7 @@ The Okteto Registry settings are:
 
 ### sshAgent
 
-The SSH Agent service. It runs an SSH agent with [Okteto's SSH key](admin/private-repositories/ssh-key.mdx), which the commands in your Okteto Manifest use to clone private repositories during [Remote Execution](core/remote-execution.mdx).
+The SSH Agent service. It runs an SSH agent with [Okteto's SSH key](admin/general-integrations.mdx#git-ssh-key), which the commands in your Okteto Manifest use to clone private repositories during [Remote Execution](core/remote-execution.mdx).
 
 - `annotations`: Annotations to add to the ssh-agent pods.
 - `extraEnv`: Environment variables for the ssh-agent containers.
@@ -908,7 +931,7 @@ buildOpts:
   compressionLevel: "3"
 ```
 
-Users and Admins can override these defaults with [Okteto Variables](core/okteto-variables.mdx) and [Admin Variables](admin/dashboard.mdx#admin-variables).
+Users and Admins can override these defaults with [Okteto Variables](core/okteto-variables.mdx) and [Admin Variables](admin/admin-variables.mdx).
 
 ### convertLoadBalancedServices
 
@@ -1200,7 +1223,7 @@ overrideRegistryResolution:
 
 ### oktetoBotUser
 
-Overrides the name of the user for [Admin access tokens](admin/dashboard.mdx#admin-access-tokens). Defaults to `okteto-bot`.
+Overrides the name of the user for [Admin access tokens](admin/admin-access-tokens.mdx). Defaults to `okteto-bot`.
 
 ### pullAlways
 
@@ -1216,7 +1239,7 @@ pullAlways:
 Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) per Namespace. They apply to every Namespace that Okteto manages, including development Namespaces and Preview Environments.
 
 - `resources`: Limits the number of resources that a user can create.
-  - `maxNamespaces`: Maximum number of Namespaces that a user can create. It doesn't apply to the `okteto-bot` user for [Admin access tokens](admin/dashboard.mdx#admin-access-tokens).
+  - `maxNamespaces`: Maximum number of Namespaces that a user can create. It doesn't apply to the `okteto-bot` user for [Admin access tokens](admin/admin-access-tokens.mdx).
   - `maxPods`: Maximum number of pods per Namespace.
   - `maxReplicationControllers`: Maximum number of replication controllers per Namespace.
   - `maxSecrets`: Maximum number of secrets per Namespace.

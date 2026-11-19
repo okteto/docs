@@ -1,100 +1,105 @@
 ---
-title: SSH Known Hosts
-description: Centrally manage trusted known hosts for SSH connections in Okteto
-sidebar_label: SSH Known Hosts
+title: Known Hosts
+description: The Known Hosts section of the Admin Dashboard sets the trusted SSH hosts that Okteto uses for SSH-based Git operations.
+sidebar_label: Known Hosts
 id: ssh-known-hosts
 ---
 
+import Image from "@theme/Image";
 
-The SSH Known Hosts feature enables Okteto administrators to centrally manage trusted SSH hosts for SSH-based Git operations across the organization. This does not affect HTTPS-based Git clones, which rely on certificate authorities for security. By maintaining a single source of truth for the `known_hosts` file, you can ensure secure and reliable repository cloning without requiring custom runner images.
+**Admin > Known Hosts** sets the SSH hosts that Okteto trusts for SSH-based Git operations across your organization. It keeps one `known_hosts` file for every repository clone, so you don't need custom runner images. It doesn't affect Git clones over HTTPS, which rely on certificate authorities.
+
+<Image
+  src={require("@site/static/img/admin-known-hosts.png").default}
+  alt="The Known Hosts section of the Admin Dashboard, with the Enable Known Hosts switch on and the known_hosts list with entries for GitHub, GitLab, Bitbucket, and Azure"
+/>
 
 ## Key Benefits
 
-- **Centralized trust management** - Manage SSH host keys in one place for all teams
-- **Enhanced security** - Prevent man-in-the-middle attacks by verifying host keys
-- **Simplified operations** - No need for custom images or per-job SSH configuration
+- **One place for trust**: You manage SSH host keys in one place for every team.
+- **Security**: Okteto verifies host keys, which prevents man-in-the-middle attacks.
+- **Simpler operations**: You don't need custom images or SSH configuration for each job.
 
 ## Getting Started
 
 ### Enabling Known Hosts
-- Navigate to **Admin → Settings → Known Hosts**
-- Toggle **Enable Known Hosts** to activate the feature (disabled by default)
-- Once enabled:
-  - Okteto uses this centralized list for all SSH operations
-  - Automatic `ssh-keyscan` is disabled unless explicitly called in commands
-  - All Git clones and submodules honor this trust store
+- Go to **Admin > Known Hosts**.
+- Turn on **Enable Known Hosts**. It's off by default.
+- Once it's on:
+  - Okteto uses this list for every SSH operation.
+  - Okteto doesn't run `ssh-keyscan` automatically. Your commands can still run it.
+  - Every Git clone and submodule uses this list.
 
-### Configure Trusted Hosts
-- Add entries directly in the [OpenSSH `known_hosts` format](https://man.openbsd.org/sshd.8#SSH_KNOWN_HOSTS_FILE_FORMAT)
-- Well-known providers (GitHub, GitLab, Bitbucket, Azure DevOps) are included as commented placeholders
+### Trusted Hosts
+- Add entries to the **known_hosts** list in the [OpenSSH `known_hosts` format](https://man.openbsd.org/sshd.8#SSH_KNOWN_HOSTS_FILE_FORMAT), and click **Save**.
+- The list includes the well-known providers (GitHub, GitLab, Bitbucket, Azure DevOps) as commented placeholders.
 
 ### Clone Fallback Behavior
-When a Git clone operation fails using one protocol, Okteto automatically attempts to fallback to the other protocol:
-- If SSH clone fails (for example, due to missing known host), Okteto attempts HTTPS
-- If HTTPS clone fails (for example, due to missing credentials), Okteto attempts SSH
+When a Git clone fails with one protocol, Okteto tries the other one:
+- If the SSH clone fails (for example, because a known host is missing), Okteto tries HTTPS.
+- If the HTTPS clone fails (for example, because credentials are missing), Okteto tries SSH.
 
-**Note:** This fallback only applies to the main repository clone. Submodules use the protocol specified in the `.gitmodules` file without fallback.
+:::note
+The fallback only applies to the clone of the main repository. Submodules use the protocol set in the `.gitmodules` file, without a fallback.
+:::
 
-This fallback ensures public repositories remain accessible and doesn't compromise security, as HTTPS clones are secured through certificate authorities (CA) rather than known hosts.
+The fallback keeps public repositories reachable without weakening security, because certificate authorities (CA) secure HTTPS clones, not known hosts.
 
-**Important:** For private repositories, authentication is required through at least one protocol. Configure either:
-- **SSH authentication:** Add known hosts entries and configure the [Okteto-generated SSH key](admin/private-repositories/ssh-key.mdx) in your Git provider
-- **HTTPS authentication:** Use our [GitHub App integration](admin/private-repositories/github.mdx)
+:::info
+Private repositories need authentication over at least one protocol. Configure one of these:
+- **SSH authentication:** Add the hosts to the known hosts list, and add the [SSH key that Okteto generates](admin/general-integrations.mdx#git-ssh-key) to your Git provider.
+- **HTTPS authentication:** Use the [GitHub App integration](development/deploy/from-private-repositories.mdx).
+:::
 
-The fallback mechanism ensures deployment succeeds if either protocol is properly configured.
+With the fallback, the deployment succeeds when either protocol is configured.
 
 ## How It Works
 
 ### Scope and Application
-The centralized `known_hosts` applies to:
-- **Installer jobs** - UI-triggered deploys, previews, and destroy operations
-- **Remote executor commands** - Commands run from the Okteto Manifest
-- **CLI operations** - When using `okteto deploy --remote`
-  
-### Runtime Behavior
-- The `known_hosts` file is mounted read-write in jobs (allowing runtime additions for dynamic hosts)
-- When using `okteto deploy --remote`, the server-level configuration always overrides local `known_hosts`
-- Changes made during job execution are ephemeral and don't modify the global configuration
-  
-### How This Affects the Okteto CLI
-- Remote executions automatically fetch the centralized list
-- CLI honors the centralized `known_hosts` when `okteto deploy --remote` is used
+The `known_hosts` list applies to:
+- **Installer jobs**: deploys, Preview Environments, and destroy operations started from the UI
+- **Remote Execution commands**: commands that run from the Okteto Manifest
+- **Okteto CLI operations**: `okteto deploy --remote`
 
-### Understanding Deploy Warnings
-When SSH clone fails due to missing known hosts, you may see a warning in the deployment UI even if the deployment ultimately succeeds. This occurs because:
-- The initial SSH clone attempt failed and triggered the warning
-- The automatic HTTPS fallback succeeded
-- The warning indicates the known hosts configuration should be updated to avoid relying on the fallback mechanism
+### Runtime Behavior
+- Okteto mounts the `known_hosts` file read-write in jobs, so jobs can add dynamic hosts at runtime.
+- With `okteto deploy --remote`, the server's list always overrides your local `known_hosts`.
+- Changes made during a job only last for that job, and don't change the list in **Admin > Known Hosts**.
+
+### Impact on the Okteto CLI
+- Remote executions fetch the list automatically.
+- The Okteto CLI uses the list when you run `okteto deploy --remote`.
+
+### Deploy Warnings
+When an SSH clone fails because a known host is missing, the deployment UI can show a warning even if the deployment succeeds. That happens because:
+- The first SSH clone failed and raised the warning.
+- The HTTPS fallback succeeded.
+- The warning tells you to update the known hosts list, so deployments don't depend on the fallback.
 
 ## Example Configuration
-When cloning repositories, the system automatically configures Git to use the centralized hosts file:
+When Okteto clones a repository, it configures Git to use the `known_hosts` list:
 ```bash
 GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/okteto/known_hosts -o StrictHostKeyChecking=yes"
 ```
 
 ## Advanced Scenarios
 
-### Working with Dynamic Hosts
-- Pipelines that clone additional repositories succeed as long as each host appears in the centralized `known_hosts`
-- Users can still run `ssh-keyscan` explicitly in their commands to add hosts at runtime
-- Dynamic endpoints created during deploy can append entries to the mounted `known_hosts` within the job. These changes are ephemeral to the job and do not modify the admin-configured global template
+### Dynamic Hosts
+- Pipelines that clone more repositories succeed as long as each host is in the `known_hosts` list.
+- Your commands can still run `ssh-keyscan` to add hosts at runtime.
+- Endpoints created during a deploy can add entries to the `known_hosts` file mounted in the job. These entries only last for the job, and don't change the list that Admins set.
 
 ### Submodules with SSH
-Even if your main repository clones via HTTPS, submodules may be configured to use SSH URLs. In these cases:
-- The main repository clone via HTTPS succeeds normally
-- Submodule clones require the SSH host to be in the known hosts list
-- Ensure all submodule hosts are added to the known hosts configuration
-- Submodule clone failures do not fallback to HTTPS
+Even if your main repository clones over HTTPS, its submodules can use SSH URLs. In that case:
+- The main repository clones over HTTPS as usual.
+- Submodule clones need the SSH host in the known hosts list.
+- Add every submodule host to the known hosts list.
+- Submodule clones don't fall back to HTTPS.
 
 ### Error Handling
 If a host is missing from the list:
-- SSH clone will fail with **Host key verification failed**
-- Okteto will automatically attempt to clone via HTTPS as a fallback
-- For public repositories, the HTTPS fallback typically succeeds
-- For private repositories, the HTTPS fallback requires appropriate credentials (GitHub App integration, personal access tokens, etc.)
-- Check deploy logs for details on which protocol succeeded
-
-
-
-
-
+- The SSH clone fails with **Host key verification failed**.
+- Okteto tries to clone over HTTPS instead.
+- For public repositories, the HTTPS fallback usually succeeds.
+- For private repositories, the HTTPS fallback needs credentials (the GitHub App integration, personal access tokens, and so on).
+- The deploy logs show which protocol succeeded.

@@ -1,64 +1,64 @@
 ---
-title: Configure access to your Azure account using Workload ID
+title: Cloud Credentials for Microsoft Azure
 description: Configure Microsoft Azure Cloud Credentials so the commands in your Okteto Manifests authenticate to Azure with workload identity federation.
 sidebar_label: Microsoft Azure
 id: azure-cloud-credentials
 ---
 import Image from "@theme/Image";
 
-Azure Cloud Credentials let the commands in your Okteto Manifests authenticate to Microsoft Azure with the identity of your Okteto cluster, without client secrets.
-They use [Microsoft Entra workload identity federation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation): an App Registration in your Entra tenant trusts a short-lived token issued by your Kubernetes cluster, and the Azure roles you grant to that App Registration define what the commands can do.
+Azure Cloud Credentials let the commands in your Okteto Manifests authenticate to Microsoft Azure with your Okteto cluster's identity, without client secrets.
+They use [Microsoft Entra workload identity federation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation): an App Registration in your Entra tenant trusts a short-lived token that your Kubernetes cluster issues, and the Azure roles you grant to that App Registration define what the commands can do.
 
-This guide grants access to Azure Blob Storage in a resource group. You can grant access to other Azure resources by assigning the roles they require.
+This page grants access to Azure Blob Storage in a resource group. To grant access to other Azure resources, assign the roles they require.
 
 ## Injected Environment Variables
 
-When Azure Cloud Credentials are enabled, Okteto adds these environment variables to the commands of `okteto deploy`, `okteto destroy` and `okteto test`:
+When Azure Cloud Credentials are enabled, Okteto adds these environment variables to the commands of `okteto deploy`, `okteto destroy`, and `okteto test`:
 
 | Variable | Value |
 |----------|-------|
 | `AZURE_TENANT_ID` | The Directory (tenant) ID configured in the Admin Dashboard |
 | `AZURE_CLIENT_ID` | The Application (client) ID configured in the Admin Dashboard |
 | `AZURE_AUTHORITY_HOST` | The authority host configured in the Admin Dashboard, `https://login.microsoftonline.com/` by default |
-| `AZURE_FEDERATED_TOKEN_FILE` | Path to a file with a Kubernetes service account token for the Okteto cluster identity, issued with the configured audience and valid for one hour |
+| `AZURE_FEDERATED_TOKEN_FILE` | The path to a file with a Kubernetes service account token for the Okteto cluster's identity, issued for the configured audience and valid for one hour |
 
-These are the variables used by [Azure Kubernetes Service workload identity](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview), so the Azure SDKs (`DefaultAzureCredential` and `WorkloadIdentityCredential`) authenticate without extra configuration.
+[Azure Kubernetes Service workload identity](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview) uses the same variables, so the Azure SDKs (`DefaultAzureCredential` and `WorkloadIdentityCredential`) authenticate without extra configuration.
 Unlike Okteto Cloud Credentials for [AWS](admin/cloud-credentials/aws.mdx) and [Google Cloud](admin/cloud-credentials/gcp.mdx), Okteto doesn't exchange the token for a cloud access token: Azure access tokens are scoped to a single resource, so each tool requests the token for the resource it needs.
 
 :::note
-Azure Cloud Credentials require Okteto CLI 3.25.0 or later. Earlier versions of the Okteto CLI receive `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_AUTHORITY_HOST`, but not `AZURE_FEDERATED_TOKEN_FILE`.
+Azure Cloud Credentials require Okteto CLI 3.25.0 or later. Earlier versions of the Okteto CLI receive `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, and `AZURE_AUTHORITY_HOST`, but not `AZURE_FEDERATED_TOKEN_FILE`.
 :::
 
 :::danger
 Every user who can run `okteto deploy` in your Okteto instance receives the federated token. Keep it limited to Azure:
 
-- Use `api://AzureADTokenExchange` as the audience. The token belongs to the Okteto service account, which has admin access to your cluster, so Okteto refuses audiences accepted by your Kubernetes API server, such as the OIDC issuer URL of your cluster, or `https://kubernetes.default.svc` on distributions that list it as an API server audience.
-- Only add a federated credential for the Okteto service account to the App Registration you configure in Okteto. Any App Registration that trusts the same issuer, subject and audience can be accessed with the token.
+- Use `api://AzureADTokenExchange` as the audience. The token belongs to the Okteto service account, which has admin access to your cluster, so Okteto refuses audiences that your Kubernetes API server accepts, such as your cluster's OIDC issuer URL, or `https://kubernetes.default.svc` on distributions that list it as an API server audience.
+- Only add a federated credential for the Okteto service account to the App Registration you configure in Okteto. The token gives access to any App Registration that trusts the same issuer, subject, and audience.
 :::
 
-## Step 1: Get the OIDC configuration of your cluster
+## Step 1: Getting your cluster's OIDC configuration
 
-Azure validates the federated token against the OIDC issuer of your Kubernetes cluster, which must be reachable from the internet.
-Okteto shows the issuer and the subject of the Okteto service account under **Integrations → General** in the Admin Dashboard:
+Azure validates the federated token against your Kubernetes cluster's OIDC issuer, which must be reachable from the internet.
+To get the issuer and the Okteto service account's subject, click **Show Details** in the **OpenID Connect (OIDC)** row of [**Admin > Integrations > General**](admin/general-integrations.mdx#openid-connect-oidc):
 
 <p align="center">
   <Image
     src={require("@site/static/img/amazon-ecr-oidc-config+1.32.png").default}
-    alt="OIDC issuer and subject in the Admin Dashboard general view"
+    alt="The OpenID Connect (OIDC) row of the General Integrations section of the Admin Dashboard, with the issuer and the subject"
   />
 </p>
 
-Store these values as environment variables for use in the next steps:
+Store these values as environment variables for the next steps:
 
 ```bash
 export OIDC_ISSUER=https://<your-cluster-oidc-issuer>
 export OKTETO_SERVICE_ACCOUNT=system:serviceaccount:okteto:okteto
 ```
 
-## Step 2: Create the App Registration
+## Step 2: Creating the App Registration
 
 :::info
-We recommend installing the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) and running `az login` before following this guide.
+The commands on this page use the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli). Install it and run `az login` first.
 :::
 
 The App Registration is the identity the commands in your Okteto Manifests act as. It doesn't need a client secret.
@@ -69,7 +69,7 @@ export APP_OBJECT_ID=$(az ad app show --id ${APP_ID} --query id -o tsv)
 export TENANT_ID=$(az account show --query tenantId -o tsv)
 ```
 
-Next, create the service principal of the App Registration. Azure role assignments target the service principal:
+Next, create the App Registration's service principal. Azure role assignments target the service principal:
 
 ```bash
 az ad sp create --id ${APP_ID}
@@ -77,7 +77,7 @@ az ad sp create --id ${APP_ID}
 
 `APP_ID` is the Application (client) ID you configure in Okteto. `APP_OBJECT_ID` is only used to manage the App Registration.
 
-## Step 3: Add the federated credential
+## Step 3: Adding the federated credential
 
 The federated credential tells Entra ID to trust tokens issued by your cluster for the Okteto service account:
 
@@ -90,7 +90,7 @@ az ad app federated-credential create --id ${APP_OBJECT_ID} --parameters "{
 }"
 ```
 
-## Step 4: Assign Azure roles
+## Step 4: Assigning Azure roles
 
 Grant the service principal the roles it needs. For example, to create storage accounts and manage blobs in a resource group:
 
@@ -103,26 +103,27 @@ az role assignment create --assignee ${APP_ID} --role "Storage Blob Data Contrib
 
 Role assignments can take a few minutes to take effect.
 
-## Step 5: Configure Azure Cloud Credentials in Okteto
+## Step 5: Configuring Azure Cloud Credentials in Okteto
 
-There are two ways to configure Cloud Credentials in Okteto:
-1. **Cloud Credentials in the Okteto Admin Dashboard** - Follow the steps in [Adding Cloud Credentials Through the Admin Dashboard](#adding-cloud-credentials-through-the-admin-dashboard)
-1. **Cloud Credentials via a CRD** - [Follow this guide to add your cloud provider credentials via a CRD](self-hosted/manage/crds.mdx#cloud-credentials)
+You can configure Cloud Credentials in two ways:
+
+- **In the Admin Dashboard**, as [Adding Cloud Credentials Through the Admin Dashboard](#adding-cloud-credentials-through-the-admin-dashboard) explains.
+- **With a CRD**, as [Cloud Credentials CRDs](self-hosted/manage/crds.mdx#cloud-credentials) explains.
 
 :::note
-If you add credentials using CRDs, they appear in the Dashboard, but you can't modify them from this view.
+The Admin Dashboard shows the credentials you add with CRDs, but you can't change them from the Admin Dashboard.
 :::
 
 ### Adding Cloud Credentials Through the Admin Dashboard
 
-Go to the [Cloud Credentials view](index.mdx) in the Okteto Admin Dashboard and enable the **Azure Workload ID** option.
+Go to [**Admin > Integrations > Cloud Credentials**](admin/cloud-credentials/index.mdx) and click **Enable** in the **Azure Workload ID** row.
 
-Provide the following information:
+Enter these values:
 
-- **Tenant ID**: The Directory (tenant) ID `TENANT_ID` of your Entra tenant
-- **Client ID**: The Application (client) ID `APP_ID` of the App Registration created in Step 2. Not the Object ID
-- **Audience JWT Claim**: `api://AzureADTokenExchange`, the audience of the federated credential created in Step 3
-- **Authority Host**: Only needed for sovereign clouds, such as `https://login.microsoftonline.us/` for Azure Government. Leave it empty for the Azure public cloud
+- **Tenant ID**: your Entra tenant's Directory (tenant) ID, `TENANT_ID`.
+- **Client ID**: the Application (client) ID, `APP_ID`, of the App Registration from [Step 2: Creating the App Registration](#step-2-creating-the-app-registration). Not the Object ID.
+- **Audience JWT Claim**: `api://AzureADTokenExchange`, the audience of the federated credential from [Step 3: Adding the federated credential](#step-3-adding-the-federated-credential).
+- **Authority Host**: only needed for sovereign clouds, such as `https://login.microsoftonline.us/` for Azure Government. Leave it empty for the Azure public cloud.
 
 ## Azure CLI and Terraform
 
@@ -149,7 +150,7 @@ export ARM_SUBSCRIPTION_ID=<subscription-id>
 
 ## Example Okteto Manifest
 
-With the configuration complete, the following Okteto Manifest creates a blob container on deploy, uploads a file on test, and deletes the container on destroy:
+With Azure Cloud Credentials enabled, this Okteto Manifest creates a blob container on deploy, uploads a file on test, and deletes the container on destroy:
 
 ```yaml
 deploy:
