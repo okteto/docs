@@ -100,7 +100,7 @@ function browser(x, y, width, height) {
 // The hero diagram of the docs home, redrawn from "One manifest, every
 // environment" of okteto.com: developers, coding agents, and test pipelines
 // create their environments on Kubernetes from the same okteto.yaml.
-const MANIFEST_ALT = 'Developers, coding agents, and test pipelines create their environments on Kubernetes from the same okteto.yaml';
+const MANIFEST_ALT = 'Two developers, five coding agents, and three test pipelines create their own application environments, each with the services and the database of the application, in Okteto Namespaces from the same okteto.yaml';
 const MANIFEST_USERS = () => [['users', 'Developers', C.teal], ['bot', 'Coding agents', C.purple], ['flask-conical', 'Test pipelines', C.amber]];
 // A file with a folded corner, the Okteto logo on its top edge, and its name under it.
 function manifestFile(cx, cy) {
@@ -110,16 +110,21 @@ function manifestFile(cx, cy) {
   const y = cy - h / 2;
   return `<path d="M${x + 14} ${y} H${x + w - 36} L${x + w} ${y + 36} V${y + h - 14} Q${x + w} ${y + h} ${x + w - 14} ${y + h} H${x + 14} Q${x} ${y + h} ${x} ${y + h - 14} V${y + 14} Q${x} ${y} ${x + 14} ${y}Z" fill="${C.ink}" stroke="${C.teal}" stroke-width="4" stroke-linejoin="round" filter="url(#glow)"/>`
     + `<path d="M${x + w - 36} ${y} V${y + 36} H${x + w}" fill="none" stroke="${C.teal}" stroke-width="4" stroke-linejoin="round"/>`
-    + logo('okteto', cx, y, 58) + icon('code', cx, cy + 10, 56) + text('okteto.yaml', cx, y + h + 46, 26, { mono: true });
+    + logo('okteto', x + (w - 36) / 2, y, 58) + icon('code', cx, cy + 10, 56) + text('okteto.yaml', cx, y + h + 46, 26, { mono: true });
 }
-// The cluster with four environments.
-function environments(cx, y0, width) {
-  let out = box(cx - width / 2, y0, width, 440, { color: C.blue }) + logo('kubernetes', cx, y0, 80)
-    + text('Application environments', cx, y0 + 82, 30) + text('Kubernetes cluster', cx, y0 + 116, 22, { color: C.dim });
-  [[-1, 0], [1, 0], [-1, 1], [1, 1]].forEach(([dx, row]) => {
-    const x = cx + dx * 80 - 62;
-    const y = y0 + 144 + row * 140;
-    out += box(x, y, 124, 124, { color: C.teal, dashed: true, radius: 18, strokeWidth: 3 }) + icon('box', x + 62, y + 62, 56);
+// Ten application environments: two of developers, five of coding agents, and
+// three of test pipelines, each with the services of the application (two
+// services and a database).
+function environments(cx, y0) {
+  const width = 556;
+  let out = box(cx - width / 2, y0, width, 344, { color: C.blue }) + logo('kubernetes', cx, y0, 80)
+    + text('Application environments', cx, y0 + 82, 30) + text('Okteto Namespaces', cx, y0 + 116, 22, { color: C.dim });
+  const [developers, agents, pipelines] = MANIFEST_USERS().map(([, , color]) => color);
+  [developers, developers, agents, agents, agents, agents, agents, pipelines, pipelines, pipelines].forEach((color, i) => {
+    const x = cx - 259 + (i % 5) * 106;
+    const y = y0 + 148 + Math.floor(i / 5) * 86;
+    out += box(x, y, 94, 74, { color, radius: 14, strokeWidth: 3 });
+    ['box', 'box', 'database'].forEach((name, k) => { out += icon(name, x + 22 + k * 25, y + 37, 22, C.blue); });
   });
   return out;
 }
@@ -910,13 +915,13 @@ const covers = [
       let out = '';
       MANIFEST_USERS().forEach(([name, label, color], i) => {
         const y = 105 + i * 200;
-        out += circle(120, y, 46, { color }) + icon(name, 120, y, 48, color) + text(label, 120, y + 82, 26);
-        out += curve(`M176 ${y} C330 ${y} 300 300 430 300`, { color, strokeWidth: 5 });
+        out += circle(110, y, 46, { color }) + icon(name, 110, y, 48, color) + text(label, 110, y + 82, 26);
+        out += curve(`M166 ${y} C300 ${y} 270 300 372 300`, { color, strokeWidth: 5 });
       });
-      out += arrow(430, 300, 448, 300);
-      out += manifestFile(525, 300);
-      out += arrow(606, 300, 680, 300);
-      out += environments(920, 95, 460);
+      out += arrow(372, 300, 390, 300);
+      out += manifestFile(465, 300);
+      out += arrow(546, 300, 600, 300);
+      out += environments(890, 140);
       return out;
     },
   },
@@ -924,7 +929,7 @@ const covers = [
     out: 'static/img/one-definition-mobile.webp',
     background: 'white',
     width: 600,
-    height: 1070,
+    height: 980,
     alt: MANIFEST_ALT,
     svg: () => {
       let out = '';
@@ -935,7 +940,7 @@ const covers = [
       });
       out += manifestFile(300, 330);
       out += arrow(300, 470, 300, 530);
-      out += environments(300, 590, 460);
+      out += environments(300, 590);
       return out;
     },
   },
