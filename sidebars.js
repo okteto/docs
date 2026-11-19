@@ -39,15 +39,6 @@ module.exports = {
             'get-started/deploy-your-app/develop',
           ],
         },
-        {
-          type: 'category',
-          label: 'For Developers',
-          link: { type: 'doc', id: 'get-started/dev-quickstart' },
-          items: [
-            'get-started/using-okteto-cli-and-dashboard',
-            'get-started/advanced-commands-and-concepts',
-          ],
-        },
       ],
     },
     {
