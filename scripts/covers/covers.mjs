@@ -171,8 +171,10 @@ const MOVIES_URL = 'https://movies-cindy.okteto.example.com';
 const service = (x, y, w, name, label) => box(x, y, w, 58, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 })
   + icon(name, x + 38, y + 29, 30, C.blue) + text(label, x + 72, y + 38, 26, { anchor: 'start' });
 const moviesEnvironment = (cx, y, w, h) => box(cx - w / 2, y, w, h, { color: C.blue }) + logo('kubernetes', cx, y, 80)
-  + text('Development Environment', cx, y + 82, 30) + text('Okteto Namespace', cx, y + 116, 22, { color: C.dim });
-const apiPill = (cx, cy) => box(cx - 38, cy - 18, 76, 36, { color: C.blue, radius: 18, strokeWidth: 3 }) + text('/api', cx, cy + 8, 22, { color: C.blue });
+  + text('Application environment', cx, y + 82, 30) + text('Okteto Namespace', cx, y + 116, 22, { color: C.dim });
+// The URL and /api pills sit on the border of the environment, ending at the same x.
+const urlPill = (right, cy) => box(right - 390, cy - 28, 390, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, right - 195, cy + 7, 18, { color: C.blue });
+const apiPill = (right, cy) => box(right - 100, cy - 28, 100, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text('/api', right - 50, cy + 8, 22, { color: C.blue });
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
@@ -978,13 +980,13 @@ const covers = [
     alt: 'Movies app architecture',
     svg: () => {
       let out = circle(90, 289, 46, { color: C.teal }) + icon('user', 90, 289, 48, C.teal) + text('Developer', 90, 369, 26);
-      out += moviesEnvironment(920, 110, 460, 450);
-      out += curve('M560 317 V379 H602', { color: C.blue }) + arrow(678, 379, 712, 379, { color: C.blue }) + apiPill(640, 379);
-      out += arrow(140, 289, 152, 289, { color: C.blue });
-      out += box(160, 261, 490, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, 405, 297, 22, { color: C.blue });
-      out += arrow(650, 289, 712, 289, { color: C.blue });
-      out += service(720, 260, 400, 'box', 'frontend') + service(720, 350, 400, 'box', 'api') + service(720, 470, 400, 'database', 'MongoDB');
-      out += arrow(920, 416, 920, 462, { color: C.dim, both: true });
+      out += moviesEnvironment(895, 110, 510, 450);
+      out += arrow(140, 289, 302, 289, { color: C.blue });
+      out += curve('M530 317 V379 H600', { color: C.blue });
+      out += arrow(700, 289, 737, 289, { color: C.blue }) + arrow(700, 379, 737, 379, { color: C.blue });
+      out += urlPill(700, 289) + apiPill(700, 379);
+      out += service(745, 260, 300, 'box', 'frontend') + service(745, 350, 300, 'box', 'api') + service(745, 470, 300, 'database', 'MongoDB');
+      out += arrow(895, 416, 895, 462, { color: C.dim, both: true });
       return out;
     },
   },
@@ -997,11 +999,11 @@ const covers = [
     svg: () => {
       let out = circle(300, 70, 46, { color: C.teal }) + icon('user', 300, 70, 48, C.teal) + text('Developer', 362, 80, 26, { anchor: 'start' });
       out += arrow(300, 122, 300, 190, { color: C.blue });
-      out += box(40, 200, 520, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, 300, 236, 22, { color: C.blue });
-      out += moviesEnvironment(310, 300, 520, 450);
-      out += curve('M100 256 V569', { color: C.blue }) + arrow(100, 479, 212, 479, { color: C.blue }) + arrow(100, 569, 212, 569, { color: C.blue }) + apiPill(148, 569);
-      out += service(220, 450, 300, 'box', 'frontend') + service(220, 540, 300, 'box', 'api') + service(220, 660, 300, 'database', 'MongoDB');
-      out += arrow(370, 606, 370, 652, { color: C.dim, both: true });
+      out += moviesEnvironment(360, 300, 420, 450);
+      out += curve('M90 256 V569 H100', { color: C.blue }) + arrow(90, 479, 222, 479, { color: C.blue }) + arrow(200, 569, 222, 569, { color: C.blue });
+      out += urlPill(470, 228) + apiPill(200, 569);
+      out += service(230, 450, 260, 'box', 'frontend') + service(230, 540, 260, 'box', 'api') + service(230, 660, 260, 'database', 'MongoDB');
+      out += arrow(360, 606, 360, 652, { color: C.dim, both: true });
       return out;
     },
   },
