@@ -7,7 +7,7 @@ image: ./img/cover.jpg
 image_alt: "Okteto deploys the mongodb and frontend repositories in parallel, and the api repository once mongodb is deployed"
 ---
 
-The `dependencies` section of the [Okteto Manifest](/docs/reference/okteto-manifest#dependencies-string-optional) deploys other Git repositories as part of your Development Environment. Okteto deploys them in parallel, and `depends_on` sets the ones that must deploy first. This tutorial uses the Movies app, whose database, API, and frontend live in three repositories, to deploy the whole application with a single `okteto deploy`.
+The `dependencies` section of the [Okteto Manifest](/docs/reference/okteto-manifest#dependencies-string-optional) deploys other Git repositories as part of your Development Environment. Okteto deploys them in parallel, and `depends_on` sets the ones that must deploy first. This tutorial uses the Movies app, whose database, API, and frontend live in three repositories, to deploy the whole application with a single `okteto deploy`. To do the same with your own multi-repo application, use an AI agent with the [Okteto agent skills](/docs/agentic/).
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ The Movies app has a service in each of these repositories:
 
 Each repository has its own Okteto Manifest that builds and deploys its service, so each team works on its repository without knowing how the others deploy. A fourth repository, [`okteto/movies-multi-repo`](https://github.com/okteto/movies-multi-repo), puts the application together: its Okteto Manifest lists the other three as dependencies, and its `deploy` section creates what belongs to the whole application, the Ingress that routes `/` to the frontend and `/api` to the API.
 
-This is how Okteto works with multi-repo applications: a repository for the application lists the repositories of its services in `dependencies`, and one `okteto deploy` from it deploys everything in a Namespace. To work on a service, you run `okteto up` from the repository of that service, in the same Namespace.
+This is how Okteto works with multi-repo applications: a repository for the application lists the repositories of its services in `dependencies`, and one `okteto deploy` from it deploys everything in a Namespace. To work on a service, you run `okteto deploy` from the repository of that service, in the same Namespace, and optionally `okteto up`.
 
 ## The Okteto Manifest
 
@@ -204,78 +204,26 @@ okteto deploy --wait --dependencies
 
 Okteto deploys the three repositories again, in the same order: `mongodb` and `movies-frontend` in parallel, and `movies-api` after `mongodb`.
 
-## Developing a Service
+## Developing on One of the Repositories
 
-To work on a service, run `okteto up` from its repository in the Namespace where you deployed the application. The rest of the application keeps running from the deploy of `movies-multi-repo`. Clone the repository of the API next to `movies-multi-repo`:
+To change a service, work in its repository and deploy it to the same Namespace: the rest of the application keeps running from the deploy of `movies-multi-repo`. For example, clone the repository of the API next to `movies-multi-repo`:
 
 ```bash
 git clone https://github.com/okteto/movies-api
 cd movies-api
 ```
 
-The `dev` section of its Okteto Manifest defines a Development Container for the `api` Deployment:
-
-```yaml title="okteto.yml of okteto/movies-api"
-dev:
-  api:
-    image: ${OKTETO_BUILD_API_DEV_IMAGE}
-    command: node --watch --inspect=0.0.0.0:9229 server.js
-    sync:
-      - .:/src
-    forward:
-      - 9229:9229
-      - 27017:mongodb:27017
-    persistentVolume:
-      enabled: false
-```
-
-`node --watch` restarts the API when a file changes, and the Node.js debugger listens on port `9229`, forwarded to `localhost:9229` on your machine. The second forward makes the MongoDB database of the Namespace available on `localhost:27017`. Start the Development Container:
+The **Continue watching for Cindy** row of the Movies app shows the same movies as the **Movies** row, because the `/api/watching` route of `server.js` reads the `movies` collection. Change that route to read the `watching` collection, and deploy the API from the folder of its repository:
 
 ```bash
-okteto up
+okteto deploy --wait
 ```
 
-Okteto finds the `movies-api` Development Environment that `movies-multi-repo` deployed, so it doesn't deploy it again. It replaces the `api` Deployment with a Development Container, which keeps the `MONGODB_URL` of the Deployment:
+Okteto finds the `movies-api` Development Environment that `movies-multi-repo` deployed, builds the new image of the API, and upgrades its Helm release, which keeps the connection to MongoDB. Reload the Movies app: the **Continue watching for Cindy** row now shows other movies, such as *Avengers: Infinity War*. The frontend and the database didn't change: you only deployed the service you work on. This is also the loop that an AI agent with the [Okteto agent skills](/docs/agentic/) runs on every change.
 
-```console
- i  Using cindy @ okteto.example.com as context
- i  'movies-api' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
- i  Images were already built. To rebuild your images run 'okteto build'
- ✓  Images successfully pulled
- ✓  Files synchronized
-    Context:   okteto.example.com
-    Namespace: cindy
-    Name:      api
-    Forward:   9229 -> 9229
-               27017 -> mongodb:27017
+Optionally, for hot reload and a debugger on every change, run `okteto up` from the same folder: Okteto replaces the `api` Deployment with the Development Container that the `dev` section of the repository defines. While `okteto up` runs, an AI agent with the Okteto agent skills doesn't run the build and deploy cycle on every change: your changes reach the Development Container through File Sync, and you tell the agent what to run next. Run `okteto down` when you finish. The [Development Container guides](/docs/development/containers/) explain how to configure a Development Container for each language.
 
-Debugger listening on ws://0.0.0.0:9229/8cb12803-2970-4c11-88a3-e49daa0068f1
-For help, see: https://nodejs.org/learn/getting-started/debugging
-Server running on port 8080.
-```
-
-The **Continue watching for Cindy** row of the Movies app shows the same movies as the **Movies** row, because the `/api/watching` route of `server.js` reads the `movies` collection. Change it to read the `watching` collection, and save the file:
-
-```js title="server.js"
-  app.get("/api/watching", async (req, res) => {
-    console.log(`GET /api/watching`);
-    try {
-      res.json(await db.collection("watching").find().toArray());
-```
-
-Okteto synchronizes `server.js` to the Development Container, and Node.js restarts the API:
-
-```console
-Change detected in '/src/server.js'
-Restarting 'server.js'
-Debugger listening on ws://0.0.0.0:9229/47c24480-e3c3-45ec-abd3-9c3e5acf959b
-For help, see: https://nodejs.org/learn/getting-started/debugging
-Server running on port 8080.
-```
-
-Reload the Movies app: the **Continue watching for Cindy** row now shows other movies, such as *Avengers: Infinity War*. The frontend and the database didn't change: you only run the service you work on. When you finish, run `okteto down` from the `movies-api` folder to restore the `api` Deployment.
-
-The frontend works the same way: clone [`okteto/movies-frontend`](https://github.com/okteto/movies-frontend) and run `okteto up` from it.
+The frontend works the same way: clone [`okteto/movies-frontend`](https://github.com/okteto/movies-frontend), change it, and run `okteto deploy` from its folder.
 
 ## Cleaning Up
 
@@ -295,7 +243,28 @@ okteto destroy --dependencies --volumes
 
 Okteto destroys `movies-multi-repo` and schedules the destruction of each dependency in your cluster. `--volumes` also deletes the volume of MongoDB, with the sample movies. Without `--dependencies`, `okteto destroy` only destroys the resources of `movies-multi-repo`, the Ingress, and keeps the Development Environments of the three dependencies.
 
-## Next Steps
+## FAQ
 
-- The [Development Container guides](/docs/development/containers/) explain how to configure the `build`, `test`, and `dev` sections of each service for your language.
-- The [`dependencies` reference](/docs/reference/okteto-manifest#dependencies-string-optional) describes every field of a dependency, such as `branch`, `manifest`, and `timeout`.
+### How do I configure the Okteto Manifest of each service?
+
+Each repository builds, tests, and develops its own service. The [Development Container guides](/docs/development/containers/) explain the `build`, `deploy`, `test`, and `dev` sections for each language.
+
+### How do I make builds, deploys, and `okteto up` faster?
+
+Upload only the files that each command needs: the context upload is key to performance. An AI agent with the [Okteto agent skills](/docs/agentic/) configures what each command uploads for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
+
+### Do I need to deploy every repository in every Namespace?
+
+No. [Divert](/docs/development/divert/) lets you deploy only the services you change and reuse the services of a shared environment.
+
+### How do I start each environment with realistic data?
+
+Create its database from a [Volume Snapshot](/docs/core/use-volume-snapshots/) instead of loading the data on every deploy. [Data from Volume Snapshots](/tutorials/optimize-your-development-environment/#data-from-volume-snapshots) shows how.
+
+### How do I create resources outside Kubernetes, such as a cloud database?
+
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own cloud resources. [Create cloud infrastructure with Terraform](/tutorials/cloud-infrastructure/) creates an Amazon S3 bucket for each environment.
+
+### Where can I find every field of a dependency?
+
+The [`dependencies` reference](/docs/reference/okteto-manifest#dependencies-string-optional) describes every field of a dependency, such as `branch`, `manifest`, and `timeout`.
