@@ -165,6 +165,12 @@ function environmentBox(x, y, w) {
   return out;
 }
 
+// The Movies app of the Deploy your app series: the developer opens its URL,
+// which routes to the frontend, and /api to the api, which uses MongoDB.
+const MOVIES_URL = 'https://movies-cindy.okteto.example.com';
+const service = (x, y, w, name, label) => box(x, y, w, 64, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 })
+  + icon(name, x + 38, y + 32, 30, C.blue) + text(label, x + 70, y + 41, 26, { anchor: 'start' });
+const apiPill = (cx, cy) => box(cx - 38, cy - 18, 76, 36, { color: C.blue, radius: 18, strokeWidth: 3 }) + text('/api', cx, cy + 8, 22, { color: C.blue });
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
@@ -963,6 +969,38 @@ const covers = [
       + arrow(230, 455, 230, 590, { color: C.teal }) + text('deploy, test', 210, 530, 24, { color: C.teal, anchor: 'end' })
       + arrow(370, 590, 370, 455, { color: C.dim }) + text('results, logs', 390, 530, 24, { color: C.dim, anchor: 'start' })
       + environmentBox(60, 640, 480),
+  },
+  {
+    out: 'static/img/deploy-movies-app.webp',
+    background: 'white',
+    alt: 'Movies app architecture',
+    svg: () => {
+      let out = circle(100, 140, 48, { color: C.teal }) + icon('user', 100, 140, 50, C.teal) + text('Developer', 100, 222, 26);
+      out += arrow(152, 140, 200, 140, { color: C.blue });
+      out += box(210, 112, 520, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, 470, 148, 22, { color: C.blue });
+      out += box(230, 230, 920, 360, { color: C.dim }) + logo('okteto', 230, 230, 70) + text('Development Environment', 330, 290, 30, { anchor: 'start' });
+      out += curve('M290 168 V492', { color: C.blue }) + arrow(290, 342, 412, 342, { color: C.blue }) + arrow(290, 492, 412, 492, { color: C.blue }) + apiPill(356, 492);
+      out += service(420, 310, 260, 'box', 'frontend') + service(420, 460, 260, 'box', 'api') + service(800, 460, 300, 'database', 'MongoDB');
+      out += arrow(690, 492, 790, 492, { color: C.dim, both: true });
+      return out;
+    },
+  },
+  {
+    out: 'static/img/deploy-movies-app-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 820,
+    alt: 'Movies app architecture',
+    svg: () => {
+      let out = circle(300, 70, 46, { color: C.teal }) + icon('user', 300, 70, 48, C.teal) + text('Developer', 362, 80, 26, { anchor: 'start' });
+      out += arrow(300, 122, 300, 190, { color: C.blue });
+      out += box(40, 200, 520, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(MOVIES_URL, 300, 236, 22, { color: C.blue });
+      out += box(50, 300, 520, 480, { color: C.dim }) + logo('okteto', 50, 300, 70) + text('Development Environment', 300, 372, 30);
+      out += curve('M100 256 V572', { color: C.blue }) + arrow(100, 432, 202, 432, { color: C.blue }) + arrow(100, 572, 202, 572, { color: C.blue }) + apiPill(150, 572);
+      out += service(210, 400, 300, 'box', 'frontend') + service(210, 540, 300, 'box', 'api') + service(210, 680, 300, 'database', 'MongoDB');
+      out += arrow(360, 612, 360, 672, { color: C.dim, both: true });
+      return out;
+    },
   },
 ];
 
