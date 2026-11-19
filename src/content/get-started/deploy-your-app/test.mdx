@@ -5,36 +5,39 @@ sidebar_label: Test
 id: test
 ---
 
-[Okteto Test](reference/okteto-cli.mdx#test) runs your tests in Test Containers inside your Okteto Namespace, next to the Development Environment you deployed in the previous steps.
+[Okteto Test](reference/okteto-cli.mdx#test) runs your tests in Test Containers inside your Okteto Namespace, next to the application you deployed with `okteto deploy`.
 Test Containers use [Remote Execution](core/remote-execution.mdx#how-remote-execution-works), so you don't need to install test runtimes locally, and your tests can reach the private services of your application.
 
 The [`test`](reference/okteto-manifest.mdx#test-object-optional) section of the Okteto Manifest defines your Test Containers. The same `okteto test` command runs them on your machine and in your CI/CD pipeline against a [Preview Environment](previews/index.mdx).
 
+This page uses the [Movies app](https://github.com/okteto/getting-started), deployed with `okteto deploy` as described in [Deploy](deploy.mdx). Run the commands from the root of your clone of the repository.
+
 ## Unit tests for the `frontend` service
 
-Add the following Test Container to your `okteto.yaml` file to run the unit tests of the `frontend` service:
+The `frontend` Test Container runs the unit tests of the `frontend` service:
 
 ```yaml title="okteto.yaml"
 test:
   frontend:
-    image: node:20
+    image: node:26
     context: frontend
     caches:
       - yarn/.cache
       - node_modules
     commands:
+      - npm install --global yarn
       - yarn install
       - yarn test
 ```
 
 `frontend` is the name of the Test Container. The meaning of the rest of the fields is:
 
-- `image`: the image used as the runtime of your Test Container.
+- `image`: the image used as the runtime of your Test Container. `node:26` is the official Node.js image for the current Active LTS release.
 - `context`: the folder that Okteto sends to the Test Container.
 - `caches`: a list of folders to persist between executions of the Test Container. Caches skip dependency installation on later runs.
-- `commands`: a list of commands to execute your tests. The Test Container fails if any command exits with a non-zero code.
+- `commands`: a list of commands to execute your tests. The Test Container fails if any command exits with a non-zero code. The official Node.js image doesn't include Yarn, so the first command installs it.
 
-Create a `.oktetoignore` file in the `frontend` folder to exclude dependencies and cache metadata from the files sent to the Test Container:
+The `frontend/.oktetoignore` file excludes dependencies and cache metadata from the files sent to the Test Container:
 
 ```text title="frontend/.oktetoignore"
 .yarn/cache
@@ -50,20 +53,29 @@ okteto test frontend
 ```bash
  i  Using cindy @ okteto.example.com as context
  i  Executing test container 'frontend'
+ i  Running 'npm install --global yarn'
+added 1 package in 1s
+ ✓  Command 'npm install --global yarn' successfully executed
  i  Running 'yarn install'
+yarn install v1.22.22
  ...
+Done in 15.37s.
  ✓  Command 'yarn install' successfully executed
  i  Running 'yarn test'
 yarn run v1.22.22
 $ jest
-PASS src/components/Hero.test.jsx
 PASS src/components/TitleList.test.jsx
-PASS src/components/Item.test.jsx
-PASS src/components/App.test.jsx
+PASS src/components/Hero.test.jsx
 PASS src/components/UserProfile.test.jsx
+PASS src/components/App.test.jsx
+PASS src/components/Item.test.jsx
 PASS src/components/ListToggle.test.jsx
 Test Suites: 6 passed, 6 total
 Tests:       20 passed, 20 total
+Snapshots:   0 total
+Time:        2.267 s
+Ran all test suites.
+Done in 3.06s.
  ✓  Command 'yarn test' successfully executed
  ✓  Test container 'frontend' passed
 ```
@@ -73,12 +85,12 @@ The first execution takes longer because the `caches` aren't initialized yet. La
 ## End-to-end tests
 
 The `e2e` folder contains [Playwright](https://playwright.dev/) tests that open the Movies app in a browser and compare the movies it shows with the data stored in MongoDB.
-Add the `e2e` Test Container to the `test` section, and create an `e2e/.oktetoignore` file with the same content as `frontend/.oktetoignore`:
+The `e2e` Test Container runs them, and the `e2e/.oktetoignore` file has the same content as `frontend/.oktetoignore`:
 
 ```yaml title="okteto.yaml"
 test:
   e2e:
-    image: ghcr.io/okteto/playwright:chromium
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
     caches:
       - yarn/.cache
@@ -89,6 +101,8 @@ test:
       - test-results
       - playwright-report
 ```
+
+`mcr.microsoft.com/playwright:v1.65.1-noble` is the official Playwright image. It includes Yarn and the browsers of Playwright 1.65.1, the version of `@playwright/test` in `e2e/package.json`. When you upgrade `@playwright/test`, change the image tag to the same version: each Playwright release only runs with the browsers it was built for.
 
 The `artifacts` field lists files and folders that Okteto exports to your local filesystem after the tests run, in this case the Playwright results and HTML report.
 
@@ -102,15 +116,19 @@ okteto test e2e
  i  Using cindy @ okteto.example.com as context
  i  Executing test container 'e2e'
  i  Running 'bash run_tests.sh'
+yarn install v1.22.22
  ...
-Running 6 tests using 2 workers
-  ✓  1 [chromium] › content.spec.js:26:5 › displays the movies section (3.2s)
-  ✓  2 [chromium] › content.spec.js:48:5 › displays the watching section (3.2s)
-  ✓  3 [chromium] › header.spec.js:3:5 › displays the header (762ms)
-  ✓  4 [chromium] › hero.spec.js:3:5 › displays the hero (936ms)
-  ✓  5 [chromium] › main.spec.js:3:5 › has title (1.6s)
-  ✓  6 [chromium] › main.spec.js:10:5 › matches screenshot (3.6s)
-  6 passed (9.9s)
+yarn run v1.22.22
+$ playwright test
+Running 6 tests using 1 worker
+  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.9s)
+  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (1.8s)
+  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (636ms)
+  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (956ms)
+  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (582ms)
+  ✓  6 [chromium] › tests/main.spec.js:10:1 › matches screenshot (1.3s)
+  6 passed (8.7s)
+Done in 9.56s.
  ✓  Command 'bash run_tests.sh' successfully executed
  ✓  Test container 'e2e' passed
 ```
@@ -126,10 +144,10 @@ Run `okteto test` without arguments to run every Test Container in your Okteto M
 
 ## Next Steps
 
-You deployed and tested your first application in Okteto 🚀
+- [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) deploys an application defined in a Docker Compose file, with no Helm chart or Kubernetes manifests, and develops one of its services with hot reload.
+- [Deploy a multi-repo application with dependencies](/tutorials/dependencies/) deploys an application whose services live in several repositories, with the `dependencies` section of the Okteto Manifest: Okteto deploys the repositories in parallel and orders them with `depends_on`.
 
-Now, here's what you can explore next:
+To keep working on the Movies app:
 
-- Discover [Development Environments](development/index.mdx) to develop your application with Okteto
-- Configure [Preview Environments](previews/index.mdx) to deploy your application and run these same Test Containers on every pull or merge request
-- Check out the [Developers Quickstart](get-started/dev-quickstart.mdx) guide to see how developers can make the most of Okteto
+- [Development Environments](development/index.mdx) sync your local changes to the services running in your Okteto Namespace.
+- [Preview Environments](previews/index.mdx) deploy your application and run these same Test Containers on every pull or merge request.

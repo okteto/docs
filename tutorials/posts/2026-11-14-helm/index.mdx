@@ -7,7 +7,11 @@ image: ./img/cover.jpg
 image_alt: "The Helm logo with an arrow to the Kubernetes logo"
 ---
 
-Okteto deploys an application packaged as Helm charts with the same charts you use in production, and then lets you develop each service in that environment. This tutorial uses [Oktetodo](https://github.com/okteto/oktetodo), a to-do list application, to show the three sections of the [Okteto Manifest](/docs/reference/okteto-manifest) you need: `build`, `deploy`, and `dev`.
+Okteto deploys an application packaged as Helm charts with the same charts you use in production, and then lets you develop each service in that environment. This tutorial uses the [Helm Sample App](https://github.com/okteto/helm-getting-started), a to-do list application, to show the four sections of the [Okteto Manifest](/docs/reference/okteto-manifest) you need: `build`, `deploy`, `test`, and `dev`.
+
+:::tip
+The `.dockerignore`, `.oktetoignore`, and `.stignore` files are key to performance. They decide which files Okteto sends to the image builds, to Remote Execution, and to File Sync. Without them, every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` transfers the whole repository, `.git` folder included, and a change to any file invalidates the build cache.
+:::
 
 ## Prerequisites
 
@@ -16,15 +20,15 @@ Okteto deploys an application packaged as Helm charts with the same charts you u
 - A local copy of the sample application:
 
 ```bash
-git clone https://github.com/okteto/oktetodo
-cd oktetodo
+git clone https://github.com/okteto/helm-getting-started
+cd helm-getting-started
 ```
 
 ## The Sample Application
 
-Oktetodo has three services, each one in its own folder:
+The Helm Sample App has three services, each one in its own folder:
 
-- `client`: a React frontend.
+- `client`: a React frontend, built with [Vite](https://vite.dev/).
 - `server`: a Node.js backend that serves the API under `/todos`.
 - `db`: a PostgreSQL database that stores the to-dos.
 
@@ -54,39 +58,115 @@ metadata:
 
 The [Ingress endpoints](/docs/core/endpoints/ingress) docs explain the options for endpoints.
 
+The `client` and `server` folders also have a `Dockerfile` with two stages. This is the one of the `server`:
+
+```dockerfile title="server/Dockerfile"
+FROM node:26.13.1-trixie AS dev
+
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+FROM node:26.13.1-trixie-slim AS prod
+
+WORKDIR /usr/src/app
+COPY --from=dev /usr/src/app .
+CMD ["node", "index.js"]
+```
+
+- `dev` is the development image: Node.js, the dependencies installed by `npm ci`, and the source code.
+- `prod` is the application image that the chart deploys. It runs the code and the dependencies of the `dev` stage on a smaller Node.js image.
+
+The `dev` stage of the `client` also runs `vite build`, and its `prod` stage serves the result with NGINX on port `3000`. A `.dockerignore` file in each folder sends to the build only the files that the Dockerfile needs, such as `package.json`, `package-lock.json`, and the source code.
+
 ## The Okteto Manifest
 
-The `okteto.yaml` file at the root of the repository tells Okteto how to build, deploy, and develop the application:
+The `okteto.yaml` file at the root of the repository tells Okteto how to build, deploy, test, and develop the application:
 
 ```yaml title="okteto.yaml"
 build:
+  server-dev:
+    context: server
+    target: dev
   server:
     context: server
+    target: prod
+    depends_on:
+      - server-dev
+  client-dev:
+    context: client
+    target: dev
   client:
     context: client
+    target: prod
+    depends_on:
+      - client-dev
 
 deploy:
-  - name: Deploy the DB
-    command: helm upgrade --install db db/chart
-  - name: Deploy the Node.js Backend
-    command: helm upgrade --install server server/chart --set image=${OKTETO_BUILD_SERVER_IMAGE}
-  - name: Deploy the React Frontend
-    command: helm upgrade --install client client/chart --set image=${OKTETO_BUILD_CLIENT_IMAGE}
+  image: alpine/helm:4.3.2
+  commands:
+    - name: Deploy the PostgreSQL database
+      command: helm upgrade --install db db/chart
+    - name: Deploy the Node.js backend
+      command: helm upgrade --install server server/chart --set image=${OKTETO_BUILD_SERVER_IMAGE}
+    - name: Deploy the React frontend
+      command: helm upgrade --install client client/chart --set image=${OKTETO_BUILD_CLIENT_IMAGE}
+
+test:
+  server:
+    context: server
+    image: ${OKTETO_BUILD_SERVER_DEV_IMAGE}
+    caches:
+      - /root/.npm
+    commands:
+      - npm ci
+      - node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info
+    artifacts:
+      - lcov.info
 
 dev:
   server:
-    command: bash
+    image: ${OKTETO_BUILD_SERVER_DEV_IMAGE}
+    command: node --watch index.js
     sync:
-      - server:/app
+      - server:/usr/src/app
+    persistentVolume:
+      enabled: false
   client:
-    command: bash
+    image: ${OKTETO_BUILD_CLIENT_DEV_IMAGE}
+    command: npm run dev
     sync:
-      - client:/app
+      - client:/usr/src/app
+    persistentVolume:
+      enabled: false
 ```
 
-- **`build`** defines the images to build. `context` is the folder with the Dockerfile of each service. The [Okteto Build Service](/docs/core/build-service) builds them in your cluster, and skips the ones whose code didn't change.
-- **`deploy`** runs the same `helm upgrade --install` commands you would run against production. `${OKTETO_BUILD_SERVER_IMAGE}` and `${OKTETO_BUILD_CLIENT_IMAGE}` hold the images built in the `build` section, and `--set image=` passes them to the charts. The commands run in your cluster with [Remote Execution](/docs/core/remote-execution), so you don't need Helm on your machine.
-- **`dev`** defines a Development Container for each service: the command to run when it starts and the folders to synchronize between your machine and the container.
+- **`build`** defines the two images of each service. `context` is the folder with the Dockerfile, and `target` selects its stage. `depends_on` builds the `dev` image first, so the application image reuses its cached layers. The [Okteto Build Service](/docs/core/build-service) builds the images in your cluster, and skips the ones whose code didn't change.
+- **`deploy`** runs the same `helm upgrade --install` commands you would run against production. `${OKTETO_BUILD_SERVER_IMAGE}` and `${OKTETO_BUILD_CLIENT_IMAGE}` hold the application images built in the `build` section, and `--set image=` passes them to the charts. The commands run in your cluster with [Remote Execution](/docs/core/remote-execution), so you don't need Helm on your machine.
+- **`test`** defines a Test Container that runs the unit tests of the `server`. The [Testing the Server](#testing-the-server) section explains its fields.
+- **`dev`** defines a Development Container for the `client` and `server` services. The [Developing a Service](#developing-a-service) section explains its fields.
+
+`deploy.image` sets the image of the container where Remote Execution runs the commands of `deploy.commands`. The tag of that image chooses the Helm version of your deploys, here Helm 4.3.2, so it only changes when you change the Okteto Manifest. The Helm project doesn't publish an image, so the Helm Sample App uses [`alpine/helm`](https://hub.docker.com/r/alpine/helm), an image with Helm on Alpine Linux. Any image works if it includes `/bin/sh` and every tool that your commands run. Without `deploy.image`, the commands run in the [default image of Remote Execution](/docs/core/remote-execution#enable-remote-execution-per-application), which includes Helm, `kubectl`, and other tools.
+
+The `.oktetoignore` file limits the files that the Okteto CLI sends to the Remote Execution container. The deploy commands only read the charts:
+
+```text title=".oktetoignore"
+# Files that the Okteto CLI sends to Remote Execution.
+
+# "okteto deploy" and "okteto destroy" only need the Helm charts
+[deploy]
+*
+!db/chart
+!server/chart
+!client/chart
+
+[destroy]
+*
+!db/chart
+!server/chart
+!client/chart
+```
 
 ## Deploying the Application
 
@@ -96,9 +176,130 @@ Deploy the application from the root of the repository:
 okteto deploy
 ```
 
-Okteto builds the `client` and `server` images, runs the three Helm commands, and prints the endpoint of the application when the deployment finishes. Open it to see the to-do list, and add a few items.
+Okteto builds the four images, runs the three Helm commands in an `alpine/helm` container, and prints the endpoint of the application:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Image 'registry.okteto.example.com/cindy/helm-getting-started-client-dev:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/helm-getting-started-server-dev:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/helm-getting-started-client:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/helm-getting-started-server:okteto' successfully pushed
+ i  Running stage 'Deploy the PostgreSQL database'
+Release "db" does not exist. Installing it now.
+STATUS: deployed
+ i  Running stage 'Deploy the Node.js backend'
+Release "server" does not exist. Installing it now.
+STATUS: deployed
+ i  Running stage 'Deploy the React frontend'
+Release "client" does not exist. Installing it now.
+STATUS: deployed
+ i  Endpoints available:
+  - https://todolist-cindy.okteto.example.com
+  - https://todolist-cindy.okteto.example.com/todos
+```
+
+Open the endpoint to see the to-do list, and add a few items.
+
+## Testing the Server
+
+The `test` section of the Okteto Manifest defines a [Test Container](/docs/reference/okteto-manifest#test-object-optional) that runs the unit tests of `server/index.test.js` with the test runner of Node.js:
+
+```yaml title="okteto.yaml"
+test:
+  server:
+    context: server
+    image: ${OKTETO_BUILD_SERVER_DEV_IMAGE}
+    caches:
+      - /root/.npm
+    commands:
+      - npm ci
+      - node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info
+    artifacts:
+      - lcov.info
+```
+
+- `context`: the folder that Okteto sends to the Test Container, the `server` folder.
+- `image`: the development image of the `server`, so the tests run with the same Node.js version as the Development Container.
+- `caches`: the npm cache, kept between runs of the Test Container.
+- `commands`: the commands that install the dependencies and run the tests. The Test Container fails if a command exits with a non-zero code.
+- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the coverage report.
+
+Test Containers run with [Remote Execution](/docs/core/remote-execution#ignoring-files). The `[test]` group of the `server/.oktetoignore` file sends them only `package.json`, `package-lock.json`, and the `.js` files:
+
+```text title="server/.oktetoignore"
+# Files that the Okteto CLI sends to Remote Execution from the server folder.
+
+# "okteto test" only needs what "npm ci" and "node --test" read
+[test]
+*
+!package.json
+!package-lock.json
+!*.js
+```
+
+Run the unit tests from the root of the repository:
+
+```bash
+okteto test
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Executing test container 'server'
+ i  Running 'npm ci'
+added 81 packages, and audited 82 packages in 1s
+ ✓  Command 'npm ci' successfully executed
+ i  Running 'node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info'
+✔ GET /todos returns every to-do (142.754108ms)
+✔ POST /todos inserts the description (56.154514ms)
+ℹ tests 2
+ℹ pass 2
+ℹ fail 0
+ℹ start of coverage report
+ℹ ------------------------------------------------------------------------------
+ℹ file      | line % | branch % | funcs % | uncovered lines
+ℹ ------------------------------------------------------------------------------
+ℹ index.js  |  61.25 |    57.14 |   42.86 | 21-22 31-32 37-43 48-55 60-66 76-80
+ℹ ------------------------------------------------------------------------------
+ℹ end of coverage report
+ ✓  Command 'node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info' successfully executed
+ ✓  Test container 'server' passed
+```
+
+The coverage report is now in `server/lcov.info` on your machine, in the LCOV format.
+
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. To get hot reload on every change, configure the `dev` section of the Okteto Manifest and run `okteto up`.
 
 ## Developing a Service
+
+The `dev` section of the Okteto Manifest defines a Development Container for the `server` and the `client`:
+
+- `image`: the development image of the service, built in the `build` section.
+- `command`: starts the service with hot reload. The `server` runs `node --watch`, which restarts Node.js when a file changes. The `client` runs the Vite development server, which updates the page in your browser when a file changes.
+- `sync`: synchronizes the folder of the service on your machine with `/usr/src/app`, the working directory of the development image.
+- `persistentVolume`: disables the persistent volume of the Development Container. The dependencies come from the development image, and Okteto synchronizes the files again on every `okteto up`, so there's no volume to create and attach.
+
+The [Development Container guides](/docs/development/containers/) explain how to configure Test Containers and Development Containers for each language.
+
+The `.stignore` file of each folder lists the files that [File Sync](/docs/reference/file-synchronization#ignoring-files) skips in both directions. This is the one of the `server`:
+
+```text title="server/.stignore"
+# Files that "okteto up" does not synchronize with the development container.
+
+# Dependencies installed in the development image by "npm ci"
+/node_modules
+
+# Coverage report that "okteto test" copies to your machine
+/lcov.info
+
+# Local-only files
+.vscode
+.idea
+.DS_Store
+```
+
+The `node_modules` folder of the development image stays in the Development Container, and the one of your machine, if you have it, stays on your machine.
 
 Start a Development Container for the backend:
 
@@ -106,10 +307,57 @@ Start a Development Container for the backend:
 okteto up server
 ```
 
-Okteto replaces the `server` Deployment with a Development Container, synchronizes the `server` folder of your machine to `/app`, and opens a shell in it. Start the backend:
+Okteto replaces the `server` Deployment with a Development Container, synchronizes the `server` folder of your machine to `/usr/src/app`, and starts the backend with `node --watch`:
 
-```bash
-node index.js
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  'helm-getting-started' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Context:   okteto.example.com
+    Namespace: cindy
+    Name:      server
+
+server started on port 5050
 ```
 
-Edit `server/index.js` on your machine: your changes are synchronized to the container right away. Restart the process to load them and check the result through the same endpoint. Press `Ctrl+C` and run `okteto down` when you're done to restore the original Deployment.
+Open `server/index.js` on your machine, change the response of the route that updates a to-do from `Todo was updated!` to `Todo updated with Okteto!`, and save the file:
+
+```js title="server/index.js"
+    // update a todo
+    app.put('/todos/:id', async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { description } = req.body;
+            const updateTodo = await pool.query("UPDATE todo SET description = $1 WHERE todo_id = $2", [description, id]);
+            res.json("Todo updated with Okteto!");
+```
+
+Okteto synchronizes `index.js` to the Development Container, and Node.js restarts the backend:
+
+```console
+Change detected in '/usr/src/app/index.js'
+Restarting 'index.js'
+server started on port 5050
+```
+
+Update the first to-do through the API, with the endpoint that `okteto deploy` printed:
+
+```bash
+curl -X PUT -H "Content-Type: application/json" -d '{"description":"Walk the dog"}' https://todolist-cindy.okteto.example.com/todos/1
+```
+
+The backend answers with the new message, `"Todo updated with Okteto!"`. The change runs in your cluster without building an image or redeploying the application. Press `Ctrl+C` to exit `okteto up`, and run `okteto down server` to restore the original Deployment.
+
+The frontend works the same way. Run `okteto up client` and edit a file of `client/src`, for example the placeholder text of `client/src/components/InputTodo.jsx`. Vite updates the page in your browser without reloading it:
+
+```console
+  VITE v8.3.8  ready in 197 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://10.8.1.103:3000/
+  ➜  press h + enter to show help
+3:48:27 AM [vite] (client) hmr update /src/components/InputTodo.jsx
+```
+
+Press `Ctrl+C` to exit `okteto up`, and run `okteto down client` to restore the original Deployment.

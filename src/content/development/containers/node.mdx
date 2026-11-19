@@ -1,164 +1,317 @@
 ---
 title: Getting Started with Okteto and Node.js
-description: This tutorial will show you how to develop and debug a Node.js application using Okteto
+description: Build, deploy, test, develop, and debug a Node.js application with Okteto.
 sidebar_label: Node.js
 id: node
 ---
 
 import Image from "@theme/Image";
 
-Okteto is a platform that simplifies the process of launching cloud development environments without requiring the expertise to do this yourself. This enables developers to automatically spin up fully-managed development environments that emulate production as closely as possible. Okteto eliminates the friction of local development environments, the many deviations that can exist for the same engineering organization, and the troubleshooting that comes with them.
+Okteto replaces your Node.js application in Kubernetes with a Development Container that restarts it every time you save a file. The [Node.js Sample App](https://github.com/okteto/node-getting-started) is a hello world HTTP server built with [Express](https://expressjs.com/) that builds its application image and its development image from one Dockerfile, runs its unit tests in a Test Container, reloads with the [watch mode](https://nodejs.org/api/cli.html#--watch) of Node.js when a file changes, and runs the [Node.js inspector](https://nodejs.org/en/learn/getting-started/debugging) so you can debug it from VS Code.
 
-This tutorial will show you how to develop and debug a Node.js application using Okteto.
+:::tip
+The `.dockerignore`, `.oktetoignore`, and `.stignore` files are key to performance. They decide which files Okteto sends to the image builds, to Remote Execution, and to File Sync. Without them, every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` transfers the whole repository, `.git` folder included, and a change to any file invalidates the build cache.
+:::
 
 ## Prerequisites
 
-Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
+- The Okteto CLI, installed and configured to access your Okteto instance. See the [installation guide](get-started/install-okteto-cli.mdx).
+- To debug the application: [VS Code](https://code.visualstudio.com/). Its built-in JavaScript debugger attaches to the Node.js inspector, so you don't need an extension.
 
-## Step 1: Deploy the Node.js Sample App
-
-Get a local version of the Node.js Sample App by executing the following commands:
+Clone the Node.js Sample App:
 
 ```bash
-$ git clone https://github.com/okteto/node-getting-started
-$ cd node-getting-started
+git clone https://github.com/okteto/node-getting-started
+cd node-getting-started
 ```
 
-At the root of the directory, you'll find the `okteto.yml` file. This file describes how to [deploy](reference/okteto-manifest.mdx#deploy-string-optional) the Node Sample App.
+## The Dockerfile
+
+The `Dockerfile` of the Node.js Sample App defines two images, one per stage:
+
+```dockerfile title="Dockerfile"
+FROM node:26.13.1-trixie-slim AS dev
+
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+FROM node:26.13.1-trixie-slim AS prod
+
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY . .
+ENV NODE_ENV=production
+CMD ["node", "index.js"]
+```
+
+- `dev` is the development image. It contains Node.js, npm, the dependencies that `npm ci` installs from `package-lock.json`, and the source code. Node.js includes the watch mode and the inspector, so the image doesn't need other tools.
+- `prod` is the application image. It contains Node.js, the production dependencies, and the source code, and runs the application with `node` and `NODE_ENV=production`.
+
+The `dev` stage follows the recommendations for [development images](development/images.mdx): every version is pinned, and both stages install the dependencies from the same `package-lock.json`.
+
+The `.dockerignore` file limits the build context to the files that `npm ci` and the application need:
+
+```text title=".dockerignore"
+*
+!package.json
+!package-lock.json
+!**/*.js
+**/node_modules/**
+```
+
+Without it, the `.git` folder, a local `node_modules` folder, and the rest of the repository end up in the development image, and a change to any file, such as `README.md`, invalidates the build cache. The last line keeps the `.js` files of a local `node_modules` folder out of the build context. If your application reads other files, for example templates or static assets, add them with a `!` pattern.
+
+## The Okteto Manifest
+
+The `okteto.yml` file is the [Okteto Manifest](reference/okteto-manifest.mdx) of the Node.js Sample App.
+
+### Build
+
+The [build](reference/okteto-manifest.mdx#build-object-optional) section builds both images:
+
+```yaml title="okteto.yml"
+build:
+  dev:
+    context: .
+    target: dev
+  hello-world:
+    context: .
+    target: prod
+    depends_on:
+      - dev
+```
+
+`target` selects the stage of the `Dockerfile`. `depends_on` makes Okteto build the `dev` image first, so the build of `hello-world` reuses the cached layers of the `dev` stage. Okteto pushes both images to the [Okteto Registry](core/container-registry.mdx) and exposes their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+### Deploy
+
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section deploys the application image:
 
 ```yaml title="okteto.yml"
 deploy:
-  - kubectl apply -f k8s.yml
+  - envsubst < k8s.yml | kubectl apply -f -
 ```
 
-Deploy your development environment by executing:
+`envsubst` replaces `${OKTETO_BUILD_HELLO_WORLD_IMAGE}` in `k8s.yml` with the image that Okteto built, and `kubectl` applies the Deployment, Service, and Ingress of `k8s.yml`.
 
-```bash
-$ okteto deploy
+The deploy commands run with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster, with an image that includes `kubectl` and `envsubst`.
+
+:::tip
+To run your deploy commands with your own tools, set the image of that container in `deploy.image` and move the commands to `deploy.commands`. The image must include `/bin/sh` and every tool that your commands run. [Deploy Your Application to Okteto](get-started/deploy-your-app/index.mdx) covers the `build`, `deploy`, and `test` sections of an application with several services.
+:::
+
+The `[deploy]` and `[destroy]` groups of the `.oktetoignore` file limit the files that the Okteto CLI sends to Remote Execution for `okteto deploy` and `okteto destroy` to `k8s.yml`, the only file the deploy commands read:
+
+```text title=".oktetoignore"
+# Files that the Okteto CLI sends to Remote Execution.
+
+# "okteto deploy" and "okteto destroy" only need the Kubernetes manifests
+[deploy]
+*
+!k8s.yml
+
+[destroy]
+*
+!k8s.yml
 ```
 
+## Deploying the Node.js Sample App
+
+Run `okteto deploy` from the root folder of the Node.js Sample App:
+
 ```bash
+okteto deploy
+```
+
+Okteto builds the `dev` and `hello-world` images, runs the deploy commands, and prints the endpoint of the application:
+
+```console
  i  Using cindy @ okteto.example.com as context
- i  Running kubectl apply -f k8s.yml
+ ✓  Image 'registry.okteto.example.com/cindy/node-getting-started-dev:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/node-getting-started-hello-world:okteto' successfully pushed
+ i  Running stage 'envsubst < k8s.yml | kubectl apply -f -'
+Executing command 'envsubst < k8s.yml | kubectl apply -f -'...
 deployment.apps/hello-world created
 service/hello-world created
 ingress.networking.k8s.io/hello-world created
+ i  Endpoints available:
+  - https://hello-world-cindy.okteto.example.com
  ✓  Development environment 'node-getting-started' successfully deployed
- i  Run 'okteto up' to activate your development container
 ```
 
-Log into your Okteto instance and click on the URL of the application:
+Open the endpoint in your browser to see the `Hello world!` response. The endpoint is also available in the Okteto Dashboard:
 
 <Image
   src={require("@site/static/img/okteto-ui+1.32.png").default}
   alt="Okteto dashboard showing the hello-world deployment running with endpoints and logs"
 />
 
-Did you notice that you're accessing your application through an HTTPs endpoint? This is because Okteto will [automatically create them](core/endpoints/automatic-ssl.mdx) for you when you deploy your application. Cool no 😎?
+Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the Ingress of `k8s.yml`.
 
-## Step 2: Activate your development container
+## Testing the Node.js Sample App
 
-The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the Node Sample App:
+The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit tests of `index.test.js` with the [test runner](https://nodejs.org/api/test.html) of Node.js:
+
+```yaml title="okteto.yml"
+test:
+  unit:
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    caches:
+      - /root/.npm
+    commands:
+      - npm ci
+      - node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml
+    artifacts:
+      - junit.xml
+```
+
+- `image`: the development image, so the tests run with the same Node.js version as the Development Container.
+- `caches`: the npm cache, kept between runs of the Test Container.
+- `commands`: the commands that run the tests. `npm ci` installs the dependencies next to the files that the Okteto CLI sends, and `node --test` prints the results and writes a JUnit report to `junit.xml`. The Test Container fails if a command exits with a non-zero code.
+- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the JUnit report.
+
+Test Containers run with [Remote Execution](core/remote-execution.mdx#ignoring-files). The `[test]` group of the `.oktetoignore` file sends them only `package.json`, `package-lock.json`, and the `.js` files:
+
+```text title=".oktetoignore"
+# "okteto test" only needs what "node --test" reads
+[test]
+*
+!package.json
+!package-lock.json
+!**/*.js
+**/node_modules/**
+```
+
+Run the unit tests from the root folder of the Node.js Sample App:
+
+```bash
+okteto test
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Executing test container 'unit'
+ i  Running 'npm ci'
+added 65 packages, and audited 66 packages in 567ms
+ ✓  Command 'npm ci' successfully executed
+ i  Running 'node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml'
+✔ GET / responds with Hello world! (48.884243ms)
+ℹ tests 1
+ℹ pass 1
+ℹ fail 0
+ ✓  Command 'node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml' successfully executed
+ ✓  Test container 'unit' passed
+```
+
+The JUnit report is now in `junit.xml`, in the root folder of the Node.js Sample App on your machine. CI systems and IDEs read test results in the JUnit format.
+
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously.
+
+## Developing in a Development Container
+
+To get the experience of developing on your machine, with hot reload and a debugger on every change, configure a Development Container in your Okteto Manifest. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, synchronizes your local files with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+
+### Configuration
+
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the `okteto.yml` file defines the Development Container of the Node.js Sample App:
 
 ```yaml title="okteto.yml"
 dev:
   hello-world:
-    command: bash
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    command: node --watch --inspect index.js
     sync:
       - .:/usr/src/app
+    persistentVolume:
+      enabled: false
     forward:
       - 9229:9229
 ```
 
-The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+The `hello-world` key matches the name of the Deployment in `k8s.yml`. The fields of the Development Container are:
 
-- `command`: the start command of the development container.
-- `sync`: the folders that will be synchronized between your local machine and the development container.
-- `forward`: a list of ports to forward from your development container to localhost in your machine. This is needed to configure the Node remote debugger.
+- `image`: the development image built in the `build` section.
+- `command`: starts the application in watch mode (`--watch`), which restarts it every time a file that it loads changes, with the inspector (`--inspect`) listening for debuggers on port `9229`.
+- `sync`: synchronizes the root folder of the Node.js Sample App with `/usr/src/app`, the working directory of the development image.
+- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the dependencies in `node_modules` come from the development image, so there's no volume to create and attach. In projects with many dependencies, enable it and add `/root/.npm` to [volumes](reference/okteto-manifest.mdx#volumes-string-optional) to keep the npm cache between `okteto up` sessions.
+- `forward`: forwards port `9229`, where the inspector listens, to your machine.
 
-Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
-This is useful to avoid synchronizing binaries, build artifacts, git metadata, or dependencies like the `node_modules` folder.
+The `.stignore` file lists the files that [File Sync](reference/file-synchronization.mdx#ignoring-files) skips in both directions:
 
-Next, execute the following command to activate your development container:
+```text title=".stignore"
+# Git metadata: large, and only needed on your machine
+.git
 
-```bash
-$ okteto up
+# Files generated inside the development container
+/node_modules
+/junit.xml
+
+# Local-only files
+.vscode
+.idea
+.DS_Store
 ```
 
+`.git`, `.vscode`, `.idea`, and `.DS_Store` stay on your machine. The dependencies that npm installs (`node_modules`) and the test report (`junit.xml`) stay where they're generated: the Development Container runs with the `node_modules` folder of the development image, even if you run `npm install` on your machine.
+
+### Hot reload
+
+Run `okteto up` to replace the `hello-world` Deployment with the Development Container:
+
 ```bash
- ✓  Persistent volume successfully attached
+okteto up
+```
+
+Okteto synchronizes your files and starts the application in watch mode, with the inspector:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  'node-getting-started' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
  ✓  Images successfully pulled
  ✓  Files synchronized
+    Context:   okteto.example.com
     Namespace: cindy
     Name:      hello-world
     Forward:   9229 -> 9229
 
-
-Welcome to your development container. Happy coding!
-cindy:hello-world app>
-```
-
-Working in your development container is the same as working on your local machine.
-Start the application in hot-reload mode by running the following command:
-
-```bash
-cindy:hello-world app> npm run start
-```
-
-```bash
-> node-getting-started@1.0.0 start
-> nodemon index.js
-
-[nodemon] 3.1.14
-[nodemon] to restart at any time, enter `rs`
-[nodemon] watching path(s): *.*
-[nodemon] watching extensions: js,mjs,cjs,json
-[nodemon] starting `node index.js`
+Debugger listening on ws://127.0.0.1:9229/392fafa3-55b2-4d6c-a4da-7ff871cd3486
+For help, see: https://nodejs.org/learn/getting-started/debugging
 Started hello-world server on 3000
 ```
 
-Go back to the browser and reload the page to test that your application is running.
+Open `index.js` in your local IDE, change the response message on line 7 to `Hello world from Okteto!`, and save the file:
 
-## Step 3: Remote Development with Okteto
-
-Open the `index.js` file in your favorite local IDE and modify the response message on line 7 to be _Hello world from Okteto!_. Save your changes.
-
-```javascript
-res.send("Hello world from Okteto!");
+```javascript title="index.js"
+app.get('/', function (req, res) {
+  res.send('Hello world from Okteto!');
+});
 ```
 
-Okteto will synchronize your changes to your development container.
-Take a look at the development container shell and notice how the changes are detected by `nodemon` and automatically hot reloaded.
+Okteto synchronizes `index.js` to the Development Container, and Node.js clears the terminal and restarts the application and the inspector:
 
-```bash
-[nodemon] restarting due to changes...
-[nodemon] starting `node index.js`
+```console
+Change detected in '/usr/src/app/index.js'
+Restarting 'index.js'
+Debugger listening on ws://127.0.0.1:9229/844ccc13-d7b5-4400-9174-001bd1473c80
+For help, see: https://nodejs.org/learn/getting-started/debugging
 Started hello-world server on 3000
 ```
 
-Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build, or push required 😎
+Reload the endpoint in your browser to see the new message. The change runs in your cluster without building an image or redeploying the application.
 
-## Step 4: Remote debugging with Okteto
+Press `Ctrl+C` to stop the application and exit `okteto up`.
 
-Okteto enables you to debug your applications directly from your favorite IDE.
-Let's take a look at how that works in VS Code, one of the most popular IDEs for Node development.
-If you haven't done it yet, install the Node.js extension available from Visual Studio marketplace.
+### Debugging with VS Code
 
-Cancel the execution of `nodemon index.js` from the development container shell by pressing `ctrl + c`.
-Rerun your application in debug mode:
+The `command` of the Development Container starts the inspector together with the watch mode, so you debug the same `okteto up` session that reloads your changes. Every time the application restarts, the inspector starts again on port `9229`.
 
-```bash
-cindy:hello-world app> npm run debug
-```
+The `.vscode/launch.json` file of the Node.js Sample App attaches VS Code to the inspector through the port that `okteto up` forwards to your machine:
 
-```bash
-Debugger listening on ws://0.0.0.0:9229/73d8d793-b0c3-4310-86ee-3a42938a5df1
-For help, see: https://nodejs.org/en/docs/inspector
-```
-
-Open the _Debug_ extension and run the _Connect to okteto_ debug configuration (or press the F5 shortcut):
-
-```json
+```json title=".vscode/launch.json"
 {
   "version": "0.2.0",
   "configurations": [
@@ -166,42 +319,39 @@ Open the _Debug_ extension and run the _Connect to okteto_ debug configuration (
       "name": "Connect to okteto",
       "type": "node",
       "request": "attach",
-      "address": "localhost",
+      "address": "127.0.0.1",
       "port": 9229,
       "localRoot": "${workspaceFolder}",
       "remoteRoot": "/usr/src/app",
-      "skipFiles": ["<node_internals>/**"]
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }
 ```
 
-:::note
+`remoteRoot` is the path in the `sync` field of the Okteto Manifest. If you synchronize your code to another path, change `remoteRoot` to match it. `restart` attaches VS Code again every time the watch mode restarts the application.
 
-You should be replacing the value of `remoteRoot` with wherever your application code is.
+Open the Node.js Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. Add a breakpoint on line 7 of `index.js` and reload the endpoint in your browser. The execution stops at the breakpoint, and you can inspect the request and the variables.
 
-:::
+To end the debugging session, stop the **Connect to okteto** configuration in VS Code. The application keeps running with hot reload until you press `Ctrl+C` to exit `okteto up`.
 
-Add a breakpoint on `index.js`, line 7. Go back to the browser and reload the page.
-The execution will halt at your breakpoint. You can then inspect the request, the available variables, etc.
+## Cleaning up
 
-<Image
-  src={require("@site/static/img/node-halt.png").default}
-  alt="breakpoint in Node.js"
-  width="850"
-/>
+`okteto down` deactivates the Development Container and restores the `hello-world` Deployment with the application image:
 
-Your code is running in Okteto, but you can debug it from your local machine without any extra services or tools.
-Pretty cool no? 😉
+```bash
+okteto down
+```
+
+`okteto destroy` deletes the Deployment, Service, and Ingress of the Node.js Sample App from your Namespace:
+
+```bash
+okteto destroy
+```
 
 ## Next steps
 
-Congratulations, you just developed **your first application in Okteto** 🚀.
-
-Okteto lets you develop your applications directly on Kubernetes. This way you can:
-
-- Eliminate integration issues by developing in a realistic environment
-- Test your application end to end as fast as you type code
-- No more CPU cycles wasted in your machine. Develop at the speed of the cloud.
-
-Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.
+To develop an application with several services and a database, see [Develop a Helm application with Okteto](/tutorials/helm/) and [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/). The [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every field of `build`, `deploy`, `test`, and `dev`.

@@ -1,164 +1,346 @@
 ---
 title: Getting Started with Okteto and PHP
-description: This tutorial will show you how to develop and debug a PHP application using Okteto
+description: Build, deploy, test, develop, and debug a PHP application with Okteto.
 sidebar_label: PHP
 id: php
 ---
 
 import Image from "@theme/Image";
 
-Okteto is a platform that simplifies the process of launching cloud development environments without requiring the expertise to do this yourself. This enables developers to automatically spin up fully-managed development environments that emulate production as closely as possible. Okteto eliminates the friction of local development environments, the many deviations that can exist for the same engineering organization, and the troubleshooting that comes with them.
+Okteto replaces your PHP application in Kubernetes with a Development Container that serves your latest code on every request. The [PHP Sample App](https://github.com/okteto/php-getting-started) is a hello world HTTP server that builds its application image and its development image from one Dockerfile, runs its unit tests with [PHPUnit](https://phpunit.de/) in a Test Container, serves every change with the [built-in web server](https://www.php.net/manual/en/features.commandline.webserver.php) of PHP, and runs [Xdebug](https://xdebug.org/) so you can debug it from PhpStorm.
 
-This tutorial will show you how to develop and debug a PHP application using Okteto.
+:::tip
+The `.dockerignore`, `.oktetoignore`, and `.stignore` files are key to performance. They decide which files Okteto sends to the image builds, to Remote Execution, and to File Sync. Without them, every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` transfers the whole repository, `.git` folder included, and a change to any file invalidates the build cache.
+:::
 
 ## Prerequisites
 
-Install the latest version of the Okteto CLI and configure it to access Okteto. [Follow our installation guide](get-started/install-okteto-cli.mdx) if you haven't done it yet.
+- The Okteto CLI, installed and configured to access your Okteto instance. See the [installation guide](get-started/install-okteto-cli.mdx).
+- To debug the application: [PhpStorm](https://www.jetbrains.com/phpstorm/).
 
-## Step 1: Deploy the PHP Sample App
-
-Get a local version of the PHP Sample App by executing the following commands:
+Clone the PHP Sample App:
 
 ```bash
-$ git clone https://github.com/okteto/php-getting-started
-$ cd php-getting-started
+git clone https://github.com/okteto/php-getting-started
+cd php-getting-started
 ```
 
-At the root of the directory, you'll find the `okteto.yml` file. This file describes how to [deploy](reference/okteto-manifest.mdx#deploy-string-optional) the Php Sample App.
+## The Dockerfile
+
+The `Dockerfile` of the PHP Sample App defines two images, one per stage:
+
+```dockerfile title="Dockerfile"
+FROM php:8.5.12-cli-trixie AS dev
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends unzip && \
+    rm -rf /var/lib/apt/lists/* && \
+    pecl install xdebug-3.5.3 && \
+    docker-php-ext-enable xdebug && \
+    cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+COPY --from=composer:2.11.2 /usr/bin/composer /usr/local/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
+COPY xdebug.ini $PHP_INI_DIR/conf.d/
+
+WORKDIR /usr/src/app
+COPY composer.json composer.lock ./
+RUN composer install
+COPY . .
+
+FROM php:8.5.12-cli-alpine3.24 AS prod
+
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+WORKDIR /usr/src/app
+COPY *.php ./
+CMD ["php", "-S", "0.0.0.0:8080"]
+```
+
+- `dev` is the development image. It contains PHP with its development settings, Xdebug, Composer, the dependencies of `composer.json` (PHPUnit), and the source code. `composer install` runs before `COPY . .`, so a change to a `.php` file doesn't install the dependencies again.
+- `prod` is the application image. It contains PHP with its production settings and the `.php` files of the application, served by the built-in web server of PHP on port `8080`.
+
+The `dev` stage follows the recommendations for [development images](development/images.mdx): the versions of PHP, Xdebug, and Composer are pinned, and `composer.lock` pins the versions of the dependencies.
+
+The `xdebug.ini` file configures Xdebug in the development image:
+
+```ini title="xdebug.ini"
+xdebug.mode=debug
+xdebug.start_with_request=yes
+xdebug.client_host=127.0.0.1
+xdebug.client_port=9003
+```
+
+Xdebug starts a debugging session on every request and connects to port `9003` of the Development Container, which `okteto up` forwards to the debugger of your IDE.
+
+The `.dockerignore` file limits the build context to the files that Composer and PHP need:
+
+```text title=".dockerignore"
+*
+!composer.json
+!composer.lock
+!**/*.php
+!xdebug.ini
+vendor/**
+```
+
+Without it, the `.git` folder and the rest of the repository end up in the development image, and a change to any file, such as `README.md`, invalidates the build cache. `vendor/**` leaves out the dependencies that you install on your machine, because the `dev` stage installs its own. If your application reads other files, for example templates or assets, add them with a `!` pattern.
+
+## The Okteto Manifest
+
+The `okteto.yml` file is the [Okteto Manifest](reference/okteto-manifest.mdx) of the PHP Sample App.
+
+### Build
+
+The [build](reference/okteto-manifest.mdx#build-object-optional) section builds both images:
+
+```yaml title="okteto.yml"
+build:
+  dev:
+    context: .
+    target: dev
+  hello-world:
+    context: .
+    target: prod
+    depends_on:
+      - dev
+```
+
+`target` selects the stage of the `Dockerfile`. `depends_on` makes Okteto build the `dev` image first, so the build of `hello-world` reuses the cached layers of the `dev` stage. Okteto pushes both images to the [Okteto Registry](core/container-registry.mdx) and exposes their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+### Deploy
+
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section deploys the application image:
 
 ```yaml title="okteto.yml"
 deploy:
-  - kubectl apply -f k8s.yml
+  - envsubst < k8s.yml | kubectl apply -f -
 ```
 
-Deploy your development environment by executing:
+`envsubst` replaces `${OKTETO_BUILD_HELLO_WORLD_IMAGE}` in `k8s.yml` with the image that Okteto built, and `kubectl` applies the Deployment, Service, and Ingress of `k8s.yml`.
 
-```bash
-$ okteto deploy
+The deploy commands run with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster, with an image that includes `kubectl` and `envsubst`.
+
+:::tip
+To run your deploy commands with your own tools, set the image of that container in `deploy.image` and move the commands to `deploy.commands`. The image must include `/bin/sh` and every tool that your commands run. [Deploy Your Application to Okteto](get-started/deploy-your-app/index.mdx) covers the `build`, `deploy`, and `test` sections of an application with several services.
+:::
+
+The `[deploy]` and `[destroy]` groups of the `.oktetoignore` file limit the files that the Okteto CLI sends to Remote Execution for `okteto deploy` and `okteto destroy` to `k8s.yml`, the only file the deploy commands read:
+
+```text title=".oktetoignore"
+# Files that the Okteto CLI sends to Remote Execution.
+
+# "okteto deploy" and "okteto destroy" only need the Kubernetes manifests
+[deploy]
+*
+!k8s.yml
+
+[destroy]
+*
+!k8s.yml
 ```
 
+## Deploying the PHP Sample App
+
+Run `okteto deploy` from the root folder of the PHP Sample App:
+
 ```bash
+okteto deploy
+```
+
+Okteto builds the `dev` and `hello-world` images, runs the deploy commands, and prints the endpoint of the application:
+
+```console
  i  Using cindy @ okteto.example.com as context
- i  Running kubectl apply -f k8s.yml
+ ✓  Image 'registry.okteto.example.com/cindy/php-getting-started-dev:okteto' successfully pushed
+ ✓  Image 'registry.okteto.example.com/cindy/php-getting-started-hello-world:okteto' successfully pushed
+ i  Running stage 'envsubst < k8s.yml | kubectl apply -f -'
+Executing command 'envsubst < k8s.yml | kubectl apply -f -'...
 deployment.apps/hello-world created
 service/hello-world created
 ingress.networking.k8s.io/hello-world created
+ i  Endpoints available:
+  - https://hello-world-cindy.okteto.example.com
  ✓  Development environment 'php-getting-started' successfully deployed
- i  Run 'okteto up' to activate your development container
 ```
 
-Open your browser and go to the URL of the application. You can get the URL by logging into your Okteto instance (eg. https://okteto.example.com) and clicking on the application's endpoint:
+Open the endpoint in your browser to see the `Hello World!` response. The endpoint is also available in the Okteto Dashboard:
 
 <Image
   src={require("@site/static/img/okteto-ui+1.32.png").default}
   alt="Okteto dashboard showing the hello-world deployment running with endpoints and logs"
 />
 
-Did you notice that you're accessing your application through an HTTPS endpoint? This is because Okteto will [automatically create them](core/endpoints/automatic-ssl.mdx) for you when you deploy your application. Cool no 😎?
+Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the Ingress of `k8s.yml`.
 
-## Step 2: Activate your development container
+## Testing the PHP Sample App
 
-The [dev](reference/okteto-manifest.mdx#dev-object-optional) section defines how to activate a development container for the Php Sample App:
+The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit tests of `tests/IndexTest.php`:
+
+```yaml title="okteto.yml"
+test:
+  unit:
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    caches:
+      - /root/.composer/cache
+    commands:
+      - XDEBUG_MODE=off composer install
+      - XDEBUG_MODE=off vendor/bin/phpunit --log-junit junit.xml tests
+    artifacts:
+      - junit.xml
+```
+
+- `image`: the development image, so the tests run with the same PHP version and Composer as the Development Container.
+- `caches`: the Composer cache, kept between runs of the Test Container, so `composer install` copies the packages from it instead of downloading them.
+- `commands`: the commands that install the dependencies and run PHPUnit. `XDEBUG_MODE=off` turns off Xdebug, which otherwise tries to connect to a debugger on every PHP command. The Test Container fails if a command exits with a non-zero code.
+- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the JUnit report of PHPUnit.
+
+Test Containers run with [Remote Execution](core/remote-execution.mdx#ignoring-files). The `[test]` group of the `.oktetoignore` file sends them only `composer.json`, `composer.lock`, and the `.php` files, without the `vendor` folder. The Test Container receives them in a folder of its own, not in the working directory of the development image, so it installs the dependencies with `composer install` before it runs PHPUnit:
+
+```text title=".oktetoignore"
+# "okteto test" only needs what Composer and PHPUnit read
+[test]
+*
+!composer.json
+!composer.lock
+!**/*.php
+vendor/**
+```
+
+Run the unit tests from the root folder of the PHP Sample App:
+
+```bash
+okteto test
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Executing test container 'unit'
+ i  Running 'XDEBUG_MODE=off composer install'
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Package operations: 26 installs, 0 updates, 0 removals
+Generating autoload files
+ ✓  Command 'XDEBUG_MODE=off composer install' successfully executed
+ i  Running 'XDEBUG_MODE=off vendor/bin/phpunit --log-junit junit.xml tests'
+PHPUnit 13.4.7 by Sebastian Bergmann and contributors.
+Runtime:       PHP 8.5.12
+.                                                                   1 / 1 (100%)
+Time: 00:00.001, Memory: 20.00 MB
+OK (1 test, 1 assertion)
+ ✓  Command 'XDEBUG_MODE=off vendor/bin/phpunit --log-junit junit.xml tests' successfully executed
+ ✓  Test container 'unit' passed
+```
+
+The JUnit report is now in `junit.xml`, in the root folder of the PHP Sample App on your machine. CI systems and IDEs read this format to show the result of each test.
+
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously.
+
+## Developing in a Development Container
+
+To get the experience of developing on your machine, with hot reload and a debugger on every change, configure a Development Container in your Okteto Manifest. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, synchronizes your local files with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+
+### Configuration
+
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the `okteto.yml` file defines the Development Container of the PHP Sample App:
 
 ```yaml title="okteto.yml"
 dev:
   hello-world:
-    image: ghcr.io/okteto/php-getting-started:dev
-    command: bash
+    image: ${OKTETO_BUILD_DEV_IMAGE}
+    command: php -S 0.0.0.0:8080
     sync:
-      - .:/app
+      - .:/usr/src/app
+    persistentVolume:
+      enabled: false
     reverse:
-      - 9000:9000
-    volumes:
-      - /root/.composer/cache
+      - 9003:9003
 ```
 
-The `hello-world` key matches the name of the hello world Deployment. The meaning of the rest of fields is:
+The `hello-world` key matches the name of the Deployment in `k8s.yml`. The fields of the Development Container are:
 
-- `image`: the image used by the development container (built from this [Dockerfile](https://github.com/okteto/php-getting-started/blob/main/Dockerfile)).
-- `command`: the start command of the development container.
-- `sync`: the folders that will be synchronized between your local machine and the development container.
-- `reverse`: a list of ports to reverse forward from your development container to your local machine. This is needed to configure the PHP remote debugger.
-- `volumes`: a list of paths in your development container to be mounted as persistent volumes. For example, this is useful to persist the Composer cache.
+- `image`: the development image built in the `build` section.
+- `command`: starts the built-in web server of PHP on port `8080`. It reads the `.php` files on every request, so it serves every change without a restart.
+- `sync`: synchronizes the root folder of the PHP Sample App with `/usr/src/app`, the working directory of the development image.
+- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the Composer dependencies come from the development image, so there's no volume to create and attach. In projects with many dependencies, enable it and add `/root/.composer/cache` to [volumes](reference/okteto-manifest.mdx#volumes-string-optional) to keep the Composer cache between `okteto up` sessions.
+- `reverse`: forwards port `9003` of the Development Container, where Xdebug connects, to port `9003` of your machine, where the debugger of your IDE listens.
 
-Also, note that there is a `.stignore` file to indicate which files shouldn't be synchronized to your development container.
-This is useful to avoid synchronizing binaries, build artifacts, or git metadata.
+The `.stignore` file lists the files that [File Sync](reference/file-synchronization.mdx#ignoring-files) skips in both directions:
 
-Next, execute the following command to activate your development container:
+```text title=".stignore"
+# Git metadata: large, and only needed on your machine
+.git
 
-```bash
-$ okteto up
+# Generated inside the development container
+/vendor
+/junit.xml
+
+# Local-only files
+.vscode
+.idea
+.DS_Store
 ```
 
+`.git`, `.vscode`, `.idea`, and `.DS_Store` stay on your machine. The dependencies that Composer installs in the development image (`vendor`) and the JUnit report of PHPUnit (`junit.xml`) stay in the Development Container.
+
+### Hot reload
+
+Run `okteto up` to replace the `hello-world` Deployment with the Development Container:
+
 ```bash
- ✓  Persistent volume successfully attached
+okteto up
+```
+
+Okteto synchronizes your files and starts the built-in web server of PHP:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  'php-getting-started' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
  ✓  Images successfully pulled
  ✓  Files synchronized
+    Context:   okteto.example.com
     Namespace: cindy
     Name:      hello-world
-    Reverse:   9000 <- 9000
+    Reverse:   9003 <- 9003
 
-Welcome to your development container. Happy coding!
-cindy:hello-world app>
+[Thu Nov 19 03:34:25 2026] PHP 8.5.12 Development Server (http://0.0.0.0:8080) started
 ```
 
-Working in your development container is the same as working on your local machine.
-Start the application by running the following command:
+Open `index.php` in your local IDE, change the response message on line 2 to `Hello World from Okteto!`, and save the file:
 
-```bash
-cindy:hello-world app> php -S 0.0.0.0:8080
-```
-
-```bash
-[Wed Nov 18 15:40:35 2026] PHP 8.5.12 Development Server (http://0.0.0.0:8080) started
-```
-
-Go back to the browser, and reload the page to test that your application is running.
-
-## Step 3: Remote Development with Okteto
-
-Open the `index.php` file in your favorite local IDE and modify the response message on line 2 to be _Hello world from Okteto!_. Save your changes.
-
-```php
+```php title="index.php"
 <?php
 $message = "Hello World from Okteto!";
 echo($message);
 ```
 
-Go back to the browser and reload the page. Your code changes were instantly applied. No commit, build or push required 😎
+Okteto synchronizes `index.php` to the Development Container, and the web server runs the new code on the next request. Reload the endpoint in your browser to see the new message. The change runs in your cluster without building an image or redeploying the application.
 
-## Step 4: Remote debugging with Okteto
+Press `Ctrl+C` to stop the web server and exit `okteto up`.
 
-Okteto enables you to debug your applications directly from your favorite IDE. Let's take a look at how that works with [PHPStorm](https://www.jetbrains.com/phpstorm/), one of the most popular IDEs for PHP development.
+### Debugging with PhpStorm
 
-If you haven't already, fire up PHP Storm and load this project there. Once the project is loaded, open `index.php` and set a breakpoint in `line 2`. Click on the `Start Listen PHP Debug Connections` button on the PhpStorm toolbar.
+Xdebug runs in the same PHP process as the web server, so the Development Container that `okteto up` starts is ready to debug. On every request, Xdebug connects to port `9003` of the Development Container, and `okteto up` forwards that connection to port `9003` of your machine, the port where PhpStorm listens for Xdebug by default.
 
-Go back to your browser and reload the page. The execution will automatically halt at the breakpoint.
+With `okteto up` running, open the PHP Sample App in PhpStorm, add a breakpoint on line 2 of `index.php`, and click **Start Listening for PHP Debug Connections** in the toolbar. Reload the endpoint in your browser. The execution stops at the breakpoint, and you can inspect the request, the `$_SERVER` variable, and the other variables.
 
-:::note
+The first time Xdebug connects, PhpStorm asks you to accept the incoming connection and to map the files of your project to the files of the Development Container. Map the root folder of the PHP Sample App to `/usr/src/app`, the path in the `sync` field of the Okteto Manifest. If you synchronize your code to another path, map it to that path.
 
-If this is the first time you debug this application, the IDE will ask you to confirm the source mapping configuration. Verify the values and click `ok` to continue.
+When PhpStorm isn't listening, Xdebug can't connect, and the web server answers the request without stopping. To end the debugging session, click **Stop Listening for PHP Debug Connections**. `Ctrl+C` stops the web server and exits `okteto up`.
 
-:::
+## Cleaning up
 
-At this point, you're able to inspect the request object, the current values of everything, the contents of `$_SERVER` variable, etc.
+`okteto down` deactivates the Development Container and restores the `hello-world` Deployment with the application image:
 
-<Image
-  src={require("@site/static/img/php-halt.png").default}
-  alt="debugging in Okteto with PHP"
-  width="850"
-/>
+```bash
+okteto down
+```
 
-Your code is executing in Okteto, but you can debug it from your local machine without any extra services or tools. Pretty cool no? 😉
+`okteto destroy` deletes the Deployment, Service, and Ingress of the PHP Sample App from your Namespace:
+
+```bash
+okteto destroy
+```
 
 ## Next steps
 
-Congratulations, you just developed **your first application in Okteto** 🚀.
-
-Okteto lets you develop your applications directly on Kubernetes. This way you can:
-
-- Eliminate integration issues by developing in a realistic environment
-- Test your application end to end as fast as you type code
-- No more CPU cycles wasted in your machine. Develop at the speed of the cloud.
-
-Find more advanced samples with Okteto in [this repository](https://github.com/okteto/samples) or [join our community](https://community.okteto.com) to ask questions and share your feedback.
+To develop an application with several services and a database, see [Develop a Helm application with Okteto](/tutorials/helm/) and [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/). The [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every field of `build`, `deploy`, `test`, and `dev`.

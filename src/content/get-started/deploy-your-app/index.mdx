@@ -1,28 +1,32 @@
 ---
 title: Deploy Your Application to Okteto
-description: Onboard your apps to Okteto.
+description: Build, deploy, expose, and test the Movies app on Okteto with its Okteto Manifest.
 ---
 
 import Image from "@theme/Image";
 
-This guide explains how to write your first Okteto Manifest to deploy and test your app in Okteto.
+The [Okteto Manifest](core/okteto-manifest.mdx), an `okteto.yaml` file at the root of a repository, tells Okteto how to build, deploy, and test an application. This series runs each of those steps on the [Movies app](https://github.com/okteto/getting-started), a sample application with a complete Okteto Manifest.
 
 ## Requirements
 
-This tutorial has the following requirements:
+- Access to an Okteto instance. To install one, follow the [installation guide](get-started/install/index.mdx).
+- The [Okteto CLI](get-started/install-okteto-cli.mdx) installed, with an Okteto Context configured for your Okteto instance.
+- A local copy of the Movies app:
 
-- You have access to an Okteto instance. Otherwise, follow our [installation guide](get-started/install/index.mdx)
-- You have [installed the Okteto CLI](get-started/install-okteto-cli.mdx) and configured the Okteto Context with your Okteto instance
+```bash
+git clone https://github.com/okteto/getting-started
+cd getting-started
+```
 
-## What you will be building
+Run the commands of the series from the root of this folder, on the `main` branch. You don't need to edit any file.
 
-This tutorial will guide you on how to deploy the [Movies app](https://github.com/okteto/getting-started) to Okteto. The Movies app consists of:
+## The Movies App
 
-- a React frontend
-- a Node.js backend API
-- a MongoDB database
+The Movies app has three services, deployed by the Helm chart in the `chart` folder:
 
-This is a representation of the Movies app running in a Development Environment:
+- `frontend`: a React application that lists movies.
+- `api`: a Node.js API that reads the movies from MongoDB.
+- `mongodb`: a MongoDB database, with the official `mongo` image. A `seed` job loads the movies into it on every deployment.
 
 <p align="center">
   <Image
@@ -32,22 +36,17 @@ This is a representation of the Movies app running in a Development Environment:
   />
 </p>
 
-In order to deploy the Movies app, you will create your first [Okteto Manifest](core/okteto-manifest.mdx).
-This is what your Okteto Manifest will look like at the end of the tutorial:
+## The Okteto Manifest
+
+This is the `okteto.yaml` file of the Movies app:
 
 ```yaml title="okteto.yaml"
 build:
-  api:
-    context: api
   frontend:
     context: frontend
 
-dependencies:
-  mongodb:
-    repository: https://github.com/okteto/mongodb
-    wait: true
-    variables:
-      MONGODB_PASSWORD: password    
+  api:
+    context: api
 
 deploy:
   - name: Helm Install
@@ -58,16 +57,18 @@ deploy:
 
 test:
   frontend:
-    image: node:20
+    image: node:26
     context: frontend
     caches:
       - yarn/.cache
       - node_modules
     commands:
+      - npm install --global yarn
       - yarn install
       - yarn test
+
   e2e:
-    image: ghcr.io/okteto/playwright:chromium
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
     caches:
       - yarn/.cache
@@ -77,13 +78,27 @@ test:
     artifacts:
       - test-results
       - playwright-report
+
+dev:
+  api:
+    command: yarn start
+    sync:
+      - api:/src
+    forward:
+      - 9229:9229
+
+  frontend:
+    image: okteto/node:20
+    command: bash
+    sync:
+      - frontend:/usr/src/app
 ```
 
-This guide will take you through the following sections:
+Each page of the series covers one part of it, in this order:
 
-- `deploy`: Configure a list of commands to deploy your application
-- `dependencies`: Configure a list of git repositories to deploy as part of your application
-- `build`: Configure a list of images to build for your application
-- `test`: Configure a list of Test Containers to test your application
+1. [Build](build.mdx): the `build` section, which builds the images of the `frontend` and `api` services with `okteto build`.
+2. [Deploy](deploy.mdx): the `deploy` section, which deploys the Helm chart, MongoDB included, with `okteto deploy`.
+3. [Endpoints](endpoints.mdx): the Ingress of the Helm chart, which Okteto serves on public HTTPS endpoints.
+4. [Test](test.mdx): the `test` section, which runs unit and end-to-end tests with `okteto test`.
 
-Now that you know what your are building, [start the tutorial](deploy.mdx) and deploy your app to Okteto 😎
+The `dev` section defines the Development Containers of the `api` and `frontend` services, covered in [Development Environments](development/index.mdx).

@@ -658,6 +658,20 @@ const covers = [
     ]),
   },
   {
+    out: tutorial('2026-11-19-dependencies'),
+    alt: 'Okteto deploys the mongodb and frontend repositories in parallel, and the api repository once mongodb is deployed',
+    svg: (() => {
+      const repo = (cx, cy, name, label) => box(cx - 115, cy - 85, 230, 170)
+        + icon(name, cx, cy - 20, 66) + text(label, cx, cy + 56, 34);
+      return logo('okteto', 215, 315, 190)
+        + arrow(320, 280, 430, 205) + arrow(320, 350, 430, 425)
+        + repo(565, 185, 'database', 'mongodb')
+        + repo(565, 445, 'globe', 'frontend')
+        + arrow(700, 185, 800, 185)
+        + repo(935, 185, 'server', 'api');
+    })(),
+  },
+  {
     out: tutorial('2026-11-13-cloud-infrastructure'),
     alt: 'A Namespace, Terraform, and the S3 bucket that Terraform creates for it',
     svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),

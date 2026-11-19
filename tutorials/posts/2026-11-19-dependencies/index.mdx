@@ -1,0 +1,310 @@
+---
+title: "Deploy a multi-repo application with dependencies"
+description: "Deploy an application whose services live in several Git repositories with the dependencies section of the Okteto Manifest, in parallel and in order."
+slug: dependencies
+date: 2026-11-19
+image: ./img/cover.jpg
+image_alt: "Okteto deploys the mongodb and frontend repositories in parallel, and the api repository once mongodb is deployed"
+---
+
+The `dependencies` section of the [Okteto Manifest](/docs/reference/okteto-manifest#dependencies-string-optional) deploys other Git repositories as part of your Development Environment. Okteto deploys them in parallel, and `depends_on` sets the ones that must deploy first. This tutorial uses the Movies app, whose database, API, and frontend live in three repositories, to deploy the whole application with a single `okteto deploy`.
+
+## Prerequisites
+
+- Access to an Okteto instance, with your [Okteto context](/docs/reference/okteto-cli#context) configured.
+- The [Okteto CLI](/docs/get-started/install-okteto-cli) 3.25.0 or later installed on your machine.
+- A local copy of the repository that deploys the application:
+
+```bash
+git clone https://github.com/okteto/movies-multi-repo
+cd movies-multi-repo
+```
+
+You don't need copies of the other repositories: Okteto clones them in your cluster.
+
+## The Sample Application
+
+The Movies app has a service in each of these repositories:
+
+| Repository | Service | Deployed with |
+|------------|---------|---------------|
+| [`okteto/mongodb`](https://github.com/okteto/mongodb) | A MongoDB database | Docker Compose |
+| [`okteto/movies-api`](https://github.com/okteto/movies-api) | A Node.js API that serves the movies under `/api` | A Helm chart |
+| [`okteto/movies-frontend`](https://github.com/okteto/movies-frontend) | A React frontend | A Helm chart |
+
+Each repository has its own Okteto Manifest that builds and deploys its service, so each team works on its repository without knowing how the others deploy. A fourth repository, [`okteto/movies-multi-repo`](https://github.com/okteto/movies-multi-repo), puts the application together: its Okteto Manifest lists the other three as dependencies, and its `deploy` section creates what belongs to the whole application, the Ingress that routes `/` to the frontend and `/api` to the API.
+
+This is how Okteto works with multi-repo applications: a repository for the application lists the repositories of its services in `dependencies`, and one `okteto deploy` from it deploys everything in a Namespace. To work on a service, you run `okteto up` from the repository of that service, in the same Namespace.
+
+## The Okteto Manifest
+
+The `okteto.yml` file of `movies-multi-repo` deploys the three repositories and then exposes the application:
+
+```yaml title="okteto.yml"
+dependencies:
+  mongodb:
+    repository: https://github.com/okteto/mongodb
+    variables:
+      MONGODB_PASSWORD: movies
+  movies-frontend:
+    repository: https://github.com/okteto/movies-frontend
+    wait: true
+  movies-api:
+    repository: https://github.com/okteto/movies-api
+    depends_on: mongodb
+    variables:
+      MONGODB_URL: ${OKTETO_DEPENDENCY_MONGODB_VARIABLE_MONGODB_URL}
+    wait: true
+
+deploy:
+  - name: Expose the Movies app
+    command: kubectl apply -f k8s.yml
+```
+
+Each entry of `dependencies` is a repository that Okteto deploys as a Development Environment of its own, with the name of the entry. Okteto clones the default branch of `repository` in your cluster and runs `okteto deploy` with the Okteto Manifest of the repository. The `branch` and `manifest` fields choose another branch or another path for the manifest.
+
+The names of the entries match the names of the repositories. When you run `okteto up` from a clone of `movies-api`, Okteto looks for a Development Environment named after the repository, finds the one that `movies-multi-repo` deployed, and doesn't deploy it again.
+
+### Parallel Deployment and `depends_on`
+
+Okteto deploys the dependencies in parallel. `depends_on` makes a dependency wait until the dependencies it lists have deployed successfully:
+
+- `mongodb` and `movies-frontend` don't depend on anything, so they start at the same time.
+- `movies-api` has `depends_on: mongodb`. It starts once `mongodb` has deployed, because the API loads the sample movies into the database when it starts, and because it needs the connection string that `mongodb` exports. It doesn't wait for `movies-frontend`.
+
+Okteto validates the graph when it loads the manifest: a name in `depends_on` that isn't another entry of `dependencies`, a dependency that depends on itself, and cycles fail before anything is deployed.
+
+### Settings with `variables`
+
+`variables` sets environment variables for the Okteto Manifest of a dependency. `mongodb` gets the password of its database user in `MONGODB_PASSWORD`. Its own Okteto Manifest deploys MongoDB with Docker Compose and, before that, writes the connection string to [`$OKTETO_ENV`](/docs/core/okteto-variables#okteto_env):
+
+```yaml title="okteto.yml of okteto/mongodb"
+deploy:
+  commands:
+    - name: Share the connection string
+      command: echo "MONGODB_URL=mongodb://okteto:${MONGODB_PASSWORD:-password}@mongodb:27017/okteto" >> $OKTETO_ENV
+  compose: docker-compose.yaml
+```
+
+Okteto keeps the variables that a dependency writes to `$OKTETO_ENV`, and exposes them to the other dependencies as `OKTETO_DEPENDENCY_<NAME>_VARIABLE_<VARIABLE>`: `MONGODB_URL` of `mongodb` is `OKTETO_DEPENDENCY_MONGODB_VARIABLE_MONGODB_URL`. A dependency gets these [dynamic environment variables](/docs/reference/okteto-cli#dynamic-environment-variables) only from the dependencies of its `depends_on`, which have finished deploying when it starts. That's how `movies-api` gets `MONGODB_URL` without hardcoding the password or the host of the database. Its Okteto Manifest passes the variable to its Helm chart, which stores it in a Secret:
+
+```yaml title="okteto.yml of okteto/movies-api"
+deploy:
+  - name: Deploy API
+    command: helm upgrade --install movies-api chart --set image=${OKTETO_BUILD_API_IMAGE} --set mongodb.url=${MONGODB_URL}
+```
+
+To change the password, you change `MONGODB_PASSWORD` in `movies-multi-repo`, and both services get the new value on the next deploy.
+
+### Waiting for Dependencies
+
+The commands of the `deploy` section start when the dependencies they need are ready. `wait: true` makes them wait until the dependency, and every dependency in its `depends_on` chain, is deployed and healthy:
+
+- The Ingress routes traffic to `movies-frontend` and `movies-api`, and the check calls the API through the Ingress, so both have `wait: true`.
+- `mongodb` doesn't need `wait: true`: it's in the `depends_on` chain of `movies-api`, so the `deploy` commands wait for it too.
+
+A dependency without `wait` and outside the `depends_on` chain of a waited dependency deploys at the same time as the `deploy` commands, and `okteto deploy` doesn't wait for it or fail when it fails.
+
+### The `deploy` Section
+
+The `deploy` section creates the Ingress of `k8s.yml`, with the `dev.okteto.com/generate-host` annotation, so Okteto gives the application a public HTTPS endpoint in each Namespace:
+
+```yaml title="k8s.yml"
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movies
+  annotations:
+    dev.okteto.com/generate-host: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+```
+
+The command runs in your cluster with [Remote Execution](/docs/core/remote-execution), so you don't need `kubectl` on your machine. The `.oktetoignore` file sends them only `k8s.yml`:
+
+```text title=".oktetoignore"
+# Files that the Okteto CLI sends to Remote Execution.
+
+# "okteto deploy" only needs the Ingress
+[deploy]
+*
+!k8s.yml
+```
+
+## Deploying the Application
+
+Deploy the application from the root of `movies-multi-repo`:
+
+```bash
+okteto deploy --wait
+```
+
+Okteto deploys the three repositories, and runs the command of the `deploy` section. The lines of each dependency start with its name. This is the output, without the lines about cloning the repositories and starting the deploys:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Deploying dependencies
+[mongodb] Deploying repository 'mongodb'...
+[movies-frontend] Deploying repository 'movies-frontend'...
+[movies-frontend] INFO: Building '/okteto/src/Dockerfile'...
+[mongodb]  i  Running stage 'Share the connection string'
+[mongodb]  i  Running stage 'Deploying compose'
+[mongodb]  ✓  Kubernetes service 'mongodb' created
+[mongodb]  ✓  Volume 'data' created
+[mongodb]  ✓  Service 'mongodb' created
+[mongodb]  ✓  Compose 'mongodb' successfully deployed
+[movies-frontend] SUCCESS: Image 'registry.okteto.example.com/cindy/movies-frontend-frontend-dev:okteto' successfully pushed
+[movies-frontend] SUCCESS: Image 'registry.okteto.example.com/cindy/movies-frontend-frontend:okteto' successfully pushed
+[mongodb]  ✓  Repository 'mongodb' successfully deployed
+[movies-api] Deploying repository 'movies-api'...
+[movies-frontend]  i  Running stage 'Deploy Frontend'
+[movies-frontend] Release "movies-frontend" does not exist. Installing it now.
+[movies-frontend]  ✓  Repository 'movies-frontend' successfully deployed
+[movies-api] INFO: Building '/okteto/src/Dockerfile'...
+[movies-api] SUCCESS: Image 'registry.okteto.example.com/cindy/movies-api-api-dev:okteto' successfully pushed
+[movies-api] SUCCESS: Image 'registry.okteto.example.com/cindy/movies-api-api:okteto' successfully pushed
+[movies-api]  i  Running stage 'Deploy API'
+[movies-api] Release "movies-api" does not exist. Installing it now.
+[movies-api]  ✓  Repository 'movies-api' successfully deployed
+ i  Running stage 'Expose the Movies app'
+ingress.networking.k8s.io/movies created
+```
+
+The output shows the order of the graph:
+
+- `mongodb` and `movies-frontend` start at the same time.
+- `movies-api` starts right after `Repository 'mongodb' successfully deployed`, while `movies-frontend` is still deploying.
+- The `deploy` command starts once `movies-api` and `movies-frontend` have deployed.
+
+Each dependency is a Development Environment of its own in your Namespace: `mongodb`, `movies-frontend`, and `movies-api`, next to `movies-multi-repo`. Open `https://movies-cindy.okteto.example.com` in your browser, with your Namespace and the domain of your Okteto instance, to see the Movies app. Okteto lists each path of the Ingress under the Development Environment of the Service it routes to, so `okteto endpoints --name movies-frontend` prints the endpoint too.
+
+## Redeploying the Dependencies
+
+Run `okteto deploy` again, and Okteto skips the dependencies that are already deployed:
+
+```console
+ i  Deploying dependencies
+[mongodb]  ✓  Skipping repository 'mongodb' because it's already deployed
+[movies-frontend]  ✓  Skipping repository 'movies-frontend' because it's already deployed
+[movies-api]  ✓  Skipping repository 'movies-api' because it's already deployed
+```
+
+This keeps your deploys fast while you work on `movies-multi-repo`. To deploy the latest code of every repository, for example after other teams merge changes, add the `--dependencies` flag:
+
+```bash
+okteto deploy --wait --dependencies
+```
+
+Okteto deploys the three repositories again, in the same order: `mongodb` and `movies-frontend` in parallel, and `movies-api` after `mongodb`.
+
+## Developing a Service
+
+To work on a service, run `okteto up` from its repository in the Namespace where you deployed the application. The rest of the application keeps running from the deploy of `movies-multi-repo`. Clone the repository of the API next to `movies-multi-repo`:
+
+```bash
+git clone https://github.com/okteto/movies-api
+cd movies-api
+```
+
+The `dev` section of its Okteto Manifest defines a Development Container for the `api` Deployment:
+
+```yaml title="okteto.yml of okteto/movies-api"
+dev:
+  api:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    command: node --watch --inspect=0.0.0.0:9229 server.js
+    sync:
+      - .:/src
+    forward:
+      - 9229:9229
+      - 27017:mongodb:27017
+    persistentVolume:
+      enabled: false
+```
+
+`node --watch` restarts the API when a file changes, and the Node.js debugger listens on port `9229`, forwarded to `localhost:9229` on your machine. The second forward makes the MongoDB database of the Namespace available on `localhost:27017`. Start the Development Container:
+
+```bash
+okteto up
+```
+
+Okteto finds the `movies-api` Development Environment that `movies-multi-repo` deployed, so it doesn't deploy it again. It replaces the `api` Deployment with a Development Container, which keeps the `MONGODB_URL` of the Deployment:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  'movies-api' was already deployed. To redeploy run 'okteto deploy' or 'okteto up --deploy'
+ i  Images were already built. To rebuild your images run 'okteto build'
+ ✓  Images successfully pulled
+ ✓  Files synchronized
+    Context:   okteto.example.com
+    Namespace: cindy
+    Name:      api
+    Forward:   9229 -> 9229
+               27017 -> mongodb:27017
+
+Debugger listening on ws://0.0.0.0:9229/8cb12803-2970-4c11-88a3-e49daa0068f1
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Server running on port 8080.
+```
+
+The **Continue watching for Cindy** row of the Movies app shows the same movies as the **Movies** row, because the `/api/watching` route of `server.js` reads the `movies` collection. Change it to read the `watching` collection, and save the file:
+
+```js title="server.js"
+  app.get("/api/watching", async (req, res) => {
+    console.log(`GET /api/watching`);
+    try {
+      res.json(await db.collection("watching").find().toArray());
+```
+
+Okteto synchronizes `server.js` to the Development Container, and Node.js restarts the API:
+
+```console
+Change detected in '/src/server.js'
+Restarting 'server.js'
+Debugger listening on ws://0.0.0.0:9229/47c24480-e3c3-45ec-abd3-9c3e5acf959b
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Server running on port 8080.
+```
+
+Reload the Movies app: the **Continue watching for Cindy** row now shows other movies, such as *Avengers: Infinity War*. The frontend and the database didn't change: you only run the service you work on. When you finish, run `okteto down` from the `movies-api` folder to restore the `api` Deployment.
+
+The frontend works the same way: clone [`okteto/movies-frontend`](https://github.com/okteto/movies-frontend) and run `okteto up` from it.
+
+## Cleaning Up
+
+Destroy the application and its dependencies from the root of `movies-multi-repo`:
+
+```bash
+okteto destroy --dependencies --volumes
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Repository 'movies-api' scheduled for destruction
+ ✓  Repository 'mongodb' scheduled for destruction
+ ✓  Repository 'movies-frontend' scheduled for destruction
+ ✓  Development environment 'movies-multi-repo' successfully destroyed
+```
+
+Okteto destroys `movies-multi-repo` and schedules the destruction of each dependency in your cluster. `--volumes` also deletes the volume of MongoDB, with the sample movies. Without `--dependencies`, `okteto destroy` only destroys the resources of `movies-multi-repo`, the Ingress, and keeps the Development Environments of the three dependencies.
+
+## Next Steps
+
+- The [Development Container guides](/docs/development/containers/) explain how to configure the `build`, `test`, and `dev` sections of each service for your language.
+- The [`dependencies` reference](/docs/reference/okteto-manifest#dependencies-string-optional) describes every field of a dependency, such as `branch`, `manifest`, and `timeout`.
