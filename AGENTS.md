@@ -105,6 +105,14 @@ Images inside a blog post or a tutorial, and diagrams in the docs (the `Image` c
 
 Images inside a page (a blog post, a tutorial, or a docs page) have a white background. In a docs page, show a diagram with the `borderless` prop of `Image`, so it has no frame around it; the frame is for screenshots of the product. Diagrams use the same shapes and the same generator as the covers, without the dark background and the glow: add an entry to `scripts/covers/covers.mjs` with `background: 'white'`, a function as its `svg`, and an output in the page's image folder (for a post or a tutorial, a `.webp` file of its `img/` folder other than `cover.jpg`). A diagram uses the same canvas as a cover (1200x630, rendered at 2400x1260), so it has the same size and proportions as the cover it's shown under. Fit the drawing to that canvas and keep its text at 22px or more on it, so it stays readable on a phone. When you redraw an existing diagram in this style, change only the style: keep its elements, names, URLs, connections, and alternative text as they are.
 
+Diagrams in the docs share these shapes. The `deploy-movies-app` and `environment-workflow` entries of `scripts/covers/covers.mjs` are the reference:
+
+- **An application environment** is a blue box with the Kubernetes mark on the middle of its top edge, the title "Application environment" and "Okteto Namespace" under it, and its services as stacked rows: a line icon (`box` for a service, `database` for a database or a queue) and the name. The rows are narrower than the box and centered in it.
+- **A person or an agent** is a circle with a line icon and the label under it: `user` for a developer, `bot` for a coding agent.
+- **An endpoint** (a URL, a path such as `/api`) is a pill: a rounded box whose radius is half its height. Pills that lead into an environment sit on its border, with the same height, and end at the same point inside it. A long URL can go down to 18px so its pill doesn't take the whole width.
+- **Arrows** are short, and the arrows of the same flow have the same length. Draw only the connections the page explains.
+- **Balance:** center the drawing on the canvas, with the same white space on each side.
+
 ### Logos and icons
 
 - **Okteto:** `mark('okteto')` draws the symbol (`static/img/logos/okteto.svg`) and `mark('okteto-wordmark')` draws the symbol with the name (`shared/static/img/logo.svg`). Use those files as they are: don't redraw or recolor them.
