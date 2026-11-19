@@ -114,10 +114,11 @@ function manifestFile(cx, cy) {
 }
 // The cluster with four environments.
 function environments(cx, y0, width) {
-  let out = box(cx - width / 2, y0, width, 400, { color: C.blue }) + logo('kubernetes', cx, y0, 84) + text('Kubernetes', cx, y0 + 88, 30, { color: C.onInk });
+  let out = box(cx - width / 2, y0, width, 440, { color: C.blue }) + logo('kubernetes', cx, y0, 80)
+    + text('Application environments', cx, y0 + 82, 30) + text('Kubernetes cluster', cx, y0 + 116, 22, { color: C.dim });
   [[-1, 0], [1, 0], [-1, 1], [1, 1]].forEach(([dx, row]) => {
     const x = cx + dx * 80 - 62;
-    const y = y0 + 122 + row * 140;
+    const y = y0 + 144 + row * 140;
     out += box(x, y, 124, 124, { color: C.teal, dashed: true, radius: 18, strokeWidth: 3 }) + icon('box', x + 62, y + 62, 56);
   });
   return out;
@@ -128,12 +129,13 @@ function environments(cx, y0, width) {
 const SCALE_ALT = 'A Kubernetes cluster managed by Okteto with many environments, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, and Okteto Insights';
 function scaleCluster(cx, y0, width, tile, gap) {
   const rows = [[1, 1, 0, 1], [1, 0, 1, 0], [0, 1, 1, 0]];
-  const height = 140 + rows.length * (tile + gap) + 10;
-  let out = box(cx - width / 2, y0, width, height, { color: C.blue }) + logo('okteto', cx, y0, 84) + text('Kubernetes', cx, y0 + 88, 30, { color: C.onInk });
+  const height = 154 + rows.length * (tile + gap) + 10;
+  let out = box(cx - width / 2, y0, width, height, { color: C.blue }) + logo('okteto', cx, y0, 84)
+    + text('Application environments', cx, y0 + 84, 30) + text('Kubernetes cluster', cx, y0 + 116, 22, { color: C.dim });
   const x0 = cx - (4 * tile + 3 * gap) / 2;
   rows.forEach((row, r) => row.forEach((running, c) => {
     const x = x0 + c * (tile + gap);
-    const y = y0 + 128 + r * (tile + gap);
+    const y = y0 + 142 + r * (tile + gap);
     out += running
       ? box(x, y, tile, tile, { color: C.teal, radius: 16, strokeWidth: 3 }) + icon('box', x + tile / 2, y + tile / 2, tile * 0.5)
       : box(x, y, tile, tile, { color: C.dim, dashed: true, radius: 16, strokeWidth: 3 }) + icon('moon', x + tile / 2, y + tile / 2, tile * 0.46, C.dim);
@@ -903,52 +905,49 @@ const covers = [
   {
     out: 'static/img/one-definition.webp',
     background: 'white',
-    theme: 'neon',
     alt: MANIFEST_ALT,
     svg: () => {
       let out = '';
       MANIFEST_USERS().forEach(([name, label, color], i) => {
-        const y = 140 + i * 175;
-        out += circle(95, y, 52, { color }) + icon(name, 95, y, 52, color) + text(label, 162, y + 10, 28, { anchor: 'start' });
-        out += curve(`M398 ${y} C470 ${y} 450 315 520 315`, { color, strokeWidth: 7 });
+        const y = 105 + i * 200;
+        out += circle(120, y, 46, { color }) + icon(name, 120, y, 48, color) + text(label, 120, y + 82, 26);
+        out += curve(`M176 ${y} C330 ${y} 300 300 430 300`, { color, strokeWidth: 5 });
       });
-      out += manifestFile(600, 300);
-      out += arrow(682, 300, 762, 300);
-      out += environments(965, 100, 380);
+      out += arrow(430, 300, 448, 300);
+      out += manifestFile(525, 300);
+      out += arrow(606, 300, 680, 300);
+      out += environments(920, 95, 460);
       return out;
     },
   },
   {
     out: 'static/img/one-definition-mobile.webp',
     background: 'white',
-    theme: 'neon',
     width: 600,
-    height: 1090,
+    height: 1070,
     alt: MANIFEST_ALT,
     svg: () => {
       let out = '';
       MANIFEST_USERS().forEach(([name, label, color], i) => {
         const x = 105 + i * 195;
         out += circle(x, 70, 46, { color }) + icon(name, x, 70, 48, color) + text(label, x, 152, 24);
-        out += curve(`M${x} 178 C${x} 215 300 200 300 228`, { color, strokeWidth: 7 });
+        out += curve(`M${x} 178 C${x} 215 300 200 300 228`, { color, strokeWidth: 5 });
       });
       out += manifestFile(300, 330);
       out += arrow(300, 470, 300, 530);
-      out += environments(300, 590, 400);
+      out += environments(300, 590, 460);
       return out;
     },
   },
   {
     out: 'static/img/environments-at-scale.webp',
     background: 'white',
-    theme: 'neon',
     alt: SCALE_ALT,
-    svg: () => scaleCluster(330, 85, 540, 96, 24) + arrow(745, 330, 620, 330, { color: C.blue }) + scaleFeatures(765, 62, 330),
+    svg: () => scaleCluster(350, 75, 540, 96, 24) + arrow(770, 330, 645, 330, { color: C.blue }) + scaleFeatures(790, 62, 330),
   },
   {
     out: 'static/img/environments-at-scale-mobile.webp',
     background: 'white',
-    theme: 'neon',
     width: 600,
     height: 1200,
     alt: SCALE_ALT,

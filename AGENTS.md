@@ -107,6 +107,8 @@ Images inside a page (a blog post, a tutorial, or a docs page) have a white back
 
 Diagrams in the docs share these shapes. The `deploy-movies-app` and `environment-workflow` entries of `scripts/covers/covers.mjs` are the reference:
 
+- **Light theme:** white background, white or light gray fills, and colored outlines. No dark boxes and no glow: don't set `theme: 'neon'` on a diagram of the docs.
+
 - **An application environment** is a blue box with the Kubernetes mark on the middle of its top edge, the title "Application environment" and "Okteto Namespace" under it, and its services as stacked rows: a line icon (`box` for a service, `database` for a database or a queue) and the name. The rows are narrower than the box and centered in it.
 - **A person or an agent** is a circle with a line icon and the label under it: `user` for a developer, `bot` for a coding agent.
 - **An endpoint** (a URL, a path such as `/api`) is a pill: a rounded box whose radius is half its height. Pills that lead into an environment sit on its border, with the same height, and end at the same point inside it. A long URL can go down to 18px so its pill doesn't take the whole width.
