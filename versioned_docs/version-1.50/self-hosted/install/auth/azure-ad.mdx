@@ -1,6 +1,6 @@
 ---
 title: Use Azure AD as your Authentication Provider
-description: Use Azure AD as the authentication provider of your Okteto Self-hosted instance
+description: Configure Azure AD as the authentication provider for your Okteto instance.
 sidebar_label: Azure AD
 id: azure-ad
 ---
@@ -9,12 +9,12 @@ import Image from "@theme/Image";
 
 This guide will walk you through the steps necessary to configure Azure Active Directory as the authentication provider for Okteto.
 
-Please refer to [Azure's official documentation](https://learn.microsoft.com/en-us/power-apps/maker/portals/configure/configure-openid-settings) on Open ID Connect for more information.
+[Azure's OpenID Connect documentation](https://learn.microsoft.com/en-us/power-apps/maker/portals/configure/configure-openid-settings) has more details.
 
 ## Prerequisites
 
 - A working installation of [Okteto](get-started/install/index.mdx)
-- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed on your local machine
 - Access to an [Azure account](https://portal.azure.com) with permissions to register applications in Azure Active Directory
 
 ## Create an App Registration
@@ -28,13 +28,13 @@ Create a [new app integration](https://portal.azure.com/#view/Microsoft_AAD_Regi
   />
 </p>
 
-Then, fill in the following values on the “Register an application” window:
+Fill in the following values in the **Register an application** window:
 
 1. Name: The name of your application (e.g. `okteto`)
 2. Accounts in this organizational directory only (Default Directory only - Single tenant)
 3. Redirect URI: https://okteto.{YOUR_DOMAIN}/auth/callback
 
-Once the application has been created, save the `Application (client) ID` value. You'll need it to configure your Okteto Instance.
+After you create the application, save the `Application (client) ID` value. You need it to configure Okteto.
 
 <p align="center">
   <Image
@@ -43,7 +43,7 @@ Once the application has been created, save the `Application (client) ID` value.
   />
 </p>
 
-Copy the `Directory (tenant) ID` value. You'll need it to configure your Okteto Instance.
+Copy the `Directory (tenant) ID` value. You need it to configure Okteto.
 
 <p align="center">
   <Image
@@ -52,7 +52,7 @@ Copy the `Directory (tenant) ID` value. You'll need it to configure your Okteto 
   />
 </p>
 
-On the left menu, click on "Certificates & secrets". Create a "New client secret" and copy the `Value`. You'll need it to configure your Okteto Instance.
+In the left menu, click **Certificates & secrets**. Create a **New client secret** and copy its `Value`. You need it to configure Okteto.
 
 <p align="center">
   <Image
@@ -61,7 +61,7 @@ On the left menu, click on "Certificates & secrets". Create a "New client secret
   />
 </p>
 
-On the left menu, click on "API permissions" and grant the following permissions:
+In the left menu, click **API permissions** and grant the following permissions:
 
 <p align="center">
   <Image
@@ -72,7 +72,7 @@ On the left menu, click on "API permissions" and grant the following permissions
 
 ## Configure Okteto
 
-Once you have the Okta application ready, update the `auth` section of your Okteto Helm configuration file with the values you obtained on the first step of this guide:
+When the app registration is ready, update the `auth` section of your Okteto Helm configuration file with the values you copied in [Create an App Registration](#create-an-app-registration):
 
 ```yaml title="config.yaml"
 auth:
@@ -91,12 +91,12 @@ auth:
       externalIDKey: email
 ```
 
-> You can also store the value of clientSecret [as a secret directly in Kubernetes](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
+> You can also store the `clientSecret` value [in a Kubernetes secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
 
-[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
-We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) to apply the new configuration.
+Upgrade to the same version you already run: it keeps the changes to a minimum and makes any issue easier to troubleshoot.
 
-Once the upgrade has been completed, go to your instance and click on the **Log In** button to access your instance. If everything is configured correctly, Okteto will now use your Azure Active Directory for user authentication.
+After the upgrade completes, open your Okteto instance and click **Log In**. If the configuration is correct, Okteto authenticates users with your Azure Active Directory.
 
 <p align="center">
   <Image
@@ -109,12 +109,12 @@ Once the upgrade has been completed, go to your instance and click on the **Log 
 
 By default, Okteto will use the following attributes below when creating a user:
 
-- `Name` as the display name of the user.
-- `Nickname` as the username of the user.
+- `Name` as the user's display name.
+- `Nickname` as the user's username.
 - `Email` as the email. Addresses must contain only lowercase alphanumeric characters, '-', or '.'
 - `Picture URL` for the user's profile picture.
 
-If you are not using some of those values, or you want to customize which attributes get mapped, you can customize that by using the `mapping` field inside the `openid` key in your Helm configuration file.
+If you don't use some of those values, or you want to change which attributes Okteto maps, set the `mapping` field inside the `openid` key in your Helm configuration file.
 
 ```yaml title="config.yaml"
 auth:
@@ -139,5 +139,5 @@ auth:
 The value of every key in the `mapping` section must match a `claim` in your Azure Active Directory + OpenID configuration, and it must contain a non-empty value.
 
 :::warning
-Microsoft Entra issues a pairwise `sub` claim that differs per application registration. Set `subjectKey` to `oid` in the `mapping` section so that each user binds to a claim that stays stable across registrations. See [User identity binding](self-hosted/install/auth/openid-connect.mdx#user-identity-binding) for how the subject claim binds a user to their provider account, and why to decide it before your first rollout.
+Microsoft Entra issues a pairwise `sub` claim that differs per application registration. Set `subjectKey` to `oid` in the `mapping` section so that each user binds to a claim that stays stable across registrations. [User identity binding](self-hosted/install/auth/openid-connect.mdx#user-identity-binding) explains how the subject claim binds a user to their provider account, and why you decide it before your first rollout.
 :::

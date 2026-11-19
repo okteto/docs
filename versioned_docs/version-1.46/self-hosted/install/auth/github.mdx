@@ -1,26 +1,26 @@
 ---
 title: Use GitHub as your Authentication Provider
-description: Use GitHub as the authentication provider of your Okteto Self-hosted instance
+description: Configure GitHub as the authentication provider for your Okteto instance, and restrict login to a GitHub organization or teams.
 sidebar_label: GitHub
 id: github
 ---
 
 This guide will walk you through the steps necessary to configure GitHub as the authentication provider for Okteto.
 
-Please refer to [GitHub's official documentation](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/) on how to create an OAuth App for more information.
+[GitHub's documentation](https://developer.github.com/apps/building-oauth-apps/creating-an-oauth-app/) explains how to create an OAuth App.
 
 ## Prerequisites
 
 - A working installation of [Okteto](get-started/install/index.mdx)
-- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed in your local machine
+- [Helm](https://helm.sh/docs/intro/install/) 3.0+ installed on your local machine
 - Access to a [GitHub account](https://github.com/) with permissions to create an OAuth App
 
-> If you are planning on using our GitHub Integration for accessing private repositories, you should follow [the guide to configure our GitHub App](self-hosted/install/github.mdx).
-You'll then use the same Github Application for the Integration as the one from Oauth.
+> If you plan to use the Okteto GitHub Integration to access private repositories, [configure the Okteto GitHub App](self-hosted/install/github.mdx) first.
+You then use that same GitHub App for both the integration and the OAuth login.
 
 ## Create the OAuth App
 
-When creating the OAuth App, you will need to provide the following values:
+When you create the OAuth App, provide the following values:
 
 **Homepage URL**:
 
@@ -34,11 +34,11 @@ https://okteto.DOMAIN
 https://okteto.DOMAIN/auth/callback
 ```
 
-Copy the `Client ID` and `Client Secret` values. You'll need them to configure Okteto.
+Copy the `Client ID` and `Client Secret` values. You need them to configure Okteto.
 
 ## Configure Okteto
 
-Once you have the GitHub OAuth App ready, update the `auth` section of your Helm configuration file with the following values:
+When the GitHub OAuth App is ready, update the `auth` section of your Helm configuration file with the following values:
 
 ```yaml title="config.yaml"
 auth:
@@ -52,19 +52,18 @@ auth:
     organization: "REPLACE_ME_WITH_YOUR_GITHUB_ORGANIZATION"
 ```
 
-> You can also use a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the sensitive part of these credentials.
+> You can also store the sensitive part of these credentials in a [Kubernetes secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
 
-[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) for the new configuration to be applied.
-We recommend that you upgrade to the same version that you already have to minimize the changes and help you troubleshoot any issues.
+[Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) to apply the new configuration.
+Upgrade to the same version you already run: it keeps the changes to a minimum and makes any issue easier to troubleshoot.
 
 The `organization` field is optional. Only members of the organization will be allowed to log in into your Okteto instance. An empty `organization` field permits any user to log in.
 
 :::warning
-If your Okteto instance is publicly reachable, we highly recommend that you set up access restrictions. Leaving the organization field blank lets anyone with a GitHub account log in to your Okteto instance.
-::: 
+If your Okteto instance is publicly reachable, set up access restrictions. An empty `organization` field lets anyone with a GitHub account log in to your Okteto instance.
+:::
 
-
-If you want to provide access to users outside of your GitHub organization, you can additionally use the `allowList` key to list the GitHub accounts you want to allow.
+To give access to users outside your GitHub organization, list their GitHub accounts in the `allowList` key.
 
 ```yaml title="config.yaml"
 auth:
@@ -77,14 +76,3 @@ auth:
     allowList: ["acct1","acct2","acct3"]
 ```
 
-We also have a video walking you through the steps on configuring GitHub as an authentication provider for your Okteto installation:
-
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/_IUUASuAjtg"
-  title="YouTube video player"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  allowfullscreen
-></iframe>

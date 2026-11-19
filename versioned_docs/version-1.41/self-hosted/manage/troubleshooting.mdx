@@ -1,6 +1,6 @@
 ---
 title: Troubleshoot your Okteto instance
-description: Questions and answers to common issues when installing or upgrading your Okteto instance
+description: Troubleshoot common issues when you install, upgrade, or run your Okteto instance.
 sidebar_label: Troubleshooting
 id: troubleshooting
 ---
@@ -13,23 +13,22 @@ Please also review our [FAQ Guide](reference/faqs.mdx) for additional help.
 
 ## How to extract logs from Okteto when asking for help
 
-### For Developers:
-When reaching out to Okteto for support or when asking the [Okteto Community](http://community.okteto.com), run [`okteto doctor` to generate a doctor file](reference/okteto-cli.mdx#doctor) with the okteto logs for a given development container.
+### For Developers
 
-### For Administrators of Okteto:
-Please use our [Okteto Diagnostics tool](self-hosted/manage/diagnostics.mdx) to create a support bundle with cluster information, logs for okteto components, and other relevant information.
+Run [`okteto doctor`](reference/okteto-cli.mdx#doctor) to generate a doctor file with the Okteto logs for a Development Container. Attach it when you contact Okteto support or ask in the [Okteto Community](http://community.okteto.com).
 
 ## How to Check That Your Okteto Instance is Healthy
 ### 1. Sanity check the Okteto Helm release
 
-On your terminal, run the following commands to check the status of your Okteto Helm release:
+Run these commands to check the status of your Okteto Helm release:
 
 ```bash
 helm list -n okteto
 helm get values "okteto" -n okteto -o yaml
 ```
 
-The following are sample outputs of the commands:
+The commands return output like this:
+
 <Tabs
   defaultValue="helm-list"
   values={[
@@ -90,7 +89,7 @@ wildcardCertificate:
 </Tabs>
 
 
-### 2. Wait for workloads to become “Available”
+### 2. Wait for workloads to become "Available"
 
 Check that all Deployments and StatefulSets have completed their rollouts and that all Pods are in the Ready state:
 
@@ -102,12 +101,12 @@ kubectl rollout status sts   -l app.kubernetes.io/instance="okteto" -n okteto --
 # All pods to Ready (every container ready)
 kubectl wait pod -l app.kubernetes.io/instance="okteto" -n okteto --for=condition=Ready --timeout=180s
 ```
-If any of the commands hits the timeout, consider jumping to [Step 8. Anything looks bad?](#8-anything-looks-bad) to investigate further.
+If a command times out, go to [8. Anything looks bad?](#8-anything-looks-bad) to investigate.
 
 
 ### 3. Spot Unhealthy Pods
 
-Check for Pods that are not in the Ready state or that have container restarts:
+Check for Pods that aren't Ready or that have container restarts:
 
 ```bash
 # Pods not Ready
@@ -120,15 +119,16 @@ kubectl get pods -l app.kubernetes.io/instance="okteto" -n okteto -o custom-colu
 
 ### 4. Inventory resources created by Okteto Helm release
 
-Check that all the resources created by the Okteto Helm release are in a healthy state:
+Check that every resource the Okteto Helm release creates is healthy:
 
 ```bash
-kubectl get all -l app.kubernetes.io/instance="okteto"
-kubectl get ingress,service -l app.kubernetes.io/instance="okteto"
-kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto"
+kubectl get all -l app.kubernetes.io/instance="okteto" -n okteto
+kubectl get ingress,service -l app.kubernetes.io/instance="okteto" -n okteto
+kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto" -n okteto
 ```
 
-The following are sample outputs of the commands:
+The commands return output like this:
+
 <Tabs
   defaultValue="kubectl-get-all"
   values={[
@@ -140,7 +140,7 @@ The following are sample outputs of the commands:
 <TabItem value="kubectl-get-all">
 
 ```bash
-~ % kubectl get all -l app.kubernetes.io/instance="okteto"
+~ % kubectl get all -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                                      READY   STATUS    RESTARTS   AGE
 pod/okteto-api-d6ccbfc8d-8fgb5                            1/1     Running   0          3m7s
 pod/okteto-api-d6ccbfc8d-bqrlp                            1/1     Running   0          3m7s
@@ -230,7 +230,7 @@ cronjob.batch/okteto-telemetry             @daily        <none>     False     0 
 <TabItem value="kubectl-get-ingress-service">
 
 ```bash
-~ % kubectl get ingress,service -l app.kubernetes.io/instance="okteto"
+~ % kubectl get ingress,service -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                                CLASS                       HOSTS                       ADDRESS        PORTS     AGE
 ingress.networking.k8s.io/okteto                    okteto-controlplane-nginx   okteto.jona.okteto.me       34.21.79.137   80, 443   202d
 ingress.networking.k8s.io/okteto-buildkit           okteto-controlplane-nginx   buildkit.jona.okteto.me     34.21.79.137   80, 443   202d
@@ -254,36 +254,13 @@ service/okteto-regcreds                       ClusterIP      34.118.226.123   <n
 service/okteto-registry                       ClusterIP      34.118.225.14    <none>                                 5000/TCP                     202d
 service/okteto-ssh-agent                      ClusterIP      34.118.232.197   <none>                                 3000/TCP                     202d
 
-NAME                                        DATA   AGE
-configmap/okteto                            167    202d
-configmap/okteto-helm-release-meta          6      91d
-configmap/okteto-ingress-config             1      202d
-configmap/okteto-ingress-nginx-controller   15     202d
-configmap/okteto-okteto-nginx-controller    14     202d
-configmap/okteto-preflight                  1      202d
-configmap/okteto-redactor                   1      202d
-configmap/okteto-redis-configuration        4      202d
-configmap/okteto-redis-health               6      202d
-configmap/okteto-redis-scripts              1      202d
-configmap/okteto-registry-config            1      202d
-configmap/okteto-support-bundle             1      202d
-
-NAME                                 TYPE                DATA   AGE
-secret/okteto                        Opaque              2      202d
-secret/okteto-mutation-webhook       kubernetes.io/tls   3      202d
-secret/okteto-regcreds               kubernetes.io/tls   3      202d
-secret/okteto-registry-http-secret   Opaque              1      202d
-
-NAME                                                         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-persistentvolumeclaim/storage-okteto-buildkit-7c80387317-0   Bound    pvc-79219185-22de-4ccb-acd8-3228b3bb7323   100Gi      RWO            standard-rwo   <unset>                 86d
-persistentvolumeclaim/storage-okteto-buildkit-7c80387317-1   Bound    pvc-9e19e7f8-6f2f-4685-8a2d-dc340f4639e1   100Gi      RWO            standard-rwo   <unset>                 86d
 ```
 
 </TabItem>
 <TabItem value="kubectl-get-cm-secret-pvc">
 
 ```bash
-~ % kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto"
+~ % kubectl get cm,secret,pvc -l app.kubernetes.io/instance="okteto" -n okteto
 NAME                                        DATA   AGE
 configmap/okteto                            167    202d
 configmap/okteto-helm-release-meta          6      91d
@@ -315,7 +292,7 @@ persistentvolumeclaim/storage-okteto-buildkit-7c80387317-1   Bound    pvc-9e19e7
 
 ### 5. Check that services have endpoints
 
-Verify that all Services have healthy Endpoints:
+Verify that every Service has healthy Endpoints:
 
 ```bash
 kubectl get svc -l app.kubernetes.io/instance="okteto" -n okteto
@@ -323,7 +300,7 @@ kubectl get svc -l app.kubernetes.io/instance="okteto" -n okteto
 kubectl get endpoints -l app.kubernetes.io/instance="okteto" -n okteto
 ```
 
-The following are sample outputs of the commands:
+The commands return output like this:
 
 <Tabs
   defaultValue="kubectl-get-svc"
@@ -378,7 +355,7 @@ okteto-ssh-agent                      10.112.0.19:3000,10.112.2.23:3000         
 
 ### 6. Validate your DNS configuration
 
-Verify that the Okteto subdomain is resolving and accessible:
+Verify that the Okteto subdomain resolves and is reachable:
 
 ```bash
 curl -i --max-time 5 "https://okteto.<Okteto instance subdomain>/healthz"
@@ -386,7 +363,7 @@ curl -i --max-time 5 "https://okteto.<Okteto instance subdomain>/healthz"
 
 ### 7. Test your Okteto Instance End-to-End
 
-Go through the build, deploy, and up commands with the Movies Okteto sample to test that Okteto deployments are working as expected:
+Run `okteto build`, `okteto deploy`, and `okteto up` with the Movies sample to check that Okteto deployments work end to end:
 
 ```bash
 git clone https://github.com/okteto/movies
@@ -398,7 +375,7 @@ okteto up
 
 ### 8. Anything looks bad?
 
-Check the events and describe the failing Pods or other resources to gather more information about what might be wrong:
+Check the events, and describe the failing Pods or other resources to find out what's wrong:
 
 ```bash
 # a) Events (cluster is telling you what’s wrong)
@@ -410,22 +387,21 @@ kubectl describe pod <pod-name>
 
 ## UPGRADE FAILED: “okteto” has no deployed releases
 
-This error will occur on your second install/upgrade if your initial install failed. If the first install failed, delete the existing install before trying again:
+This error occurs on your second install or upgrade when your initial install failed. Delete the failed install before you try again:
 
-```
-helm uninstall okteto
+```bash
+helm uninstall okteto --namespace okteto
 ```
 
 ## Registry pods keep restarting
 
-This can happen when the pods can't read/write from your cloud storage bucket. Double check that the cloud IAM you created has read/write access to the specified bucket.
+The usual cause is that the registry pods can't read from or write to your cloud storage bucket. Check that the cloud IAM you created has read and write access to the bucket.
 
 ## Deployment pipelines stay in "progressing" forever
 
-This can happen for several reasons, among others, the installer job couldn't be started due to an error in Kubernetes API, or due to an overload in the cluster.
-In order to find out what the problem is, there's a way to list all the jobs and pods for a specific pipeline.
+A pipeline can get stuck for several reasons: for example, the installer job couldn't start because of an error in the Kubernetes API, or because the cluster is overloaded. To find the problem, list the jobs and pods for the pipeline.
 
-You need the pipeline name (it is the name displayed on Okteto UI) and the namespace where it is deployed. With that information, you can get jobs and pods running these commands:
+You need the pipeline name (the name displayed in the Okteto UI) and the Namespace where it's deployed. For example, for the `movies` pipeline in the `cindy` Namespace, list its jobs and pods with these commands:
 
 ```console
 kubectl get jobs -l=dev.okteto.com/pipeline-name=movies -l=dev.okteto.com/pipeline-namespace=cindy --namespace=okteto
@@ -437,24 +413,23 @@ kubectl get pods -l=dev.okteto.com/pipeline-name=movies -l=dev.okteto.com/pipeli
 
 ## Using a Custom CNI
 
-If you're using a custom CNI on your cluster then there may be some additional configuration needed for webhooks.
-In certain cases the CNI used on the worker nodes is not the same as the CNI used by the control plane and host networking will need to be used for webhooks.
-In addition, the ports may need to be changed to avoid collisions.
+If your cluster uses a custom CNI, the webhooks may need additional configuration. In some cases, the CNI on the worker nodes isn't the same as the CNI of the control plane, and the webhooks need host networking. The ports may also need to change to avoid collisions.
 
 The Okteto Webhook is configured by setting`webhook.hostNetwork` to `true`. The ports are set with `webhook.port`.
 More information on the Okteto Webhook configuration can be found [here](self-hosted/helm-configuration.mdx#webhook).
 
 ## Docker Hub credentials misconfiguration
 
-As you can [configure your own Docker Hub account](admin/dashboard.mdx#registry-credentials) in Okteto, it could happen that the credentials are not properly set. If that is the case, kubelet won't be able to pull public images from Docker Hub, which can be an important issue in the cluster.
+Okteto lets you [configure your own Docker Hub account](admin/dashboard.mdx#registry-credentials). If its credentials are wrong, kubelet can't pull public images from Docker Hub, which can cause serious issues in the cluster.
 
-If this ever happens in your cluster, there is a way to fix it:
-- [Update the container image used by the daemonset pods](self-hosted/helm-configuration.mdx#daemonset). **Important note**, use a container registry different than Docker Hub to pull the image without credential problems. For example, you can use `ghcr.io/okteto/busybox`.
+To fix it:
+
+- [Update the container image used by the daemonset pods](self-hosted/helm-configuration.mdx#daemonset). Use a container registry other than Docker Hub, so the pods pull the image without the credential problem. For example, `ghcr.io/okteto/busybox`.
 - Change or remove the credentials for the Docker Hub registry.
-- [Upgrade your cluster](self-hosted/manage/upgrade.mdx) with the new configuration.
+- [Upgrade your Okteto instance](self-hosted/manage/upgrade.mdx) with the new configuration.
 
-After this, the Okteto daemonset will be able to configure the right credentials for Docker Hub. Once you verify everything is working, you can restore the original base image for the Okteto daemonset.
+The Okteto daemonset then configures the right credentials for Docker Hub. Once you verify that everything works, you can restore the original base image for the Okteto daemonset.
 
-## We are here to help
+## Community help
 
 [Reach out to us](https://community.okteto.com/), we're always happy to help!

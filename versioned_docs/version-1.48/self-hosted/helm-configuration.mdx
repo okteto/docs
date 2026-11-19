@@ -1,6 +1,6 @@
 ---
 title: Helm Configuration
-description: List of configuration settings for Okteto
+description: Reference for the Okteto Helm chart values that configure your Okteto instance.
 sidebar_label: Helm Configuration
 id: helm-configuration
 ---
@@ -8,11 +8,13 @@ id: helm-configuration
 import variables from '../variables.json';
 import CodeBlock from '@theme/CodeBlock';
 
+The Okteto Helm chart accepts the following values to configure your Okteto instance.
+
 ## General Settings
 
 ### license
 
-You'll receive a license key as part of your subscription to Okteto. If you haven't received it, [please open a support ticket](https://okteto.com/support).
+You receive a license key with your Okteto subscription. If you haven't received it, [open a support ticket](https://okteto.com/support).
 
 If you are interested in evaluating Okteto, [sign up for our Free Tier (5 seats, 1 year), no credit card required](https://www.okteto.com/free-trial/).
 
@@ -20,7 +22,7 @@ If you are interested in evaluating Okteto, [sign up for our Free Tier (5 seats,
 license: XXXXX
 ```
 
-> You can also use a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret) to store the license.
+> You can also store the license in a [secret](self-hosted/helm-configuration.mdx#store-sensitive-configuration-values-using-a-secret).
 
 ### subdomain
 
@@ -31,44 +33,42 @@ For example, if you have a development environment named `app` in the `cindy` na
 subdomain: "example.com"
 ```
 
-Okteto's frontend and API services will be also accessible via https://okteto.$SUBDOMAIN.
-Once Okteto is installed, you can use `kubectl` to retrieve the public address of the Okteto NGINX Ingress Controller:
+The Okteto frontend and API are available at https://okteto.$SUBDOMAIN. Once Okteto is installed, get the public address of the Okteto NGINX Ingress Controller with `kubectl`:
 
 ```bash
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
 ```
 
-The output will look something like this:
+The output looks like this:
 
 ```
 NAME                              TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)                                     AGE
 okteto-ingress-nginx-controller   LoadBalancer   10.0.7.73    34.68.230.234   80:30795/TCP,443:32481/TCP,1234:30885/TCP   5m
 ```
 
-You'll need to take the `EXTERNAL-IP` address to create a DNS entry for `*.$SUBDOMAIN`.
+Create a DNS entry for `*.$SUBDOMAIN` that points to the `EXTERNAL-IP` address.
 
-You can overwrite Okteto's public URL using the [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) field.
+To change the Okteto public URL, use the [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) field.
 
 ### publicOverride
 
-Use this property to override the Public URL where Okteto is available. This option replaces `okteto.$SUBDOMAIN` with your [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) of choice.
+Overrides the public URL where Okteto is available. It replaces `okteto.$SUBDOMAIN` with the [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) you choose.
 
 ```yaml
 publicOverride: "example.com"
 ```
 
-Once you set this in your Helm configuration file, make sure to point the Okteto Ingress Controller's IP address to this domain using your DNS provider. The IP address can be found by running the following command (like we did during the [install phase](get-started/install/amazon-eks.mdx#retrieve-the-ingress-controller-ip-address)):
+After you set it in your Helm configuration file, use your DNS provider to point this domain to the IP address of the Okteto Ingress Controller. Get the IP address with the same command that the [installation guides](get-started/install/index.mdx) use:
 
 ```bash
 kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller --namespace=okteto
 ```
 
-**Important**: When using `publicOverride`, the certificate referred by [wildcardCertificate.name](self-hosted/helm-configuration.mdx#wildcardcertificate) must be valid for `publicOverride`, `registry.$SUBDOMAIN` and `buildkit.$SUBDOMAIN`.
+**Important**: When you use `publicOverride`, the certificate that [wildcardCertificate.name](self-hosted/helm-configuration.mdx#wildcardcertificate) refers to must be valid for `publicOverride`, `registry.$SUBDOMAIN`, and `buildkit.$SUBDOMAIN`.
 
-When `publicOverride` is set, an additional component is deployed for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx) feature.
-You can configure its settings using the [privateEndpoints](self-hosted/helm-configuration.mdx#privateendpoints) section.
+When `publicOverride` is set, Okteto deploys an additional component for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx). Configure it in the [privateEndpoints](self-hosted/helm-configuration.mdx#privateendpoints) section.
 
-When setting your [auth provider](self-hosted/helm-configuration.mdx#auth), the authentication callback URL and origin URL will change to the following:
+The callback URL and the origin URL of your [auth provider](self-hosted/helm-configuration.mdx#auth) change to:
 
 **Callback URL**:
 
@@ -86,9 +86,9 @@ https://private-endpoints.${subdomain}
 
 ### auth
 
-Use the `auth` property to specify which users can access Okteto and the method they can use for logging in.
+The `auth` property defines which users can access Okteto and how they log in.
 
-Okteto provides OAuth2 integrations for the following auth providers:
+Okteto integrates with these OAuth2 providers:
 
 - [Azure Active Directory](self-hosted/install/auth/azure-ad.mdx)
 - [Bitbucket](self-hosted/install/auth/bitbucket.mdx)
@@ -98,11 +98,11 @@ Okteto provides OAuth2 integrations for the following auth providers:
 - [Okta](self-hosted/install/auth/okta.mdx)
 - [OpenID Connect](self-hosted/install/auth/openid-connect.mdx)
 
-Additionally, Okteto provides a single user authentication method based on a [Token](self-hosted/install/auth/token.mdx) for initial evaluations.
+For evaluations, Okteto also supports single-user authentication with a [token](self-hosted/install/auth/token.mdx).
 
 ### Theme
 
-Use this property to customize the logo and the colors of the sidebar to match your team's identity or your favorite colors.
+Customizes the logo and the sidebar colors of the Okteto UI to match your team's identity.
 
 - `logo`: The logo displayed at the far top left of the Okteto UI. The value can be a url or a Base64 encoded image.
 - `primary`: The primary color of the sidebar. This is used for the color of the sidebar. The value can be a [HTML color name](https://en.wikipedia.org/wiki/Web_colors#HTML_color_names) (e.g. blue, red) or a hexadecimal code.
@@ -122,9 +122,9 @@ theme:
 The API service. Account and Kubernetes credentials management, namespace creation, and sharing, deployment via the catalog, etc...
 
 - `annotations`: Annotations to add to the API pods.
-- `extraEnv`: Environment variables to be set on the API containers.
+- `extraEnv`: Environment variables for the API containers.
 - `labels`: Labels to add to the API pods.
-- `priorityClassName`: The priority class to be used by the API pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `priorityClassName`: The priority class for the API pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 - `replicaCount`: The number of API pods. It defaults to 2.
 - `resources`: The resources for the API pods.
 
@@ -146,26 +146,26 @@ The cluster autoscaler service. Disabled by default.
 It instructs the Kubernetes cluster autoscaler to scale nodes if the real cpu/memory usage of a node is beyond the limits.
 Use `tolerations.devPool` to limit the autoscaler analysis to a subset of cluster nodes.
 
-> **Requirements**: cluster autoscaler and metrics server must be installed in your cluster.
+> **Requirements**: the cluster autoscaler and the metrics server must be installed in your cluster.
 
 - `annotations`: Annotations to add to the autoscaler pods.
 - `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
-- `cpu.down`: Decrease the cluster size when the CPU consumption is lesser than this value. It defaults to 40 percent.
-- `image`: image used by the autoscaler to deploy the autoscaler agent. It defaults to `busybox`.
+- `cpu.down`: Decrease the cluster size when the CPU consumption is less than this value. It defaults to 40 percent.
+- `image`: The image the autoscaler uses to deploy the autoscaler agent. It defaults to `busybox`.
 - `labels`: Labels to add to the autoscaler pods.
 - `memory.up`: Increase the cluster size when the Memory consumption is greater than or equal to this value. It defaults to 70 percent.
 - `memory.down`: Decrease the cluster size when the Memory consumption is lesser than this value. It defaults to 50 percent.
 - `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. e.g. if this value is 3, the autoscaler will request 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
 - `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
 - `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
-- `nodes.poolLabel`: The node label that identifies the node pool of the node. For example, the value in GKE is `cloud.google.com/gke-nodepool`. In EKS the value is `eks.amazonaws.com/nodegroup`. If set, the autoscaler scales each node pool independently.
-- `pods.up`: Increase the cluster size when the Pods in a node vs the max pods per node is greater than or equal to this value. It defaults to 90 percent.
-- `pods.down`: Decrease the cluster size when the Pods in a node vs the max pods per node is lesser than this value. It defaults to 80 percent.
-- `priorityClassName`: The priority class to be used by the autoscaler pods.
-- `schedule`: How often, in seconds, the autoscaler analyzes if the cluster needs to be scaled. It defaults to 300.
-- `slackWebhook`: A slack webhook url to notify autoscaler events.
-- `volumes.up`: Increase the cluster size when the Volumes in a node vs the max volumes per node is greater than or equal to this value. It defaults to 90 percent.
-- `volumes.down`: Decrease the cluster size when the Volumes in a node vs the max volumes per node is lesser than this value. It defaults to 80 percent.
+- `nodes.poolLabel`: The node label that identifies a node's pool. For example, `cloud.google.com/gke-nodepool` in GKE and `eks.amazonaws.com/nodegroup` in EKS. If set, the autoscaler scales each node pool independently.
+- `pods.up`: Increase the cluster size when the ratio of pods in a node to the maximum pods per node is greater than or equal to this value. It defaults to 90 percent.
+- `pods.down`: Decrease the cluster size when the ratio of pods in a node to the maximum pods per node is less than this value. It defaults to 80 percent.
+- `priorityClassName`: The priority class for the autoscaler pods.
+- `schedule`: How often, in seconds, the autoscaler checks whether the cluster needs scaling. It defaults to 300.
+- `slackWebhook`: A Slack webhook URL where the autoscaler sends notifications of its events.
+- `volumes.up`: Increase the cluster size when the ratio of volumes in a node to the maximum volumes per node is greater than or equal to this value. It defaults to 90 percent.
+- `volumes.down`: Decrease the cluster size when the ratio of volumes in a node to the maximum volumes per node is less than this value. It defaults to 80 percent.
 
 ```yaml
 autoscaler:
@@ -188,25 +188,25 @@ autoscaler:
     increment: 1
     min: 1
     max: 10
-    podLabel: cloud.google.com/gke-nodepool
+    poolLabel: cloud.google.com/gke-nodepool
   slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ### buildkit
 
-The build service. It's used in combination with `okteto build` to build containers directly in the cluster.
+The [Okteto Build Service](core/build-service.mdx). `okteto build` uses it to build container images in the cluster.
 
-- `port`: Port used for the buildkit statefulset. Defaults to `443`.
-- `annotations`: Annotations to add to the buildkit pods.
-- `extraEnv`: Environment variables to be set on the buildkit containers.
-- `hpa.enabled`: Enable horizontal pod autoscaling for the buildkit pods. Disabled by default.
-- `hpa.min`: Minimum number of buildkit pods to keep running. Defaults to `1`.
-- `hpa.max`: Maximum number of buildkit pods to scale to. Defaults to `5`.
-- `hpa.metrics`: The [target metrics](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics) that will cause the HPA to scale the buildkit pods. By default, uses the `okteto_build_active_builds` metric with an average value target of `0.99`.
-- `hpa.behavior`: The [scaling behavior](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior) configuration that controls how the HPA scales buildkit pods up and down. By default, scales up quickly (30 second stabilization window) and scales down conservatively (600 second stabilization window).
-- `hpa.adapter.enabled`: Controls the creation of the metrics adapter deployment, service, and APIService. Enabled by default when HPA is enabled. The adapter exposes buildkit metrics via the Kubernetes custom metrics API.
-- `hpa.adapter.extraEnv`: Environment variables to be set on the adapter containers.
-- `hpa.adapter.priorityClassName`: The priority class to be used by the adapter pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `port`: The port of the BuildKit StatefulSet. Defaults to `443`.
+- `annotations`: Annotations to add to the BuildKit pods.
+- `extraEnv`: Environment variables for the BuildKit containers.
+- `hpa.enabled`: Enables horizontal pod autoscaling for the BuildKit pods. Disabled by default.
+- `hpa.min`: Minimum number of BuildKit pods to keep running. Defaults to `1`.
+- `hpa.max`: Maximum number of BuildKit pods to scale to. Defaults to `5`.
+- `hpa.metrics`: The [target metrics](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics) that make the HPA scale the BuildKit pods. Defaults to the `okteto_build_active_builds` metric with an average value target of `0.99`.
+- `hpa.behavior`: The [scaling behavior](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior) of the HPA for the BuildKit pods. By default, it adds up to one pod every 30 seconds when builds pile up, and after a 600-second stabilization window it removes up to one pod every 150 seconds.
+- `hpa.adapter.enabled`: Creates the metrics adapter Deployment, Service, and APIService. Enabled by default when the HPA is enabled. The adapter exposes BuildKit metrics through the Kubernetes custom metrics API.
+- `hpa.adapter.extraEnv`: Environment variables for the adapter containers.
+- `hpa.adapter.priorityClassName`: The priority class for the adapter pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 - `hpa.adapter.replicaCount`: The number of adapter pods. Defaults to `2`.
 - `hpa.adapter.resources`: The resources for the adapter pods. Defaults to 100m CPU and 128Mi memory requests.
 - `hpa.adapter.apiService.name`: The name of the APIService. Defaults to `v1beta2.custom.metrics.k8s.io`.
@@ -214,21 +214,21 @@ The build service. It's used in combination with `okteto build` to build contain
 - `hpa.adapter.apiService.version`: The API version. Defaults to `v1beta2`.
 - `hpa.adapter.apiService.groupPriorityMinimum`: The priority of the API group. Defaults to `100`.
 - `hpa.adapter.apiService.versionPriority`: The priority of the API version. Defaults to `100`.
-- `labels`: Labels to add to the buildkit pods.
-- `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the buildkit pods. Defaults to `Parallel`.
-- `priorityClassName`: The priority class to be used by buildkit pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `replicaCount`: The number of buildkit pods. It defaults to 1.
-- `resources`: The resources for the buildkit pods.
-- `serviceAccount.create`: create a service account for buildkit. True by default.
-- `serviceAccount.name`: Buildkit service account name. Defaults to `okteto-buildkit`.
-- `serviceAccount.annotations`: Annotations for the buildkit service account.
-- `serviceAccount.labels`: Labels for the buildkit service account.
+- `labels`: Labels to add to the BuildKit pods.
+- `podManagementPolicy`: The [podManagementPolicy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies) of the BuildKit pods. Defaults to `Parallel`.
+- `priorityClassName`: The priority class for the BuildKit pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `replicaCount`: The number of BuildKit pods. It defaults to 1.
+- `resources`: The resources for the BuildKit pods.
+- `serviceAccount.create`: Creates a service account for BuildKit. Defaults to `true`.
+- `serviceAccount.name`: The name of the BuildKit service account. Defaults to `okteto-buildkit`.
+- `serviceAccount.annotations`: Annotations for the BuildKit service account.
+- `serviceAccount.labels`: Labels for the BuildKit service account.
 - `service.loadBalancerSourceRanges`: List of CIDR blocks allowed to access the BuildKit service when using a LoadBalancer. Defaults to `[]`. Ignored for other service types.
-- `persistence.enabled`: Configures a persistence volume for buildkit. Enabled by default.
-- `persistence.class`: The storage class of the persistence volume attached to every buildkit pod.
-- `persistence.size`: The size of the persistence volume attached to every buildkit pod. Defaults to `750Gi`.
-- `persistence.cacheRatio`: What percentage the persistence size should be used for the cache. Value should be between 0 and 1. Defaults to `0.5`.
-- `terminationGracePeriodSeconds`: Duration in seconds for graceful pod termination. Defaults to `600` (10 minutes). This allows ongoing builds to complete before the pod is terminated.
+- `persistence.enabled`: Attaches a persistent volume to BuildKit. Enabled by default.
+- `persistence.class`: The storage class of the persistent volume attached to every BuildKit pod.
+- `persistence.size`: The size of the persistent volume attached to every BuildKit pod. Defaults to `750Gi`.
+- `persistence.cacheRatio`: The fraction of the persistent volume used for the cache, between 0 and 1. Defaults to `0.5`.
+- `terminationGracePeriodSeconds`: Duration in seconds for graceful pod termination. Defaults to `600` (10 minutes). It lets running builds finish before the pod terminates.
 - `readinessProbe.periodSeconds`: How often, in seconds, the readiness probe runs `buildctl debug workers` against the local BuildKit socket. Defaults to `15`.
 - `readinessProbe.timeoutSeconds`: Seconds before a readiness check is considered failed. Defaults to `10`. Keep it above `5`, the time `buildctl` waits for the daemon before giving up.
 - `readinessProbe.failureThreshold`: Consecutive failed checks before the pod is marked not ready. Defaults to `3`.
@@ -291,44 +291,29 @@ buildkit:
           memory: 128Mi
 ```
 
-In order to handle timeouts during communication between the client and the buildkit daemon, the following environment variables can be modified on the server side:
+To handle timeouts in the communication between the client and the BuildKit daemon, set these environment variables on the server side:
 
-- `OKTETO_KEEPALIVE_SERVER_TIME_MS`: After this duration of time, if the server doesn't see any activity it pings the client to see if the transport is still alive. If set below 1s, a minimum value of 1s will be used. The current default value is 2 hours.
-- `OKTETO_KEEPALIVE_SERVER_TIMEOUT_MS`: After having pinged for keepalive check, the server waits for a duration of Timeout and if no activity is seen, the connection is closed. The current default value is 20 seconds.
-- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_IDLE_MS`: Duration for the amount of time after which an idle connection would be closed by sending a GOAWAY. Idleness duration is defined since the most recent time the number of outstanding RPCs became zero or the connection establishment. The current default value is infinity.
-- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS`: Duration for the maximum amount of time a connection may exist before it will be closed by sending a GOAWAY. A random jitter of +/-10% will be added to the value to spread out connection storms. The current default value is infinity.
-- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_GRACE_MS`: An additive period after `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS` after which the connection will be forcibly closed. The current default value is infinity.
-- `OKTETO_KEEPALIVE_SERVER_POLICY_MINTIME_MS`: Minimum amount of time a client should wait before sending a keepalive ping. The current default value is 5 minutes.
-- `OKTETO_KEEPALIVE_SERVER_POLICY_PERMIT_WITHOUT_STREAM`: If true, server allows keepalive pings even when there are no active streams(RPCs). If false, and client sends pings when there are no active streams, server will send GOAWAY and close the connection. False by default.
-
-If you're trying to configure Buildkit persistency for your Okteto installation, check out our video tutorial:
-
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/R0V_-lRVico"
-  title="YouTube video player"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  allowfullscreen
-></iframe>
+- `OKTETO_KEEPALIVE_SERVER_TIME_MS`: If the server sees no activity for this duration, it pings the client to check that the transport is still alive. Values below 1s are raised to 1s. Defaults to 2 hours.
+- `OKTETO_KEEPALIVE_SERVER_TIMEOUT_MS`: After a keepalive ping, the server waits this long for activity. If it sees none, it closes the connection. Defaults to 20 seconds.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_IDLE_MS`: How long a connection can stay idle before the server closes it by sending a GOAWAY. A connection is idle since it was established or since the number of outstanding RPCs last dropped to zero, whichever is more recent. Defaults to infinity.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS`: The maximum time a connection can exist before the server closes it by sending a GOAWAY. The server adds a random jitter of +/-10% to the value to spread out connection storms. Defaults to infinity.
+- `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_GRACE_MS`: An extra period after `OKTETO_KEEPALIVE_SERVER_MAX_CONN_AGE_MS`, after which the server forcibly closes the connection. Defaults to infinity.
+- `OKTETO_KEEPALIVE_SERVER_POLICY_MINTIME_MS`: The minimum time a client should wait before sending a keepalive ping. Defaults to 5 minutes.
+- `OKTETO_KEEPALIVE_SERVER_POLICY_PERMIT_WITHOUT_STREAM`: If `true`, the server allows keepalive pings even when there are no active streams (RPCs). If `false` and the client sends pings with no active streams, the server sends a GOAWAY and closes the connection. Defaults to `false`.
 
 ### cli
 
-Settings for the Okteto CLI.
+Settings for the Okteto CLI. The `cli` section sets the Docker image that the Okteto CLI uses for cluster-wide operations. Change it to use your own Docker images.
 
-The `cli` section allows you to configure the Docker image used by the Okteto CLI for cluster-wide operations.
-These settings can be customized to use your own Docker images if required.
-
-- `image`: Specifies the image settings for the Okteto CLI.
-  - `registry`:  The registry where the Okteto CLI image is hosted. Defaults to `docker.io`.
+- `image`: The image settings for the Okteto CLI.
+  - `registry`: The registry where the Okteto CLI image is hosted. Defaults to `ghcr.io`.
   - `repository`: The repository path for the Okteto CLI image. Defaults to `okteto/okteto`.
 
 ```yaml
 cli:
   image:
     registry: "my-custom-registry:5000"
-    repository: "okteto/cli"
+    repository: "okteto/okteto"
 ```
 :::note
 Please Note:
@@ -339,25 +324,25 @@ Please Note:
 
 ### daemonset
 
-The daemonset automatically configures every node of your cluster to work better with Okteto.
+The daemonset configures every node in your cluster to work with Okteto.
 
-- `enabled`: Control if the daemonset is installed. Defaults to `true`.
+- `enabled`: Whether to install the daemonset. Defaults to `true`.
 - `annotations`: Annotations to add to the daemonset pods.
-- `extraEnv`: Environment variables to be set on the daemonset containers.
+- `extraEnv`: Environment variables for the daemonset containers.
 - `labels`: Labels to add to the daemonset pods.
-- `configurePrivateRegistriesInNodes.enabled`: Specifies if the daemonset should configure the private registry credentials in the nodes for kubelet or not. It defaults to `false`. It's disabled if `regcredsManager.pullSecrets.enabled=true`.
+- `configurePrivateRegistriesInNodes.enabled`: Whether the daemonset configures the private registry credentials on the nodes for the kubelet. It defaults to `false`. It's disabled when `regcredsManager.pullSecrets.enabled=true`.
 - `injectCA.enabled`: Controls whether the daemonset installs the CA into each node's trust store, so the kubelet can pull images from the Okteto Registry when you use a private CA or a self-signed certificate. It defaults to `true`. Set it to `false` only if you add the CA to your nodes' trust store through your own mechanism; otherwise, image pulls from the Okteto Registry fail with a certificate verification error. Disabling it only affects the daemonset: the other daemonset tasks still run, and the Okteto components keep mounting the CA. This setting has no effect when neither `wildcardCertificate.privateCA.enabled` nor `wildcardCertificate.create` is set.
-- `priorityClassName`: The priority class to be used by the daemonset pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `priorityClassName`: The priority class for the daemonset pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
-The daemonset performs the following tasks on each node:
+The daemonset runs these tasks on each node:
 
 - [Overrides](self-hosted/helm-configuration.mdx#overrideregistryresolution) the Okteto Registry hostname resolution to use internal IPs.
 - [Overrides](self-hosted/helm-configuration.mdx#overridefilewatchers) the default kernel values for file watchers on every node.
 - Configures the kubelet with registry credentials for [private registries](self-hosted/helm-configuration.mdx#daemonset) (if `configurePrivateRegistriesInNodes.enabled=true` and `regcredsManager.pullSecrets.enabled=false`).
-- Installs your private CA into each node's trust store if provided (`wildcardCertificate.privateCA: true`). Setting `injectCA.enabled: false` disables this task.
+- Installs your private CA, if you provide one (`wildcardCertificate.privateCA.enabled: true`), into each node's trust store. Setting `injectCA.enabled: false` disables this task.
 - Installs the Okteto-generated CA into each node's trust store when using self-signed certificates (`wildcardCertificate.create: true`). Setting `injectCA.enabled: false` disables this task.
 
-You can restrict the nodes where the daemonset is deployed using `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
+To restrict the nodes where the daemonset runs, use the `dev` [tolerations](self-hosted/helm-configuration.mdx#tolerations) and [nodeSelectors](self-hosted/helm-configuration.mdx#nodeselectors):
 
 ```yaml
 tolerations:
@@ -366,16 +351,16 @@ tolerations:
 
 ### defaultBackend
 
-The defaultBackend receives errored requests from the ingress-controller and transform them returning them to the client.
+The defaultBackend receives failed requests from the ingress controller, transforms them, and returns them to the client.
 
 - `affinity`: Affinities to add to the defaultBackend pods.
 - `annotations`: Annotations to add to the defaultBackend pods.
-- `enabled`: Control if defaultBackend is deployed. Defaults to `true`.
-- `extraEnvs`: Environment variables to be set on the defaultBackend containers.
+- `enabled`: Whether to deploy the defaultBackend. Defaults to `true`.
+- `extraEnvs`: Environment variables for the defaultBackend containers.
 - `labels`: Labels to add to the defaultBackend pods.
-- `nameOverride`: String to override the full name of the defaultBackend service.
-- `port`: Internal port used for the defaultBackend. Defaults to `8080`.
-- `priorityClassName`: The priority class to be used by the defaultBackend pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `nameOverride`: Overrides the full name of the defaultBackend service.
+- `port`: The internal port of the defaultBackend. Defaults to `8080`.
+- `priorityClassName`: The priority class for the defaultBackend pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 - `replicaCount`: The number of defaultBackend pods. It defaults to 2.
 - `resources`: The resources for the defaultBackend pods.
 
@@ -388,10 +373,10 @@ defaultBackend:
       memory: 128Mi
 ```
 
-The defaultBackend provides the following features:
+The defaultBackend provides these features:
 
-- **Autowake namespaces**: When a user accesses an endpoint from a sleeping namespace, the defaultBackend will issue a wake command.
-- **Custom error pages**: When users access endpoints that encounter errors, the defaultBackend serves custom error pages with contextual hints on how to resolve the issue. This provides a better user experience by offering clear explanations and actionable steps instead of generic error messages. Common scenarios include accessing sleeping namespaces, or service unavailability. These error pages work automatically and require no additional configuration.
+- **Autowake Namespaces**: When a user accesses an endpoint of a sleeping Namespace, the defaultBackend issues a wake command.
+- **Custom error pages**: When an endpoint returns an error, the defaultBackend serves a custom error page with hints to resolve the issue, instead of a generic error message. Common cases are sleeping Namespaces and unavailable services. The error pages work automatically, with no configuration.
 
 ```yaml
 tolerations:
@@ -400,12 +385,12 @@ tolerations:
 
 ### frontend
 
-The frontend service serves the web application.
+The frontend service serves the Okteto web application.
 
 - `annotations`: Annotations to add to the frontend pods.
-- `extraEnv`: Environment variables to be set on the frontend containers.
+- `extraEnv`: Environment variables for the frontend containers.
 - `labels`: Labels to add to the frontend pods.
-- `priorityClassName`: The priority class to be used by the frontend pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `priorityClassName`: The priority class for the frontend pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 - `replicaCount`: The number of frontend pods. It defaults to 2.
 - `resources`: The resources for the frontend pods.
 
@@ -423,15 +408,15 @@ frontend:
 
 ### gc
 
-The Okteto Garbage Collector service automatically scales idle applications to zero and deletes unused namespaces for optimal cost savings and resource management. It is enabled by default.
+The Okteto Garbage Collector scales idle applications to zero and deletes unused Namespaces to reduce infrastructure costs. It's enabled by default.
 
-The Garbage Collector service can also be [configured in the Admin Dashboard](admin/cleanup.mdx) by navigating to **Admin -> Garbage Collector** underneath the Settings section.
+You can also [configure the Garbage Collector in the Admin Dashboard](admin/cleanup.mdx), under **Admin → Garbage Collector** in the Settings section.
 
-- `annotations`: Annotations to add to the gc pods.
-- `labels`: Labels to add to the gc pods.
-- `slackWebhook`: If set, the garbage collector will send a notification when it scales a resource to zero or when it deletes a namespace.
-- `upSessionByLastSyncedFile`: If true, `okteto up` sessions will be scaled to zero if no files have been synchronized in the scale to zero period. Default behavior is to check for an active connection (regardless of inactivity)
-- `priorityClassName`: The priority class to be used by the gc pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `annotations`: Annotations to add to the Garbage Collector pods.
+- `labels`: Labels to add to the Garbage Collector pods.
+- `slackWebhook`: If set, the Garbage Collector sends a notification when it scales a resource to zero or deletes a Namespace.
+- `upSessionByLastSyncedFile`: If `true`, the Garbage Collector scales `okteto up` sessions to zero when no files were synchronized during the scale-to-zero period. By default, it checks for an active connection, regardless of inactivity.
+- `priorityClassName`: The priority class for the Garbage Collector pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
 ```yaml
 gc:
@@ -445,8 +430,8 @@ gc:
 Configures the [Okteto Insights](admin/okteto-insights.mdx) component in your Okteto instance.
 
 - `enabled`: Whether to enable Okteto Insights. Defaults to `false`.
-- `bearerSecret.name`: Name of the secret where the token to access Okteto Insights metrics is stored. Defaults to `okteto-insights`.
-- `bearerSecret.key`: Name of the key within the secret where the token to access Okteto Insights metrics is stored. Defaults to `bearer`.
+- `bearerSecret.name`: The name of the secret that stores the token to access the Okteto Insights metrics. Defaults to `okteto-insights`.
+- `bearerSecret.key`: The key in the secret that stores the token to access the Okteto Insights metrics. Defaults to `bearer`.
 
 ```yaml
 insights:
@@ -456,12 +441,12 @@ insights:
     key: bearer
 ```
 
-If Okteto Insights is enabled, the Event Exporter component and the Insights Metrics cronjob are also installed.
+When Okteto Insights is enabled, Okteto also installs the Event Exporter component and the Insights Metrics CronJob.
 
-The Event Exporter receives Okteto CLI events via Kubernetes Events and injects them as Okteto Insights metrics.
+The Event Exporter receives Okteto CLI events through Kubernetes Events and injects them as Okteto Insights metrics.
 
-- `priorityClassName`: The priority class for pods created by the Event Exporter. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `podAnnotations`: Annotations to add to Event Exporter pods.
+- `priorityClassName`: The priority class for the Event Exporter pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `podAnnotations`: Annotations to add to the Event Exporter pods.
 - `podLabels`: Labels to add to the Event Exporter pods.
 - `resources`: The resources for the Event Exporter pods.
 
@@ -479,13 +464,13 @@ insights:
         memory: 100Mi
 ```
 
-The Insight Metrics is a cronjob that pre-computes several metrics for the Okteto Insights `/metrics` endpoint.
+Insights Metrics is a CronJob that precomputes metrics for the Okteto Insights `/metrics` endpoint.
 
-- `annotations`: Annotations to add to Insight Metrics pods.
-- `labels`: Labels to add to the Insight Metrics pods.
-- `priorityClassName`: The priority class for pods created by the Insight Metrics. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `resources`: The resources for the Insight Metrics pods.
-- `schedule`: Defines the frequency at which cronjob is executed, using the cron syntax. It defaults to run every 5 minutes (`*/5 * * * *`).
+- `annotations`: Annotations to add to the Insights Metrics pods.
+- `labels`: Labels to add to the Insights Metrics pods.
+- `priorityClassName`: The priority class for the Insights Metrics pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `resources`: The resources for the Insights Metrics pods.
+- `schedule`: How often the CronJob runs, in cron syntax. Defaults to every 5 minutes (`*/5 * * * *`).
 
 ```yaml
 insights:
@@ -504,21 +489,21 @@ insights:
 
 ### installer
 
-The jobs that deploy your [development environments from Git](development/deploy/deploy-from-git.mdx).
+The jobs that deploy your [application environments from Git](development/deploy/deploy-from-git.mdx).
 
 - `annotations`: Annotations to add to the installer job pods.
-- `extraEnv`: Environment variables to be set on the installer job containers.
+- `extraEnv`: Environment variables for the installer job containers.
 - `labels`: Labels to add to the installer job pods.
-- `runner`: to configure your [custom installer image](admin/custom-installer-image.mdx).
-  - `registry`: The registry where the installer image is hosted. Defaults to the helm configuration setting `globals.registry`.
-  - `repository`: The repository path for the installer image. Defaults to `okteto/pipeline-runner` if not specified.
-  - `tag`: The image tag to deploy. Defaults to <code>{variables.chartVersion}</code> if not specified.
-- `activeDeadlineSeconds`: Maximum duration of the pipeline in seconds.
-- `gitSSHUser`: User to be used when cloning git repos using ssh.
-- `sshSecretName`: The name of the secret that contains the private key used when cloning git repos using ssh. If it doesn't exist, the key and the secret will be automatically generated by Okteto.
-- `resources`: The resources for pods created by the installer jobs.
-- `priorityClassName`: The priority class for pods created by the installer job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `securityContext`: The security context for the installer job container. It's not set by default, and it follows the [same syntax used in Kubernetes](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
+- `runner`: Configures your [custom installer image](admin/custom-installer-image.mdx).
+  - `registry`: The registry where the installer image is hosted. Defaults to the value of `globals.registry`.
+  - `repository`: The repository path for the installer image. Defaults to `okteto/pipeline-runner`.
+  - `tag`: The image tag to deploy. Defaults to <code>{variables.chartVersion}</code>.
+- `activeDeadlineSeconds`: The maximum duration of the pipeline, in seconds.
+- `gitSSHUser`: The user for cloning Git repositories over SSH.
+- `sshSecretName`: The name of the secret with the private key for cloning Git repositories over SSH. If the secret doesn't exist, Okteto generates the key and the secret.
+- `resources`: The resources for the installer job pods.
+- `priorityClassName`: The priority class for the installer job pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `securityContext`: The security context for the installer job container, in the [Kubernetes syntax](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/). Not set by default.
 - `extraInitContainers`: List of init containers to add to the installer job pods.
 
 <CodeBlock language="yaml"> 
@@ -547,7 +532,7 @@ The CronJob that reconciles Development Environment deploys and destroys stuck i
 
 - `enabled`: Whether to run the installer checker. Defaults to `true`.
 - `schedule`: The cron schedule for the checker. Defaults to `*/5 * * * *` (every 5 minutes).
-- `priorityClassName`: The priority class for the installer checker pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `priorityClassName`: The priority class for the installer checker pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
 ```yaml
 installerChecker:
@@ -560,13 +545,13 @@ installerChecker:
 The Helm hook Job that applies the data and resource migrations required by the Okteto version you are installing. It runs automatically on every install and upgrade.
 
 :::note
-This job is required for Okteto to work correctly and must not be disabled.
+Okteto needs this job to work correctly. Don't disable it.
 :::
 
 - `annotations`: Annotations to add to the migration job pods.
 - `labels`: Labels to add to the migration job pods.
 - `resources`: The resources for the migration job pods.
-- `priorityClassName`: The priority class for the migration job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `priorityClassName`: The priority class for the migration job pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
 ```yaml
 migration:
@@ -578,7 +563,7 @@ migration:
 
 ### namespaceDestroyAll
 
-The Job that destroys every resource in a Namespace, plus the CronJob that recovers Namespaces whose destroy-all Job did not finish.
+The Job that destroys every resource in a Namespace, plus the CronJob that recovers Namespaces whose destroy-all Job didn't finish.
 
 - `priorityClassName`: The priority class for the per-Namespace destroy-all job pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
 - `checker`: Configures the CronJob that recovers stuck Namespaces.
@@ -595,29 +580,29 @@ namespaceDestroyAll:
 
 ### privateEndpoints
 
-When [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) is set, Okteto Self Hosted deploys an additional component for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx) feature, which is responsible for authenticating and authorizing requests sent to Okteto Endpoints set to private mode.
+When [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) is set, Okteto deploys an additional component for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx). It authenticates and authorizes the requests to Okteto Endpoints in private mode.
 
-- `port`: Internal port used for the Private Endpoint component. Defaults to `8080`.
-- `resources`: The resources for the Private Endpoint component pods.
-- `replicaCount`: The number of Private Endpoint component pods. It defaults to 1.
-- `annotations`: Annotations to add to the Private Endpoint component pods.
-- `priorityClassName`: The priority class to be used by the Private Endpoints pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `port`: The internal port of the Private Endpoints component. Defaults to `8080`.
+- `resources`: The resources for the Private Endpoints component pods.
+- `replicaCount`: The number of Private Endpoints component pods. It defaults to 1.
+- `annotations`: Annotations to add to the Private Endpoints component pods.
+- `priorityClassName`: The priority class for the Private Endpoints pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
-By default, the Private Endpoint component will inherit the configuration set at the [`auth`] section, but you can override some values with the following properties:
+By default, the Private Endpoints component inherits the configuration of the [`auth`](self-hosted/helm-configuration.mdx#auth) section. You can override some of its values with these properties:
 
 - `clientID`: Overrides `auth.*.clientID`.
 - `clientSecret`: Overrides `auth.*.clientSecret`.
 
 ### prepullImages
 
-The prepull images daemonset ensures that essential Okteto images are available on every node in your cluster. This improves startup times for jobs and operations by avoiding image pulls when containers are created.
+The prepull images daemonset makes the essential Okteto images available on every node in your cluster. Jobs and operations start faster, because their containers don't pull images when they're created.
 
 :::note
-The prepullImages feature assumes that cluster nodes have access to pull all Okteto images, either because the images are public or through appropriate IAM roles/permissions configured at the node level. This is the same assumption made for all images in the Okteto Control Plane. No additional image pull secrets or authentication configuration is provided by this feature.
+The prepullImages feature assumes that your cluster nodes can pull every Okteto image, either because the images are public or through IAM roles or permissions configured on the nodes. Okteto makes the same assumption for every image in the Okteto control plane. This feature doesn't add image pull secrets or any authentication configuration.
 :::
 
-- `enabled`: When set to `true`, the prepull images daemonset is installed. It defaults to `true`.
-- `priorityClassName`: The priority class to be used by the prepull images pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `enabled`: Whether to install the prepull images daemonset. It defaults to `true`.
+- `priorityClassName`: The priority class for the prepull images pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
 ```yaml
 prepullImages:
@@ -625,7 +610,7 @@ prepullImages:
   priorityClassName: "high-priority"
 ```
 
-The following images are prepulled on every node:
+The daemonset prepulls these images on every node:
 
 - **ghcr.io/okteto/backend:{variables.chartVersion}**
 - **ghcr.io/okteto/pipeline-runner:{variables.chartVersion}**
@@ -633,25 +618,23 @@ The following images are prepulled on every node:
 
 ### regcredsManager
 
-The configuration for the controller manager of the Registry Credentials Operator.
+Settings for the Registry Credentials Operator's controller manager.
 
-This controller manager is deployed as a deployment and is responsible for managing private registry credentials in the cluster. If `pullSecrets.enabled=true` all private registry credentials are copied to the `okteto-regcred` secret in user dev namespaces and previews.
-If `pullSecrets.enabled=false` these credentials are copied to all nodes through the Okteto Daemon if `daemonset.configurePrivateRegistriesInNodes.enabled=true`.
+The controller manager runs as a Deployment and manages the private registry credentials in the cluster. If `pullSecrets.enabled=true`, it copies every private registry credential to the `okteto-regcred` secret in users' Namespaces and in Preview Environments. If `pullSecrets.enabled=false` and `daemonset.configurePrivateRegistriesInNodes.enabled=true`, the Okteto [daemonset](self-hosted/helm-configuration.mdx#daemonset) copies the credentials to every node.
 
-- `priorityClassName`: The priority class to be used by the controller manager pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `pullSecrets.enabled`: If enabled, private registry credentials defined in the cluster will be written to user namespaces as pull secrets and no longer be written to the nodes. Defaults to true.
+- `priorityClassName`: The priority class for the controller manager pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `pullSecrets.enabled`: If enabled, Okteto writes the private registry credentials defined in the cluster to users' Namespaces as pull secrets, instead of to the nodes. Defaults to `true`.
 - `podAnnotations`: Annotations to add to the controller manager pods.
 - `podLabels`: Labels to add to the controller manager pods.
-- `webhookTimeout`: The timeout in seconds for request made to the validating webhook server
-- `replicas`: The number of controller manager pods. The controller is deployed as a deployment with leader election. It is recommended to have at least 2 replicas here.
+- `webhookTimeout`: The timeout, in seconds, for requests to the validating webhook server.
+- `replicas`: The number of controller manager pods. The controller runs as a Deployment with leader election. Use at least 2 replicas.
 - `resources`: The resources for the controller manager pods.
-
 
 ```yaml
 regcredsManager:
   priorityClassName:
   pullSecrets:
-    enabled: false
+    enabled: true
   podLabels: {}
   podAnnotations: {}
   webhookTimeout: 30
@@ -666,32 +649,32 @@ regcredsManager:
 
 ### redis
 
-Use this section to configure Redis for the [Resource Manager](admin/resource-manager.mdx). Redis is only installed if the Resource Manager is enabled.
+Configures Redis for the [Resource Manager](admin/resource-manager.mdx). Okteto installs Redis only when the Resource Manager is enabled.
 
 - `annotations`: Annotations to add to the Redis pods.
 - `args`: Additional arguments for the Redis container command.
-- `extraEnv`: Environment variables to be set on the Redis containers.
+- `extraEnv`: Environment variables for the Redis containers.
 - `image.repository`: The repository path for the Redis image. Defaults to `okteto/redis`.
 - `image.tag`: The image tag for the Redis image. Defaults to {variables.chartVersion}.
 - `labels`: Labels to add to the Redis pods.
-- `port`: Specifies the port on which Redis listens. The default value is `6379`.
+- `port`: The port Redis listens on. Defaults to `6379`.
 - `resources`: The resources for the Redis pods.
 
 ### resourceManager
 
-Use this section to configure the [Resource Manager](admin/resource-manager.mdx).
+Configures the [Resource Manager](admin/resource-manager.mdx).
 
 - `annotations`: Annotations to add to the Resource Manager pods.
-- `deletePeriodDays`: Specifies the retention period for the recommendations. If a service is no longer deployed in your cluster, its recommendation will be deleted after the specified deletePeriod. It defaults to 15 days.
-- `enabled`: When set to `true`, the Resource Manager is installed. When Resource Manager is installed, Okteto creates a CronJob responsible for computing the cpu and memory recommendations for your pods. It defaults to `true`.
+- `deletePeriodDays`: The retention period for recommendations, in days. When a service is no longer deployed in your cluster, Okteto deletes its recommendation after this period. It defaults to 15 days.
+- `enabled`: Whether to install the Resource Manager. When it's installed, Okteto creates a CronJob that computes CPU and memory recommendations for your pods. It defaults to `true`.
 - `labels`: Labels to add to the Resource Manager pods.
-- `priorityClassName`: The priority class to be used by the Resource Manager pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `recommendations.correction`: A floating-point multiplier used to adjust for over or under-provisioning of resources. The default is `1.1`, indicating a 10% over-provisioning. This value must be greater than 0. For example, setting it to 0.9 will result in a 10% under-provisioning compared to the average utilization.
-- `recommendations.min.cpu`: Specifies the minimum CPU requests configured when the Resource Manager applies recommendations. The minimum value will be used if a recommendation hasn't been calculated yet or is below this value. It defaults to `5m`.
-- `recommendations.min.memory`: Specifies the minimum memory requests configured when the Resource Manager applies recommendations. The minimum value will be used if a recommendation hasn't been calculated yet or is below this value. It defaults to `10Mi`.
-- `recommendations.weight`: A floating-point number between 0 and 1 used to stabilize CPU and memory recommendation calculations. A higher value (closer to 1) gives more weight to historical resource usage trends, making the Resource Manager less responsive to recent changes or spikes. A lower value (closer to 0) makes it more reactive to recent usage patterns, including spikes. The default value is `0.9`, which makes the Resource Manager conservative, favoring existing trends and attempting to ignore minor fluctuations.
+- `priorityClassName`: The priority class for the Resource Manager pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `recommendations.correction`: A floating-point multiplier that adjusts for over- or under-provisioning of resources. It must be greater than 0. The default is `1.1`, which over-provisions by 10%. For example, `0.9` under-provisions by 10% compared to the average utilization.
+- `recommendations.min.cpu`: The minimum CPU request that the Resource Manager sets when it applies recommendations. It uses this value when a recommendation isn't calculated yet or is lower. It defaults to `5m`.
+- `recommendations.min.memory`: The minimum memory request that the Resource Manager sets when it applies recommendations. It uses this value when a recommendation isn't calculated yet or is lower. It defaults to `10Mi`.
+- `recommendations.weight`: A floating-point number between 0 and 1 used to stabilize CPU and memory recommendation calculations. A higher value (closer to 1) gives more weight to historical resource usage trends, making the Resource Manager less responsive to recent changes or spikes. A lower value (closer to 0) makes it more reactive to recent usage patterns, including spikes. The default value is `0.9`, which makes the Resource Manager conservative: it favors existing trends and tries to ignore minor fluctuations.
 - `resources`: The resources for the Resource Manager pods.
-- `schedule`: Defines the frequency at which resource recommendations are calculated, using the cron syntax. It defaults to run every 5 minutes (`*/5 * * * *`).
+- `schedule`: How often Okteto calculates resource recommendations, in cron syntax. Defaults to every 5 minutes (`*/5 * * * *`).
 
 ```yaml
 resourceManager:
@@ -712,36 +695,36 @@ resourceManager:
 
 ### registry
 
-Use this section to configure the [Okteto Registry](core/container-registry.mdx). We have dedicated guides to [configure the Okteto Registry](self-hosted/install/okteto-registry-storage/index.mdx) to store your images in the storage driver of your choice.
+Configures the [Okteto Registry](core/container-registry.mdx). The [Okteto Registry storage guides](self-hosted/install/okteto-registry-storage/index.mdx) explain how to store your images in the storage driver you choose.
 
-These are all the settings available to configure your Okteto Registry:
+The Okteto Registry settings are:
 
 - `annotations`: Annotations to add to the registry pods.
-- `extraEnv`: Environment variables to be set on the registry containers.
+- `extraEnv`: Environment variables for the registry containers.
 - `ingress.annotations`: Annotations to add to the registry ingress. These annotations take precedence over the ones defined in the [ingress](self-hosted/helm-configuration.mdx#ingress) section.
 - `labels`: Labels to add to the registry pods.
-- `pullPolicy`: The security policy for image pulls. If set to `cluster`, any Okteto user can pull any image from the registry. When set to `namespace`, only users with access to the namespace can pull images from the namespace. It defaults to `namespace`.
-- `priorityClassName`: The priority class to be used by the registry pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `pullPolicy`: The security policy for image pulls. With `cluster`, any Okteto user can pull any image from the registry. With `namespace`, only users with access to a Namespace can pull its images. It defaults to `namespace`.
+- `priorityClassName`: The priority class for the registry pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 - `replicaCount`: The number of registry pods. It defaults to 1.
 - `resources`: The resources for the registry pods.
-- `serviceAccountName`: Alternative service account to be used by the registry. The service account must exist in the same namespace for the Okteto Helm release. Defaults to none.
+- `serviceAccountName`: An alternative service account for the registry. It must exist in the namespace of the Okteto Helm release. Defaults to none.
 - `serviceAccount.annotations`: Annotations to add to the registry service account.
-- `secret.name`: when using external storage, the name of the secret with the values of your cloud provider credentials.
-- `secret.accessKey`: the key of the access key in the secret referenced by `secret.name` (defaults to `accessKey`).
-- `secret.secretKey`: the key of the secret key in the secret referenced by `secret.name` (defaults to `secretKey`).
-- `storage`: [the full configuration guide is available here](self-hosted/install/okteto-registry-storage/index.mdx)
+- `secret.name`: With external storage, the name of the secret that holds your cloud provider credentials.
+- `secret.accessKey`: The key for the access key in the `secret.name` secret. Defaults to `accessKey`.
+- `secret.secretKey`: The key for the secret key in the `secret.name` secret. Defaults to `secretKey`.
+- `storage`: The storage configuration, described in the [Okteto Registry storage guides](self-hosted/install/okteto-registry-storage/index.mdx).
 
 ### sshAgent
 
-The SSH Agent service. This service runs an SSH Agent with [Okteto's SSH Key](admin/private-repositories/ssh-key.mdx) to be used when cloning private repositories as part of the commands defined in your Okteto Manifest during [remote execution](core/remote-execution.mdx).
+The SSH Agent service. It runs an SSH agent with [Okteto's SSH key](admin/private-repositories/ssh-key.mdx), which the commands in your Okteto Manifest use to clone private repositories during [Remote Execution](core/remote-execution.mdx).
 
-- `annotations`: Adds custom annotations to the ssh-agent pods.
-- `extraEnv`: Environment variables to be set on the ssh-agent containers.
-- `labels`: Adds custom labels to the ssh-agent pods.
-- `port`: Specifies the internal port on which the ssh-agent listens. The default value is `3000`.
-- `priorityClassName`: The priority class to be used by the ssh-agent pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
-- `replicaCount`: Specifies the number of ssh-agent pods to run. The default is `2`.
-- `resources`: Configures resource limits and requests for the ssh-agent pods.
+- `annotations`: Annotations to add to the ssh-agent pods.
+- `extraEnv`: Environment variables for the ssh-agent containers.
+- `labels`: Labels to add to the ssh-agent pods.
+- `port`: The internal port the ssh-agent listens on. Defaults to `3000`.
+- `priorityClassName`: The priority class for the ssh-agent pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
+- `replicaCount`: The number of ssh-agent pods. Defaults to `2`.
+- `resources`: The resource requests and limits for the ssh-agent pods.
 
 ```yaml
 sshAgent:
@@ -759,38 +742,38 @@ sshAgent:
 
 ### telemetry
 
-The telemetry job "phones home" once a day with the following information:
+The telemetry job sends this information to Okteto once a day:
 
 - Number of managed users
-- Number of managed namespaces
-- Kubernetes Version and Platform
+- Number of managed Namespaces
+- Kubernetes version and platform
 - A unique install ID
-- Your license ID.
+- Your license ID
 - The name of the authentication provider
 - The name of the cloud provider
 
-Okteto uses the information to help us better understand how our customers use Okteto, as well as to help us prioritize fixes and features. We don't share your information with anyone else.
+Okteto uses this information to understand how customers use Okteto and to prioritize fixes and features. We don't share your information with anyone else.
 
-- `enabled`: Enables or disables the telemetry job. Defaults to `true`.
-- `priorityClassName`: The priority class to be used by the telemetry pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `enabled`: Whether to run the telemetry job. Defaults to `true`.
+- `priorityClassName`: The priority class for the telemetry pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 
 ```yaml
 telemetry:
   enabled: true
 ```
 
-If this configuration is disabled, Okteto CLI analytics are automatically disabled.
+Disabling telemetry also disables the Okteto CLI analytics.
 
 ### webhook
 
 The webhook service. Ingress creation, generation of hostnames, enforcement of policies, etc...
 
 - `annotations`: Annotations to add to the webhook pods.
-- `extraEnv`: Environment variables to be set on the webhook containers.
-- `hostNetwork`: Enables or disables host networking for the webhook deployment. The default is false.
+- `extraEnv`: Environment variables for the webhook containers.
+- `hostNetwork`: Whether the webhook Deployment uses host networking. Defaults to `false`.
 - `labels`: Labels to add to the webhook pods.
-- `port`: Port sets the port used for the webhook deployment. The default is 443.
-- `priorityClassName`: The priority class to be used by the webhook pods. The PriorityClass must already exist in your cluster before using this setting. This value has precedence over `globals.priorityClassName` if both are set. If this value is not set, the pods will inherit the priority class defined by the value set in `globals.priorityClassName`.
+- `port`: The port of the webhook Deployment. Defaults to `443`.
+- `priorityClassName`: The priority class for the webhook pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
 - `replicaCount`: The number of webhook pods. It defaults to 2.
 - `resources`: The resources for the webhook pods.
 
@@ -798,9 +781,9 @@ The webhook service. Ingress creation, generation of hostnames, enforcement of p
 
 ### affinity
 
-Apply default affinities to pods deployed in namespaces created by Okteto.
+Default affinities for the pods in Namespaces managed by Okteto (`devPool`) and for the Okteto pods (`oktetoPool`).
 
-- `devPool`: Affinities for pods created on namespaces managed by Okteto.
+- `devPool`: Affinities for pods created in Namespaces managed by Okteto.
 - `oktetoPool`: Affinities for pods created during the Okteto installation.
 
 ```yaml
@@ -823,11 +806,11 @@ affinity:
       weight: 50
 ```
 
-In this case, pods deployed in namespaces created by Okteto will have a preferred affinity to land on preemptive nodes.
+In this example, pods in Namespaces created by Okteto prefer to land on spot nodes.
 
 ### autowake
 
-When enabled, Okteto wakes up sleeping Namespaces upon receiving an incoming request to any of the Namespace's public endpoints (default: true).
+When enabled, Okteto wakes up a sleeping Namespace when it receives a request to any of the Namespace's public endpoints (default: `true`).
 
 ```yaml
 autowake:
@@ -836,7 +819,7 @@ autowake:
 
 ### convertLoadBalancedServices
 
-Converts services with type `LoadBalancer` or `NodePort` into `ClusterIP` and automatically creates an ingress. Services with type `ExternalName` are not affected. Enabled by default.
+Converts services of type `LoadBalancer` or `NodePort` to `ClusterIP` and creates an ingress for them. Services of type `ExternalName` aren't affected. Enabled by default.
 
 ```yaml
 convertLoadBalancedServices:
@@ -845,11 +828,11 @@ convertLoadBalancedServices:
 
 ### crds
 
-Configures CRDs managed by Okteto.
+Configures the CRDs that Okteto manages.
 
 - `annotations`: The annotations to apply to the CRDs created during the Okteto installation.
-- `keep`: Keep CRDs on chart uninstall (defaults to `true`).
-- `install`: Install and upgrade CRDs on chart install (defaults to `true`).
+- `keep`: Keeps the CRDs when you uninstall the chart. Defaults to `true`.
+- `install`: Installs and upgrades the CRDs when you install the chart. Defaults to `true`.
 
 ```yaml
 crds:
@@ -860,7 +843,7 @@ crds:
 
 ### devStorageClass
 
-Uses the specified storage class for all persistent volume claims created when developers execute `okteto up`. This setting will override any storage class defined on the [Okteto manifest](reference/okteto-manifest.mdx#persistentvolume-object-optional). Disabled by default.
+Sets the storage class for every persistent volume claim that `okteto up` creates. It overrides any storage class defined in the [Okteto Manifest](reference/okteto-manifest.mdx#persistentvolume-object-optional). Disabled by default.
 
 - `storageClass`: The storage class enforced for persistent volume claims created by `okteto up`.
 
@@ -870,28 +853,27 @@ devStorageClass:
   storageClass: ebs-sc
 ```
 
-There is only one exception where this storage class is overwritten. In case of having [volume snapshots feature](self-hosted/install/volume-snapshots.mdx) configured, if a storage class is required for the snapshots that storage class will have preference.
+There's one exception: if you configure [Volume Snapshots](self-hosted/install/volume-snapshots.mdx) and the snapshots require a storage class, that storage class takes precedence.
 
 ### fullnameOverride
 
-The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart. Use this property to override the whole prefix. If you want to override only the chart name, you can use the [nameOverride](#nameoverride) setting.
+The Okteto chart combines the release name and the chart name into a prefix for the names of the Kubernetes resources it creates. This property overrides the whole prefix. To override only the chart name, use the [nameOverride](#nameoverride) setting.
 
 ```yaml
 fullnameOverride: custom-prefix
 ```
 
-The maximum length for `fullnameOverride` is 34 characters. Check how to [extend the limit to 40 characters](#handling-a-long-release-name) if you need a longer prefix.
+`fullnameOverride` can be up to 34 characters long. If you need a longer prefix, [extend the limit to 40 characters](#handling-a-long-release-name).
 
 ### globals
 
-Global settings applicable to all Okteto components.
+Global settings for all Okteto components.
 
 #### jobs
 
-Specifies global configuration for jobs created in the `okteto` namespace:
+Global configuration for the jobs created in the `okteto` namespace:
 
-- `ttlSecondsAfterFinished`: time in seconds to wait until a finished job is deleted (defaults to `86400` - 1 day).
-
+- `ttlSecondsAfterFinished`: How long, in seconds, to keep a finished job before deleting it. Defaults to `86400` (1 day).
 
 ```yaml
 globals:
@@ -901,7 +883,7 @@ globals:
 
 #### nodeSelectors
 
-Specifies the node selectors to be applied to pods, categorized under `okteto` or `dev`:
+Node selectors for pods, grouped under `okteto` and `dev`:
 
 - `okteto`: Node selectors applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
 - `dev`: Node selectors applied to pods created by user applications, which run in namespaces managed by Okteto. These node selectors are only applied when a corresponding `tolerations.devPool` is defined. It also applies to the [Okteto Daemonset](#daemonset). This is a legacy behavior and may change in future releases.
@@ -922,8 +904,7 @@ Node selectors defined in `globals.nodeSelectors.dev` will not be applied to use
 
 #### priorityClassName
 
-Defines the priority class to be used by all pods in the `okteto` namespace.
-The priority class must already exist in your cluster before using this setting.
+The priority class for all pods in the `okteto` namespace. The priority class must already exist in your cluster.
 
 ```yaml
 globals:
@@ -932,7 +913,7 @@ globals:
 
 #### registry
 
-Defines the global registry applied for all the Okteto components (except for the CLI). For more information visit [our air-gapped installation guide](self-hosted/manage/air-gapped.mdx).
+The registry for all Okteto components, except the Okteto CLI. The [air-gapped installation guide](self-hosted/manage/air-gapped.mdx) has more details.
 
 ```yaml
 globals:
@@ -941,7 +922,7 @@ globals:
 
 #### tolerations
 
-Specifies the tolerations to be applied to pods, categorized under `okteto` or `dev`:
+Tolerations for pods, grouped under `okteto` and `dev`:
 
 - `okteto`: Tolerations applied to pods running in the `okteto` namespace, excluding the [Okteto Daemonset](#daemonset).
 - `dev`: Tolerations applied to pods created by user applications, which run in namespaces managed by Okteto. Required for `globals.nodeSelectors.dev` to take effect. This also applies to the [Okteto Daemonset](#daemonset).
@@ -967,14 +948,14 @@ To apply node selectors for user workloads, you must define a `devPool` entry in
 
 ### ingress
 
-Configure default values for the ingress created by Okteto.
+Default values for the ingresses that Okteto creates.
 
 - `annotations`: The annotations to apply to all the ingresses created during the Okteto installation.
 - `oktetoIngressClass`: The `ingressClassName` to apply to all the ingresses created during the Okteto installation (defaults to `okteto-controlplane-nginx`).
-- `class`: If specified, Okteto will set this as the `ingressClassName` of all ingresses managed by Okteto. This is useful if you have more than one ingress controller in your cluster. If not specified, it will fallback on the cluster's default ingress class.
-- `forceIngressClass`: If enabled, all ingresses deployed in namespaces managed by Okteto will have the ingress class defined in `ingress.class` (default: `false`).
-- `forceIngressSubdomain`: If enabled, the subdomain of the host of all ingresses deployed in namespaces managed by Okteto must match the Okteto wildcard subdomain (default: `false`).
-- `ip`: The internal IP of the ingress. Pods will call the Okteto API and the Okteto Registry using this IP. Required if the installation of the Okteto [NGINX Ingress Controller](self-hosted/helm-configuration.mdx#using-your-own-ingress-controller) is disabled.
+- `class`: If set, Okteto sets it as the `ingressClassName` of every ingress it manages. Set it when your cluster has more than one ingress controller. If not set, Okteto falls back to the cluster's default ingress class.
+- `forceIngressClass`: If enabled, every ingress deployed in Namespaces managed by Okteto gets the ingress class defined in `ingress.class` (default: `false`).
+- `forceIngressSubdomain`: If enabled, the host subdomain of every ingress deployed in Namespaces managed by Okteto must match the Okteto wildcard subdomain (default: `false`).
+- `ip`: The internal IP of the ingress. Pods call the Okteto API and the Okteto Registry on this IP. Required if you disable the installation of the Okteto [NGINX Ingress Controller](self-hosted/helm-configuration.mdx#using-your-own-ingress-controller).
 
 ```yaml
 ingress:
@@ -988,7 +969,7 @@ ingress:
 
 ### ingressLimits
 
-Configure ingress connections limits for each public endpoint. Disabled by default.
+Connection limits for the ingress of each public endpoint. Disabled by default.
 
 - `connections`: Maximum parallel connections for each ingress.
 - `rps`: Maximum requests per second for each ingress.
@@ -1002,24 +983,12 @@ ingressLimits:
   rpm: 400
 ```
 
-### injectDevelopmentBinaries
-
-Automatically inject `kubectl`, `helm`, and `okteto` binaries on every development container, and on the pipeline runner.
-
-If this is disabled, you'll need to provide your own image in `installer.image`.
-
-```yaml
-injectDevelopmentBinaries:
-  enabled: true
-```
-
 ### internalCertificate
 
-Configure the internal certificate created for internal communication.
-This certificate is used by `MutatingWebhookConfiguration` and `ValidatingWebhookConfiguration` Kubernetes objects created by Okteto.
+Configures the certificate that Okteto creates for internal communication. The `MutatingWebhookConfiguration` and `ValidatingWebhookConfiguration` Kubernetes objects that Okteto creates use this certificate.
 
-- `durationDays`: Expiration time (default: 10 years)
-- `annotations`: Annotations to add to the `kubernetes.io/tls` secret storing the certificate
+- `durationDays`: The expiration time, in days (default: 10 years).
+- `annotations`: Annotations to add to the `kubernetes.io/tls` secret that stores the certificate.
 
 ```yaml
 internalCertificate:
@@ -1029,30 +998,29 @@ internalCertificate:
 
 ### kubetoken
 
-- `lifetimeSeconds`: The lifetime in seconds of the tokens generated for the [Kubernetes credentials](core/credentials/kubernetes-credentials.mdx) provided by Okteto. This value has to be equal or greater than [`installer.activeDeadlineSeconds`](self-hosted/helm-configuration.mdx#installer) to make sure the tokens are valid during all installer execution. Defaults to 86400 seconds (1 day).
+- `lifetimeSeconds`: The lifetime, in seconds, of the tokens that Okteto generates for its [Kubernetes credentials](core/credentials/kubernetes-credentials.mdx). It must be equal to or greater than [`installer.activeDeadlineSeconds`](self-hosted/helm-configuration.mdx#installer), so the tokens stay valid for the whole installer run. Defaults to 86400 seconds (1 day).
 
-> One important thing to bear in mind is that the maximum expiration time you can specify depends on the [Kubernetes apiserver's](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/) flag `--service-account-max-token-expiration`, so it might happen that the expiration time retrieved on your tokens is not the one specified here. If you specify a higher value, you will always get the maximum allowed by the apiserver. Be aware that not all Kubernetes service providers allow you to change this value and they enforce their own.
+> The maximum expiration time depends on the `--service-account-max-token-expiration` flag of the [Kubernetes API server](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/), so your tokens might get a different expiration time than the one you set here. If you set a higher value, you get the maximum that the API server allows. Some Kubernetes providers don't let you change this flag and enforce their own value.
 
 ### nameOverride
 
-The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart. Use this property to override the chart name part of the prefix. You can override the whole prefix by using the [fullnameOverride](#fullnameoverride) setting.
+The Okteto chart combines the release name and the chart name into a prefix for the names of the Kubernetes resources it creates. This property overrides the chart name part of the prefix. To override the whole prefix, use the [fullnameOverride](#fullnameoverride) setting.
 
 ```yaml
 nameOverride: custom-chart-name-override
 ```
 
-Note that the maximum length for the entire prefix is 34 characters. Check how to [extend the limit to 40 characters](#handling-a-long-release-name) if you need a longer prefix.
+The whole prefix can be up to 34 characters long. If you need a longer prefix, [extend the limit to 40 characters](#handling-a-long-release-name).
 
 ### namespace
 
-Annotation and label customizations in namespaces created by Okteto.
-These annotations and labels are additional to the ones already applied by Okteto.
+Custom annotations and labels for the Namespaces that Okteto creates. Okteto adds them to the annotations and labels it already applies.
 
-- `annotations`: Annotations applied to each namespace created by Okteto.
-- `labels`: Labels applied to each namespace created by Okteto.
-- `ingress.annotations`: Annotations applied to ingresses in namespaces created by Okteto.
-- `ingress.labels`: Labels applied to ingresses in namespaces created by Okteto.
-- `autoRoleBinding.enabled`: Flag to automatically bind the default service account within namespaces managed by Okteto to the cluster role specified on [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts). This will provide access to the Kubernetes API to all pods that do not have a custom service account. Defaults to `true`.
+- `annotations`: Annotations for each Namespace that Okteto creates.
+- `labels`: Labels for each Namespace that Okteto creates.
+- `ingress.annotations`: Annotations for the ingresses in Namespaces that Okteto creates.
+- `ingress.labels`: Labels for the ingresses in Namespaces that Okteto creates.
+- `autoRoleBinding.enabled`: Binds the default service account of every Namespace managed by Okteto to the cluster role set in [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts). This gives every pod without a custom service account access to the Kubernetes API. Defaults to `true`.
 
 ```yaml
 namespace:
@@ -1069,8 +1037,7 @@ namespace:
 
 ### networkPolicies
 
-Configures [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) for each namespace to isolate network traffic.
-Disabled by default.
+Configures [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) that isolate the network traffic of each Namespace. Disabled by default.
 
 - `ingress`: Ingress list of rules (NetworkPolicyIngressRule) to be applied on every namespace managed by Okteto. (optional).
 - `egress`: Egress list of rules (NetworkPolicyEgressRule) to be applied on every namespace managed by Okteto (optional).
@@ -1104,11 +1071,11 @@ networkPolicies:
 
 ### overrideFileWatchers
 
-Overrides the default kernel values for file watchers in every node. Recommended if you're running databases, or if you plan on using "okteto up" on the cluster. This requires permission to mount and modify /proc values.
+Overrides the default kernel values for file watchers on every node. Enable it if you run databases or use `okteto up` in the cluster. It requires permission to mount and modify `/proc` values.
 
 - `maxUserWatches`: The maximum number of allowed inotify watchers.
 - `maxMapCount`: The maximum number of memory map areas a process may have.
-- `aioMaxNR`: The maximum number of allowable concurrent IO requests.
+- `aioMaxNR`: The maximum number of concurrent I/O requests.
 
 ```yaml
 overrideFileWatchers:
@@ -1120,7 +1087,7 @@ overrideFileWatchers:
 
 ### overrideRegistryResolution
 
-Overrides the registry hostname resolution to use internal IPs. This requires permission to mount and modify the cluster nodes' /etc/hosts file.
+Overrides the registry hostname resolution to use internal IPs. It requires permission to mount and modify the `/etc/hosts` file of the cluster nodes.
 
 ```yaml
 overrideRegistryResolution:
@@ -1129,7 +1096,7 @@ overrideRegistryResolution:
 
 ### oktetoBotUser
 
-Overrides the name of the user used for [admin access tokens](admin/dashboard.mdx#admin-access-tokens). Defaults to "okteto-bot".
+Overrides the name of the user for [Admin access tokens](admin/dashboard.mdx#admin-access-tokens). Defaults to `okteto-bot`.
 
 ### pullAlways
 
@@ -1142,37 +1109,37 @@ pullAlways:
 
 ### quotas
 
-Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) at the namespace level. The configuration applies to all Okteto-managed Namespaces, including development Namespaces and Preview Environments.
+Enables [resource quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) per Namespace. They apply to every Namespace that Okteto manages, including development Namespaces and Preview Environments.
 
 - `resources`: Limits the number of resources that a user can create.
-  - `maxNamespaces`: Maximum number of namespaces that a user can create. This does not apply to the `okteto-bot` user used for [admin access tokens](admin/dashboard.mdx#admin-access-tokens).
-  - `maxPods`: Maximum number of pods per namespace.
-  - `maxReplicationControllers`: Maximum number of replication controllers per namespace.
-  - `maxSecrets`: Maximum number of secrets per namespace.
-  - `maxServices`: Maximum number of services per namespace.
-  - `maxJobs`: Maximum number of jobs per namespace.
-  - `maxCronjobs`: Maximum number of cronjobs per namespace.
-  - `maxLoadBalancers`: Maximum number of services of type `LoadBalancer` per namespace.
-  - `maxNodePorts`: Maximum number of services of type `NodePort` per namespace.
-  - `maxConfigMaps`: Maximum number of config maps per namespace.
-  - `maxPVCs`: Maximum number of persistent volume claims per namespace.
-  - `maxVolumeSnapshots`: Maximum number of volume snapshots per namespace.
-  - `maxIngresses`: Maximum number of ingresses per namespace.
-- `bandwidth`: Limits the incoming/outgoing bandwidth per pod. Requires using the Okteto [NGINX Ingress Controller](self-hosted/helm-configuration.mdx#ingress-nginx).
+  - `maxNamespaces`: Maximum number of Namespaces that a user can create. It doesn't apply to the `okteto-bot` user for [Admin access tokens](admin/dashboard.mdx#admin-access-tokens).
+  - `maxPods`: Maximum number of pods per Namespace.
+  - `maxReplicationControllers`: Maximum number of replication controllers per Namespace.
+  - `maxSecrets`: Maximum number of secrets per Namespace.
+  - `maxServices`: Maximum number of services per Namespace.
+  - `maxJobs`: Maximum number of jobs per Namespace.
+  - `maxCronjobs`: Maximum number of cronjobs per Namespace.
+  - `maxLoadBalancers`: Maximum number of services of type `LoadBalancer` per Namespace.
+  - `maxNodePorts`: Maximum number of services of type `NodePort` per Namespace.
+  - `maxConfigMaps`: Maximum number of config maps per Namespace.
+  - `maxPVCs`: Maximum number of persistent volume claims per Namespace.
+  - `maxVolumeSnapshots`: Maximum number of volume snapshots per Namespace.
+  - `maxIngresses`: Maximum number of ingresses per Namespace.
+- `bandwidth`: Limits the incoming and outgoing bandwidth per pod. Requires the Okteto [NGINX Ingress Controller](self-hosted/helm-configuration.mdx#ingress-nginx).
   - `ingress`: Maximum ingress bandwidth.
   - `egress`: Maximum egress bandwidth.
-  - `up`: Limits the incoming/outgoing bandwidth per development container.
-    - `ingress`: Maximum ingress bandwidth for a development container
-    - `egress`: Maximum egress bandwidth for a development container.
-- `requests`: Limits the maximum [resource requests](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits) per namespace.
+  - `up`: Limits the incoming and outgoing bandwidth per Development Container.
+    - `ingress`: Maximum ingress bandwidth for a Development Container.
+    - `egress`: Maximum egress bandwidth for a Development Container.
+- `requests`: Limits the maximum [resource requests](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits) per Namespace.
   - `cpu`: Maximum CPU resource requests.
   - `memory`: Maximum memory resource requests.
   - `storage`: Maximum storage resource requests.
-- `limits`: Limits the maximum [resource limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits) per namespace.
+- `limits`: Limits the maximum [resource limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits) per Namespace.
   - `cpu`: Maximum CPU resource limits.
   - `memory`: Maximum memory resource limits.
   - `storage`: Maximum storage resource limits.
-- `limitranges`: Configures the [limit ranges](https://kubernetes.io/docs/concepts/policy/limit-range/) of each namespace.
+- `limitranges`: Configures the [limit ranges](https://kubernetes.io/docs/concepts/policy/limit-range/) of each Namespace.
   - `max`: Configures the maximum resources per container.
     - `cpu`: Maximum CPU resource limits.
     - `memory`: Maximum memory resource limits.
@@ -1238,7 +1205,7 @@ quotas:
 
 ### secret
 
-Labels and annotations to include in the secret created by the chart. Useful if you want to integrate with Vault or similar secret stores.
+Labels and annotations for the secret that the chart creates, for example to integrate with Vault or a similar secret store.
 
 ```yaml
 secret:
@@ -1250,14 +1217,14 @@ secret:
 
 ### serviceAccounts
 
-Use the `serviceAccounts` section to configure labels, annotations and role bindings to be applied to each service account generated by Okteto for user accounts.
+The `serviceAccounts` section configures the labels, annotations, and role bindings of the service accounts that Okteto generates for user accounts.
 
-- `annotations`: Annotations added to each service account generated by Okteto for user accounts.
-- `labels`: Labels added to each service account generated by Okteto for user accounts.
-- `roleBindings.namespaces`: Okteto assigns this cluster role to every admin, owner and member of a namespace via a namespace-scoped role binding on every namespace managed by Okteto. This cluster role is **not** created by Okteto, it must exist in the cluster. Default value is `cluster-admin`.
-- `roleBindings.previews`: Okteto assigns this cluster role to every Okteto user via a namespace-scoped role binding on every **global** preview environment. This cluster role is **not** created by Okteto, it must exist in the cluster. Default value is `view`.
-- `clusterRoleBinding`: Okteto assigns this cluster role to every user via a cluster role binding. By default, this behavior is disabled. This can be useful to give access to cluster level resources to every developer account, like accessing the Node API. This cluster role is **not** created by Okteto, it must exist in the cluster.
-- `extraRoleBindings`: Okteto assigns every cluster role specified there to every user via a namespace-scoped role binding on the namespace specified in the configuration. Okteto will not create the ClusterRoles nor the Namespaces and expects them to exist in the cluster.
+- `annotations`: Annotations for each service account that Okteto generates for a user account.
+- `labels`: Labels for each service account that Okteto generates for a user account.
+- `roleBindings.namespaces`: Okteto binds this cluster role to every admin, owner, and member of each Namespace it manages, with a namespace-scoped role binding. Okteto does **not** create this cluster role: it must already exist in the cluster. Defaults to `cluster-admin`.
+- `roleBindings.previews`: Okteto binds this cluster role to every Okteto user in every **global** Preview Environment, with a namespace-scoped role binding. Okteto does **not** create this cluster role: it must already exist in the cluster. Defaults to `view`.
+- `clusterRoleBinding`: Okteto binds this cluster role to every user with a cluster role binding. Disabled by default. Use it to give every developer account access to cluster-level resources, such as the Node API. Okteto does **not** create this cluster role: it must already exist in the cluster.
+- `extraRoleBindings`: Okteto binds every cluster role listed under a namespace to every user, with a namespace-scoped role binding in that namespace. Okteto doesn't create the ClusterRoles or the namespaces: they must already exist in the cluster.
 
 ```yaml
 serviceAccounts:
@@ -1279,7 +1246,7 @@ serviceAccounts:
       - cluster-role3
 ```
 
-> In case you need to link more than one cluster role in any of the configuration settings, you should use [Cluster Role aggregation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles) to aggregate several Cluster Roles into one.
+> To bind more than one cluster role in any of these settings, use [ClusterRole aggregation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles) to combine them into one.
 
 ### store
 
@@ -1299,7 +1266,7 @@ Okteto stores each Personal Access Token as a Kubernetes Secret. A cluster has a
 
 ### userDefinedNamespaces
 
-Disable if you want to enforce using the `username` as a suffix on namespaces and ingress hosts. Enabled by default.
+Disable it to enforce the `username` as a suffix for Namespaces and ingress hosts. Enabled by default.
 
 ```yaml
 userDefinedNamespaces: false
@@ -1320,7 +1287,7 @@ userPodAffinity:
 
 ### virtualServices
 
-When enabled, the Okteto UI will show the public endpoints associated with [Istio Virtual Services](https://istio.io/latest/docs/reference/config/networking/virtual-service/) (default: `false`).
+When enabled, the Okteto UI shows the public endpoints associated with [Istio Virtual Services](https://istio.io/latest/docs/reference/config/networking/virtual-service/) (default: `false`).
 
 ```yaml
 virtualServices:
@@ -1329,13 +1296,13 @@ virtualServices:
 
 ### volumes
 
-Allows you to specify different settings for volumes.
+Settings for volumes.
 
-- `validate`: Section to configure volume validation.
-- `enabled`: Enables volume validation. Disabled by default
-- `supportedStorageClasses`: List of supported storage classes.
-- `forceStorageClass`: Flag to specify if the storage class should be enforced in case of creating a volume with a non-supported storage class. If set, the first storage class specified on `supportedStorageClasses` will be the enforced value.
-- `supportedAccessModes`: List of supported access modes.
+- `validate`: Configures volume validation.
+  - `enabled`: Enables volume validation. Disabled by default.
+  - `supportedStorageClasses`: List of supported storage classes.
+  - `forceStorageClass`: Whether to enforce a storage class when a volume uses an unsupported one. If set, Okteto enforces the first storage class in `supportedStorageClasses`.
+  - `supportedAccessModes`: List of supported access modes.
 
 ```yaml
 volumes:
@@ -1348,15 +1315,15 @@ volumes:
 
 ### volumeSnapshots
 
-Enables users to initialize persistent volume claims with the contents of a preexisting volume snapshot.
+Lets users initialize persistent volume claims with the contents of an existing volume snapshot.
 
-This feature requires having a CSI driver installed in your cluster.
+This feature requires a CSI driver in your cluster.
 
 - `driver`: The name of the CSI driver used when creating snapshots.
 - `class`: The VolumeSnapshotClass of the volume snapshot.
 - `storageClass`: The storage class required by volumes initialized from snapshots (optional).
-- `enableNamespaceAccessValidation`: When enabled, only users that have access to the namespace where the volume snapshot is stored will be able to use it in their development environments. Default false.
-- `allowIDAnnotation`: Allow using your cloud provider's snapshot ID as the source of the data. Default true.
+- `enableNamespaceAccessValidation`: When enabled, only users with access to the Namespace that stores a volume snapshot can use it in their application environments. Defaults to `false`.
+- `allowIDAnnotation`: Allows your cloud provider's snapshot ID as the data source. Defaults to `true`.
 
 ```yaml
 volumeSnapshots:
@@ -1383,22 +1350,21 @@ spec:
       storage: 10Gi
 ```
 
-When a persistent volume claim resource is created, Okteto will import the snapshot in Kubernetes using a [VolumeSnapshotContent](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) and will set the source of your persistent volume claim to this VolumeSnapshotContent.
+When the persistent volume claim is created, Okteto imports the snapshot into Kubernetes as a [VolumeSnapshotContent](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) and sets it as the source of the persistent volume claim.
 
 ### wildcardCertificate
 
-By default, Okteto configures a self-signed wildcard certificate for your instance to simplify your product evaluation.
-For a production-ready installation, follow our docs to [configure your wildcard certificate](self-hosted/install/certificates/index.mdx) and disable the default behavior.
+By default, Okteto configures a self-signed wildcard certificate for your instance, which makes evaluations simpler. For a production installation, [configure your own wildcard certificate](self-hosted/install/certificates/index.mdx) and disable the default behavior.
 
-These are all the settings available to configure certificates:
+The certificate settings are:
 
-- `create`: If set to false, Okteto will not create a self-signed wildcard certificate
-- `duration`: The duration of the self-signed certificate. Ignored if `create` is set to `false`
-- `name`: The name of the secret where the certificate is stored
-- `privateCA.enabled`: Set to true when using a private certificate authority
-- `privateCA.secret.name`: The name of the secret that stores the private certificate authority's certificate
-- `privateCA.secret.key`: The key in the secret that stores the private certificate authority's certificate
-- `annotations`: Annotations to add to the self-signed certificate generated by Okteto
+- `create`: If `false`, Okteto doesn't create a self-signed wildcard certificate.
+- `duration`: The duration of the self-signed certificate. Ignored if `create` is `false`.
+- `name`: The name of the secret that stores the certificate.
+- `privateCA.enabled`: Set it to `true` when you use a private certificate authority.
+- `privateCA.secret.name`: The name of the secret that stores the private certificate authority's certificate.
+- `privateCA.secret.key`: The key in the secret that stores the private certificate authority's certificate.
+- `annotations`: Annotations to add to the self-signed certificate that Okteto generates.
 
 ```yaml
 wildcardCertificate:
@@ -1416,17 +1382,17 @@ wildcardCertificate:
 ```
 
 :::note
-Setting `create: false` is not enough on its own to serve your own certificate. The [ingress-nginx](self-hosted/helm-configuration.mdx#ingress-nginx) ingress controller reads its default certificate from `ingress-nginx.controller.extraArgs.default-ssl-certificate`, which is not derived from `wildcardCertificate.name`. Whenever you set `create: false`, point that argument at the same secret, as shown in [bring your own certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx). Otherwise that secret no longer exists, the ingress controller falls back to its own built-in fake certificate, and browsers show a certificate warning.
+Setting `create: false` isn't enough on its own to serve your own certificate. The [ingress-nginx](self-hosted/helm-configuration.mdx#ingress-nginx) ingress controller reads its default certificate from `ingress-nginx.controller.extraArgs.default-ssl-certificate`, which isn't derived from `wildcardCertificate.name`. Whenever you set `create: false`, point that argument at the same secret, as shown in [bring your own certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx). Otherwise that secret no longer exists, the ingress controller falls back to its own built-in fake certificate, and browsers show a certificate warning.
 :::
 
 ## Dependencies
 
-Okteto will automatically install two instances of [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) as part of the default installation, using its official [Helm chart](https://kubernetes.github.io/ingress-nginx).
+The default Okteto installation includes two instances of the [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/), installed from its official [Helm chart](https://kubernetes.github.io/ingress-nginx).
 
-Each instance has an specific role:
+Each instance has a specific role:
 
-- `ingress-nginx`: ingress-controller that serves all the inbound traffic to the Okteto cluster, including Buildkit, Registry, Okteto API, Okteto Frontend and users' ingresses.
-- `okteto-nginx`: ingress-controller dedicated to serve users' ingresses inbound traffic. By default, it is deployed behind `ingress-nginx`.
+- `ingress-nginx`: The ingress controller for all inbound traffic to the Okteto cluster, including BuildKit, the Okteto Registry, the Okteto API, the Okteto frontend, and users' ingresses.
+- `okteto-nginx`: The ingress controller dedicated to the inbound traffic of users' ingresses. By default, it runs behind `ingress-nginx`.
 
 ### Okteto Ingress Controllers
 
@@ -1438,13 +1404,13 @@ This key is used to specify ingress behavior for Okteto's platform components (e
 
 #### okteto-nginx
 
-This key is used to specify ingress behavior specifically for development environments. This configuration is used to parse and register developer ingresses. This ingress controller resides within the cluster and manages ingress to and between developer applications.
+Configures the ingress behavior for application environments. It parses and registers developers' ingresses. This ingress controller runs in the cluster and manages ingress traffic to and between developers' applications.
 
-A practical example of how these two ingress controllers interaction is: when a new user request arrives to Okteto it will be served by `ingress-nginx`, which will proxy it to `okteto-nginx`. Then `okteto-nginx` will proxy the request to the backend pod.
+When a user request arrives at Okteto, `ingress-nginx` receives it and proxies it to `okteto-nginx`, which proxies it to the backend pod.
 
 #### Sample configuration
 
-One example of modifying the Okteto ingress controllers, to change the number of replicas in `ingress-nginx`, looks like this:
+This example changes the number of `ingress-nginx` replicas:
 
 ```yaml
 ingress-nginx:
@@ -1452,53 +1418,53 @@ ingress-nginx:
     replicaCount: 2
 ```
 
-The full list of values is [available here](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml).
+The [ingress-nginx chart values](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml) list every available value.
 
 #### ingress-nginx & okteto-nginx default values
 
-Okteto sets specific values on the embedded ingress-nginx chart to enable features dependent on the ingress-controller. The values can be checked with the following command:
+Okteto sets specific values on the embedded ingress-nginx chart to enable features that depend on the ingress controller. To check them, run:
 
 - `ingress-nginx`:
 
   ```
-  helm get values okteto/okteto --jsonpath '{.ingress-nginx}'
+  helm show values okteto/okteto --jsonpath '{.ingress-nginx}'
   ```
 
 - `okteto-nginx`:
   ```
-  helm get values okteto/okteto --jsonpath '{.okteto-nginx}'
+  helm show values okteto/okteto --jsonpath '{.okteto-nginx}'
   ```
 
 #### Using Your Own Ingress Controller
 
-Refer to this [community guide](https://community.okteto.com/t/how-do-i-configure-my-own-ingress-controller/887) for detailed instructions on disabling the Okteto Nginx Ingress Controller and exposing Okteto behind your own Ingress Controller.
+The [community guide on using your own ingress controller](https://community.okteto.com/t/how-do-i-configure-my-own-ingress-controller/887) explains how to disable the Okteto NGINX Ingress Controller and expose Okteto behind your own ingress controller.
 
 ### Reloader
 
-The Okteto chart uses [Reloader](https://github.com/stakater/Reloader) to perform rolling upgrades to Okteto components when changes happen on specific secrets. Reloader can be customized using the `reloader.reloader` value using [these parameters](https://github.com/stakater/Reloader#parameters).
+The Okteto chart uses [Reloader](https://github.com/stakater/Reloader) to run rolling upgrades of the Okteto components when specific secrets change. To customize Reloader, set its [parameters](https://github.com/stakater/Reloader#parameters) under the `reloader.reloader` value.
 
 ## Store Sensitive Configuration Values using a Secret
 
-Create a secret named `okteto-cloud-secret` to store the following values instead of setting them in your helm configuration file:
+Create a secret named `okteto-cloud-secret` to store these values instead of setting them in your Helm configuration file:
 
-- `OKTETO_LICENSE`: use this instead of `.Values.license` in your helm configuration file.
-- `GOOGLE_CLIENTSECRET`: use this instead of `.Values.auth.google.clientSecret` in your helm configuration file.
-- `GITHUB_CLIENTSECRET`: use this instead of `.Values.auth.github.clientSecret` in your helm configuration file.
-- `BITBUCKET_CLIENTSECRET`: use this instead of `.Values.auth.bitbucket.clientSecret` in your helm configuration file.
-- `OPENID_CLIENTSECRET`: use this instead of `.Values.auth.openid.clientSecret` in your helm configuration file.
-- `GITHUB_INTEGRATION_CLIENTSECRET`: use this instead of `.Values.github.clientSecret` in your helm configuration file.
-- `GITHUB_APP_PRIVATE_KEY`: use this instead of `.Values.github.appPrivateKey` in your helm configuration file.
+- `OKTETO_LICENSE`: replaces `.Values.license`.
+- `GOOGLE_CLIENTSECRET`: replaces `.Values.auth.google.clientSecret`.
+- `GITHUB_CLIENTSECRET`: replaces `.Values.auth.github.clientSecret`.
+- `BITBUCKET_CLIENTSECRET`: replaces `.Values.auth.bitbucket.clientSecret`.
+- `OPENID_CLIENTSECRET`: replaces `.Values.auth.openid.clientSecret`.
+- `GITHUB_INTEGRATION_CLIENTSECRET`: replaces `.Values.github.clientSecret`.
+- `GITHUB_APP_PRIVATE_KEY`: replaces `.Values.github.appPrivateKey`.
 
 ## Handling a Long Release Name
 
-The Okteto chart combines the release name and the chart name to create a prefix used for naming the Kubernetes resources created by the chart.
+The Okteto chart combines the release name and the chart name into a prefix for the names of the Kubernetes resources it creates.
 
-In Kubernetes, there are strict limits on the maximum length of names for various resources. For example, CronJob names cannot exceed 52 characters, and Service names cannot be longer than 63 characters. Additionally, Helm enforces a maximum length of 53 characters for a release name.
+Kubernetes limits the length of resource names. For example, CronJob names can't exceed 52 characters, and Service names can't be longer than 63 characters. Helm also limits release names to 53 characters.
 
-Since the Okteto chart creates multiple resources in Kubernetes, it employs specific strategies to avoid exceeding these length limits and to minimize the need for additional configuration.
+The Okteto chart creates many Kubernetes resources, so it uses specific strategies to stay within these limits and to minimize the need for extra configuration.
 
-The maximum length for the Okteto prefix is 34 characters. This limit is derived from the maximum name length allowed by Kubernetes (63 characters), minus the length of the longest Okteto component suffix ("-ingress-nginx-defaultbackend"). The 34 characters are then divided into 27 characters for the release name and 7 characters for the chart name ("-okteto").
+The Okteto prefix can be up to 34 characters long: the maximum name length in Kubernetes (63 characters) minus the length of the longest Okteto component suffix (`-ingress-nginx-defaultbackend`). The 34 characters split into 27 for the release name and 7 for the chart name (`-okteto`).
 
-This limit can be extended to 40 characters by overriding the name of the defaultBackend component. To do this, set the `defaultBackend.nameOverride` value.
+To extend the limit to 40 characters, override the name of the defaultBackend component with the `defaultBackend.nameOverride` value.
 
-If you need to use a release name longer than 40 characters, you can also use the [nameOverride](#nameoverride) or [fullnameOverride](#fullnameoverride) settings to make the prefix shorter.
+For a release name longer than 40 characters, use the [nameOverride](#nameoverride) or [fullnameOverride](#fullnameoverride) settings to shorten the prefix.
