@@ -20,6 +20,11 @@ Without that definition, developers run the application one way on their laptops
 
 An [application environment](core/application-environments.mdx) is a running copy of your application in its own Namespace on Kubernetes. It includes your services, the databases and queues that run next to them in the cluster, and the cloud services they use, such as a managed database or a storage bucket.
 
+Okteto supports two models for an environment, and you choose one for each application:
+
+- **Full replica:** the environment runs every service of the application in its own Namespace. Every change is fully isolated, and nothing one environment does affects the others. It's the simplest model, and the right one for most applications.
+- **Divert:** the environment deploys only the services that change, and shares a Namespace that runs the rest of the application. A request with the environment's divert header reaches its own services, and the shared version of everything else. For applications with dozens of services, hundreds of environments cost little more than the services that change.
+
 Environments are ephemeral: you create one for a pull request or an agent task, and delete it when the work is done. Every environment gets HTTPS URLs that anyone on the team can open in the browser.
 
 A dedicated environment for every change, with real dependencies, changes how a team tests:
@@ -30,11 +35,6 @@ A dedicated environment for every change, with real dependencies, changes how a 
 - **One standard for every workflow:** developers, agents, and CI use the same definition, so their environments don't drift apart, and a test that fails in CI fails the same way in a developer's environment.
 
 Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot use the definition through the Okteto skills, which teach them to build, deploy, and test their changes in their own environment. Builds, deployments, and tests run in the cluster, so the agent's sandbox stays light: it needs no Docker daemon and none of your application's dependencies.
-
-Okteto supports two models for an environment, and you choose one for each application:
-
-- **Full replica:** the environment runs every service of the application in its own Namespace. Every change is fully isolated, and nothing one environment does affects the others. It's the simplest model, and the right one for most applications.
-- **Divert:** the environment deploys only the services that change, and shares a Namespace that runs the rest of the application. A request with the environment's divert header reaches its own services, and the shared version of everything else. For applications with dozens of services, hundreds of environments cost little more than the services that change.
 
 ## Governance for platform teams
 
