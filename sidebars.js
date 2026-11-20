@@ -147,8 +147,6 @@ module.exports = {
             'development/divert/data-cloning',
           ],
         },
-        'development/file-synchronization',
-        'development/ssh-server',
       ],
     },
     {
@@ -325,7 +323,9 @@ module.exports = {
         'reference/docker-compose',
         'reference/okteto-api',
         'reference/okteto-insights-metrics',
+        'reference/file-synchronization',
         'reference/feature-flags',
+        'reference/ssh-server',
       ],
     },
     'release-notes',
