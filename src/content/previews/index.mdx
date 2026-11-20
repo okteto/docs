@@ -1,11 +1,12 @@
 ---
 title: Preview Environments
-description: Deploy a Preview Environment for every pull or merge request and run your automated tests against it.
+description: Preview Environments deploy an application environment for every pull or merge request, run your tests against it, and give your team a URL to review the change.
+sidebar_label: Preview Environments
 ---
 
 import Image from "@theme/Image";
 
-Preview Environments automatically create a live, production-like instance of your application for every pull request or merge request. Your CI/CD pipeline deploys the Preview Environment and runs your automated tests against it, so every change is tested in a real environment before it merges to main.
+Preview Environments are application environments for pull requests. For every pull request in GitHub or merge request in GitLab, your CI pipeline deploys the application with the change in its own Namespace, runs your tests against it, and links its URL from the pull request, so your team reviews the running change before it merges. When the pull request closes, the pipeline destroys the Preview Environment.
 
 <p align="center">
   <Image
@@ -14,21 +15,78 @@ Preview Environments automatically create a live, production-like instance of yo
   />
 </p>
 
-The Okteto UI lists all Preview Environments with their repository, branch, pull request, owner, and status. You can filter the list by name, repository, status, owner, or last update, and sort it. Admins can also manage Preview Environments from the [Admin Dashboard](admin/previews.mdx).
+The Okteto UI lists every Preview Environment with its repository, branch, pull request, owner, and status. You can filter the list by name, repository, status, owner, or last update, and sort it. Admins manage every Preview Environment of the instance from the [Admin Dashboard](admin/previews.mdx).
 
-## How It Works
+Set up Preview Environments with your CI system:
 
-Preview Environments follow the lifecycle of a pull request or merge request:
+- [GitHub Actions](previews/using-github-actions.mdx): deploy a Preview Environment and run your tests on every pull request.
+- [GitLab CI/CD](previews/using-gitlab-cicd.mdx): deploy a Preview Environment and run your tests on every merge request.
 
-1. **Open a Pull Request or Merge Request**: when you create or update a pull request in GitHub or a merge request in GitLab, your CI/CD pipeline triggers an Okteto Preview Environment.
-2. **Deployment**: Okteto deploys your application with the [`deploy`](application-environments/okteto-manifest.mdx#deploy) section of your Okteto Manifest, the same section `okteto deploy` runs for your application environment. To change how your application behaves in a Preview Environment, use the [`OKTETO_IS_PREVIEW_ENVIRONMENT`](application-environments/okteto-variables.mdx) variable, which Okteto sets to `true` in your `deploy` commands. For examples, see [How do I customize my application for Preview Environments?](https://community.okteto.com/t/how-do-i-customize-my-application-for-preview-environments/1496) in the Okteto Community forum.
-3. **Automated Tests**: your pipeline runs `okteto test` against the Preview Environment and reports the result on the pull request or merge request.
-4. **Share and Collaborate**: the Preview Environment keeps running after the tests finish, so you can share its URL with your team for manual testing and feedback.
-5. **Updates**: every new commit redeploys the Preview Environment and reruns your tests.
-6. **Cleanup**: your pipeline destroys the Preview Environment when the pull request closes in GitHub, or when the merge request's branch is deleted in GitLab.
+## How Preview Environments Work
 
-## Getting Started
+A Preview Environment follows the lifecycle of its pull request or merge request:
 
-- [Why Preview Environments](previews/why-preview-environments.mdx): how Preview Environments remove configuration drift between development and CI, collect feedback from your whole team, and simplify your CI jobs
-- [GitHub Actions](previews/using-github-actions.mdx): deploy a Preview Environment and run your tests on every pull request
-- [GitLab CI/CD](previews/using-gitlab-cicd.mdx): deploy a Preview Environment and run your tests on every merge request
+1. **Open:** when you open or update a pull request, your CI pipeline deploys a Preview Environment for it.
+2. **Deploy:** Okteto deploys your application with the [`deploy`](application-environments/okteto-manifest.mdx#deploy) section of your Okteto Manifest, the same one that `okteto deploy` runs for any application environment. Your `deploy` commands see the [`OKTETO_IS_PREVIEW_ENVIRONMENT`](application-environments/okteto-variables.mdx#default-environment-variables) variable set to `true`, so they can change how the application runs in a Preview Environment. The Okteto Community forum has [examples](https://community.okteto.com/t/how-do-i-customize-my-application-for-preview-environments/1496).
+3. **Test:** your pipeline runs [`okteto test`](application-environments/okteto-test.mdx) against the Preview Environment, and reports the result on the pull request.
+4. **Review:** the Preview Environment keeps running after the tests, so your team opens its URL to try the change and leaves feedback on the pull request.
+5. **Update:** every new commit redeploys the Preview Environment and runs your tests again.
+6. **Clean up:** your pipeline destroys the Preview Environment when the pull request closes in GitHub, or when the merge request's branch is deleted in GitLab.
+
+## The Same Tests as Developers and Coding Agents
+
+In many teams, developers run the application on their laptops with Docker Compose, CI runs the tests on a virtual machine, and production runs on Kubernetes. Each stage has its own platform and its own configuration, so tests pass locally and fail in CI, and some bugs only show up in production.
+
+<Image
+  src={require("@site/static/img/previews-drift.webp").default}
+  mobileSrc={require("@site/static/img/previews-drift-mobile.webp").default}
+  borderless
+  alt="Development, CI, and production run the frontend, api, and mongoDB services on different platforms: a local environment, a virtual machine, and Kubernetes"
+/>
+
+A Preview Environment is an application environment like the ones that developers and coding agents use: it runs on Kubernetes, from the same Okteto Manifest. The tests in the [`test` section](application-environments/okteto-manifest.mdx#test) of your Okteto Manifest run the same way against a developer's environment, an agent's environment, and the Preview Environment, so a test that fails in CI fails the same way on a developer's machine.
+
+<Image
+  src={require("@site/static/img/previews-same-platform.webp").default}
+  mobileSrc={require("@site/static/img/previews-same-platform-mobile.webp").default}
+  borderless
+  alt="With Okteto, development, CI, and production all run the frontend, api, and mongoDB services on Kubernetes"
+/>
+
+## A URL for Every Change
+
+A Preview Environment is a running copy of the change, with its own HTTPS URL. Your automated tests, coding agents, developers, QA engineers, product managers, designers, and sales and marketing all use the same running application, with nothing to set up. Instead of screenshots or recordings, everyone tries the real change and gives feedback on the pull request before it merges.
+
+<Image
+  src={require("@site/static/img/previews-review.webp").default}
+  mobileSrc={require("@site/static/img/previews-review-mobile.webp").default}
+  borderless
+  alt="A Preview Environment on Kubernetes runs the frontend, api, and mongoDB services. Automated tests, AI agents, developers, and QA engineers on one side, and product managers, designers, and sales and marketing on the other, all use it"
+/>
+
+## Light CI Jobs
+
+A common way to run end-to-end tests in CI is to run the whole application inside the CI job: the job starts a Docker daemon, builds every image, starts the application with Docker Compose, and installs the test runtimes, browsers, and credentials that your tests need.
+
+<Image
+  src={require("@site/static/img/previews-ci-docker.webp").default}
+  mobileSrc={require("@site/static/img/previews-ci-docker-mobile.webp").default}
+  borderless
+  alt="A fat CI job: the CI runner holds test runtimes, browsers, and credentials, and a Docker daemon runs the frontend, api, and mongoDB services"
+/>
+
+These CI jobs are heavy. They need privileged runners or access to the Docker socket, a common security concern. They rebuild the images and reinstall the dependencies on every run, and they run your application on a different platform than production.
+
+With Okteto, the CI job only needs a Git checkout and the Okteto CLI. Okteto builds your images, deploys your application, and runs your tests inside your Kubernetes cluster, with [Remote Execution](application-environments/remote-execution.mdx).
+
+<Image
+  src={require("@site/static/img/previews-ci-okteto.webp").default}
+  mobileSrc={require("@site/static/img/previews-ci-okteto-mobile.webp").default}
+  borderless
+  alt="A light CI job with only a Git checkout and the Okteto CLI, connected to Kubernetes, where Okteto runs the frontend, api, and mongoDB services and the frontend and e2e tests of Okteto Test"
+/>
+
+- CI jobs start faster and use fewer resources, because they don't run Docker or your application.
+- [Smart Builds](application-environments/build-service.mdx#smart-builds) reuse the images that a pipeline, a developer, or an agent already built from the same code.
+- [Smart Tests](application-environments/okteto-test.mdx#smart-tests) skip a test that already passed for the same code.
+- The load on your CI system drops, because builds, deployments, and tests run in your cluster.

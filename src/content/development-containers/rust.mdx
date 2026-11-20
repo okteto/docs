@@ -7,7 +7,7 @@ id: rust
 
 import Image from "@theme/Image";
 
-Okteto runs your Rust application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Rust Sample App](https://github.com/okteto/rust-getting-started), a hello world HTTP server, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](coding-agents/index.mdx).
+Okteto runs your Rust application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Rust Sample App](https://github.com/okteto/rust-getting-started), a hello world HTTP server, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To set up your own repository the same way, use an AI agent with the [Okteto agent skills](coding-agents/okteto-skills.mdx).
 
 ## Prerequisites
 
@@ -118,14 +118,14 @@ Open the endpoint in your browser to see the `Hello world!` response. The Okteto
 <Image
   src={require("@site/static/img/okteto-ui-rust.png").default}
   mobileSrc={require("@site/static/img/okteto-ui-rust-mobile.png").default}
-  alt="Okteto UI showing the cindy Namespace with the rust-getting-started Dev Environment deployed, its hello-world Deployment running, and its endpoint"
+  alt="Okteto UI showing the cindy Namespace with the rust-getting-started application deployed, its hello-world Deployment running, and its endpoint"
 />
 
 Okteto creates an [HTTPS endpoint](application-environments/endpoints/automatic-ssl.mdx) for the [Ingress](application-environments/endpoints/ingress.mdx) in the Helm chart. If your application uses the Gateway API, it does the same for its [HTTPRoutes](application-environments/endpoints/httproutes.mdx).
 
 ## Testing the Rust Sample App
 
-The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit test in `src/main.rs`, which sends a request to the axum router without opening a network connection:
+The `test` section of the Okteto Manifest defines the `unit` [test](application-environments/okteto-test.mdx), which runs the unit test in `src/main.rs`, which sends a request to the axum router without opening a network connection:
 
 ```yaml title="okteto.yml"
 test:
@@ -141,11 +141,11 @@ test:
 ```
 
 - `image`: the development image, so the tests run with the same Rust toolchain as the Development Container.
-- `caches`: the Cargo registry and the `target` folder, kept between runs of the Test Container. Test Containers run in `/okteto/src`, so the `target` folder of the tests is `/okteto/src/target`.
-- `commands`: the commands that run the tests. The Test Container fails if any of them exits with a non-zero code. `cargo test` has no stable report format, so `tee` copies its output to `test-report.txt`, and `bash -o pipefail` keeps the exit code of `cargo test`.
+- `caches`: the Cargo registry and the `target` folder, kept between runs of the test. Tests run in `/okteto/src`, so the `target` folder of the tests is `/okteto/src/target`.
+- `commands`: the commands that run the tests. The test fails if any of them exits with a non-zero code. `cargo test` has no stable report format, so `tee` copies its output to `test-report.txt`, and `bash -o pipefail` keeps the exit code of `cargo test`.
 - `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the test report.
 
-Test Containers run with [Remote Execution](application-environments/remote-execution.mdx), in a container inside your cluster.
+The test runs with [Remote Execution](application-environments/remote-execution.mdx), in a container inside your cluster.
 
 Run the unit tests from the root folder of the Rust Sample App:
 
@@ -169,13 +169,13 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 The test report is now in `test-report.txt`, in the root folder of the Rust Sample App on your machine.
 
-Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](coding-agents/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](coding-agents/okteto-skills.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
 
 ## Developing in a Development Container
 
-If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A [Development Container](development-containers/index.mdx) gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
 
-While `okteto up` is running, an AI agent with the [Okteto agent skills](coding-agents/index.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
+While `okteto up` is running, an AI agent with the [Okteto agent skills](coding-agents/okteto-skills.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
 
 ### Configuration
 
@@ -313,7 +313,7 @@ okteto destroy
 
 ### How do I make builds, deploys, and `okteto up` faster?
 
-Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](application-environments/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](development-containers/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](coding-agents/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](application-environments/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](development-containers/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](coding-agents/okteto-skills.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
 
 ### How do I deploy an application with several services and a database?
 

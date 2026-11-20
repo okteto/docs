@@ -4,116 +4,88 @@ description: Coding agents take a task from a ticket to a pull request, and depl
 sidebar_label: Autonomous Workflows
 ---
 
-In autonomous mode, an agent handles the full development lifecycle without a developer in the loop: deploying an Okteto environment, writing code, running tests against live services, and opening a pull request when everything passes. This is the basis of a Software Factory, where agents pick up work from tickets or CI triggers, execute against real infrastructure, and deliver tested pull requests. The developer reviews the output, not the process.
+import Image from "@theme/Image";
 
-## How it works
+In an autonomous workflow, a coding agent takes a task from a ticket to a pull request without a developer in the loop. It deploys its own application environment, writes the code, verifies the change against the running application, and opens a pull request when everything passes. You review the result, with the tests that passed and the URL of the environment, not the process.
 
-```mermaid
-flowchart LR
-    A[Read ticket] --> B[okteto deploy]
-    B --> C[Write code]
-    C --> D[okteto deploy]
-    D --> E[okteto test]
-    E -->|pass| F[Open PR]
-    E -->|fail| C
-```
+## The Agent Loop
 
-1. Agent reads the ticket or issue for requirements and acceptance criteria
-2. `okteto deploy --wait` to spin up the full environment
-3. `okteto endpoints` to capture live URLs
-4. Agent makes code changes based on requirements
-5. `okteto deploy --wait` to rebuild and redeploy with updated code
-6. `okteto test <name>` to run test containers
-7. Smoke-test live endpoints (for example, `curl` against the URLs from step 3)
-8. `okteto logs <service> --since 5m` to check for runtime errors
-9. If anything fails: fix the code, redeploy, re-test
-10. Commit changes and open a pull request
+The agent repeats the same loop until the change works:
 
-:::warning
-`okteto up` is never part of autonomous workflows. It's interactive and requires a human terminal. See [Command rules](coding-agents/best-practices.mdx#command-rules).
-:::
+<Image
+  src={require("@site/static/img/coding-agents-loop.webp").default}
+  mobileSrc={require("@site/static/img/coding-agents-loop-mobile.webp").default}
+  borderless
+  alt="The autonomous agent loop: the agent takes a task, edits the code, deploys it with okteto deploy, verifies it with okteto test, the endpoints, and the logs, goes back to edit the code when something fails, and opens a pull request when everything passes"
+/>
 
-## Agent authentication
+1. The agent reads the ticket for the requirements and the acceptance criteria.
+2. `okteto deploy --wait` deploys the application environment, and `okteto endpoints` gets its URLs.
+3. The agent reads `okteto.yaml` to discover the services, and changes the code.
+4. If the change touches `okteto.yaml`, `okteto validate` checks it first. Then `okteto build <service>` rebuilds the images that changed, and `okteto deploy --wait` redeploys the application.
+5. The agent verifies the change:
+   - `okteto test <name>` runs the tests of your Okteto Manifest, inside the cluster.
+   - `curl` against the URLs of `okteto endpoints` checks the new behavior.
+   - `okteto logs <service> --since 5m` shows runtime errors.
+6. If anything fails, the agent fixes the code and goes back to step 4.
+7. When everything passes, the agent commits the change, opens a pull request, and reports what it changed, the tests that passed, and the URL of the environment.
 
-For autonomous workflows triggered by CI or webhooks, the agent needs to authenticate with Okteto without a human logging in interactively. Use a [Personal Access Token](user-settings/personal-access-tokens.mdx) and set the Okteto context before running any commands:
+Nothing syncs in an autonomous workflow, so the agent redeploys after every change, including changes to a Dockerfile, a dependency manifest, or `okteto.yaml`. `okteto up` is never part of it: it's interactive and hangs the agent's shell.
 
-```bash
-okteto context use https://okteto.example.com --token $OKTETO_TOKEN
-```
+## Example: Ticket to Pull Request
 
-Store the token as a secret in your CI system (for example, a GitHub Actions secret or GitLab CI variable). The agent then has the same CLI access as the token's owner.
+A CI pipeline or a webhook starts the agent with a ticket:
 
-## Repository instructions
+> Add a `/health` endpoint to the API service that returns the database connectivity status and the uptime.
 
-The [plugin](coding-agents/index.mdx#installing-the-plugin) teaches the agent how to run this workflow, but the agent still decides when to reach for it by matching skill descriptions against the prompt (see [Skill activation](coding-agents/index.mdx#skill-activation)). A ticket that says "add a `/health` endpoint" carries no signal that the project deploys to Okteto, so the agent may implement the change and validate it locally without deploying anything.
-
-Add the expectation to the repository's agent instructions file (`CLAUDE.md` for Claude Code, `AGENTS.md` for most other agents), and the agent runs the deploy-test loop on every task:
-
-```markdown
-## Verifying changes
-
-This project deploys to Okteto. After implementing any change, verify it in an
-Okteto environment: deploy with `okteto deploy --wait` and run the test
-containers defined in `okteto.yaml` with `okteto test`.
-```
-
-For one-off runs, the prompt works too: "implement PROJ-123 and test the change in Okteto" activates the skill directly. The instructions file is what removes the need to say it every time.
-
-## Workflow example: ticket to PR
-
-A CI pipeline or webhook triggers the agent with a ticket:
-
-> Add a `/health` endpoint to the API service that returns database connectivity status and uptime.
-
-The agent deploys the environment, captures the live URLs, then starts coding:
+The agent deploys the environment and gets its URLs:
 
 ```bash
 okteto deploy --wait
 okteto endpoints
 ```
 
-After making the code changes, the agent redeploys and validates:
+After it changes the code, the agent rebuilds, redeploys, and verifies the change:
 
 ```bash
-# Rebuild and redeploy with the updated code
+# Rebuild the api image and redeploy the application
+okteto build api
 okteto deploy --wait
 
-# Run tests
+# Run the integration tests
 okteto test integration
 
-# Smoke-test the new endpoint
-curl -s https://api-myns.okteto.example.com/health
+# Call the new endpoint
+curl -s https://api-agent-proj-123.okteto.example.com/health
 
-# Check logs for errors
+# Check the logs of the api service
 okteto logs api --since 5m
 ```
 
-If the tests or smoke tests fail, the agent reads the error, fixes the code, redeploys, and re-tests. Once everything passes:
+If a test or the endpoint fails, the agent reads the error, fixes the code, and runs the loop again. When everything passes, it opens the pull request:
 
 ```bash
-git add src/api/health.ts src/api/routes.ts && git commit -m "Add /health endpoint with db status"
+git add src/api/health.ts src/api/routes.ts
+git commit -m "Add /health endpoint with database status"
 gh pr create --title "Add health endpoint" --body "..."
 ```
 
-## The deploy-test loop
+## Authentication
 
-The core pattern in autonomous mode:
+An agent that runs without a developer can't sign in to Okteto in a browser. Give it a [Personal Access Token](user-settings/personal-access-tokens.mdx) for the account it deploys as, and connect the Okteto CLI before any other command:
 
-1. `okteto deploy --wait` builds any changed images and rolls out the updated services
-2. `okteto test <name>` runs validation against the live environment
+```bash
+okteto context use https://okteto.example.com --token $OKTETO_TOKEN
+```
 
-The agent repeats this loop until all tests pass. Each iteration gives real feedback from a running environment, which is what lets the agent self-correct without human intervention.
+Store the token as a secret of your CI system, such as a GitHub Actions secret or a GitLab CI/CD variable. The agent has the same access as the owner of the token.
 
-If you need to rebuild a single service without redeploying the whole environment, `okteto build <service>` does that. But for most workflows, `okteto deploy --wait` handles both building and deploying in one step.
+## Parallel Tasks
 
-The full list of commands agents may and may not run is in [Command rules](coding-agents/best-practices.mdx#command-rules). For flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
+An autonomous agent often works on several tickets at once, each on its own branch and git worktree. Tasks that deploy to the same Namespace overwrite each other's environments. Give each task its own Namespace: the agent creates it with `okteto namespace create <ns>` and passes `-n <ns>` to every command. See [Worktree Isolation](coding-agents/best-practices.mdx#worktree-isolation) for the details.
 
-## Isolating parallel runs
+## Running Agents in CI
 
-Autonomous agents often run several tickets at once, each on its own branch in a separate git worktree. Runs that share a Namespace overwrite each other's environments. Give each run its own Namespace with `okteto namespace create` and pass `-n <ns>` on every command, so parallel branches never collide. See [Worktree isolation](coding-agents/best-practices.mdx#worktree-isolation).
+A CI pipeline can start the agent when someone labels an issue, give it its own Namespace, and destroy that Namespace when the pull request closes. The [Ticket to pull request with an autonomous agent](/tutorials/agent-ticket-to-pr/) tutorial builds this pipeline with GitHub Actions, and the [okteto-agent-skills repository](https://github.com/okteto/okteto-agent-skills/tree/main/examples) has a complete workflow to copy.
 
-## Next steps
-
-- [Ticket to pull request with an autonomous agent](/tutorials/agent-ticket-to-pr/): build this workflow as a GitHub Actions pipeline, step by step
-- [Collaborative Workflows](coding-agents/collaborative-workflows.mdx): stay in the loop and iterate with the agent
-- [Best Practices](coding-agents/best-practices.mdx): command rules and common pitfalls
+The pipeline owns the environments it creates, so it can let the agent destroy them without asking: set the `OKTETO_ALLOW_AGENT_DESTROY` environment variable to `1` in the pipeline, and the [guardrail hooks](coding-agents/okteto-skills.mdx#guardrail-hooks) of the Claude Code plugin allow `okteto destroy` and `okteto namespace delete`. See [Cleanup and Teardown](coding-agents/best-practices.mdx#cleanup-and-teardown) for the rules that the agent follows otherwise.

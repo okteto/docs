@@ -1,16 +1,45 @@
 ---
-title: Developers
-description: Developers deploy their own application environment with Okteto, and code against it with okteto up, hot reload, and a debugger.
-sidebar_label: Developers
+title: Development Containers
+description: okteto up replaces a service of your application environment with a Development Container, where your local code changes run with hot reload and a debugger.
+sidebar_label: Development Containers
 ---
 
-Developers deploy their own [application environment](application-environments/index.mdx) with `okteto deploy`, from the same Okteto Manifest that pull requests and coding agents use. To code against it, `okteto up` turns a service of the environment into a Development Container: you edit the code locally with your own tools, and Okteto syncs every change to the container in the cluster, where hot reload and your debugger pick it up. The environment where you work in this way is your Development Environment.
+import Image from "@theme/Image";
 
-The Okteto CLI finds how to deploy your application in an [Okteto Manifest](application-environments/okteto-manifest.mdx) (`okteto.yaml` or `.okteto/okteto.yaml`), or in a [Docker Compose](reference/docker-compose.mdx) file (`okteto-compose.yaml`, `docker-compose.yaml`, or `compose.yaml`). Use the `-f` flag of any command to point it to another file. To install the Okteto CLI, see [Install the Okteto CLI](get-started/install-okteto-cli.mdx), and see the [Okteto CLI reference](reference/okteto-cli.mdx) for every command.
+A Development Container replaces one service of your [application environment](application-environments/index.mdx) while you code it. When you run [`okteto up`](reference/okteto-cli.mdx#up), you edit the code on your machine with your own tools, Okteto syncs every change to the Development Container in the cluster, and hot reload and your debugger pick it up. The environment where you work this way is your Development Environment.
 
-- [Development Containers](development-containers/index.mdx): how `okteto up` replaces a service with a Development Container, and guides for each language.
-- [Development Images](development-containers/images.mdx): build an image with the tools you need in your Development Container.
-- [File Synchronization](development-containers/file-synchronization.mdx): how `okteto up` keeps your local folder and your Development Container in sync, and how to ignore files.
-- [SSH Server](development-containers/ssh-server.mdx): the SSH server that `okteto up` runs in your Development Container, to open a shell or connect your IDE.
+Development Containers are optional. Deploy your application with `okteto deploy` first, and run `okteto up` for the service you're changing when you want a faster feedback loop than building and redeploying it. Coding agents and pull requests usually don't need one: they build, deploy, and test with `okteto deploy` and `okteto test`.
 
-To open a Development Container from your IDE over SSH, follow the [Connect your IDE](/tutorials/connect-your-ide/) tutorial.
+- [File Synchronization](development-containers/file-synchronization.mdx): how `okteto up` keeps your local folder and the Development Container in sync, and how to ignore files.
+- [SSH Server](development-containers/ssh-server.mdx): the SSH server that `okteto up` runs in the Development Container, to open a shell or connect your IDE.
+- [Development Images](development-containers/images.mdx): the image with the tools you need in the Development Container, such as compilers, debuggers, and hot reload.
+- Language guides for [ASP.NET](development-containers/aspnetcore.mdx), [Go](development-containers/golang.mdx), [Java](development-containers/java.mdx), [Node.js](development-containers/node.mdx), [PHP](development-containers/php.mdx), [Python](development-containers/python.mdx), [Ruby](development-containers/ruby.mdx), and [Rust](development-containers/rust.mdx): build, deploy, test, develop, and debug a sample application.
+
+To open a Development Container from your IDE over SSH, follow the [Connect your IDE to a Development Container over SSH](/tutorials/connect-your-ide/) tutorial.
+
+## How okteto up Works
+
+<Image
+  src={require("@site/static/img/development-container.webp").default}
+  mobileSrc={require("@site/static/img/development-container-mobile.webp").default}
+  borderless
+  alt="okteto up replaces the api Deployment with api-okteto, a Development Container in your Okteto Namespace, next to the frontend and the database. File Sync keeps the source code on your machine and the Development Container in sync, in both directions"
+/>
+
+In this example, `okteto up` replaces the **api** Deployment of the application with a development copy, a Deployment called **api-okteto**, with these changes:
+
+- Okteto overrides the container configuration of **api-okteto** with the values of your [Development Container](reference/okteto-manifest.mdx#dev-object-optional). For example, it replaces the production image with a [development image](development-containers/images.mdx) that has your development tools.
+- [File Sync](development-containers/file-synchronization.mdx) keeps your local files and the Development Container in sync, in both directions.
+- Okteto forwards ports over [SSH](development-containers/ssh-server.mdx), so you reach the services of your application on `localhost`.
+
+The Development Container inherits the manifest of the original **api** Deployment, so it uses the same service account, environment variables, secrets, volumes, and sidecars. You develop in the same conditions your application runs in production. When you're done, `okteto down` brings back the original **api** Deployment.
+
+## Okteto Manifest and Docker Compose
+
+The `dev` section of your [Okteto Manifest](application-environments/okteto-manifest.mdx#dev) defines your Development Containers. The Okteto CLI looks for `okteto.yml` or `okteto.yaml`, in the folder where you run it or in its `.okteto` folder. If there's no Okteto Manifest, it uses a [Docker Compose](reference/docker-compose.mdx) file, such as `docker-compose.yml` or `compose.yaml`. To use another file, pass its path with the `-f` flag of any command:
+
+```bash
+okteto up -f deploy/okteto.yml
+```
+
+See the [Okteto CLI reference](reference/okteto-cli.mdx#up) for every flag of `okteto up`.

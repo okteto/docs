@@ -96,6 +96,7 @@ module.exports = {
       label: 'Coding Agents',
       link: { type: 'doc', id: 'coding-agents/index' },
       items: [
+        'coding-agents/okteto-skills',
         'coding-agents/autonomous-workflows',
         'coding-agents/collaborative-workflows',
         'coding-agents/best-practices',
@@ -105,7 +106,7 @@ module.exports = {
       type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
-      items: ['previews/why-preview-environments', 'previews/using-github-actions', 'previews/using-gitlab-cicd'],
+      items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
     },
     {
       type: 'category',

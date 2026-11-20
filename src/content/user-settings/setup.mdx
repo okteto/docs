@@ -1,22 +1,24 @@
 ---
-title: Download your Kubernetes credentials
-description: Download a kubeconfig for your Okteto Namespaces, so kubectl, Helm, and your other tools work with them.
-sidebar_label: Kubernetes credentials
+title: Setup
+description: The Setup section of your Settings downloads the Okteto CLI context and the Kubernetes credentials for your Okteto Namespaces, and sets your primary email.
+sidebar_label: Setup
 id: setup
 ---
 
-import Image from '@theme/Image';
-import Button from '@theme/Button';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-This section explains how to download your Kubernetes credentials and start developing your applications in Okteto with your favorite CLI tools.
+**Settings > Setup** connects the Okteto CLI and your Kubernetes tools, such as `kubectl` and Helm, to your Okteto instance. It has three groups:
 
-The first thing you need to do is install the Okteto CLI and ensure the executable is in your PATH. This is needed because the kubeconfig provided by Okteto uses a [credential plugin](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins) to authenticate access your Kubernetes cluster. It is a common pattern used by many Kubernetes providers, such as Google Kubernetes Engine (GKE), Azure Kubernetes Service (AKS), or Amazon Elastic Kubernetes Service (EKS) to connect to Kubernetes clusters.
+- **Okteto Context:** downloads the configuration that points the Okteto CLI to your Okteto instance.
+- **Kubernetes Credentials:** downloads a kubeconfig file for your Okteto Namespaces.
+- **Account:** lists the emails linked to your account, and sets the primary one, which Okteto uses for account notifications.
 
-If this is your first time using the Okteto CLI, install it following [this guide](development-containers/index.mdx). After completing those steps, the Okteto CLI should be in your PATH.
+You can also get both configurations from your terminal with the Okteto CLI, without opening the Okteto UI.
 
-The next thing you need to do is to configure your Okteto context to point to your Okteto instance. To do this, run the `okteto context` command:
+## Okteto CLI Context
+
+The Okteto CLI connects to your Okteto instance through a context. To create it from your terminal, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and run `okteto context use` with the URL of your Okteto instance:
 
 ```bash
 okteto context use https://okteto.example.com
@@ -27,17 +29,15 @@ Authentication will continue in your default browser
  ✓  Context 'okteto.example.com' created
 ```
 
-If you're not logged into Okteto yet, it will also run the login sequence.
+If you aren't logged in to Okteto yet, the command opens your browser to log in. To log in without a browser, for example in a script or a coding agent's sandbox, pass a [Personal Access Token](user-settings/personal-access-tokens.mdx) with the `--token` flag.
 
-Now that you have installed Okteto CLI and it is connected to your Okteto instance, you can download the Kubernetes credentials. There are two different ways of doing so:
+To get the context from the Okteto UI instead, click **Download Context** in the **Okteto Context** group. Your browser downloads a `config.json` file. Move it to the `~/.okteto/context` folder, where the Okteto CLI stores its contexts. The file replaces the contexts that you already have in that folder.
 
-- Download your Kubernetes credentials [using the Okteto CLI](#download-your-kubernetes-credentials-using-the-okteto-cli).
+## Kubernetes Credentials
 
-- Download your Kubernetes credentials [from the Okteto dashboard](#download-your-kubernetes-credentials-from-the-okteto-dashboard).
+Your Kubernetes credentials are a kubeconfig file that gives `kubectl`, Helm, and any other Kubernetes tool access to your Okteto Namespaces. The kubeconfig uses a [credential plugin](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins) that runs the Okteto CLI to get a time-bound token for each request, so the Okteto CLI must be in your `PATH` and connected to your Okteto instance.
 
-## Download your Kubernetes credentials using the Okteto CLI
-
-Having your Okteto context configured to access Okteto, run the following command:
+To add your credentials to your kubeconfig from your terminal, run:
 
 ```bash
 okteto kubeconfig
@@ -47,19 +47,14 @@ okteto kubeconfig
 Updated kubernetes context 'okteto_example_com/cindy' in '/Users/cindy/.kube/config'
 ```
 
-The `okteto kubeconfig` command adds your Kubernetes credentials to your kubeconfig file, and sets it as the current Kubernetes context.
-Once you do this, you'll have full access to your Kubernetes namespace with `kubectl`, `helm` or any other CLI tool.
+`okteto kubeconfig` adds the credentials to your kubeconfig file and makes them the current Kubernetes context.
 
-## Download your Kubernetes credentials from the Okteto dashboard
-
-From the Okteto dashboard you should also find your credentials in the `Settings > Setup` section.
-
-Once downloaded, point your `KUBECONFIG` environment variable to the credentials file:
+To get them from the Okteto UI instead, click **Download Config File** in the **Kubernetes Credentials** group. Your browser downloads an `okteto-kube.config` file. Point the `KUBECONFIG` environment variable to it:
 
 <Tabs
   defaultValue="mac-linux"
   values={[
-    { label: 'MacOS / Linux', value: 'mac-linux', },
+    { label: 'macOS / Linux', value: 'mac-linux', },
     { label: 'Windows', value: 'windows', },
   ]}
 >
@@ -81,7 +76,7 @@ $Env:KUBECONFIG=("$HOME\Downloads\okteto-kube.config;$Env:KUBECONFIG;$HOME\.kube
 
 </Tabs>
 
-To see that the new configuration is working, enter this command:
+To check that the credentials work, list the resources of your current Okteto Namespace:
 
 ```bash
 kubectl get all
@@ -91,14 +86,12 @@ kubectl get all
 No resources found.
 ```
 
-## Using your Kubernetes credentials
+## Using Your Kubernetes Credentials
 
-Once you've downloaded your credentials, you'll have full access to your Kubernetes namespaces on Okteto directly from your terminal, using the tools you're already familiar with, such as `helm`, `kubectl`, `okteto` or `skaffold`.
+With your Kubernetes credentials, the Kubernetes tools you already use, such as `kubectl`, `helm`, or `skaffold`, work with your Okteto Namespaces from your terminal. For example, this command deploys the Kubernetes manifests of a sample application in your current Okteto Namespace:
 
-For example, you could use `kubectl` to deploy our `hello-world` application:
-
-```terminal
+```bash
 kubectl apply -f https://raw.githubusercontent.com/okteto/go-getting-started/master/k8s.yml
 ```
 
-[Credential plugins](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins) are a way of managing Kubernetes cluster credentials in a more secure way as you get time-bound tokens for your service account instead of using auto-generated secret-based ones. If you prefer to use static, auto-generated tokens you can do so by setting the environment variable `OKTETO_USE_STATIC_KUBETOKEN` to `true` before running any Okteto command. Be aware that using static tokens is not recommended by Kubernetes and you will receive warnings in your `kubectl` output from version `1.27` onward encouraging you to stop using them.
+The credential plugin gets time-bound tokens for your service account, which is more secure than the static tokens that Kubernetes generates in secrets. To use static tokens instead, set the `OKTETO_USE_STATIC_KUBETOKEN` environment variable to `true` before you run any Okteto CLI command. Kubernetes doesn't recommend static tokens, and `kubectl` 1.27 and later print a warning when you use them.

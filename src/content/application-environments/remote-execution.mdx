@@ -1,37 +1,33 @@
 ---
 title: Remote Execution
-description: Remote Execution runs your deploy, destroy, and test commands in a container inside the cluster.
+description: Remote Execution runs the deploy, destroy, and test commands of your Okteto Manifest in a container inside the cluster, instead of on the machine that runs the Okteto CLI.
 sidebar_label: Remote Execution
 id: remote-execution
 ---
 
 import Image from "@theme/Image";
 
-The Okteto Manifest allows you to define a list of `commands` to [deploy](application-environments/okteto-manifest.mdx#deploy), [test](application-environments/okteto-manifest.mdx#test) and [destroy](application-environments/okteto-manifest.mdx#deploy) your application.
-By default, your commands run locally in your machine, but we recommend that you enable remote execution.
+Remote Execution runs the [`deploy`](application-environments/okteto-manifest.mdx#deploy), [`destroy`](application-environments/okteto-manifest.mdx#destroy), and [`test`](application-environments/okteto-manifest.mdx#test) commands of your Okteto Manifest in a container inside the cluster. The machine that runs the Okteto CLI, whether it's a developer's laptop, a CI job, or a coding agent's sandbox, doesn't need Helm, `kubectl`, or any other tool of your deploy commands, and every run works the same way on all of them.
 
-## Enable Remote Execution
+## How Remote Execution Works {#how-remote-execution-works}
 
-You can enable remote execution by default for all applications or on a per application basis.
+When you run `okteto deploy`, the Okteto CLI sends your local folder to the [Okteto Build Service](application-environments/build-service.mdx), and BuildKit runs your commands in a container started from the `image` of the `deploy` section:
 
-### Enable Remote Execution by Default
+<Image
+  src={require("@site/static/img/remote-execution-flow.webp").default}
+  mobileSrc={require("@site/static/img/remote-execution-flow-mobile.webp").default}
+  borderless
+  alt="Cindy runs okteto deploy with an Okteto Manifest whose deploy section uses the runner:1.0 image. Okteto runs the deploy commands on BuildKit in the cluster, in a container of the runner:1.0 image that runs helm upgrade --install movies chart"
+/>
 
-Remote Execution can also be made the default by configuring it in the Admin Dashboard. The default value for this setting is `remote`.
+The commands run in the `/okteto/src` folder of the container, with the [Okteto Variables](application-environments/okteto-variables.mdx) of your Namespace. Okteto also mounts its [Git SSH key](admin/integrations.mdx#git-ssh-key), so your commands can clone the private Git repositories that the key has access to, and the [known hosts](admin/ssh-known-hosts.mdx) that your Admin configures.
 
-Navigate to **Admin -> Command Line (CLI)** under the Settings section to enable it.
+## When Commands Run Remotely
 
-  <Image
-    src={require("@site/static/img/remote-execution-setting+1.32.png").default}
-    alt="Remote Execution Settings"
-    width="850"
-  />
+`okteto test` always runs your tests with Remote Execution. For `okteto deploy` and `okteto destroy`, the **Deploy Execution Mode** of [**Admin > Command Line (CLI)**](admin/cli.mdx) sets the default:
 
-:::warning
-Okteto recommends that you enable remote execution for your deploy/destroy commands
-:::
-
-### Enable Remote Execution per Application
-To use remote execution per application, you can enable it by setting the `remote` field to `true` in the deploy/destroy section of your Okteto Manifest:
+- **Remote**, the default: the commands run in the cluster. To run the commands of an application on your machine, set `remote: false` in its `deploy` section, or run `okteto deploy --remote=false`.
+- **Local**, which is deprecated: the commands run on your machine, unless the `deploy` section sets an `image` or `remote: true`, or you run `okteto deploy --remote`.
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -40,12 +36,9 @@ deploy:
     - helm upgrade --install movies chart
 ```
 
-:::note
-Remote execution is always enabled for `okteto test`
-:::
+## The Runner Image {#defining-your-own-image}
 
-By default, your commands will run in a remote container using our [default container image](https://github.com/okteto/pipeline-runner) in the workdir `/okteto/src`.
-The default container image is a Debian Linux container with the following tools preinstalled:
+By default, your commands run in the [`okteto/pipeline-runner`](https://github.com/okteto/pipeline-runner) image, a Debian container with these tools:
 
 - `bash`
 - `curl`
@@ -59,93 +52,59 @@ The default container image is a Debian Linux container with the following tools
 - `openssh`
 - `wait-for-it`
 
-
-Remote execution means you don't have to worry about installing tools like `helm`, `kubectl`, and others on your local machine.
-
-### Defining Your Own Image
-
-If you need custom tooling or advanced logic, you can use your own image for remote execution.
-For example, if you want to use the image `runner:1.0` as the runtime of your remote execution, configure your Okteto Manifest like this:
-
+To use other tools, or to pin the versions of your deploy tools for your whole team, set the `image` of the `deploy` section to your own image, or to the public image of the tool you use:
 
 ```yaml title="okteto.yaml"
 deploy:
-  image: runner:1.0
+  image: alpine/helm:4.3.2
   commands:
     - helm upgrade --install movies chart
 ```
 
-You can use your own image to force specific versions of your deployment tools and ensure that your team has a consistent experience when working with Okteto.
+To change the default image of every repository that doesn't set its own, an Admin sets a [custom installer image](self-hosted/helm-configuration.mdx#custom-installer-image) in the Okteto Helm chart.
 
-To change the default image for every repository that doesn't set its own, an Admin sets a [custom installer image](self-hosted/helm-configuration.mdx#custom-installer-image) in the Okteto Helm chart.
+## Ignoring Files {#ignoring-files}
 
-## How Remote Execution Works
-
-When running on remote, Okteto will automatically synchronize your local folder to a container running inside Buildkit:
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/remote-execution.png").default}
-    alt="Remote Execution flow showing okteto deploy syncing local files to a BuildKit container that runs commands"
-    width="850"
-  />
-</p>
-
-Okteto mounts the [Okteto SSH Key](admin/integrations.mdx#git-ssh-key) within the container running inside Buildkit.
-This allows you to clone any private git repository as part of your commands execution as long as the [Okteto SSH Key](admin/integrations.mdx#git-ssh-key) has the appropriate access privileges.
-
-:::info
-Remote executions also honor organization-wide [SSH Known Hosts](admin/ssh-known-hosts.mdx).
-:::
-
-## Ignoring Files
-
-By default, Okteto synchronizes all files in the folder where the Okteto Manifest is located to the container running inside Buildkit.
-You can also configure the folder to be synchronized using the `context` field:
+Okteto sends the folder of your Okteto Manifest to the container. To send another folder, set the `context` field:
 
 ```yaml title="okteto.yaml"
 deploy:
-  image: runner:1.0
+  image: alpine/helm:4.3.2
   context: .
   commands:
     - helm upgrade --install movies chart
 ```
 
-You can optimize which files are synchronized to the container running inside Buildkit by using a `.oktetoignore` file, located in the folder specified by the `context` field. If this file exists, the CLI will exclude from synchronization any files and directories that match patterns in it.
-This helps avoid unnecessarily synchronizing large or sensitive files and directories that are not used by the commands defined in your Okteto Manifest.
+To leave out files that your commands don't use, such as large or sensitive files, add a `.oktetoignore` file to the `context` folder. It uses the format of [`.dockerignore` files](https://docs.docker.com/engine/reference/builder/#dockerignore-file), with a group of patterns for each kind of command:
 
-An example `.oktetoignore` file would be the following:
-
-```
-# applied to all commands
+```text title=".oktetoignore"
+# Applied to all commands
 docs
 
-# applied to deploy commands only
+# Applied to deploy commands only
 [deploy]
 integration/*
 
-# applied to destroy commands only
+# Applied to destroy commands only
 [destroy]
 app
 
-# applied to all test commands
+# Applied to all tests
 [test]
 app
 
-# applied to unit test command only
+# Applied to the unit test only
 [test.unit]
 integration
 ```
 
-This `.oktetoignore` expands to the following rules:
+With this file, Okteto ignores:
 
-- For deploys, ignores `docs` and `integration/**`.
-- For destroys, ignores `docs` and `app`. 
-- For any test, ignores `docs` and `app`. 
-- For the unit test specifically, ignores `docs`, `app` and `integration`.
-
-Each command group in `.oktetoignore` uses the same format as [.dockerignore files](https://docs.docker.com/engine/reference/builder/#dockerignore-file).
+- `docs` and `integration/**` for the `deploy` commands.
+- `docs` and `app` for the `destroy` commands.
+- `docs` and `app` for every test.
+- `docs`, `app`, and `integration` for the `unit` test.
 
 :::note
-For remote `deploy` and `destroy` operations, Okteto also reads the legacy `.oktetodeployignore` file but it will be deprecated in future versions.
+For `deploy` and `destroy`, Okteto also reads the legacy `.oktetodeployignore` file, which is deprecated.
 :::

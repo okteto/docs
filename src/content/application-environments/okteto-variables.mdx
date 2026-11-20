@@ -1,64 +1,129 @@
 ---
 title: Okteto Variables
-description: Okteto Variables store configuration values in Okteto and inject them into your deploy, destroy, and test commands.
+description: Okteto Variables are the values that Okteto passes to your Okteto Manifest and to the deploy, destroy, and test commands of an application environment.
 sidebar_label: Okteto Variables
 id: okteto-variables
 ---
 
-import Image from "@theme/Image";
+Okteto Variables are the values that Okteto passes to an application environment when it builds, deploys, tests, or destroys it. Your [Okteto Manifest](application-environments/okteto-manifest.mdx) expands them with the `${VARIABLE}` syntax, and the commands of its `deploy`, `destroy`, and `test` sections get them as environment variables. Okteto sets some of them automatically, such as the Namespace or the images it builds. You set the rest when you deploy, in a `.env` file, in your [Settings](user-settings/variables.mdx), or an Admin sets them for every user as [Admin Variables](admin/admin-variables.mdx).
 
-Configuration is a core concept of every application, we understand how important it is for developers and teams to parametrize their project deployments and Okteto manifests. At Okteto we built different ways for you and your teams to manage
-and share config values using Okteto Variables.
+The same variables work for every application environment: the one a developer deploys from a laptop, a Preview Environment that a CI pipeline deploys, and the one a coding agent deploys from its sandbox.
 
-This page is a guide for those who are authoring Okteto manifests and configuring Okteto for their team and organization. If you are interested in runtime variables of dev environments, see [Development Containers](development-containers/index.mdx).
+## Built-in Variables
 
-## What are Okteto Variables?
+### Variables in Your Pods {#runtime-environment-variables-injected-into-pods}
 
-Okteto Variables are a way to parametrize your [Okteto manifest](reference/okteto-manifest.mdx) and the deploy, destroy and test strategy.
+Okteto adds these environment variables to every pod that it manages, so your application can read them at runtime:
 
-### Types of Variables
+- **`OKTETO_DOMAIN`**: the domain where Okteto serves the endpoints of your application.
+- **`OKTETO_NAMESPACE`**: the Okteto Namespace where your application runs.
+- **`OKTETO_MANAGED_POD`**: `true` in every pod that Okteto manages. Use it to tell those pods apart.
 
-Each type is designed to solve a specific use-case.
+### Variables in Your Commands {#default-environment-variables}
 
-- **Built-in by Okteto**: variables injected automatically by Okteto in your deployment
-- **Deployment Variables**: Used to define variables at deployment time, either from the Okteto CLI or the Okteto UI deploy dialog
-- **Catalog Variables**: Used to define application-specific variables
-- **Local Environment Variables**: Used to define variables ad-hoc when using the Okteto CLI
-- **The `.env` file**: Used to define project or team-specific variables
-- **User Variables**: Used to define variables at the user level
-- **Admin Variables**: Used to define variables for all users in the organization
+Okteto sets these variables when it builds, deploys, tests, or destroys your application. Your Okteto Manifest and the commands of its `deploy`, `destroy`, and `test` sections can use them, including the scripts and tools they run, such as a `Makefile`. `OKTETO_DOMAIN` and `OKTETO_NAMESPACE` are available too.
 
-:::note
+- **`OKTETO_NAME`**: the name of the application environment. Okteto also adds it to your Development Containers.
+- **`OKTETO_USERNAME`**: your Okteto username.
+- **`OKTETO_REGISTRY_URL`**: the URL of the [Okteto Registry](application-environments/container-registry.mdx).
+- **`OKTETO_GIT_BRANCH`**: the Git branch that Okteto deploys.
+- **`OKTETO_GIT_COMMIT`**: the SHA of the last commit of that branch.
+- **`OKTETO_IS_PREVIEW_ENVIRONMENT`**: `true` when the application environment is a [Preview Environment](previews/index.mdx).
 
-This listing order is also the order in which the Okteto CLI gives precedence to each variable type. At the top the variables with the highest precedence.
+`OKTETO_GIT_BRANCH` and `OKTETO_GIT_COMMIT` are only available when you deploy from a Git repository.
 
-Variables with the same name defined in different types will be overridden by the variable with higher precedence.
+### Variables for Your Images {#built-in-environment-variables-for-images-in-okteto-registry}
 
-Example: the var `PORT` defined both in `.env` as `PORT=3000` and as `okteto deploy --var PORT=4000`, the value of `PORT` will be `4000` because the `--var` flag has higher precedence.
+For each image of the `build` section of your Okteto Manifest, Okteto sets these variables, where `<IMAGE>` is the name of the image in uppercase:
 
-:::
+- **`OKTETO_BUILD_<IMAGE>_IMAGE`**: the full reference of the image.
+- **`OKTETO_BUILD_<IMAGE>_REGISTRY`**: the registry where Okteto pushed the image.
+- **`OKTETO_BUILD_<IMAGE>_REPOSITORY`**: the repository of the image in that registry.
+- **`OKTETO_BUILD_<IMAGE>_SHA`**: the tag and the digest of the image.
 
+For example, for this `build` section:
 
-### Scope
+```yaml title="okteto.yaml"
+build:
+  hello-world:
+    context: .
+```
 
-Okteto Variables are scoped to the execution of the Okteto CLI. This means that they are:
+Okteto sets these variables:
 
-- available for expanding values in the Okteto manifest
-- available to commands, scripts and tools running as part of `deploy`, `destroy` and `test` commands in the Okteto manifest
+- **`OKTETO_BUILD_HELLO_WORLD_IMAGE`**: `registry.okteto.example.com/cindy/hello-world@sha256:xxx`
+- **`OKTETO_BUILD_HELLO_WORLD_REGISTRY`**: `registry.okteto.example.com`
+- **`OKTETO_BUILD_HELLO_WORLD_REPOSITORY`**: `cindy/hello-world`
+- **`OKTETO_BUILD_HELLO_WORLD_SHA`**: `f56119a37b@sha256:xxx`
 
-Okteto Variables **are not** propagated to the development containers. If you need to pass variables to your development containers, see [Development Containers](development-containers/index.mdx).
+A `-` in the name of an image becomes a `_` in the name of its variables.
 
-:::note
+## Setting Variables
 
-Variables defined in a specific command item are only scoped to that item by default. For sharing values between steps, see the section [Sharing variables between commands](#sharing-variables-between-commands).
+### When You Deploy
 
-:::
+Pass a variable with the `--var` flag when you run [`okteto deploy`](reference/okteto-cli.mdx#deploy), [`okteto preview deploy`](reference/okteto-cli.mdx#deploy-2), or `okteto test`:
 
-## Use Cases
+```bash
+okteto deploy --var PORT=4000
+```
 
-### Expand values in the Okteto manifest
+To deploy from the Okteto UI, add the variables in the **Deploy** dialog. See [Deploy from a Git Repository](application-environments/deploy/deploy-from-git.mdx#variables).
 
-Variables can be used to **expand values** in the the **Okteto Manifest** (see `${PORT}`)
+The environment variables of your terminal work too:
+
+```bash
+PORT=4000 okteto deploy
+```
+
+### The .env File
+
+A `.env` file sets default values for the variables that your Okteto Manifest uses. Put it in the folder of your Okteto Manifest. If your Okteto Manifest is in a `.okteto` folder, put the `.env` file in the parent folder instead:
+
+```bash title=".env"
+PORT=4000
+```
+
+```yaml title="okteto.yaml"
+deploy:
+  commands:
+    - name: Print the port
+      command: echo $PORT # -> 4000
+```
+
+The `.env` file supports parameter expansion, so it can set a default that anyone can override:
+
+```bash title=".env"
+PORT=${PORT:-4000}
+```
+
+With this `.env` file, `PORT=5000 okteto deploy` sets `PORT` to `5000`.
+
+### In the Okteto UI
+
+- [User Variables](user-settings/variables.mdx): your own variables, in **Settings > Variables**. Nobody else sees them.
+- [Admin Variables](admin/admin-variables.mdx): an Admin sets them in **Admin > Admin Variables** for every user of your Okteto instance.
+- [Catalog variables](admin/catalog.mdx#add-environment-variables): an Admin sets them for an application of the Catalog.
+
+## Precedence
+
+When two kinds of variables have the same name, Okteto uses the value of the kind that's higher in this list:
+
+1. Built-in variables.
+1. Variables that you pass when you deploy, with `--var` or in the **Deploy** dialog.
+1. Catalog variables.
+1. Environment variables of your terminal.
+1. Variables of the `.env` file.
+1. [User Variables](user-settings/variables.mdx).
+1. [Admin Variables](admin/admin-variables.mdx).
+
+For example, if `.env` sets `PORT=3000` and you run `okteto deploy --var PORT=4000`, `PORT` is `4000`.
+
+Some names are [reserved](user-settings/variables.mdx#reserved-variables) for the Okteto CLI context, such as `OKTETO_TOKEN`, and you can't set them as variables.
+
+## Using Variables in Your Okteto Manifest
+
+Your Okteto Manifest expands variables with the `${VARIABLE}` syntax:
 
 ```yaml title="okteto.yaml"
 dev:
@@ -68,16 +133,14 @@ dev:
       PORT: ${PORT}
 ```
 
-### Deploy, destroy and test commands
+The commands of the `deploy`, `destroy`, and `test` sections get every variable as an environment variable, and so do the scripts and tools they run:
 
-Okteto Variables can be used in **deploy**, **destroy** and **test** commands in the Okteto manifest. They are injected as environment variables of the steps. Commands, scripts and tools can use them, example:
-
-```yaml title="Makefile"
+```makefile title="Makefile"
 .PHONY: deploy
 deploy:
-    terraform init -backend-config=./config/${ENV}/backend.hcl
-    terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
-    terraform apply tfplan
+	terraform init -backend-config=./config/${ENV}/backend.hcl
+	terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
+	terraform apply tfplan
 ```
 
 ```yaml title="okteto.yaml"
@@ -87,31 +150,26 @@ deploy:
     - make deploy
 ```
 
-### Sharing variables between commands
+Okteto Variables don't reach your Development Containers. To set variables in a Development Container, use the [`environment`](reference/okteto-manifest.mdx#environment-string-optional) field of its `dev` section.
 
-As mentioned in the section [Scope](#scope), variables defined in each command of your deploy/destroy/test sections only available to that item by default.
+## Sharing Variables Between Commands
 
-For example, here we have two command items, in which the variable `MY_VAR` is **not propagated**:
+Each command of the `deploy`, `destroy`, and `test` sections runs in its own shell, so a variable that one command exports doesn't reach the next one:
 
 ```yaml title="okteto.yaml"
 deploy:
-  - export MY_VAR=hello
-  - echo $MY_VAR # -> '' (empty)
+  commands:
+    - export MY_VAR=hello
+    - echo $MY_VAR # -> '' (empty)
 ```
 
-In the following sections, you will see different ways to share values between steps or CLI commands.
+### Between Deploy and Destroy
 
-#### Sharing Variables Between Deploy and Destroy
-
-Okteto automatically shares variables passed with the `--var` flag during the `deploy` command with the `destroy` command. This ensures consistent configuration across both deployment and teardown processes without the need to redefine variables.
-
-For example:
+Okteto keeps the variables that you pass with `--var` to `okteto deploy`, and passes them to the commands of the `destroy` section when you destroy the application environment:
 
 ```bash
 okteto deploy --var MY_VAR=hello
 ```
-
-In your destroy section, you can access the `MY_VAR` variable:
 
 ```yaml title="okteto.yaml"
 destroy:
@@ -119,9 +177,9 @@ destroy:
     - echo $MY_VAR # -> 'hello'
 ```
 
-#### Multi-line Command
+### In a Multi-line Command
 
-The simplest way to share Okteto Variables between commands is to use a multi-line command, example:
+To use a variable in several steps, put them in one multi-line command:
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -131,312 +189,59 @@ deploy:
       echo $MY_VAR # -> 'hello'
 ```
 
-#### $OKTETO_ENV
+### With $OKTETO_ENV {#okteto_env}
 
-We understand that projects of a certain size and maturity often need to automate such steps, and often that require sharing values between steps. For such scenario we recommend using the special variable called `$OKTETO_ENV`.
-
-```yaml title="okteto.yaml"
-test:
-  integration:
-      commands:
-        # Example: some infrastructure has been provisioned
-        - terraform init -backend-config=./config/${ENV}/backend.hcl
-        - terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
-        - terraform apply tfplan
-        - terraform output -json > tfout.json
-
-        # I make the following var available to other steps
-        - echo SERVICE_ENDPOINT=$(cat tfout.json | jq -r '.service_endpoint') >> $OKTETO_ENV
-
-        # the following step will have access to SERVICE_ENDPOINT
-        - echo "Running tests against ${SERVICE_ENDPOINT}..."
-```
-
-Another example for the same functionality, can be for example, creating the infrastructure, generating a `.env` file, and then deploy the application.
+To pass a value to the next commands of the same section, write it to the file at `$OKTETO_ENV`, with the `NAME=value` format. For example, this `deploy` section creates an S3 bucket with Terraform, and passes its name to the commands that deploy the application:
 
 ```yaml title="okteto.yaml"
 deploy:
   commands:
-  - name: Create AWS infrastructure
-    command: |
-      set -e
-      bucketName="${OKTETO_NAMESPACE}-okteto-tacos-shop"
-      terraform apply -input=false -var "bucket_name=$bucketName" -auto-approve
-      echo "S3_BUCKET_NAME=$bucketName" >> "$OKTETO_ENV"
+    - name: Create AWS infrastructure
+      command: |
+        set -e
+        bucketName="${OKTETO_NAMESPACE}-okteto-tacos-shop"
+        terraform apply -input=false -var "bucket_name=$bucketName" -auto-approve
+        echo "S3_BUCKET_NAME=$bucketName" >> "$OKTETO_ENV"
 
-  - name: Create .env
-    command: |
-      set -e
-      echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" > .env
+    - name: Create .env
+      command: |
+        set -e
+        echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" > .env
 
-  - name: Deploy the app
-    command: |
-      set -e
-      make deploy
+    - name: Deploy the app
+      command: |
+        set -e
+        make deploy
 ```
 
-:::note
+The variables in `$OKTETO_ENV` stay in the section where you write them: the `deploy`, `test`, and `destroy` sections don't share them.
 
-Here are some highlights, and clarifications on this example:
+### Configuring Dynamic Endpoints {#configuring-dynamic-endpoints}
 
-1. The first step makes the variable `S3_BUCKET_NAME` available to the rest of the deployment steps. Both the step "Create .env" and "Deploy the app" will have access to `S3_BUCKET_NAME`.
-
-2. Also, it's important to remember that the variables in `$OKTETO_ENV` are not shared across `deploy`, `test`, and `destroy` sections. They are only shared within the same section.
-
-3. If you are wondering where the variable `OKTETO_NAMESPACE` comes from, check the section Okteto Variables [Built-in by Okteto](#built-in-by-okteto).
-
-:::
-
-
-### Configuring dynamic endpoints
-
-In this example, we show how `$OKTETO_ENV` can be used to configure dynamic endpoints for [External Resources](application-environments/okteto-manifest.mdx#external) within your dev environment.
-
-External Resources are defined in the Okteto manifest and have a name and a URL. Often, the resource URL is generated dynamically when the infrastructure is provisioned, in this example we show how to dynamically set the URL of an SQS queue.
+An [External Resource](application-environments/okteto-manifest.mdx#external) of your Okteto Manifest can take its URL from a variable that a `deploy` command writes to `$OKTETO_ENV`. The variable is `OKTETO_EXTERNAL_<RESOURCE>_ENDPOINTS_<ENDPOINT>_URL`. For example, this Okteto Manifest sets the URL of an SQS queue that Terraform creates:
 
 ```yaml title="okteto.yaml"
 deploy:
-  - name: Create AWS infrastructure
-    command: |
-      # Example: some infrastructure has been provisioned
-      terraform init -backend-config=./config/${ENV}/backend.hcl
-      terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
-      terraform apply tfplan
-      terraform output -json > tfout.json
-
-      # I configure the external resource URL
-      echo OKTETO_EXTERNAL_SQS_ENDPOINTS_QUEUE_URL=$(cat tfout.json | jq -r '.queue_url') >> $OKTETO_ENV
+  commands:
+    - name: Create AWS infrastructure
+      command: |
+        terraform init -backend-config=./config/${ENV}/backend.hcl
+        terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
+        terraform apply tfplan
+        terraform output -json > tfout.json
+        echo OKTETO_EXTERNAL_SQS_ENDPOINTS_QUEUE_URL=$(cat tfout.json | jq -r '.queue_url') >> $OKTETO_ENV
 
 external:
   sqs:
     icon: aws
     endpoints:
-    - name: queue
-
+      - name: queue
 ```
 
-## Built-in by Okteto
+## Feature Flags
 
-### Runtime Environment Variables (Injected into Pods)
+Some behaviors of the Okteto CLI are behind feature flags, which you turn on with Okteto Variables. Set one as an Admin Variable to turn it on for every user. See [Feature Flags](reference/feature-flags.mdx) for the list.
 
-Okteto automatically injects the following environment variables into every pod managed by Okteto at runtime. These variables are available within your application containers:
+## Masking
 
-- **`OKTETO_DOMAIN`**: The domain where Okteto exposes your application endpoints.
-- **`OKTETO_NAMESPACE`**: The namespace where your application is installed.
-- **`OKTETO_MANAGED_POD`**: Set to `true` for all pods managed by Okteto. Use it to identify and filter Okteto-managed pods.
-
-### Deployment Environment Variables
-
-The following environment variables are automatically injected by Okteto during deployment operations. You can use them in the manifest and `deploy`, `destroy` and `test` sections, including your scripts and tools (for example, `Makefile`).
-
-:::note
-`OKTETO_DOMAIN` and `OKTETO_NAMESPACE` are available both at runtime in pods and during deployment operations.
-:::
-
-- **`OKTETO_NAME`**: The name of the application environment. It is also injected into the Development Container at runtime.
-- **`OKTETO_USERNAME`**: Your username in Okteto.
-- **`OKTETO_REGISTRY_URL`**: The URL of the Okteto Registry.
-- **`OKTETO_GIT_BRANCH`**: The name of the Git branch being deployed.
-- **`OKTETO_GIT_COMMIT`**: The SHA1 hash of the last commit of the branch
-- **`OKTETO_IS_PREVIEW_ENVIRONMENT`**: Set to `true` when the environment is [a preview environment](previews/index.mdx).
-
-### Built-in Environment Variables for Images in Okteto Registry
-
-Reference images defined in the `build` section of the Okteto manifest using the following environment variables:
-
-- **`OKTETO_BUILD_(IMAGE)_IMAGE`**: Full image reference.
-- **`OKTETO_BUILD_(IMAGE)_REGISTRY`**: Registry URL where the image was pushed.
-- **`OKTETO_BUILD_(IMAGE)_REPOSITORY`**: Name of the image that was pushed.
-- **`OKTETO_BUILD_(IMAGE)_SHA`**: Latest tag and SHA of the image.
-
-For instance, with a build section like:
-
-```yaml title="okteto.yaml"
-build:
-  hello-world:
-    context: .
-```
-
-Okteto will generate environment variables such as:
-
-- **`OKTETO_BUILD_HELLO_WORLD_IMAGE`**: registry.okteto.example.com/cindy/hello-world@sha256:xxx
-- **`OKTETO_BUILD_HELLO_WORLD_REGISTRY`**: registry.okteto.example.com
-- **`OKTETO_BUILD_HELLO_WORLD_REPOSITORY`**: cindy/hello-world
-- **`OKTETO_BUILD_HELLO_WORLD_SHA`**: f56119a37b@sha256:xxx
-
-:::note
-
-If an `image` name includes '-', it will be replaced by '_' in the corresponding environment variables.
-
-:::
-
-### Reserved Variables
-
-
-Certain variable names are reserved for use by the Okteto Platform only. These reserved variables can be used within the supported [environment variable settings](user-settings/environment-variables.mdx) but should not be used outside of them.
-
-This applies to:
-- Admin Variables
-- User Variables
-- Catalog Variables
-- Variables defined at deployment time
-
-The reserved variable names are:
-
-- `OKTETO_NAMESPACE`
-- `OKTETO_CONTEXT`
-- `OKTETO_TOKEN`
-- `OKTETO_URL`
-
-
-## Setting Okteto Variables
-
-This section will show a brief example of how to set each type of Okteto Variable.
-
-### Deployment Variables
-
-Variables defined at deployment time are those set with the `--var` flag. They are used to specify ad-hoc variables when running a command like [deploy](reference/okteto-cli.mdx#deploy) or [preview deploy](reference/okteto-cli.mdx#deploy-2)
-
-Example:
-
-```bash
-okteto deploy --var PORT=4000
-```
-
-```yaml title="okteto.yaml"
-deploy:
-  image: "node:${TAG}"
-  commands:
-    - name: deploy
-      command: NODE_ENV=${ENV} make deploy
-```
-
-### Catalog Variables
-
-When you deploy an application from the Okteto UI or if your organization uses the Okteto Catalog, you can define variables specific for your application environment. See [Catalog Variables](admin/catalog.mdx#add-environment-variables) for more information.
-
-### Local Environment Variables
-
-Similar to the `--var` flag, local environment variables are useful when you need to specify ad-hoc variables when running a command like [deploy](reference/okteto-cli.mdx#deploy) or [preview deploy](reference/okteto-cli.mdx#deploy-2)
-
-Example:
-
-```bash
-PORT=4000 okteto deploy
-```
-
-
-### The .env file
-
-You can set default values for any environment variables referenced in the Okteto Manifest in an environment file named `.env`.
-
-The `.env` should be placed in the same folder of the Okteto Manifest. The Okteto Manifest can also be stored in a special folder called `.okteto`. In that case, the `.env` should not be placed inside it, but in the parent directory.
-
-For example:
-
-```bash title=".env"
-PORT=4000
-```
-
-```yaml title="okteto.yaml"
-deploy:
-  commands:
-    - name: deploy
-      command: echo $PORT # -> 4000
-```
-
-:::tip
-
-The `.env` integration also supports parameter expansion to set default values and allowing other developers to override them.
-
-Example:
-
-```bash title=".env"
-PORT=${PORT:-4000}
-```
-
-When running `PORT=5000 okteto deploy` the value of `PORT` will be `5000`.
-
-:::
-
-
-### User Variables
-
-User variables are defined and managed by each user from the Okteto dashboard. They store user-specific configuration values that are not shared with the rest of the team.
-
-To create or delete User Variables go to the `Variables` section in the `Settings` page of the Okteto dashboard:
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/variables-user+1.32.png").default}
-    alt="Settings page with the Variables tab selected, showing a user variable with a masked value and a Remove button"
-    width="650"
-  />
-</p>
-
-To create a new variable, click on the **Add Variable** button, and provide a name and a value. The value will be masked once the variable is created.
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/variables-add.png").default}
-    alt="Add Variable dialog with Name and Value input fields"
-    width="450"
-  />
-</p>
-
-To delete an existing variable, click on the **Remove** button on the right. You'll have to confirm your choice before the variable is deleted. Deleted variables can't be recovered, so be careful when doing this.
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/variables-delete+1.32.png").default}
-    alt="Variables table showing a user variable with a masked value and a Remove button"
-    width="650"
-  />
-</p>
-
-### Admin Variables
-
-Admin variables are defined and managed by the Okteto administrators from the Okteto dashboard. They store configuration values that are shared with all users of the Okteto installation.
-
-To create or delete Admin Variables navigate to the **Admin -> Admin Variables** underneath the Settings section of the Okteto Admin Dashboard:
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/variables-admin+1.32.png").default}
-    alt="Admin Dashboard showing the Admin Variables page with a table of variables and Remove buttons"
-    width="650"
-  />
-</p>
-
-To create a new variable, click on the **Add Variable** button, and provide a name and a value. The value will be masked once the variable is created.
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/variables-add.png").default}
-    alt="Add Variable dialog with Name and Value input fields"
-    width="450"
-  />
-</p>
-
-To delete an existing variable, click on the **Remove** button on the right. You'll have to confirm your choice before the variable is deleted. Deleted variables can't be recovered, so be careful when doing this.
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/variables-delete+1.32.png").default}
-    alt="Admin variables table showing variables with masked values and Remove buttons"
-    width="650"
-  />
-</p>
-
-
-## Feature flag variables
-
-Some features in Okteto are controlled by feature flags. These flags can be enabled or disabled using Okteto Variables and they have an impact on the behavior of the Okteto CLI.
-
-For a list of available feature flags, see [Feature Flags](reference/feature-flags.mdx).
-
-## Security
-
-Okteto Variables longer than 5 characters are masked in the logs.
-
-This is to prevent sensitive information from being exposed, without compromising the developer experience when inspecting logs you will be able to see values that not sensitive such as boolean options (`true` / `false`).
+The Okteto CLI masks the values of Okteto Variables in the logs of your deployments and tests, so secrets don't leak into a log that someone else reads. It only masks values longer than 5 characters, so short values such as `true` or `false` stay readable.

@@ -7,7 +7,7 @@ id: python
 
 import Image from "@theme/Image";
 
-Okteto runs your Python application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Python Sample App](https://github.com/okteto/python-getting-started), a hello world [FastAPI](https://fastapi.tiangolo.com/) application, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](coding-agents/index.mdx).
+Okteto runs your Python application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Python Sample App](https://github.com/okteto/python-getting-started), a hello world [FastAPI](https://fastapi.tiangolo.com/) application, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To set up your own repository the same way, use an AI agent with the [Okteto agent skills](coding-agents/okteto-skills.mdx).
 
 ## Prerequisites
 
@@ -115,14 +115,14 @@ Open the endpoint in your browser to see the `Hello World!` response. The Okteto
 <Image
   src={require("@site/static/img/okteto-ui-python.png").default}
   mobileSrc={require("@site/static/img/okteto-ui-python-mobile.png").default}
-  alt="Okteto UI showing the cindy Namespace with the python-getting-started Dev Environment deployed, its hello-world Deployment running, and its endpoint"
+  alt="Okteto UI showing the cindy Namespace with the python-getting-started application deployed, its hello-world Deployment running, and its endpoint"
 />
 
 Okteto creates an [HTTPS endpoint](application-environments/endpoints/automatic-ssl.mdx) for the [Ingress](application-environments/endpoints/ingress.mdx) in the Helm chart. If your application uses the Gateway API, it does the same for its [HTTPRoutes](application-environments/endpoints/httproutes.mdx).
 
 ## Testing the Python Sample App
 
-The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit tests in `test_app.py` with [pytest](https://docs.pytest.org/) and the [FastAPI test client](https://fastapi.tiangolo.com/tutorial/testing/):
+The `test` section of the Okteto Manifest defines the `unit` [test](application-environments/okteto-test.mdx), which runs the unit tests in `test_app.py` with [pytest](https://docs.pytest.org/) and the [FastAPI test client](https://fastapi.tiangolo.com/tutorial/testing/):
 
 ```yaml title="okteto.yml"
 test:
@@ -138,11 +138,11 @@ test:
 ```
 
 - `image`: the development image, so the tests run with the same Python version and dependencies as the Development Container.
-- `caches`: the pip cache, kept between runs of the Test Container. `pip install` downloads the test dependencies on the first run and installs them from the cache on the next ones.
-- `commands`: the commands that run the tests. `requirements-test.txt` adds pytest and `httpx2`, the HTTP client of the FastAPI test client, to the dependencies in `requirements.txt`, which the development image already has. The Test Container fails if any of them exits with a non-zero code.
+- `caches`: the pip cache, kept between runs of the test. `pip install` downloads the test dependencies on the first run and installs them from the cache on the next ones.
+- `commands`: the commands that run the tests. `requirements-test.txt` adds pytest and `httpx2`, the HTTP client of the FastAPI test client, to the dependencies in `requirements.txt`, which the development image already has. The test fails if any of them exits with a non-zero code.
 - `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the JUnit report of pytest.
 
-Test Containers run with [Remote Execution](application-environments/remote-execution.mdx), in a container inside your cluster.
+The test runs with [Remote Execution](application-environments/remote-execution.mdx), in a container inside your cluster.
 
 Run the unit tests from the root folder of the Python Sample App:
 
@@ -174,13 +174,13 @@ test_app.py .                                                            [100%]
 
 The JUnit report is now in `report.xml`, in the root folder of the Python Sample App on your machine. Your CI system can read it to show the results of each test.
 
-Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](coding-agents/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](coding-agents/okteto-skills.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
 
 ## Developing in a Development Container
 
-If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A [Development Container](development-containers/index.mdx) gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
 
-While `okteto up` is running, an AI agent with the [Okteto agent skills](coding-agents/index.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
+While `okteto up` is running, an AI agent with the [Okteto agent skills](coding-agents/okteto-skills.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
 
 ### Configuration
 
@@ -317,13 +317,7 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 ```
 
-The **Debug** tool window shows `Connected to pydev debugger`:
-
-<Image
-  src={require("@site/static/img/python-connected.png").default}
-  alt="PyCharm Debug console showing a successful connection to the pydev remote debugger on port 9000"
-  width="850"
-/>
+The **Debug** tool window shows `Connected to pydev debugger`.
 
 Add a breakpoint on line 10 of `app.py` and reload the endpoint in your browser. Execution stops at the breakpoint, and you can inspect the request and the variables. Every time you save a file, Uvicorn starts a new server process, and `attach()` connects it to PyCharm again.
 
@@ -347,7 +341,7 @@ okteto destroy
 
 ### How do I make builds, deploys, and `okteto up` faster?
 
-Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](application-environments/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](development-containers/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](coding-agents/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](application-environments/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](development-containers/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](coding-agents/okteto-skills.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
 
 ### How do I deploy an application with several services and a database?
 

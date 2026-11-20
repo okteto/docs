@@ -4,58 +4,64 @@ description: You run okteto up, and a coding agent works inside your Development
 sidebar_label: Collaborative Workflows
 ---
 
-In collaborative mode, you stay in control of the development session while the agent runs commands, tests, and debugs issues inside your live Okteto environment. You manage the dev session with `okteto up`. The agent runs commands in the active Development Container using `okteto exec`. Code changes sync automatically, so when the agent edits a file, it's running in the container within seconds. No rebuilds between iterations.
+In a collaborative workflow, you and a coding agent work on the same application environment. You run `okteto up` to turn a service into a [Development Container](development-containers/index.mdx), and the agent runs commands inside it with `okteto exec`. [File Sync](development-containers/file-synchronization.mdx) copies every file the agent edits to the Development Container within seconds, so the agent sees the result of a change without rebuilding or redeploying.
 
-## How it works
+## How It Works
 
-1. The agent runs `okteto deploy --wait` to set up the environment (or you do this yourself)
-2. You run `okteto up <service>` in your terminal to start the dev session
-3. The agent uses `okteto exec -- <command>` to run commands in the dev container
-4. Code changes sync to the container automatically via [file sync](development-containers/index.mdx)
-5. The agent checks results with `okteto exec` and `okteto test`
-6. You iterate together until the task is complete
+1. You, or the agent, deploy the environment with `okteto deploy --wait`.
+2. You start the Development Container in your terminal:
 
-:::warning
-`okteto up` is interactive and hangs if an agent runs it. You always start the dev session yourself. See [Command rules](coding-agents/best-practices.mdx#command-rules).
-:::
+   ```bash
+   okteto up <service>
+   ```
 
-## Workflow example: fixing a bug
+3. The agent edits the code on your machine, and File Sync copies the changes to the Development Container.
+4. The agent runs commands in the Development Container with `okteto exec -- <command>`, and runs your tests with `okteto test <name>`.
+5. You and the agent iterate until the task is done.
 
-You start the dev environment:
+The agent never runs `okteto up` itself: it's interactive and hangs the agent's shell. With the [Okteto skills](coding-agents/okteto-skills.mdx), the agent asks you to run it.
+
+The output of the service in your Development Container shows up in your `okteto up` terminal, not in `okteto logs`. The agent uses `okteto logs <service>` for the other services of the environment.
+
+## Changes That Need a Rebuild
+
+File Sync only copies what the running container reads at runtime. A change to anything baked into the image at build time doesn't reach the Development Container until you rebuild it:
+
+- A `Dockerfile` or `.dockerignore` file.
+- A dependency manifest, such as `go.mod`, `package.json`, `requirements.txt`, or `pom.xml`.
+- `okteto.yaml`.
+
+After one of these changes, the agent rebuilds the image and redeploys the application:
+
+```bash
+okteto validate        # only when okteto.yaml changed
+okteto build <service>
+okteto deploy --wait
+```
+
+## Example: Fixing a Bug
+
+You start the Development Container for the `api` service:
+
 ```bash
 okteto up api
 ```
 
-You ask the agent:
-```
+And you ask the agent:
+
+```text
 The /api/orders endpoint returns a 500 error when the cart is empty.
 Can you investigate and fix it?
 ```
 
-The agent investigates:
+The agent reproduces the failure, fixes the code, and checks the fix inside the Development Container:
+
 ```bash
-# Reproduce the failure by running the test that covers it
+# Reproduce the failure with the test that covers it
 okteto exec -- npm test -- --grep "empty cart"
 
-# After reading the code and making a fix...
-
-# Run the tests again to verify
+# After reading the code and fixing it, run the tests again
 okteto exec -- npm test
 ```
 
-Because `api` is in dev mode, its live output appears in the `okteto up api` terminal you control, not in `okteto logs`. The agent reproduces and verifies the fix by running commands in the dev container with `okteto exec`.
-
-Since file sync is active, the agent's code changes are immediately available in the running container. No rebuild needed.
-
-The agent's day-to-day commands in this mode are `okteto exec` and `okteto test`. Output from the service in dev mode appears in your `okteto up` terminal, not in `okteto logs`; the agent uses `okteto logs <service>` for the other services in the environment. The full list of commands agents may and may not run is in [Command rules](coding-agents/best-practices.mdx#command-rules). For flag details on any command, see the [CLI Reference](reference/okteto-cli.mdx).
-
-## File sync
-
-When `okteto up` is running, Okteto syncs file changes between your local machine and the dev container. The agent edits files locally, changes appear in the container within seconds, and the running application picks them up immediately (assuming hot-reload or similar). There's no need to run `okteto build` or `okteto deploy` for code changes during development.
-
-The agent makes a change, runs a test with `okteto exec`, sees the result, and iterates. No waiting on builds.
-
-## Next steps
-
-- [Autonomous Workflows](coding-agents/autonomous-workflows.mdx): let the agent handle the full lifecycle without human input
-- [Best Practices](coding-agents/best-practices.mdx): command rules and common pitfalls
+File Sync copies the fix to the Development Container, so the agent runs the tests against the new code right away. If the service runs with hot reload, it also picks up the fix without a restart. See the [command rules](coding-agents/best-practices.mdx#command-rules) for every command an agent may run in this workflow.
