@@ -108,8 +108,6 @@ module.exports = {
       link: { type: 'doc', id: 'development/index' },
       items: [
         'development/using-okteto-cli',
-        'development/file-synchronization',
-        'development/ssh-server',
         {
           type: 'category',
           label: 'Development Containers',
@@ -149,6 +147,8 @@ module.exports = {
             'development/divert/data-cloning',
           ],
         },
+        'development/file-synchronization',
+        'development/ssh-server',
       ],
     },
     {
