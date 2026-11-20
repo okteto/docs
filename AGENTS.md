@@ -53,7 +53,7 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Environments | `application environment`, `Development Environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the default term for what Okteto deploys: use it instead of `Development Environment`, which is only for the environment a developer works in with `okteto up`. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
 | Namespaces | `Namespace` (Okteto) vs. `namespace` (generic Kubernetes) | Capitalization signals which one you mean. |
 | Roles | `Admin`, `Developer`, `Personal Access Token` | Capitalized when referring to the Okteto role. |
-| Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
+| Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Coding Agents` | Capitalized as feature names. |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
 
 ### Search terms

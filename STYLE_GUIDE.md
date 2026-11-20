@@ -268,7 +268,7 @@ Other products use near-synonyms for these concepts. Don't use them for Okteto c
 | **Remote Execution** | Capitalized. |
 | **File Sync** | Capitalized. The underlying behavior is "file sync" (lowercase) when used as a verb phrase. |
 | **Volume Snapshot** | Capitalized when referring to the Okteto feature. |
-| **Agentic Workflows** | Capitalized as a section/feature name. |
+| **Coding Agents** | Capitalized as a section/feature name. |
 
 ### Deployment models
 
