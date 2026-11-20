@@ -21,6 +21,11 @@ import {
   C, root, text, icon, logo, box, circle, arrow, curve, scaled, hub, row, mark, word, tile, group, item,
   badge, smallMark, terminal, bars,
 } from './style.mjs';
+import docsApplicationEnvironments from './docs/application-environments.mjs';
+import docsEndpointsDivert from './docs/endpoints-divert.mjs';
+import docsAgentsPreviews from './docs/agents-previews.mjs';
+import docsDevelopmentContainers from './docs/development-containers.mjs';
+import docsUserSettings from './docs/user-settings.mjs';
 
 const post = (dir) => `blog/posts/${dir}/img/cover.jpg`;
 const tutorial = (dir) => `tutorials/posts/${dir}/img/cover.jpg`;
@@ -1124,5 +1129,7 @@ const covers = [
       + environmentBox(60, 640, 480),
   },
 ];
+
+covers.push(...docsApplicationEnvironments, ...docsEndpointsDivert, ...docsAgentsPreviews, ...docsDevelopmentContainers, ...docsUserSettings);
 
 export default covers.map((cover) => ({ ...cover, background: cover.background ?? rotation(cover.out) }));

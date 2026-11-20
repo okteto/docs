@@ -55,7 +55,7 @@ Readers arrive mid-task from search or a link in the product, and they don't rea
 | Reader | Usually reads | Write for them |
 |--------|---------------|----------------|
 | Platform engineer | `admin/`, `self-hosted/`, `byoc/`, installation pages | Knows Kubernetes and Helm well. Don't explain Kubernetes primitives. Give exact configuration keys, default values, and failure modes. |
-| Application developer | `get-started/`, `application-environments/`, `developers/`, `previews/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
+| Application developer | `get-started/`, `application-environments/`, `coding-agents/`, `previews/`, `development-containers/`, `user-settings/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
 | AI coding agent | Any page | Runs what the page says, verbatim. See below. |
 
 Write so an agent can act on a single section:
