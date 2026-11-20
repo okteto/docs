@@ -16,7 +16,7 @@ This guide is a draft. Its content, including the configuration it describes, ma
 1. **No bundled controllers.** The chart no longer packages the NGINX Ingress controllers (`ingress-nginx` and `okteto-nginx`). Your applications must be served by a Gateway controller or an Ingress controller that you install and operate outside of the Okteto installation.
 2. **No NGINX annotations.** Okteto doesn't process `nginx.ingress.kubernetes.io/*` annotations. They only work if an NGINX Ingress controller that you operate serves your Ingress objects, and the NGINX Ingress controller is [retired](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/).
 3. **No auto-generated certificate.** Okteto no longer generates an internal wildcard certificate. If you set `wildcardCertificate.create: true`, change it to `false` and manage the certificate yourself, as described in [Certificate Configuration](#certificate-configuration).
-4. **No Private Endpoints.** [Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported. The alternative is in [Private Endpoints](#private-endpoints).
+4. **No Private Endpoints.** [Private Endpoints](application-environments/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported. The alternative is in [Private Endpoints](#private-endpoints).
 
 Okteto recommends moving all your applications to Gateway API. The [Ingress NGINX project was retired](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) in March 2026 and no longer receives releases or security fixes. Okteto maintains a fork of Ingress NGINX to ship security patches for the Okteto NGINX Ingress controllers, but maintaining it takes significant effort, and we'll stop doing it at some point. The [Ingress API](https://kubernetes.io/docs/concepts/services-networking/ingress/) is frozen: it is still supported, but new features are only added to Gateway API.
 
@@ -85,7 +85,7 @@ Review the NGINX annotations (`nginx.ingress.kubernetes.io/*`) on your Ingress o
 
 ### Moving Your Applications
 
-Move your applications one at a time. For each application, replace its Ingress objects with HTTPRoutes and redeploy it. Once the application has no Ingress in `okteto-nginx`, the wildcard Ingress forwards its traffic to your `Gateway`. [HTTPRoutes](core/endpoints/httproutes.mdx) explains how Okteto attaches HTTPRoutes to your `Gateway` and generates their hostnames.
+Move your applications one at a time. For each application, replace its Ingress objects with HTTPRoutes and redeploy it. Once the application has no Ingress in `okteto-nginx`, the wildcard Ingress forwards its traffic to your `Gateway`. [HTTPRoutes](application-environments/endpoints/httproutes.mdx) explains how Okteto attaches HTTPRoutes to your `Gateway` and generates their hostnames.
 
 For Okteto to manage your HTTPRoutes during the application migration, enable `endpoints.dev.gatewayAPI` in your Helm configuration with the `Gateway` that serves your applications, keep everything else as it is, and run `helm upgrade`:
 
@@ -193,7 +193,7 @@ Set the control plane's `Gateway` in `endpoints.okteto.gatewayAPI.gateway`, and 
 
 ### Private Endpoints
 
-[Private Endpoints](core/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported with Gateway API. Endpoints marked as private are exposed like any other endpoint.
+[Private Endpoints](application-environments/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported with Gateway API. Endpoints marked as private are exposed like any other endpoint.
 
 To keep your applications off the public internet, give them a dedicated load balancer with a private IP: use separate Gateways for the control plane and your application endpoints, and expose your applications' `Gateway` through an internal load balancer. Only clients with access to your private network can reach the applications.
 
@@ -207,7 +207,7 @@ buildkit:
     enabled: false
 ```
 
-Every time you run `okteto build`, the Okteto CLI requests dynamic credentials from the Okteto API and uses them to port-forward to a BuildKit pod. This gives the Okteto API control over which pod serves each build, so it can balance builds across the BuildKit pods, or queue them when every pod is busy, as described in [Build Queue System](core/build-service.mdx#build-queue-system).
+Every time you run `okteto build`, the Okteto CLI requests dynamic credentials from the Okteto API and uses them to port-forward to a BuildKit pod. This gives the Okteto API control over which pod serves each build, so it can balance builds across the BuildKit pods, or queue them when every pod is busy, as described in [Build Queue System](application-environments/build-service.mdx#build-queue-system).
 
 This flow requires Okteto CLI 3.15.0 or later. Earlier versions reach BuildKit through its public endpoint, which Gateway API no longer exposes, so your developers must upgrade the Okteto CLI before you disable that endpoint.
 

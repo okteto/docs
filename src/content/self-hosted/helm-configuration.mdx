@@ -26,7 +26,7 @@ license: XXXXX
 
 ### subdomain
 
-Okteto [Endpoints](core/endpoints/automatic-ssl.mdx) expose your application environments on secure, unique public URLs. By default, every endpoint Okteto creates combines the app name, the Namespace, and the `subdomain`. For example, if `subdomain` is `example.com`, an application environment named `app` in the `cindy` Namespace is available at https://app-cindy.example.com.
+Okteto [Endpoints](application-environments/endpoints/automatic-ssl.mdx) expose your application environments on secure, unique public URLs. By default, every endpoint Okteto creates combines the app name, the Namespace, and the `subdomain`. For example, if `subdomain` is `example.com`, an application environment named `app` in the `cindy` Namespace is available at https://app-cindy.example.com.
 
 ```yaml
 subdomain: "example.com"
@@ -65,7 +65,7 @@ kubectl get service -l=app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/co
 
 **Important**: When you use `publicOverride`, the certificate that [wildcardCertificate.name](self-hosted/helm-configuration.mdx#wildcardcertificate) refers to must be valid for `publicOverride`, `registry.$SUBDOMAIN`, and `buildkit.$SUBDOMAIN`.
 
-When `publicOverride` is set, Okteto deploys an additional component for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx). Configure it in the [privateEndpoints](self-hosted/helm-configuration.mdx#privateendpoints) section.
+When `publicOverride` is set, Okteto deploys an additional component for [Okteto Private Endpoints](application-environments/endpoints/private-endpoints.mdx). Configure it in the [privateEndpoints](self-hosted/helm-configuration.mdx#privateendpoints) section.
 
 The callback URL and the origin URL of your [auth provider](self-hosted/helm-configuration.mdx#auth) change to:
 
@@ -191,7 +191,7 @@ autoscaler:
 
 ### buildkit
 
-The [Okteto Build Service](core/build-service.mdx). `okteto build` uses it to build container images in the cluster.
+The [Okteto Build Service](application-environments/build-service.mdx). `okteto build` uses it to build container images in the cluster.
 
 - `port`: The port of the BuildKit StatefulSet. Defaults to `443`.
 - `annotations`: Annotations to add to the BuildKit pods.
@@ -522,7 +522,7 @@ insights:
 
 ### installer
 
-The jobs that deploy your [application environments from Git](development/deploy/deploy-from-git.mdx).
+The jobs that deploy your [application environments from Git](application-environments/deploy/deploy-from-git.mdx).
 
 - `annotations`: Annotations to add to the installer job pods.
 - `extraEnv`: Environment variables for the installer job containers.
@@ -633,7 +633,7 @@ migration:
 
 The Job that destroys every resource in a Namespace, plus the CronJob that recovers Namespaces whose destroy-all Job didn't finish.
 
-Okteto creates a destroy-all Job in the `okteto` namespace each time a Developer runs [`okteto destroy --all`](reference/okteto-cli.mdx#destroy) or uses **Destroy All** in the Okteto UI. The Job runs `okteto pipeline destroy` for application environments with a `destroy` section or a [Divert](development/divert/index.mdx) driver, uninstalls Helm releases, and deletes the remaining resources. It times out after 2 hours. To read its logs for a Namespace:
+Okteto creates a destroy-all Job in the `okteto` namespace each time a Developer runs [`okteto destroy --all`](reference/okteto-cli.mdx#destroy) or uses **Destroy All** in the Okteto UI. The Job runs `okteto pipeline destroy` for application environments with a `destroy` section or a [Divert](application-environments/divert/index.mdx) driver, uninstalls Helm releases, and deletes the remaining resources. It times out after 2 hours. To read its logs for a Namespace:
 
 ```bash
 kubectl logs -l app.kubernetes.io/component=namespace-destroy-all,dev.okteto.com/namespace=<namespace> --namespace=okteto
@@ -656,7 +656,7 @@ namespaceDestroyAll:
 
 ### privateEndpoints
 
-When [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) is set, Okteto deploys an additional component for [Okteto Private Endpoints](core/endpoints/private-endpoints.mdx). It authenticates and authorizes the requests to Okteto Endpoints in private mode.
+When [publicOverride](self-hosted/helm-configuration.mdx#publicoverride) is set, Okteto deploys an additional component for [Okteto Private Endpoints](application-environments/endpoints/private-endpoints.mdx). It authenticates and authorizes the requests to Okteto Endpoints in private mode.
 
 - `port`: The internal port of the Private Endpoints component. Defaults to `8080`.
 - `resources`: The resources for the Private Endpoints component pods.
@@ -771,7 +771,7 @@ resourceManager:
 
 ### registry
 
-Configures the [Okteto Registry](core/container-registry.mdx). The [Okteto Registry storage guides](self-hosted/install/okteto-registry-storage/index.mdx) explain how to store your images in the storage driver you choose.
+Configures the [Okteto Registry](application-environments/container-registry.mdx). The [Okteto Registry storage guides](self-hosted/install/okteto-registry-storage/index.mdx) explain how to store your images in the storage driver you choose.
 
 The Okteto Registry settings are:
 
@@ -792,7 +792,7 @@ The Okteto Registry settings are:
 
 ### sshAgent
 
-The SSH Agent service. It runs an SSH agent with [Okteto's SSH key](admin/integrations.mdx#git-ssh-key), which the commands in your Okteto Manifest use to clone private repositories during [Remote Execution](core/remote-execution.mdx).
+The SSH Agent service. It runs an SSH agent with [Okteto's SSH key](admin/integrations.mdx#git-ssh-key), which the commands in your Okteto Manifest use to clone private repositories during [Remote Execution](application-environments/remote-execution.mdx).
 
 - `annotations`: Annotations to add to the ssh-agent pods.
 - `extraEnv`: Environment variables for the ssh-agent containers.
@@ -918,7 +918,7 @@ autowake:
 
 ### buildOpts
 
-Sets the default [compression](https://docs.docker.com/build/exporters/#compression) for the image layers built by the [Okteto Build Service](core/build-service.mdx). Leave a value empty to use the BuildKit default.
+Sets the default [compression](https://docs.docker.com/build/exporters/#compression) for the image layers built by the [Okteto Build Service](application-environments/build-service.mdx). Leave a value empty to use the BuildKit default.
 
 - `compression`: The compression algorithm: `uncompressed`, `gzip`, `estargz`, or `zstd`.
 - `forceCompression`: Whether to recompress existing layers that use a different algorithm, including base image layers: `"true"` or `"false"`.
@@ -931,7 +931,7 @@ buildOpts:
   compressionLevel: "3"
 ```
 
-Users and Admins can override these defaults with [Okteto Variables](core/okteto-variables.mdx) and [Admin Variables](admin/admin-variables.mdx).
+Users and Admins can override these defaults with [Okteto Variables](application-environments/okteto-variables.mdx) and [Admin Variables](admin/admin-variables.mdx).
 
 ### convertLoadBalancedServices
 
@@ -1122,7 +1122,7 @@ internalCertificate:
 
 ### kubetoken
 
-- `lifetimeSeconds`: The lifetime, in seconds, of the tokens that Okteto generates for its [Kubernetes credentials](core/credentials/kubernetes-credentials.mdx). It must be equal to or greater than [`installer.activeDeadlineSeconds`](self-hosted/helm-configuration.mdx#installer), so the tokens stay valid for the whole installer run. Defaults to 86400 seconds (1 day).
+- `lifetimeSeconds`: The lifetime, in seconds, of the tokens that Okteto generates for its [Kubernetes credentials](application-environments/credentials/kubernetes-credentials.mdx). It must be equal to or greater than [`installer.activeDeadlineSeconds`](self-hosted/helm-configuration.mdx#installer), so the tokens stay valid for the whole installer run. Defaults to 86400 seconds (1 day).
 
 > The maximum expiration time depends on the `--service-account-max-token-expiration` flag of the [Kubernetes API server](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/), so your tokens might get a different expiration time than the one you set here. If you set a higher value, you get the maximum that the API server allows. Some Kubernetes providers don't let you change this flag and enforce their own value.
 
@@ -1378,7 +1378,7 @@ serviceAccounts:
 
 Configures how Okteto persists user data.
 
-- `personalAccessToken.max`: The maximum number of [Personal Access Tokens](core/credentials/personal-access-tokens.mdx) each user can create. Defaults to `5`.
+- `personalAccessToken.max`: The maximum number of [Personal Access Tokens](application-environments/credentials/personal-access-tokens.mdx) each user can create. Defaults to `5`.
 
 ```yaml
 store:

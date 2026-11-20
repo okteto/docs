@@ -55,7 +55,7 @@ Readers arrive mid-task from search or a link in the product, and they don't rea
 | Reader | Usually reads | Write for them |
 |--------|---------------|----------------|
 | Platform engineer | `admin/`, `self-hosted/`, `byoc/`, installation pages | Knows Kubernetes and Helm well. Don't explain Kubernetes primitives. Give exact configuration keys, default values, and failure modes. |
-| Application developer | `get-started/`, `development/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
+| Application developer | `get-started/`, `application-environments/`, `developers/`, `previews/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
 | AI coding agent | Any page | Runs what the page says, verbatim. See below. |
 
 Write so an agent can act on a single section:
@@ -119,7 +119,7 @@ Use noun phrases, not imperative verbs or questions.
 
 ### Do I need to deploy the whole application in every Namespace?
 
-No. [Divert](development/divert/index.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
+No. [Divert](application-environments/divert/index.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
 ```
 
 ---
@@ -132,12 +132,12 @@ Embed links in the flow of the sentence. Don't use standalone "Learn more" lines
 
 ```mdx
 # Good
-[Namespaces](core/namespaces.mdx) isolate the Development Environments of each team.
-Okteto uses [role-based access control (RBAC)](core/user-roles-and-permissions.mdx) with two roles.
+[Namespaces](application-environments/namespaces.mdx) isolate the Development Environments of each team.
+Okteto uses [role-based access control (RBAC)](admin/user-roles-and-permissions.mdx) with two roles.
 
 # Avoid
-[Learn more about Namespaces →](core/namespaces.mdx)
-[Learn more about roles and permissions →](core/user-roles-and-permissions.mdx)
+[Learn more about Namespaces →](application-environments/namespaces.mdx)
+[Learn more about roles and permissions →](admin/user-roles-and-permissions.mdx)
 ```
 
 Inside the docs, link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Between the docs, the tutorials, and the blog, link with a root-relative URL: `/tutorials/<slug>/` for a tutorial, `/docs/<path>/` for a docs page, and `/blog/<slug>/` for a post. Don't link to `https://www.okteto.com/...` for a page of one of the three. The build doesn't check links between them, so when you move a page, update the pages of the other two that link to it.
@@ -296,7 +296,7 @@ Other products use near-synonyms for these concepts. Don't use them for Okteto c
 > ~~Before you start building with Okteto, it helps to understand...~~
 
 **Don't use "learn more" as link text:**
-> ~~[Learn more about Namespaces →](core/namespaces.mdx)~~
+> ~~[Learn more about Namespaces →](application-environments/namespaces.mdx)~~
 
 **Don't use "useful for" to describe a feature:**
 > ~~Useful for seeding development databases with realistic data.~~  

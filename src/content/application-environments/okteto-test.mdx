@@ -1,0 +1,101 @@
+---
+title: Okteto Test
+description: Okteto Test runs your tests inside the cluster, against your application environment, with the okteto test command.
+sidebar_label: Okteto Test
+id: okteto-test
+---
+
+Okteto Test runs your tests inside the cluster, against your application environment. Each test runs in a container next to your application, with [Remote Execution](application-environments/remote-execution.mdx), so it reaches the private services of the application and the machine that runs `okteto test` needs no test runtime. The same command runs your tests from a developer's laptop, a coding agent's sandbox, and a CI pipeline that deploys a [Preview Environment](previews/index.mdx).
+
+## Defining Tests
+
+The `test` section of your [Okteto Manifest](application-environments/okteto-manifest.mdx) defines your tests. Each key is the name of a test:
+
+```yaml title="okteto.yaml"
+test:
+  unit:
+    image: golang:1.26
+    caches:
+      - /go
+      - /root/.cache
+    artifacts:
+      - coverage.out
+    commands:
+      - go test ./... -coverprofile=coverage.out
+
+  e2e:
+    depends_on:
+      - unit
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
+    context: e2e
+    commands:
+      - bash run_tests.sh
+```
+
+- `image` is the image of the container that runs the test.
+- `context` is the folder that Okteto copies into the container. It defaults to the folder of your Okteto Manifest.
+- `commands` run in order. The test fails if any command exits with a non-zero code.
+- `depends_on` lists the tests that run first.
+- `caches` are folders that Okteto keeps between runs, such as the dependencies that your tests download.
+- `artifacts` are files and folders that Okteto copies back to your machine when the test finishes, such as coverage reports or test results.
+
+See the [`test` reference](reference/okteto-manifest.mdx#test-object-optional) for every option.
+
+## Running Tests
+
+Deploy your application with `okteto deploy`, and then run every test:
+
+```bash
+okteto test
+```
+
+To run some of your tests, pass their names:
+
+```bash
+okteto test unit
+```
+
+To deploy your application and run your tests with one command, add the `--deploy` flag:
+
+```bash
+okteto test --deploy
+```
+
+A test reaches the services of your application by their Kubernetes Service names, and through their [endpoints](application-environments/endpoints/automatic-ssl.mdx). For example, an `api` Service that listens on port 8080 is available at `http://api.${OKTETO_NAMESPACE}:8080`. The [Okteto Variables](application-environments/okteto-variables.mdx) of your Namespace and the variables of a `.env` file next to your Okteto Manifest are available in the test commands, and the `--var` flag sets more.
+
+See the [`okteto test` reference](reference/okteto-cli.mdx#test) for every flag, such as `--timeout` (5 minutes by default).
+
+## Running Part of a Test
+
+To run a single test case while you iterate on a change, replace the commands of a test for one run. Your Okteto Manifest doesn't change:
+
+```bash
+okteto test unit -- go test ./pkg/api -run TestLogin
+```
+
+The tests in `depends_on` still run first, with their own commands. Coding agents use this to run only the tests that cover their change. See [Overriding the commands of a Test Container](reference/okteto-cli.mdx#overriding-the-commands-of-a-test-container) for the rules.
+
+## Smart Tests
+
+With Smart Tests, Okteto doesn't run a test again when nothing it uses has changed since its last run in the same Namespace: the files in its `context`, its definition, and the images of your services. Okteto reuses the result of the last run instead. To turn on Smart Tests for a test, set `skipIfNoFileChanges` to `true`:
+
+```yaml title="okteto.yaml"
+test:
+  unit:
+    image: golang:1.26
+    skipIfNoFileChanges: true
+    commands:
+      - go test ./...
+```
+
+To run the test anyway, add the `--no-cache` flag:
+
+```bash
+okteto test unit --no-cache
+```
+
+`--no-cache` also skips the `caches` of the test. Smart Tests require Okteto CLI 3.3.0 or later.
+
+## Test Results
+
+`okteto test` reports the result of each test, and exits with a non-zero code when a test fails, so CI pipelines and coding agents can act on it. The [Test Dashboard](admin/okteto-insights-dashboards.mdx#test-dashboard) of Okteto Insights shows how long your tests take and how often they pass. Runs that replace the commands of a test aren't included.

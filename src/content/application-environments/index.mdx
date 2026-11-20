@@ -1,0 +1,44 @@
+---
+title: Application Environments
+description: An application environment is a running copy of your application, deployed in an Okteto Namespace on Kubernetes from the Okteto Manifest.
+sidebar_label: Application Environments
+---
+
+import Image from "@theme/Image";
+
+An application environment is a running copy of your application. It runs in an [Okteto Namespace](application-environments/namespaces.mdx) on Kubernetes, and Okteto creates it from the definition in your [Okteto Manifest](application-environments/okteto-manifest.mdx). Developers, pull requests, and coding agents all create their environments from that same definition, so a change that works in one environment works in the others.
+
+- [Okteto Manifest](application-environments/okteto-manifest.mdx): the file in your repository that defines how to build, deploy, test, and develop your application.
+- [Namespaces](application-environments/namespaces.mdx): the Kubernetes namespaces where application environments run, and how to share and manage them.
+- [Deploying Environments](application-environments/deploy/index.mdx): deploy an application environment from the Okteto UI, the Catalog, a Git repository, or a Develop on Okteto button.
+- [Build Service](application-environments/build-service.mdx): builds your images inside the cluster, and reuses an image when someone has already built it from the same code.
+- [Okteto Registry](application-environments/container-registry.mdx): the registry where each Namespace stores its images and Helm charts.
+- [Remote Execution](application-environments/remote-execution.mdx): runs your deploy, test, and destroy commands in a container inside the cluster.
+- [Okteto Test](application-environments/okteto-test.mdx): runs your tests inside the cluster, against the application environment.
+- [Endpoints](application-environments/endpoints/automatic-ssl.mdx): the HTTPS URLs of your application environments.
+- [Divert](application-environments/divert/index.mdx): deploy only the services you change, and use a shared Namespace for the rest of the application.
+- [Okteto Variables](application-environments/okteto-variables.mdx): configuration values that Okteto injects into your deploy and test commands.
+- [Credentials](application-environments/credentials/index.mdx): Kubernetes credentials, Personal Access Tokens, and environment variables to work with Okteto outside the Okteto UI.
+- [Volume Snapshots](application-environments/use-volume-snapshots.mdx): initialize the volumes of an application environment with data from a snapshot.
+
+## Application Environment Workflow
+
+The Okteto CLI builds, deploys, and tests your application with [Remote Execution](application-environments/remote-execution.mdx): every operation runs in a container inside the cluster. Nothing depends on how the machine running the CLI is set up, whether that's a developer's laptop, a CI job, or a coding agent's sandbox:
+
+<Image
+  src={require("@site/static/img/environment-workflow.webp").default}
+  mobileSrc={require("@site/static/img/environment-workflow-mobile.webp").default}
+  borderless
+  alt="The Okteto CLI runs in the sandbox of a coding agent, on a laptop, or in a CI job. It deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue of the application, and gets back the results and the logs"
+/>
+
+Working with an application environment takes three steps:
+
+1. `okteto namespace create` creates the [Okteto Namespace](application-environments/namespaces.mdx) for the environment.
+2. Repeat this loop until your change works:
+   - `okteto deploy` builds the images for your services and deploys the application.
+   - Optionally, `okteto up` speeds up the inner feedback loop with hot reloading and debuggers.
+   - `okteto test` runs your tests against the application.
+3. `okteto namespace delete` deletes the Okteto Namespace and the application in it.
+
+To see this workflow in practice, follow [Deploy your app](get-started/deploy-your-app/index.mdx), which takes a sample application through each step.

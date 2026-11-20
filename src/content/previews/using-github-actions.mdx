@@ -17,7 +17,7 @@ This guide configures GitHub Actions to deploy a Preview Environment for every p
 - An Okteto account
 - A [GitHub account](https://github.com)
 
-This guide uses the [Movies app](https://github.com/okteto/getting-started) from the [getting started guide](get-started/deploy-your-app/index.mdx). Fork the repository to your GitHub account so you can configure secrets and open pull requests. GitHub turns off the workflows of a fork: open the **Actions** tab of your fork and enable them. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](core/application-environments.mdx#deploy) and [`test`](core/application-environments.mdx#test) sections.
+This guide uses the [Movies app](https://github.com/okteto/getting-started) from the [getting started guide](get-started/deploy-your-app/index.mdx). Fork the repository to your GitHub account so you can configure secrets and open pull requests. GitHub turns off the workflows of a fork: open the **Actions** tab of your fork and enable them. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](application-environments/okteto-manifest.mdx#deploy) and [`test`](application-environments/okteto-manifest.mdx#test) sections.
 
 ## Step 1: Create the GitHub Workflow
 
@@ -172,7 +172,7 @@ Add the following steps at the end of the `preview` job in your `.github/workflo
 What each step does:
 
 - `actions/checkout` clones the repository so the `okteto/test` action can read your Okteto Manifest and send the test `context` to Okteto.
-- `okteto/test` runs the Test Containers defined in the [`test` section](core/application-environments.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. Use the `tests` input to run only some Test Containers, for example `tests: e2e`.
+- `okteto/test` runs the Test Containers defined in the [`test` section](application-environments/okteto-manifest.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. Use the `tests` input to run only some Test Containers, for example `tests: e2e`.
 - `actions/upload-artifact` attaches the Playwright report exported through the `artifacts` field to the workflow run. The `if: ${{ !cancelled() }}` condition uploads it even when a test fails, so you can inspect the results of a failed run.
 
 The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the `caches` of your tests, and `file` to set the path of your Okteto Manifest. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.

@@ -860,6 +860,15 @@ const covers = [
     })(),
   },
   {
+    out: tutorial('2026-11-20-connect-your-ide'),
+    alt: 'An IDE connects over SSH to a Development Container in an Okteto Namespace on Kubernetes',
+    svg: row([
+      tile('code', 'IDE', { color: C.teal }),
+      { icon: 'key-round' },
+      group('Namespace', [item('box', { size: 90 })], { top: 'kubernetes', minWidth: 260 }),
+    ]),
+  },
+  {
     out: tutorial('2026-11-13-cloud-infrastructure'),
     alt: 'A Namespace, Terraform, and the S3 bucket that Terraform creates for it',
     svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),

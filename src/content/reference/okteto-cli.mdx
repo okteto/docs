@@ -62,14 +62,14 @@ If you have any questions or concerns about the information collected, [reach ou
 
 ### build<TiersList tiers="Platform" />
 
-Build and push the images defined in the `build` section using the [Okteto Build Service](core/build-service.mdx).
+Build and push the images defined in the `build` section using the [Okteto Build Service](application-environments/build-service.mdx).
 
 ```bash
 okteto build [image...]
 ```
 
 :::tip
-To save you time, `okteto build` will only build the image if your build context hasn't been built before ([Okteto Smart Builds](core/build-service.mdx#smart-builds)). You can always force a build by using the `--no-cache` flag.
+To save you time, `okteto build` will only build the image if your build context hasn't been built before ([Okteto Smart Builds](application-environments/build-service.mdx#smart-builds)). You can always force a build by using the `--no-cache` flag.
 :::
 
 The following command flags are available:
@@ -139,7 +139,7 @@ When you run `okteto context`, the Okteto CLI will exchange an authorization tok
 
 :::tip
 
-In your CI/CD you should use environment variables to specify your Okteto Context, Namespace and token. Check out [Environment Variables](core/credentials/environment-variables.mdx) to know more.
+In your CI/CD you should use environment variables to specify your Okteto Context, Namespace and token. Check out [Environment Variables](application-environments/credentials/environment-variables.mdx) to know more.
 
 :::
 
@@ -226,7 +226,7 @@ The command is executed relative to the path where the Okteto Manifest is locate
 | <em className="no-wrap">_-n, --namespace_</em> | string   | Overwrite the current Okteto Namespace                                    | |
 | <em className="no-wrap">_--no-bash_</em>       |   bool   | Execute the command using the container's default shell instead of bash     | `false` |
 | <em className="no-wrap">_--no-build_</em>      |   bool   | Skips the re-build of images in the `build` section                         | `false` |
-| <em className="no-wrap">_--remote_</em>        |   bool   | Run the deploy commands using [Remote Execution](core/remote-execution.mdx) | `false` |
+| <em className="no-wrap">_--remote_</em>        |   bool   | Run the deploy commands using [Remote Execution](application-environments/remote-execution.mdx) | `false` |
 | <em className="no-wrap">_-t, --timeout_</em>   | duration | The duration to wait for each dependency the deploy waits for and, with `--wait`, until all pods are healthy. Any value should contain a corresponding time unit, for example, 1s, 2m, 3h  | 5m0s |
 | <em className="no-wrap">_-v, --var_</em>       |   list   | Set a variable for the deploy commands (can be set more than once)          | |
 | <em className="no-wrap">_-w, --wait_</em>      |   bool   | Wait until the deployment finishes and pods are healthy                     | `false` |
@@ -237,11 +237,11 @@ The command is executed relative to the path where the Okteto Manifest is locate
 
 | Command | Where it runs | Manifest source | What it creates |
 | :------ | :------------ | :-------------- | :-------------- |
-| `okteto deploy` | Your local machine, or the cluster with `--remote` | The Okteto Manifest in your working directory | A [Development Environment](development/index.mdx) |
-| `okteto pipeline deploy` | A job in the cluster that clones a Git repository | The Okteto Manifest at the root of the cloned repository | A [Development Environment](development/index.mdx) |
+| `okteto deploy` | Your local machine, or the cluster with `--remote` | The Okteto Manifest in your working directory | A [Development Environment](developers/index.mdx) |
+| `okteto pipeline deploy` | A job in the cluster that clones a Git repository | The Okteto Manifest at the root of the cloned repository | A [Development Environment](developers/index.mdx) |
 | `okteto preview deploy` | A job in the cluster that clones a Git repository | The Okteto Manifest at the root of the cloned repository | A [Preview Environment](previews/index.mdx) in a dedicated Namespace |
 
-- Run `okteto deploy` for day-to-day development against the Okteto Manifest in your working directory. Add the `--remote` flag to run the deploy commands in the cluster with [Remote Execution](core/remote-execution.mdx).
+- Run `okteto deploy` for day-to-day development against the Okteto Manifest in your working directory. Add the `--remote` flag to run the deploy commands in the cluster with [Remote Execution](application-environments/remote-execution.mdx).
 - Run `okteto pipeline deploy` to deploy a Development Environment from a Git repository without cloning it locally, such as from a CI/CD pipeline. This is equivalent to clicking the **Deploy Dev Environment** button in the Okteto UI.
 - Run `okteto preview deploy` to deploy an ephemeral [Preview Environment](previews/index.mdx) for a branch or pull request in its own Namespace.
 
@@ -275,7 +275,7 @@ You can use `okteto destroy --all` to delete all Development Environments in an 
 | <em className="no-wrap">_--name_</em>              | string | The name of the Development Environment                                     | The repo/folder name |
 | <em className="no-wrap">_-n, --namespace_</em>     | string | Overwrite the current Okteto Namespace                                    | |
 | <em className="no-wrap">_--no-bash_</em>           |  bool  | Execute the command using the container's default shell instead of bash                                                                                                                                                                                             | `false` |
-| <em className="no-wrap">_--remote_</em>            |  bool  | Run the destroy commands using [Remote Execution](core/remote-execution.mdx) | `false` |
+| <em className="no-wrap">_--remote_</em>            |  bool  | Run the destroy commands using [Remote Execution](application-environments/remote-execution.mdx) | `false` |
 | <em className="no-wrap">_-v, --volumes_</em>       |  bool  | Destroy the persistent volumes created by the Development Environment                                                                                                                                                                                               | `false` |
 
 > Resources annotated with `dev.okteto.com/policy: keep` will not be affected by the destroy action.
@@ -516,7 +516,7 @@ If you'd like to wake an Okteto Namespace other than the default one, you can pr
 
 ### pipeline<TiersList tiers="Platform" />
 
-[Development Environments](development/index.mdx) management commands.
+[Development Environments](developers/index.mdx) management commands.
 
 ```bash
 okteto pipeline [command]
@@ -724,14 +724,14 @@ The `status` command should be run from the same location than `okteto up`.
 
 ### test<TiersList tiers="Platform" />
 
-Run tests using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
+Run tests using [Remote Execution](application-environments/remote-execution.mdx#how-remote-execution-works).
 
 ```bash
 okteto test [testContainerName...] [-- COMMAND [args...]]
 ```
 
 Since tests run inside the cluster, all internal endpoints are available inside the test execution.
-For example, if you deployed an api service on port 8080 it will be accessible at: `http://api.${OKTETO_NAMESPACE}:8080`. [Dynamic endpoints](core/okteto-variables.mdx#configuring-dynamic-endpoints) are also available within the test commands.
+For example, if you deployed an api service on port 8080 it will be accessible at: `http://api.${OKTETO_NAMESPACE}:8080`. [Dynamic endpoints](application-environments/okteto-variables.mdx#configuring-dynamic-endpoints) are also available within the test commands.
 
 :::tip Environment variables from .env
 If a `.env` file exists in the same directory as your `okteto.yml`, all variables defined in it are automatically injected into the test container's environment, with no extra configuration in the manifest. If your manifest lives inside an `.okteto` subfolder, place the `.env` in the parent directory instead.
@@ -786,8 +786,8 @@ The `devContainer` argument is optional and it's the name of a Development Conta
 When you run `okteto up`, okteto scales to zero the specified deployment and creates a mirror deployment. The mirror deployment is a copy of the original deployment manifest with the following development-time improvements:
 
 - Okteto overrides the container-level configuration of the original deployment with the values defined in your [Okteto Manifest](reference/okteto-manifest.mdx). A typical example of this is to replace the production container image with one that contains your development runtime.
-- A bidirectional file [synchronization service](reference/file-synchronization.mdx) is started to keep your changes up to date between your local filesystem and your development container.
-- Automatic local and remote port forwarding using [SSH](reference/ssh-server.mdx). This allows you to do things like access your cluster services via `localhost` or connect a remote debugger.
+- A bidirectional file [synchronization service](developers/file-synchronization.mdx) is started to keep your changes up to date between your local filesystem and your development container.
+- Automatic local and remote port forwarding using [SSH](developers/ssh-server.mdx). This allows you to do things like access your cluster services via `localhost` or connect a remote debugger.
 - A watcher service to keep the definition of the mirror deployment up to date with original deployment.
 
 It's worth noting that your Development Container inherits the original deployment manifest definition.
