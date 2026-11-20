@@ -6,6 +6,9 @@ id: using-github-actions
 ---
 
 import Image from "@theme/Image";
+import variables from "../variables.json";
+
+export const cliMinor = variables.cliVersion.split(".").slice(0, 2).join(".");
 
 This guide configures GitHub Actions to deploy a Preview Environment for every pull request, run your automated tests against it, and destroy it when the pull request closes.
 
@@ -172,7 +175,7 @@ What each step does:
 - `okteto/test` runs the Test Containers defined in the [`test` section](core/application-environments.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. Use the `tests` input to run only some Test Containers, for example `tests: e2e`.
 - `actions/upload-artifact` attaches the Playwright report exported through the `artifacts` field to the workflow run. The `if: ${{ !cancelled() }}` condition uploads it even when a test fails, so you can inspect the results of a failed run.
 
-The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the Test Container `caches`, and `file` to set the path of your Okteto Manifest. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.
+The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the `caches` of your tests, and `file` to set the path of your Okteto Manifest. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.
 
 Every pull request now runs the same Test Containers that developers run with `okteto test` against their Development Environment. Developers iterate on their tests locally, without pushing changes and waiting for CI, and know that the tests behave exactly the same way when they run in CI.
 
@@ -210,3 +213,27 @@ jobs:
         with:
           name: pr-${{ github.event.number }}
 ```
+
+## GitHub Actions for Okteto
+
+The workflows in this guide use the GitHub Actions for Okteto. They're all in the [GitHub Marketplace](https://github.com/marketplace?type=actions&query=okteto), and each one runs an Okteto CLI command:
+
+- [Context](https://github.com/marketplace/actions/okteto-context) (`okteto/context`): connects the workflow to your Okteto instance.
+- [Build](https://github.com/marketplace/actions/okteto-build) (`okteto/build`): builds an image with the Okteto Build Service.
+- [Deploy Pipeline](https://github.com/marketplace/actions/okteto-pipeline) (`okteto/pipeline`): deploys an application from a Git repository.
+- [Destroy Pipeline](https://github.com/marketplace/actions/destroy-okteto-pipeline) (`okteto/destroy-pipeline`): destroys an application deployed from a Git repository.
+- [Deploy Preview](https://github.com/marketplace/actions/deploy-preview-environment) (`okteto/deploy-preview`): deploys a Preview Environment.
+- [Destroy Preview](https://github.com/marketplace/actions/destroy-preview-environment) (`okteto/destroy-preview`): destroys a Preview Environment.
+- [Test](https://github.com/marketplace/actions/okteto-test) (`okteto/test`): runs the tests of your Okteto Manifest.
+- [Create Namespace](https://github.com/marketplace/actions/create-namespace) (`okteto/create-namespace`): creates a Namespace.
+- [Activate Namespace](https://github.com/marketplace/actions/activate-namespace) (`okteto/namespace`): sets the Namespace that the next steps use.
+- [Delete Namespace](https://github.com/marketplace/actions/delete-namespace) (`okteto/delete-namespace`): deletes a Namespace.
+
+Each action has these tags:
+
+| Tag | Okteto CLI version |
+|-----|--------------------|
+| `latest` | The latest stable release. |
+| `v3` | The latest stable 3.x release. |
+| <code>v{cliMinor}</code> | The latest patch release of {cliMinor}. |
+| <code>{variables.cliVersion}</code> | Exactly {variables.cliVersion}. |
