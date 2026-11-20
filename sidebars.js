@@ -108,6 +108,8 @@ module.exports = {
       link: { type: 'doc', id: 'development/index' },
       items: [
         'development/using-okteto-cli',
+        'development/file-synchronization',
+        'development/ssh-server',
         {
           type: 'category',
           label: 'Development Containers',
@@ -323,10 +325,7 @@ module.exports = {
         'reference/okteto-api',
         'reference/okteto-insights-metrics',
         'reference/docker-compose',
-        'reference/supported-github-actions',
-        'reference/file-synchronization',
         'reference/feature-flags',
-        'reference/ssh-server',
       ],
     },
     'release-notes',
