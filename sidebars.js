@@ -322,9 +322,9 @@ module.exports = {
       items: [
         'reference/okteto-cli',
         'reference/okteto-manifest',
+        'reference/docker-compose',
         'reference/okteto-api',
         'reference/okteto-insights-metrics',
-        'reference/docker-compose',
         'reference/feature-flags',
       ],
     },
