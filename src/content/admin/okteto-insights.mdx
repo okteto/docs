@@ -1,41 +1,167 @@
 ---
-title: Okteto Insights Metrics
-description: Read the Okteto Insights metrics with Prometheus or another tool, and see every metric that Okteto exposes.
-sidebar_label: Okteto Insights Metrics
-id: okteto-insights-metrics
+title: Okteto Insights
+description: Okteto Insights shows build times, deploy frequency, test results, and resource usage across your Okteto instance, in its Grafana dashboards or in your own.
+sidebar_label: Okteto Insights
+id: okteto-insights
 ---
 
 import Image from "@theme/Image";
 
+The Okteto Insights dashboards are Grafana dashboards that show how your Okteto instance is used: the activity of your users, the duration and the error rate of builds, deploys, and tests, and the CPU and memory usage of your nodes, Namespaces, and pods. They read the [metrics that Okteto Insights exposes](#what-data-is-available), and Okteto publishes them in the [insights-dashboards repository](https://github.com/okteto/insights-dashboards), with a Prometheus and Grafana setup to deploy them.
+
+<Image
+  src={require("@site/static/img/insights-dashboard-landing.png").default}
+  alt="The Cluster Nodes dashboard of Okteto Insights in Grafana, with the total CPU, memory, and node count of the cluster, the CPU and memory requests and usage over the last seven days, the number of nodes, and the pods per node"
+  width="800"
+/>
+
+## Activity Dashboard
+
+The Activity dashboard tracks the adoption of Okteto across your organization:
+
+- Total active users.
+- `okteto up` sessions.
+- Active Namespaces and Preview Environments.
+
+<Image
+  src={require("@site/static/img/insights-activity-dashboard.png").default}
+  alt="The Activity dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Build Service Dashboard
+
+The Build Service dashboard shows the performance and the resource usage of the [Okteto Build Service](admin/build-service.mdx). Use it to find resource bottlenecks, to see how builds spread across the BuildKit pods, to size those pods, and to troubleshoot slow builds.
+
+For the whole Build Service, it shows:
+
+- The number of BuildKit pods.
+- The active builds across all the BuildKit pods.
+
+<Image
+  src={require("@site/static/img/insights-build-service-dashboard.png").default}
+  alt="The Build Service dashboard of Okteto Insights"
+  width="800"
+/>
+
+For each BuildKit pod, it shows:
+
+- The active builds.
+- The CPU and memory usage over time.
+- CPU pressure and throttling.
+- Disk read and write operations, and I/O pressure.
+- The available inodes, which builds need to succeed.
+
+<Image
+  src={require("@site/static/img/insights-build-service-pods-dashboard.png").default}
+  alt="The panels of the Build Service dashboard for each BuildKit pod"
+  width="800"
+/>
+
+## Cluster Nodes Dashboard
+
+The Cluster Nodes dashboard shows the CPU and memory usage of the nodes of your cluster as a whole, next to the CPU and memory requests of their pods. Pods that use less than they request waste infrastructure, and pods that use more can be throttled or evicted, and leave the cluster unbalanced. Use this dashboard to find out whether your cluster has too many or too few resources, and whether its workloads are balanced across the nodes.
+
+<Image
+  src={require("@site/static/img/insights-cluster-nodes-dashboard.png").default}
+  alt="The Cluster Nodes dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Images Dashboard
+
+The Images dashboard shows the duration of your image builds over time, and how often they succeed or fail. It has two filters:
+
+- **Development Environment**: the application environments to show data for.
+- **Image**: the image to show data for.
+
+<Image
+  src={require("@site/static/img/insights-images-dashboard.png").default}
+  alt="The Images dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Deploy Dashboard
+
+The Deploy dashboard shows the duration of your deploys over time, and their error rate. Its **Development Environment** filter selects the application environments to show data for.
+
+<Image
+  src={require("@site/static/img/insights-deploy-dashboard.png").default}
+  alt="The Deploy dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Namespace Dashboard
+
+The Namespace dashboard shows the CPU and memory that a Namespace uses. Its **Namespace** filter selects the Namespace to show data for. It has these panels:
+
+- **CPU requests and usage:** the CPU that the pods of the Namespace request, next to the CPU they use. A gap between the two points to resources that are over-allocated or under-used.
+- **Memory requests and usage:** the same comparison for memory.
+- **Pods:** the number of active pods over time, to relate a spike in usage to a change in the number of pods.
+
+The [Resource Manager](admin/resource-manager.mdx) sets the CPU and memory requests of your services from this usage.
+
+<Image
+  src={require("@site/static/img/insights-dashboard-namespace.png").default}
+  alt="The Namespace dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Nodes Dashboard
+
+The Nodes dashboard shows the CPU and memory usage of one node. Its **Node Name** filter selects the Kubernetes node. Use it to troubleshoot the performance of a node, and to check how workloads are distributed across nodes.
+
+<Image
+  src={require("@site/static/img/insights-nodes-dashboard.png").default}
+  alt="The Nodes dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Pods Dashboard
+
+The Pods dashboard shows the CPU and memory usage of each pod, to find problems such as memory leaks. It has two filters:
+
+- **Namespace**: the Namespace to show data for.
+- **Development Environment**: the application environment to show data for, among the ones of that Namespace.
+
+<Image
+  src={require("@site/static/img/insights-pods-dashboard.png").default}
+  alt="The Pods dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Test Dashboard
+
+The Test dashboard shows the runs of [Okteto Test](application-environments/okteto-test.mdx) over time: the average time a test takes to pass, and how often tests pass or fail. It has two filters:
+
+- **Development Environment**: the application environment to show data for.
+- **Test**: the name of the test to show data for.
+
+<Image
+  src={require("@site/static/img/insights-test-dashboard.jpg").default}
+  alt="The Test dashboard of Okteto Insights"
+  width="800"
+/>
+
+## Building Your Own Dashboards {#consuming-insights-metrics-from-other-tools}
+
 Okteto Insights exposes a metrics endpoint that you can scrape to collect data on resource usage, builds, and deployments. The data comes from developer activity on the platform: product usage, infrastructure utilization, and performance. Use it to monitor the health of your Okteto cluster, track trends in build and deploy times, and measure user activity.
 
-:::info
-On Bring Your Own Cloud (BYOC), Okteto Insights comes with preconfigured Grafana dashboards. [Okteto Insights Dashboards](admin/okteto-insights-dashboards.mdx) explains how to open them and what they show. Use this page only if you want another tool to read the Insights data.
-:::
-
-<p align="center">
-  <Image
-    src={require("@site/static/img/insights-activity-dashboard.png").default}
-    alt="The activity dashboard of Okteto Insights"
-    width="800"
-  />
-</p>
-
-## Consuming Okteto Insights Data
+### Consuming Okteto Insights Data
 
 Okteto Insights serves its data on an endpoint that tools such as Prometheus can scrape, so Admins can consume it programmatically. To set it up, enable Insights, get your bearer token, and deploy the [open-source Insights Dashboards](https://github.com/okteto/insights-dashboards) to visualize your Okteto data.
 
-### Enabling the Metrics Endpoint
+#### Enabling the Metrics Endpoint
 
 Okteto Insights is disabled by default on Self-Hosted instances. To enable it, set the Helm setting [`insights.enabled`](self-hosted/helm-configuration.mdx#insights) to `true` and upgrade your Okteto instance.
 
 Okteto then serves the data in Prometheus format at `https://okteto.SUBDOMAIN/metrics`. A bearer token that Okteto generates protects the endpoint. To use your own token instead, store it in the secret that the [`insights` Helm setting](self-hosted/helm-configuration.mdx#insights) defines.
 
-### Retrieving Your Bearer Token
+#### Retrieving Your Bearer Token
 
 In the Admin Dashboard, [**Admin > Integrations > General**](admin/integrations.mdx#okteto-insights-token) has your Insights bearer token. Click **Show Insights Token** in the **Insights** row to see it and copy it.
 
-### Setting Up the Dashboards
+#### Setting Up the Dashboards
 
 To collect and visualize Insights data, start from the [Okteto Insights Dashboards repository](https://github.com/okteto/insights-dashboards). It includes setups to deploy Prometheus and Grafana, and sample dashboards.
 
@@ -61,7 +187,7 @@ Deploy your own Prometheus instance, or another data collection platform, to con
 The [Okteto Insights Dashboards repository](https://github.com/okteto/insights-dashboards) includes a Prometheus configuration to start from.
 :::
 
-## Available Metrics {#what-data-is-available}
+### Available Metrics {#what-data-is-available}
 
 Okteto Insights has these groups of metrics:
 
@@ -80,7 +206,7 @@ Every metric that Okteto provides has the `okteto_` prefix.
 
 Okteto adds metrics to this endpoint over time. These are the metrics available today:
 
-### Build Metrics
+#### Build Metrics
 
 :::note
 Only successful builds are tracked with `okteto_usage_build_duration_seconds`.
@@ -98,7 +224,7 @@ Only successful builds are tracked with `okteto_usage_build_duration_seconds`.
   - **`repository`**: The Git repository that hosts the Okteto Manifest that defines the image
   - **`result`**: The status of the build: `success`, `failure`, or `skipped`
 
-### Deploy Metrics
+#### Deploy Metrics
 
 :::note
 Only successful deployments are tracked with `okteto_usage_deploy_duration_seconds`.
@@ -116,7 +242,7 @@ Only successful deployments are tracked with `okteto_usage_deploy_duration_secon
   - **`phase`**: The phase of the deployment that the time series measures: `compose` for the [Compose](reference/okteto-manifest.mdx#deploy-with-compose) section or `commands` for the [Commands](reference/okteto-manifest.mdx#deploy-with-commands) section of the Okteto Manifest's `deploy` section. The sum of both time series is the total length of a deployment.
   - **`result`**: The status of the deployment: `success` or `failure`
 
-### Namespace Metrics
+#### Namespace Metrics
 
 | Metric Name  | Type         | Description  | Labels       |
 | :----------- | :----------- | :----------- | :----------- |
@@ -128,7 +254,7 @@ Only successful deployments are tracked with `okteto_usage_deploy_duration_secon
   - **`condition`**: The condition of the Namespace: `active` or `sleeping`
   - **`owner_id`**: The ID of the Namespace's owner
 
-### Node Metrics
+#### Node Metrics
 
 | Metric Name  | Type         | Description  | Labels       |
 | :----------- | :----------- | :----------- | :----------- |
@@ -143,7 +269,7 @@ Only successful deployments are tracked with `okteto_usage_deploy_duration_secon
 - **Node Metrics label definitions:**
   - **`node_name`**: The name of the node
 
-### Pod Metrics
+#### Pod Metrics
 
 | Metric Name  | Type         | Description  | Labels       |
 | :----------- | :----------- | :----------- | :----------- |
@@ -169,7 +295,7 @@ Only successful deployments are tracked with `okteto_usage_deploy_duration_secon
   - **`controller_type`**: The type of the top controller that created the pod: `deployment` or `statefulset`
   - **`controller_name`**: The name of the top controller that created the pod
 
-### Preview Metrics
+#### Preview Metrics
 
 | Metric Name  | Type         | Description  | Labels       |
 | :----------- | :----------- | :----------- | :----------- |
@@ -182,7 +308,7 @@ Only successful deployments are tracked with `okteto_usage_deploy_duration_secon
   - **`scope`**: The scope of the Preview Environment: `personal` or `global`
   - **`owner_id`**: The ID of the Preview Environment's owner
 
-### Test Metrics
+#### Test Metrics
 
 :::note
 Only successful tests are tracked with `okteto_usage_test_duration_seconds`.
@@ -200,7 +326,7 @@ Only successful tests are tracked with `okteto_usage_test_duration_seconds`.
   - **`test_name`**: The name of the test
   - **`result`**: The status of the test: `success` or `failure`
 
-### User Metrics
+#### User Metrics
 
 | Metric Name  | Type         | Description  | Labels       |
 | :----------- | :----------- | :----------- | :----------- |
@@ -211,8 +337,8 @@ Only successful tests are tracked with `okteto_usage_test_duration_seconds`.
   - **`external_id`**: The user's external ID
   - **`role`**: The user's role
 
-## Troubleshooting
+### Troubleshooting
 
-### Metrics Server Availability
+#### Metrics Server Availability
 
 Okteto Insights relies on the Kubernetes Metrics Server. If the Metrics Server is unavailable, requests to the `/metrics` endpoint fail, including the requests from a [configured scraper](#setting-up-the-dashboards). See the [Metrics Server documentation](https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#metrics-server) to troubleshoot it.

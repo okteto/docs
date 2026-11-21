@@ -186,7 +186,7 @@ module.exports = {
           ],
         },
         'admin/user-roles-and-permissions',
-        'admin/okteto-insights-dashboards',
+        'admin/okteto-insights',
       ],
     },
     {
@@ -292,7 +292,6 @@ module.exports = {
         'reference/docker-compose',
         'reference/feature-flags',
         'reference/okteto-api',
-        'reference/okteto-insights-metrics',
         'reference/develop-on-okteto-button',
         'reference/remote-execution',
         'reference/smart-builds',
