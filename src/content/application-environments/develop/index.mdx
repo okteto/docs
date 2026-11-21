@@ -93,6 +93,14 @@ A development image usually contains:
 - The tools for hot reload and debugging, such as a file watcher or a debugger.
 - Your source code.
 
+### Recommendations
+
+Follow [Docker's best practices](https://docs.docker.com/build/building/best-practices/) for your Dockerfile, and:
+
+- Pin the versions of the base image and of every dependency, so every developer gets the same image.
+- Keep the `Dockerfile` in the repository of the service, next to its code.
+- With [multi-stage builds](https://docs.docker.com/build/building/multi-stage/), install the dependencies of both stages from the same lock file, so the Development Container and the application run the same versions.
+
 ### Building a Development Image
 
 Define the development image as a stage of the `Dockerfile` of your service, next to the stage of its application image. For example, for a Node.js service:
@@ -131,13 +139,22 @@ dev:
       - api:/usr/src/app
 ```
 
-### Recommendations
+You can also use an image that's already built, such as the official image of your language or one that your team publishes: set it as the `image` of the Development Container, and leave it out of the `build` section.
 
-Follow [Docker's best practices](https://docs.docker.com/build/building/best-practices/) for your Dockerfile, and:
+## Guides by Language
 
-- Pin the versions of the base image and of every dependency, so every developer gets the same image.
-- Keep the `Dockerfile` in the repository of the service, next to its code.
-- With [multi-stage builds](https://docs.docker.com/build/building/multi-stage/), install the dependencies of both stages from the same lock file, so the Development Container and the application run the same versions.
+Hot reload and debugging depend on the tools of your language: the command that reloads the application when a file changes, and the debugger that your IDE attaches to. Each guide takes a sample application in one language through `okteto build`, `okteto deploy`, `okteto test`, and `okteto up`, with the optimizations for that language at each step: the layers of the development image, the caches of the tests, the hot reload command, and the debugger.
+
+- [ASP.NET](application-environments/develop/aspnetcore.mdx): `dotnet watch` for hot reload, and `vsdbg` for debugging with VS Code.
+- [Go](application-environments/develop/golang.mdx): Air for hot reload, and Delve for debugging with VS Code.
+- [Java](application-environments/develop/java.mdx): Spring Boot DevTools for hot reload, and the JVM debug agent for debugging with IntelliJ IDEA.
+- [Node.js](application-environments/develop/node.mdx): the Node.js watch mode for hot reload, and the Node.js inspector for debugging with VS Code.
+- [PHP](application-environments/develop/php.mdx): the built-in web server of PHP for hot reload, and Xdebug for debugging with PhpStorm.
+- [Python](application-environments/develop/python.mdx): Uvicorn for hot reload, and the Python Debug Server for debugging with PyCharm.
+- [Ruby](application-environments/develop/ruby.mdx): `sinatra/reloader` for hot reload, and `rdbg` for debugging with VS Code.
+- [Rust](application-environments/develop/rust.mdx): watchexec for hot reload, and LLDB for debugging with VS Code.
+
+Coding agents use the same guides: point your agent to the guide of your language when it writes or optimizes the Okteto Manifest of your application.
 
 ## File Sync {#file-sync}
 
@@ -190,18 +207,3 @@ ssh api.okteto
 `okteto up` picks a random local port on every run. To set it, use the [`remote`](reference/okteto-manifest.mdx#remote-integer-optional) field of your Okteto Manifest, or the `--remote` flag of `okteto up`. The SSH server only accepts connections authenticated with the key pair that the Okteto CLI creates the first time you run `okteto up`, at `$HOME/.okteto/id_ecdsa_okteto`.
 
 IDEs with remote development over SSH, such as Visual Studio Code or the JetBrains IDEs, connect to the same host entry. [Connect Your IDE to a Development Container over SSH](development/connect-your-ide.mdx) shows how.
-
-## Guides by Language
-
-Hot reload and debugging depend on the tools of your language: the command that reloads the application when a file changes, and the debugger that your IDE attaches to. Each guide takes a sample application in one language through `okteto build`, `okteto deploy`, `okteto test`, and `okteto up`, with the optimizations for that language at each step: the layers of the development image, the caches of the tests, the hot reload command, and the debugger.
-
-- [ASP.NET](application-environments/develop/aspnetcore.mdx): `dotnet watch` for hot reload, and `vsdbg` for debugging with VS Code.
-- [Go](application-environments/develop/golang.mdx): Air for hot reload, and Delve for debugging with VS Code.
-- [Java](application-environments/develop/java.mdx): Spring Boot DevTools for hot reload, and the JVM debug agent for debugging with IntelliJ IDEA.
-- [Node.js](application-environments/develop/node.mdx): the Node.js watch mode for hot reload, and the Node.js inspector for debugging with VS Code.
-- [PHP](application-environments/develop/php.mdx): the built-in web server of PHP for hot reload, and Xdebug for debugging with PhpStorm.
-- [Python](application-environments/develop/python.mdx): Uvicorn for hot reload, and the Python Debug Server for debugging with PyCharm.
-- [Ruby](application-environments/develop/ruby.mdx): `sinatra/reloader` for hot reload, and `rdbg` for debugging with VS Code.
-- [Rust](application-environments/develop/rust.mdx): watchexec for hot reload, and LLDB for debugging with VS Code.
-
-Coding agents use the same guides: point your agent to the guide of your language when it writes or optimizes the Okteto Manifest of your application.
