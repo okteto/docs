@@ -126,7 +126,7 @@ Title case applies to every title a reader sees: the `title` of a page, a tutori
 
 The pages that explain a section of the Okteto Manifest take the title of their sidebar label: Build, Deploy, Test, Develop, and Destroy. Their first sentence names the feature (the Okteto Build Service, Okteto Test, Development Containers).
 
-The quickstart (`get-started/quickstart.mdx`) takes the Movies app through Build, Deploy, Test, and Destroy, and ends with the FAQ. It has no Develop and no Next Steps sections. The guides of each language (`application-environments/development-containers/<language>.mdx`, the pages of the Develop category after its overview) have the sections Prerequisites, Build (with the `Dockerfile`), Deploy, Test, Develop, and Destroy, with the optimizations for that language at each step, and no FAQ: coding agents read them to write or optimize an Okteto Manifest for that language.
+The quickstart (`get-started/quickstart.mdx`) takes the Movies app through Build, Deploy, Test, and Destroy, and ends with the FAQ. It has no Develop and no Next Steps sections. The guides of each language (`application-environments/develop/<language>.mdx`, the pages of the Develop category after its overview) have the sections Prerequisites, Build (with the `Dockerfile`), Deploy, Test, Develop, and Destroy, with the optimizations for that language at each step, and the FAQ of the quickstart, without the question about hot reload: coding agents read them to write or optimize an Okteto Manifest for that language.
 
 | Avoid | Use instead |
 |-------|-------------|

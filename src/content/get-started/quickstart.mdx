@@ -1,5 +1,5 @@
 ---
-title: "Quickstart: Build, Deploy, and Test an Application"
+title: Build, Deploy, and Test the Movies App
 description: Build, deploy, and test the Movies app, a sample application with a frontend, an API, and a database, in an application environment with Okteto.
 sidebar_label: Quickstart
 ---
@@ -30,50 +30,18 @@ cd getting-started
 
 ## Build
 
-The [build](reference/okteto-manifest.mdx#build-object-optional) section of the [Okteto Manifest](reference/okteto-manifest.mdx), the `okteto.yaml` file of the repository, builds four images, two per service:
+The [build](reference/okteto-manifest.mdx#build-object-optional) section of the [Okteto Manifest](reference/okteto-manifest.mdx), the `okteto.yaml` file of the repository, lists the images of the application, one for each service that has a `Dockerfile`:
 
 ```yaml title="okteto.yaml"
 build:
-  api-dev:
-    context: api
-    target: dev
-
   api:
     context: api
-    target: prod
-    depends_on:
-      - api-dev
-
-  frontend-dev:
-    context: frontend
-    target: dev
 
   frontend:
     context: frontend
-    target: prod
-    depends_on:
-      - frontend-dev
 ```
 
-`context` is the folder that Okteto sends to the [Okteto Build Service](application-environments/build-service.mdx), which builds the `Dockerfile` it finds there. `target` selects a stage of that `Dockerfile`, and `depends_on` makes Okteto build the development image first, so the application image reuses its cached layers. In `frontend/Dockerfile`, the `dev` stage builds the application and the `prod` stage copies the result into an nginx image:
-
-```dockerfile title="frontend/Dockerfile"
-FROM node:26.13.1-trixie-slim AS dev
-
-WORKDIR /usr/src/app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM nginx:1.30.7-alpine AS prod
-
-COPY --from=dev /usr/src/app/dist /usr/share/nginx/html
-EXPOSE 80
-```
-
-- `dev` is the development image. It contains Node.js, the dependencies that `npm ci` installs from `package-lock.json`, and the source code. The tests run in it.
-- `prod` is the application image that the Helm chart deploys.
+`context` is the folder of each service, with its code and its `Dockerfile`.
 
 Run `okteto build` from the root folder of the Movies app:
 
@@ -81,16 +49,8 @@ Run `okteto build` from the root folder of the Movies app:
 okteto build
 ```
 
-Okteto builds the four images in your cluster, so you don't need Docker on your machine, and pushes them to the [Okteto Registry](application-environments/build-service.mdx#okteto-registry):
-
 ```console
  i  Using cindy @ okteto.example.com as context
- i  Building '/Users/cindy/getting-started/api/Dockerfile'...
- ...
- ✓  Image 'registry.okteto.example.com/cindy/getting-started-api-dev:okteto' successfully pushed
- i  Building '/Users/cindy/getting-started/frontend/Dockerfile'...
- ...
- ✓  Image 'registry.okteto.example.com/cindy/getting-started-frontend-dev:okteto' successfully pushed
  i  Building '/Users/cindy/getting-started/api/Dockerfile'...
  ...
  ✓  Image 'registry.okteto.example.com/cindy/getting-started-api:okteto' successfully pushed
@@ -99,11 +59,13 @@ Okteto builds the four images in your cluster, so you don't need Docker on your 
  ✓  Image 'registry.okteto.example.com/cindy/getting-started-frontend:okteto' successfully pushed
 ```
 
-Okteto stores the reference of each image in an `OKTETO_BUILD_<IMAGE>_IMAGE` [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry), such as `OKTETO_BUILD_API_IMAGE`, for the `deploy` and `test` sections. With [Smart Builds](application-environments/build-service.mdx#smart-builds), the next `okteto build` skips the images whose context hasn't changed.
+The build doesn't run on your machine. The Okteto CLI sends each folder to the [Okteto Build Service](application-environments/build-service.mdx), which builds the image inside your cluster and pushes it to the [Okteto Registry](application-environments/build-service.mdx#okteto-registry), a container registry that also runs in your cluster. The application environment pulls the images from there.
+
+This way, you don't need Docker, or access to a Docker daemon, to build your images: a laptop, a CI job, and the sandbox of a coding agent only need the Okteto CLI.
 
 ## Deploy
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section installs the Helm chart of the Movies app, with the application images that Okteto built:
+Okteto stores the reference of each image in an `OKTETO_BUILD_<IMAGE>_IMAGE` [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry), such as `OKTETO_BUILD_API_IMAGE`. The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section installs the Helm chart of the Movies app with those images:
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -130,8 +92,6 @@ Okteto builds the images that aren't built yet, runs the deploy command, waits u
 
 ```console
  i  Using cindy @ okteto.example.com as context
- i  Okteto Smart Builds is skipping build of "frontend-dev" because it's already built from cache.
- i  Okteto Smart Builds is skipping build of "api-dev" because it's already built from cache.
  i  Okteto Smart Builds is skipping build of "frontend" because it's already built from cache.
  i  Okteto Smart Builds is skipping build of "api" because it's already built from cache.
  i  Running stage 'Helm Install'
@@ -166,19 +126,10 @@ Open the endpoint in your browser to see the Movies app, and click the star of a
 
 ## Test
 
-The `test` section of the Okteto Manifest defines two [tests](application-environments/okteto-test.mdx). `frontend` runs the unit tests of the `frontend` service, written with [Vitest](https://vitest.dev/), and `e2e` runs [Playwright](https://playwright.dev/) tests that open the Movies app in a browser, compare the movies it shows with the data stored in MongoDB, and move a movie to the favorites:
+The `test` section of the Okteto Manifest defines the `e2e` [test](application-environments/okteto-test.mdx), which runs [Playwright](https://playwright.dev/) tests that open the Movies app in a browser, compare the movies it shows with the data stored in MongoDB, and move a movie to the favorites:
 
 ```yaml title="okteto.yaml"
 test:
-  frontend:
-    image: ${OKTETO_BUILD_FRONTEND_DEV_IMAGE}
-    context: frontend
-    caches:
-      - /root/.npm
-    commands:
-      - npm ci
-      - npm test
-
   e2e:
     image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
@@ -191,7 +142,7 @@ test:
       - playwright-report
 ```
 
-- `image`: the image that runs the test. `frontend` uses the development image of the service, and `e2e` uses the official Playwright image, with the same version of Playwright that `e2e/package.json` pins.
+- `image`: the image that runs the test, in this case the official Playwright image, with the same version of Playwright that `e2e/package.json` pins.
 - `context`: the folder that Okteto sends to the test.
 - `caches`: the folders that Okteto keeps between runs of the test, in this case the npm cache.
 - `commands`: the commands that run the tests. The test fails if any of them exits with a non-zero code.
@@ -199,10 +150,10 @@ test:
 
 The tests run with [Remote Execution](reference/remote-execution.mdx), in a container inside your Namespace, so they reach the application in two ways: its public endpoints, built from the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` variables, and its private services, such as MongoDB at `mongodb.${OKTETO_NAMESPACE}`. They test against the real application, not a mock.
 
-Run the end-to-end tests from the root folder of the Movies app:
+Run the tests from the root folder of the Movies app:
 
 ```bash
-okteto test e2e
+okteto test
 ```
 
 ```console
@@ -214,9 +165,9 @@ found 0 vulnerabilities
 > e2e@1.0.0 test
 > playwright test
 Running 7 tests using 1 worker
-  ✓  1 [chromium] › tests/content.spec.js:20:1 › displays the favorites section (429ms)
-  ✓  2 [chromium] › tests/content.spec.js:38:1 › displays the movies section (415ms)
-  ✓  3 [chromium] › tests/content.spec.js:56:1 › moves a movie to the favorites and back (322ms)
+  ✓  1 [chromium] › tests/content.spec.js:28:1 › displays the favorites section (429ms)
+  ✓  2 [chromium] › tests/content.spec.js:36:1 › displays the movies section (415ms)
+  ✓  3 [chromium] › tests/content.spec.js:44:1 › moves a movie to the favorites and back (322ms)
   ✓  4 [chromium] › tests/header.spec.js:3:1 › displays the header (138ms)
   ✓  5 [chromium] › tests/hero.spec.js:3:1 › displays the hero (139ms)
   ✓  6 [chromium] › tests/main.spec.js:3:1 › has title (126ms)
@@ -226,7 +177,7 @@ Running 7 tests using 1 worker
  ✓  Test container 'e2e' passed
 ```
 
-The Playwright report is now in the `e2e/playwright-report` folder on your machine. To run every test of the Okteto Manifest, run `okteto test` without arguments.
+The Playwright report is now in the `e2e/playwright-report` folder on your machine.
 
 Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when a coding agent writes and tests the code autonomously. With the [Okteto skills](coding-agents/okteto-skills.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
 
@@ -238,6 +189,14 @@ Running `okteto deploy` and `okteto test` after each change is usually fast enou
 okteto destroy
 ```
 
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ i  Running 'helm uninstall movies'
+release "movies" uninstalled
+ ✓  Development environment 'getting-started' successfully destroyed
+```
+
 ## FAQ
 
 ### How do I set up my own repository the same way?
@@ -246,11 +205,11 @@ Use a coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx). As
 
 ### How do I develop with hot reload and a debugger?
 
-Run `okteto up` to develop a service in a [Development Container](application-environments/development-containers/index.mdx). The guide of your language sets one up, with the build, deploy, and test optimizations of that language: [ASP.NET](application-environments/development-containers/aspnetcore.mdx), [Go](application-environments/development-containers/golang.mdx), [Java](application-environments/development-containers/java.mdx), [Node.js](application-environments/development-containers/node.mdx), [PHP](application-environments/development-containers/php.mdx), [Python](application-environments/development-containers/python.mdx), [Ruby](application-environments/development-containers/ruby.mdx), or [Rust](application-environments/development-containers/rust.mdx).
+Okteto supports hot reload and debuggers: `okteto up` runs a service of your application environment with your local changes as you save them. See the [samples for each language](application-environments/develop/index.mdx#guides-by-language): ASP.NET, Go, Java, Node.js, PHP, Python, Ruby, and Rust.
 
 ### How do I make builds, deploys, and `okteto up` faster?
 
-Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](reference/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](application-environments/development-containers/index.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](reference/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](application-environments/develop/index.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
 
 ### Do I need to deploy the whole application in every Namespace?
 

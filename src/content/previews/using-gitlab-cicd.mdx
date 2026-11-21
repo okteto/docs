@@ -96,26 +96,15 @@ Every time the branch is updated, the pipeline runs again and redeploys the Prev
 
 ## Step 4: Run Your Tests on Every Merge Request
 
-Your automated tests run against the Preview Environment of every merge request, with [Okteto Test](application-environments/okteto-test.mdx). The Okteto Manifest of the Movies app defines two tests: `frontend` runs the frontend unit tests, and `e2e` runs [Playwright](https://playwright.dev/) end-to-end tests against the deployed application and exports their reports as artifacts:
+Your automated tests run against the Preview Environment of every merge request, with [Okteto Test](application-environments/okteto-test.mdx). The Okteto Manifest of the Movies app defines the `e2e` test, which runs [Playwright](https://playwright.dev/) end-to-end tests against the deployed application and exports their reports as artifacts:
 
 ```yaml title="okteto.yaml"
 test:
-  frontend:
-    image: node:20
-    context: frontend
-    caches:
-      - yarn/.cache
-      - node_modules
-    commands:
-      - yarn install
-      - yarn test
-
   e2e:
-    image: ghcr.io/okteto/playwright:chromium
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
     context: e2e
     caches:
-      - yarn/.cache
-      - node_modules
+      - /root/.npm
     commands:
       - bash run_tests.sh
     artifacts:

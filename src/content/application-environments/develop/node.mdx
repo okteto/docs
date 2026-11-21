@@ -61,7 +61,7 @@ CMD ["node", "index.js"]
 - `dev` is the development image. It contains Node.js, npm, the dependencies that `npm ci` installs from `package-lock.json`, and the source code. Node.js includes the [watch mode](https://nodejs.org/api/cli.html#--watch) for hot reload and the [inspector](https://nodejs.org/en/learn/getting-started/debugging) for debugging, so the image doesn't need other tools.
 - `prod` is the application image. It contains Node.js, the production dependencies, and the source code, and runs the application with `node` and `NODE_ENV=production`.
 
-The `dev` stage follows the recommendations for [development images](application-environments/development-containers/index.mdx#development-images): every version is pinned, and both stages install the dependencies from the same `package-lock.json`.
+The `dev` stage follows the recommendations for [development images](application-environments/develop/index.mdx#development-images): every version is pinned, and both stages install the dependencies from the same `package-lock.json`.
 
 Okteto pushes both images to the [Okteto Registry](application-environments/build-service.mdx#okteto-registry) and stores their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry). `okteto deploy` builds the images that aren't built yet before it deploys the application. To build them on their own, run `okteto build`.
 
@@ -162,7 +162,7 @@ Running `okteto deploy` and `okteto test` after each change is usually fast enou
 
 ## Develop
 
-A [Development Container](application-environments/development-containers/index.mdx) gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster. This step is optional: coding agents work well with the `okteto deploy` and `okteto test` cycle, and don't need a Development Container.
+A [Development Container](application-environments/develop/index.mdx) gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster. This step is optional: coding agents work well with the `okteto deploy` and `okteto test` cycle, and don't need a Development Container.
 
 While `okteto up` is running, a coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx) stops building, deploying, and testing, and only edits the code: File Sync copies each change to the Development Container, and hot reload applies it to the running application.
 
@@ -286,3 +286,36 @@ okteto down
 ```bash
 okteto destroy
 ```
+
+## FAQ
+
+### How do I set up my own repository the same way?
+
+Use a coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx). Ask it to set up your repository for Okteto: it discovers your services, writes the Okteto Manifest, and validates it with `okteto build` and `okteto deploy`.
+
+### How do I make builds, deploys, and `okteto up` faster?
+
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](reference/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](application-environments/develop/index.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
+
+### Do I need to deploy the whole application in every Namespace?
+
+No. Okteto supports two models, and you choose one for your application:
+
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in the [quickstart](get-started/quickstart.mdx), where one Helm chart deploys the three services of the Movies app. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](application-environments/deploy.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with ten services or fewer.
+- **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](application-environments/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them from 15 to 20 services.
+
+### How do I create a Preview Environment of my application for every pull request?
+
+Add a workflow to your CI pipeline that deploys the application in a [Preview Environment](previews/index.mdx) when a pull request opens or changes, runs `okteto test` against it, and destroys it when the pull request closes. The workflow uses the Okteto Manifest, so `okteto build`, `okteto deploy`, and `okteto test` work the same way in your CI pipeline, for coding agents, and on developer machines. Follow the guide for [GitHub Actions](previews/using-github-actions.mdx) or for [GitLab CI/CD](previews/using-gitlab-cicd.mdx).
+
+### How do I start each environment with realistic data?
+
+Load the data with a script in your `deploy` commands, or copy the data of another application environment with a [Volume Snapshot](application-environments/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
+
+### How do I create resources outside Kubernetes, such as a cloud database?
+
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own resources. See [External Resources](application-environments/external-resources.mdx), and the [Create Cloud Infrastructure with Terraform](/tutorials/cloud-infrastructure/) tutorial, which creates an Amazon S3 bucket for each environment.
+
+### Can I access my application environment with `kubectl`?
+
+Yes. Run `okteto kubeconfig` to add the credentials of your Okteto Namespaces to your kubeconfig file, and use `kubectl` as usual: `kubectl get pods`, `kubectl logs`, or `kubectl describe`. See [Troubleshooting with kubectl](application-environments/troubleshooting.mdx) for the commands to inspect your application environment.
