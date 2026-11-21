@@ -8,8 +8,8 @@ import Image from "@theme/Image";
 
 This quickstart builds, deploys, and tests the [Movies app](https://github.com/okteto/getting-started) in an [application environment](application-environments/index.mdx) in your Kubernetes cluster. The Movies app has three services, deployed by the Helm chart in its `chart` folder:
 
-- `frontend`: a React application, built with Vite, that lists movies.
-- `api`: a Node.js API that reads the movies from MongoDB.
+- `frontend`: a React application, built with Vite, that lists the movies and your favorites.
+- `api`: a Node.js API that reads the movies from MongoDB, and saves your favorites in it.
 - `mongodb`: a MongoDB database that runs the official `mongo` image. A `seed` job loads the movies into it on every deployment.
 
 <Image
@@ -156,17 +156,17 @@ Okteto creates an [HTTPS endpoint](application-environments/endpoints/automatic-
   alt="Okteto UI showing the cindy Namespace with the getting-started application environment deployed: the api, frontend, and mongodb Deployments running, the seed Job completed, and the two endpoints of the Movies app"
 />
 
-Open the endpoint in your browser to see the Movies app:
+Open the endpoint in your browser to see the Movies app, and click the star of a movie to add it to your favorites:
 
 <Image
   src={require("@site/static/img/next-ui-movies.png").default}
-  alt="The Movies app in a browser, with its list of movies"
+  alt="The Movies app in a browser, with the favorites of Cindy and the rest of the movies, all of them with titles from the Kubernetes world"
   width="850"
 />
 
 ## Test
 
-The `test` section of the Okteto Manifest defines two [tests](application-environments/okteto-test.mdx). `frontend` runs the unit tests of the `frontend` service, written with [Vitest](https://vitest.dev/), and `e2e` runs [Playwright](https://playwright.dev/) tests that open the Movies app in a browser and compare the movies it shows with the data stored in MongoDB:
+The `test` section of the Okteto Manifest defines two [tests](application-environments/okteto-test.mdx). `frontend` runs the unit tests of the `frontend` service, written with [Vitest](https://vitest.dev/), and `e2e` runs [Playwright](https://playwright.dev/) tests that open the Movies app in a browser, compare the movies it shows with the data stored in MongoDB, and move a movie to the favorites:
 
 ```yaml title="okteto.yaml"
 test:
@@ -213,14 +213,15 @@ added 15 packages, and audited 16 packages in 1s
 found 0 vulnerabilities
 > e2e@1.0.0 test
 > playwright test
-Running 6 tests using 1 worker
-  ✓  1 [chromium] › tests/content.spec.js:26:1 › displays the movies section (1.4s)
-  ✓  2 [chromium] › tests/content.spec.js:48:1 › displays the watching section (706ms)
-  ✓  3 [chromium] › tests/header.spec.js:3:1 › displays the header (180ms)
-  ✓  4 [chromium] › tests/hero.spec.js:3:1 › displays the hero (288ms)
-  ✓  5 [chromium] › tests/main.spec.js:3:1 › has title (133ms)
-  ✓  6 [chromium] › tests/main.spec.js:10:1 › matches screenshot (1.7s)
-  6 passed (6.2s)
+Running 7 tests using 1 worker
+  ✓  1 [chromium] › tests/content.spec.js:20:1 › displays the favorites section (429ms)
+  ✓  2 [chromium] › tests/content.spec.js:38:1 › displays the movies section (415ms)
+  ✓  3 [chromium] › tests/content.spec.js:56:1 › moves a movie to the favorites and back (322ms)
+  ✓  4 [chromium] › tests/header.spec.js:3:1 › displays the header (138ms)
+  ✓  5 [chromium] › tests/hero.spec.js:3:1 › displays the hero (139ms)
+  ✓  6 [chromium] › tests/main.spec.js:3:1 › has title (126ms)
+  ✓  7 [chromium] › tests/main.spec.js:10:1 › matches screenshot (254ms)
+  7 passed (2.8s)
  ✓  Command 'bash run_tests.sh' successfully executed
  ✓  Test container 'e2e' passed
 ```
