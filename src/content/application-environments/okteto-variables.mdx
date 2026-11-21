@@ -5,7 +5,7 @@ sidebar_label: Okteto Variables
 id: okteto-variables
 ---
 
-Okteto Variables are the values that Okteto passes to an application environment when it builds, deploys, tests, or destroys it. Your [Okteto Manifest](application-environments/okteto-manifest.mdx) expands them with the `${VARIABLE}` syntax, and the commands of its `deploy`, `destroy`, and `test` sections get them as environment variables. Okteto sets some of them automatically, such as the Namespace or the images it builds. You set the rest when you deploy, in a `.env` file, in your [Settings](user-settings/variables.mdx), or an Admin sets them for every user as [Admin Variables](admin/admin-variables.mdx).
+Okteto Variables are the values that Okteto passes to an application environment when it builds, deploys, tests, or destroys it. Your [Okteto Manifest](application-environments/index.mdx#okteto-manifest) expands them with the `${VARIABLE}` syntax, and the commands of its `deploy`, `destroy`, and `test` sections get them as environment variables. Okteto sets some of them automatically, such as the Namespace or the images it builds. You set the rest when you deploy, in a `.env` file, in your [Settings](user-settings/variables.mdx), or an Admin sets them for every user as [Admin Variables](admin/admin-variables.mdx).
 
 The same variables work for every application environment: the one a developer deploys from a laptop, a Preview Environment that a CI pipeline deploys, and the one a coding agent deploys from its sandbox.
 
@@ -25,7 +25,7 @@ Okteto sets these variables when it builds, deploys, tests, or destroys your app
 
 - **`OKTETO_NAME`**: the name of the application environment. Okteto also adds it to your Development Containers.
 - **`OKTETO_USERNAME`**: your Okteto username.
-- **`OKTETO_REGISTRY_URL`**: the URL of the [Okteto Registry](application-environments/container-registry.mdx).
+- **`OKTETO_REGISTRY_URL`**: the URL of the [Okteto Registry](application-environments/build-service.mdx#okteto-registry).
 - **`OKTETO_GIT_BRANCH`**: the Git branch that Okteto deploys.
 - **`OKTETO_GIT_COMMIT`**: the SHA of the last commit of that branch.
 - **`OKTETO_IS_PREVIEW_ENVIRONMENT`**: `true` when the application environment is a [Preview Environment](previews/index.mdx).
@@ -68,7 +68,7 @@ Pass a variable with the `--var` flag when you run [`okteto deploy`](reference/o
 okteto deploy --var PORT=4000
 ```
 
-To deploy from the Okteto UI, add the variables in the **Deploy** dialog. See [Deploy from a Git Repository](application-environments/deploy/deploy-from-git.mdx#deploying-a-repository).
+To deploy from the Okteto UI, add the variables in the **Deploy** dialog. See [Deploy from the Okteto UI](application-environments/deploy.mdx#deploying-from-the-okteto-ui).
 
 The environment variables of your terminal work too:
 
@@ -128,7 +128,7 @@ Your Okteto Manifest expands variables with the `${VARIABLE}` syntax:
 ```yaml title="okteto.yaml"
 dev:
   api:
-    command: npm start
+    command: node --watch server.js
     environment:
       PORT: ${PORT}
 ```
@@ -138,9 +138,7 @@ The commands of the `deploy`, `destroy`, and `test` sections get every variable 
 ```makefile title="Makefile"
 .PHONY: deploy
 deploy:
-	terraform init -backend-config=./config/${ENV}/backend.hcl
-	terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
-	terraform apply tfplan
+	helm upgrade --install movies chart --values ./config/${ENV}/values.yaml
 ```
 
 ```yaml title="okteto.yaml"
@@ -191,52 +189,28 @@ deploy:
 
 ### With $OKTETO_ENV {#okteto_env}
 
-To pass a value to the next commands of the same section, write it to the file at `$OKTETO_ENV`, with the `NAME=value` format. For example, this `deploy` section creates an S3 bucket with Terraform, and passes its name to the commands that deploy the application:
+To pass a value to the next commands of the same section, write it to the file at `$OKTETO_ENV`, with the `NAME=value` format. For example, this `deploy` section deploys a database, and passes its hostname to the command that deploys the application:
 
 ```yaml title="okteto.yaml"
 deploy:
   commands:
-    - name: Create AWS infrastructure
+    - name: Deploy PostgreSQL
       command: |
         set -e
-        bucketName="${OKTETO_NAMESPACE}-okteto-tacos-shop"
-        terraform apply -input=false -var "bucket_name=$bucketName" -auto-approve
-        echo "S3_BUCKET_NAME=$bucketName" >> "$OKTETO_ENV"
+        helm upgrade --install postgresql postgresql/chart
+        echo "DATABASE_HOST=postgresql.${OKTETO_NAMESPACE}.svc.cluster.local" >> "$OKTETO_ENV"
 
-    - name: Create .env
+    - name: Deploy the Movies app
       command: |
         set -e
-        echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" > .env
-
-    - name: Deploy the app
-      command: |
-        set -e
-        make deploy
+        helm upgrade --install movies chart --set database.host=${DATABASE_HOST}
 ```
 
 The variables in `$OKTETO_ENV` stay in the section where you write them: the `deploy`, `test`, and `destroy` sections don't share them.
 
-### Configuring Dynamic Endpoints {#configuring-dynamic-endpoints}
+### Endpoint URLs of External Resources {#configuring-dynamic-endpoints}
 
-An [External Resource](application-environments/okteto-manifest.mdx#external) of your Okteto Manifest can take its URL from a variable that a `deploy` command writes to `$OKTETO_ENV`. The variable is `OKTETO_EXTERNAL_<RESOURCE>_ENDPOINTS_<ENDPOINT>_URL`. For example, this Okteto Manifest sets the URL of an SQS queue that Terraform creates:
-
-```yaml title="okteto.yaml"
-deploy:
-  commands:
-    - name: Create AWS infrastructure
-      command: |
-        terraform init -backend-config=./config/${ENV}/backend.hcl
-        terraform plan -var-file=./config/${ENV}/terraform.tfvars -out tfplan
-        terraform apply tfplan
-        terraform output -json > tfout.json
-        echo OKTETO_EXTERNAL_SQS_ENDPOINTS_QUEUE_URL=$(cat tfout.json | jq -r '.queue_url') >> $OKTETO_ENV
-
-external:
-  sqs:
-    icon: aws
-    endpoints:
-      - name: queue
-```
+A deploy command can also set the URL of an external resource of your Okteto Manifest, with a variable that it writes to `$OKTETO_ENV`. See [Endpoint URLs Set at Deploy Time](application-environments/external-resources.mdx#endpoint-urls-set-at-deploy-time).
 
 ## Feature Flags
 

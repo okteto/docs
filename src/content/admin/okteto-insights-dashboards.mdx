@@ -7,237 +7,142 @@ id: okteto-insights-dashboards
 
 import Image from "@theme/Image";
 
-Okteto Insights Dashboards offer visibility into the performance and health of your applications and the infrastructure running on Okteto.
-These dashboards provide valuable insights into your Okteto cluster, including its overall health, trends in build and deploy times, and user activity on the platform.
-Analyzing this data helps you better understand and optimize both the performance of your applications and the underlying infrastructure.
+The Okteto Insights dashboards are Grafana dashboards that show how your Okteto instance is used: the activity of your users, the duration and the error rate of builds, deploys, and tests, and the CPU and memory usage of your nodes, Namespaces, and pods. They read the [metrics that Okteto Insights exposes](reference/okteto-insights-metrics.mdx), and Okteto publishes them in the [insights-dashboards repository](https://github.com/okteto/insights-dashboards), with a Prometheus and Grafana setup to deploy them.
 
-Whether you’re looking to proactively identify bottlenecks, fine-tune resource allocation, or ensure that your applications are running smoothly, these dashboards provide the key data you need to make informed decisions.
+<Image
+  src={require("@site/static/img/insights-dashboard-landing.png").default}
+  alt="The Cluster Nodes dashboard of Okteto Insights in Grafana, with the total CPU, memory, and node count of the cluster, the CPU and memory requests and usage over the last seven days, the number of nodes, and the pods per node"
+  width="800"
+/>
 
-  <Image
-    src={require("@site/static/img/insights-dashboard-landing.png").default}
-    alt="Okteto Insights Dashboard Example"
-    width="800"
-  />
+## Activity Dashboard
 
----
+The Activity dashboard tracks the adoption of Okteto across your organization:
 
-## Dashboards Available
-
-Okteto provides the following dashboards out of the box:
-
-- [Dashboards Available](#dashboards-available)
-  - [Activity Dashboard](#activity-dashboard)
-  - [Build Service Dashboard](#build-service-dashboard)
-  - [Cluster Nodes Dashboard](#cluster-nodes-dashboard)
-  - [Images Dashboard](#images-dashboard)
-  - [Deploy Dashboard](#deploy-dashboard)
-  - [Namespace Dashboard](#namespace-dashboard)
-  - [Nodes Dashboard](#nodes-dashboard)
-  - [Pods Dashboard](#pods-dashboard)
-  - [Test Dashboard](#test-dashboard)
-- [Consuming Insights metrics from other tools](#consuming-insights-metrics-from-other-tools)
-
----
-
-### Activity Dashboard
-
-The Activity dashboard provides metrics to help you track platform adoption and usage across your organization.
-
-**Key Metrics:**
-- Total active users  
-- `okteto up` sessions  
-- Active namespaces and preview environments  
+- Total active users.
+- `okteto up` sessions.
+- Active Namespaces and Preview Environments.
 
 <Image
   src={require("@site/static/img/insights-activity-dashboard.png").default}
-  alt="Okteto Activity Insights Dashboard"
+  alt="The Activity dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Build Service Dashboard
 
-### Build Service Dashboard
+The Build Service dashboard shows the performance and the resource usage of the [Okteto Build Service](admin/build-service.mdx). Use it to find resource bottlenecks, to see how builds spread across the BuildKit pods, to size those pods, and to troubleshoot slow builds.
 
-Analyzes the [Okteto Build Service](build-service.mdx) performance and resource utilization.
+For the whole Build Service, it shows:
 
-**Why Use This Dashboard?**
-- Identify resource bottlenecks in the build service
-- Monitor build concurrency and distribution across BuildKit pods
-- Optimize BuildKit pod resource allocation
-- Troubleshoot build performance degradation
-
-**Key Metrics:**
-- Total number of replicas for BuildKit pods
-- Total active builds across all BuildKit pods
+- The number of BuildKit pods.
+- The active builds across all the BuildKit pods.
 
 <Image
   src={require("@site/static/img/insights-build-service-dashboard.png").default}
-  alt="Okteto Build Service Insights Dashboard"
+  alt="The Build Service dashboard of Okteto Insights"
   width="800"
 />
 
-**Key Metrics per BuildKit pod:**
-- Active builds per BuildKit pod
-- BuildKit pod CPU and memory consumption trends
-- CPU pressure and throttling indicators
-- Number of disk read/write operations and I/O pressure metrics
-- Available inodes to prevent build failures
+For each BuildKit pod, it shows:
+
+- The active builds.
+- The CPU and memory usage over time.
+- CPU pressure and throttling.
+- Disk read and write operations, and I/O pressure.
+- The available inodes, which builds need to succeed.
 
 <Image
   src={require("@site/static/img/insights-build-service-pods-dashboard.png").default}
-  alt="Okteto Build Service BuildKit Pod Performance Dashboard"
+  alt="The panels of the Build Service dashboard for each BuildKit pod"
   width="800"
 />
 
----
+## Cluster Nodes Dashboard
 
-### Cluster Nodes Dashboard
-
-The Cluster Nodes dashboard provides a high-level overview of your cluster nodes' utilization, with a focus on CPU and memory usage.
-
-It also can assist in evaluating if the CPU and memory requests of your pods align with actual usage.
-Pods under-utilizing their CPU/memory requests leads to wasted infrastructure, while Pods exceeding their CPU/memory requests can result in CPU throttling, pod evictions, or unbalanced workloads across the cluster.
-
-**Why Use This Dashboard?**
-- Detect over/under-provisioning of cluster resources  
-- Identify CPU/memory inefficiencies  
-- Ensure workload balancing across nodes  
+The Cluster Nodes dashboard shows the CPU and memory usage of the nodes of your cluster as a whole, next to the CPU and memory requests of their pods. Pods that use less than they request waste infrastructure, and pods that use more can be throttled or evicted, and leave the cluster unbalanced. Use this dashboard to find out whether your cluster has too many or too few resources, and whether its workloads are balanced across the nodes.
 
 <Image
   src={require("@site/static/img/insights-cluster-nodes-dashboard.png").default}
-  alt="Okteto Cluster Nodes Insights Dashboard"
+  alt="The Cluster Nodes dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Images Dashboard
 
-### Images Dashboard
+The Images dashboard shows the duration of your image builds over time, and how often they succeed or fail. It has two filters:
 
-Analyzes build efficiency, duration, and error rates.
-
-**Key Metrics:**
-- Build duration trends  
-- Build success/failure rates  
-
-**Filter Options:**
-- **Development Environment** – Select specific Okteto environments to display data for
-- **Image** – Filter by container image
+- **Development Environment**: the application environments to show data for.
+- **Image**: the image to show data for.
 
 <Image
   src={require("@site/static/img/insights-images-dashboard.png").default}
-  alt="Okteto Images Insights Dashboard"
+  alt="The Images dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Deploy Dashboard
 
-### Deploy Dashboard
-
-The Deploy dashboard helps you analyze the evolution of application deployments, focusing on both duration and error rates.
-
-**Key Metrics:**
-- Deployment duration  
-- Error rate trends
-
-**Filter Options:**
-- **Development Environment** – Select specific Okteto environments to display data for
+The Deploy dashboard shows the duration of your deploys over time, and their error rate. Its **Development Environment** filter selects the application environments to show data for.
 
 <Image
   src={require("@site/static/img/insights-deploy-dashboard.png").default}
-  alt="Okteto Deploy Insights Dashboard"
+  alt="The Deploy dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Namespace Dashboard
 
-### Namespace Dashboard
+The Namespace dashboard shows the CPU and memory that a Namespace uses. Its **Namespace** filter selects the Namespace to show data for. It has these panels:
 
-The Namespace Dashboard provides an overview of the CPU and Memory resources consumed per Namespace, helping you monitor and optimize the performance of specific applications or Development Environments.
+- **CPU requests and usage:** the CPU that the pods of the Namespace request, next to the CPU they use. A gap between the two points to resources that are over-allocated or under-used.
+- **Memory requests and usage:** the same comparison for memory.
+- **Pods:** the number of active pods over time, to relate a spike in usage to a change in the number of pods.
 
-**CPU and Memory Utilization**
-The graphs track CPU and memory usage, showing:
-- **CPU Requests vs. Usage**: This shows the trends between requested CPU resources and actual usage. Monitoring discrepancies between the two can help identify over-allocated or under-utilized resources.
-- **Memory Requests vs. Usage**: This shows the trends between memory requests and actual memory consumption. Understanding these trends helps optimize memory allocation.
-
-**Pro Tip:** Use the [Resource Manager](admin/resource-manager.mdx) to automate resource balancing.
-
-**Pods**
-The Pods section displays the number of Pods active in the namespace over time, helping you correlate spikes in resource usage with changes in the number of running Pods.
-
-**Filter Options**
-- **Namespace**: The name of the Okteto Namespace to display specific data for
+The [Resource Manager](admin/resource-manager.mdx) sets the CPU and memory requests of your services from this usage.
 
 <Image
   src={require("@site/static/img/insights-dashboard-namespace.png").default}
-  alt="Okteto Namespace Insights Dashboard"
+  alt="The Namespace dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Nodes Dashboard
 
-### Nodes Dashboard
-
-The Nodes dashboard offers a high-level overview of each cluster node's utilization, focusing on CPU and memory usage.
-
-**Key Use Cases:**
-- Troubleshoot performance issues on specific nodes  
-- Validate workload distribution across nodes
-
-**Filter Options**
-- **Node Name**: The name of the Kubernetes node to display specific data for
+The Nodes dashboard shows the CPU and memory usage of one node. Its **Node Name** filter selects the Kubernetes node. Use it to troubleshoot the performance of a node, and to check how workloads are distributed across nodes.
 
 <Image
   src={require("@site/static/img/insights-nodes-dashboard.png").default}
-  alt="Okteto Nodes Insights Dashboard"
+  alt="The Nodes dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Pods Dashboard
 
-### Pods Dashboard
+The Pods dashboard shows the CPU and memory usage of each pod, to find problems such as memory leaks. It has two filters:
 
-The Pods dashboard shows usage information related to each Kubernetes Pod.
-
-**Use This Dashboard To:**
-- Monitor CPU/memory consumption at the pod level  
-- Detect performance issues like memory leaks
-
-**Filter Options:**
-- **Namespace**: The name of the Okteto Namespace to display specific data for, filtered by the selected Development Environment
-- **Development Environment**: The specific Okteto Development environment to display data for
+- **Namespace**: the Namespace to show data for.
+- **Development Environment**: the application environment to show data for, among the ones of that Namespace.
 
 <Image
   src={require("@site/static/img/insights-pods-dashboard.png").default}
-  alt="Okteto Pods Insights Dashboard"
+  alt="The Pods dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Test Dashboard
 
-### Test Dashboard
+The Test dashboard shows the runs of [Okteto Test](application-environments/okteto-test.mdx) over time: the average time a test takes to pass, and how often tests pass or fail. It has two filters:
 
-The Test dashboard helps you analyze the evolution of Okteto Test runs, focusing on the average duration it takes for a test to complete successfully.
-
-**Key Metrics:**
-- Average test duration  
-- Success/failure trends
-
-**Filter Options**
-- **Development Environment**: The specific Okteto Development environment to display data for
-- **Test** to specify the name of the Test Container to display data for
+- **Development Environment**: the application environment to show data for.
+- **Test**: the name of the test to show data for.
 
 <Image
   src={require("@site/static/img/insights-test-dashboard.jpg").default}
-  alt="Okteto Test Insights Dashboard"
+  alt="The Test dashboard of Okteto Insights"
   width="800"
 />
 
----
+## Insights Metrics in Other Tools {#consuming-insights-metrics-from-other-tools}
 
-
-## Consuming Insights metrics from other tools
-
-You can consume Okteto Insights metrics through external tools.  
-Check out our [Okteto Insights Admin Documentation](reference/okteto-insights-metrics.mdx) for more details.
-
-For a deeper look at how these dashboards are built, explore our [open-source repository](https://github.com/okteto/insights-dashboards) and learn about the [data available](reference/okteto-insights-metrics.mdx#what-data-is-available).
+To read the Okteto Insights metrics with your own Prometheus, or with another tool, see [Okteto Insights Metrics](reference/okteto-insights-metrics.mdx), which also lists [the data that Okteto exposes](reference/okteto-insights-metrics.mdx#what-data-is-available).

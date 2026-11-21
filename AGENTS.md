@@ -30,7 +30,7 @@ These patterns are the most common drift in agent-authored docs. Treat each as a
 **Required patterns:**
 
 - Open every page with the subject (feature name or "Okteto") followed by what it does. No preamble.
-- Section headings are noun phrases (`Configuring the Garbage Collector`), not questions or imperatives. The only exception is the `###` questions inside a `## FAQ` section (see [`STYLE_GUIDE.md`](STYLE_GUIDE.md#section-headings)).
+- Page titles, sidebar labels, and section headings are in title case: every word capitalized except articles, conjunctions, and prepositions (`Upgrade Your Okteto Instance`). Section headings are noun phrases (`Configuring the Garbage Collector`), not questions or imperatives. The only exception is the `###` questions inside a `## FAQ` section (see [`STYLE_GUIDE.md`](STYLE_GUIDE.md#section-headings)).
 - Embed links inline. Never use standalone "Learn more" lines or arrow links.
 - Frontmatter `description` is one functional sentence. No marketing language.
 - Address the reader as "you". Use present tense and active voice.
@@ -50,15 +50,17 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 | Manifest filename | `okteto.yaml` | Lowercase, code-formatted (backticks). The product name is `Okteto Manifest`. |
 | CLI commands | `okteto up`, `okteto deploy`, `okteto test`, `okteto build` | Lowercase, in backticks. |
 | Deployment models | `Self-Hosted`, `BYOC`, `SaaS` | All capitalized exactly as shown. `BYOC` is always uppercase. First reference: `Bring Your Own Cloud (BYOC)`. |
-| Environments | `application environment`, `Development Environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the default term for what Okteto deploys: use it instead of `Development Environment`, which is only for the environment a developer works in with `okteto up`. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
+| Environments | `application environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the term for what Okteto deploys, for developers, pull requests, and coding agents alike. Don't write `Development Environment`: a developer's environment is the whole application environment, and `okteto up` only replaces one of its services with a Development Container. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
 | Namespaces | `Namespace` (Okteto) vs. `namespace` (generic Kubernetes) | Capitalization signals which one you mean. |
 | Roles | `Admin`, `Developer`, `Personal Access Token` | Capitalized when referring to the Okteto role. |
-| Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Coding Agents` | Capitalized as feature names. |
+| Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot` | Capitalized as feature names. |
+| Agents | `coding agent`, `Okteto skills` | Lowercase. Not "AI agent" or "Okteto agent skills". The instructions file of an agent is always `AGENTS.md`. |
+| Environment models | `full replica`, `Overlay Namespace`, `Shared Namespace` | An Overlay Namespace runs only the services that change, on top of a Shared Namespace. `Divert` is the feature that routes requests between them. Not "overlay environment". |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
 
 ### Search terms
 
-`ephemeral environment` (lowercase) is a term people search for a lot. Use it in the docs where it's true: for the application environments that live for one pull request or one agent task, Okteto creates them on demand and deletes them when the work ends. It describes how long an environment lives, so it doesn't replace `application environment` (the category, as opposed to the agent sandbox) or the feature names (`Preview Environment`, `Development Environment`).
+`ephemeral environment` (lowercase) is a term people search for a lot. Use it in the docs: application environments are ephemeral, Okteto creates them on demand for a developer, a pull request, or an agent task, and they're deleted when the work ends. It describes how long an environment lives, so it doesn't replace `application environment` (the category, as opposed to the agent sandbox) or the feature name `Preview Environment`.
 
 ## Confidential information
 
@@ -75,6 +77,7 @@ Describe the problem generically instead (e.g. "clusters where the ingress contr
 - `src/content/`: the **current** unreleased version. **All new content goes here.**
 - `versioned_docs/version-X.Y/`: frozen snapshots of released versions. By default, changes go only to `src/content/` (the next version), because most of them document features that ship in it. Copy a change to the official version (`lastVersion` in `docusaurus.config.js`) or older ones only when the user asks.
 - `src/pages/`: top-level pages (archives, etc.).
+- `netlify.toml`: the redirects. When a page moves, add a redirect from its old URL to the new one, without a version number in the path (`/docs/old-page` to `/docs/new-page/`). Don't add redirects for `/docs/X.Y/...` or `/docs/:version/...`.
 - `tutorials/`: the tutorials, served at `/tutorials/` as a site of their own with the look of the blog (`docusaurus.tutorials.config.js`). One folder per tutorial in `tutorials/posts/`, with its images. They aren't versioned. See [`tutorials/README.md`](tutorials/README.md).
 - `blog/`: the blog, served at `/blog/` (`docusaurus.blog.config.js`). See [`blog/README.md`](blog/README.md).
 - `config/shared.js`: what the three sites share (navbar, footer, search, analytics, styles), and the links between them. A page links to a page of another site with a root-relative URL (`/tutorials/helm/` from the docs, `/docs/reference/okteto-cli/` from a tutorial): the build turns it into a plain link and doesn't check it.

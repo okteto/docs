@@ -55,7 +55,7 @@ Readers arrive mid-task from search or a link in the product, and they don't rea
 | Reader | Usually reads | Write for them |
 |--------|---------------|----------------|
 | Platform engineer | `admin/`, `self-hosted/`, `byoc/`, installation pages | Knows Kubernetes and Helm well. Don't explain Kubernetes primitives. Give exact configuration keys, default values, and failure modes. |
-| Application developer | `get-started/`, `application-environments/`, `coding-agents/`, `previews/`, `development-containers/`, `user-settings/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
+| Application developer | `get-started/`, `application-environments/`, `coding-agents/`, `previews/`, `user-settings/`, `reference/` | Often knows little about Kubernetes. Give the shortest correct path and a command to copy. Don't require cluster internals to finish a task. |
 | AI coding agent | Any page | Runs what the page says, verbatim. See below. |
 
 Write so an agent can act on a single section:
@@ -102,9 +102,31 @@ The Administration pages document the Admin Dashboard: what each section shows a
 
 Every category of the sidebar has an index page: set it as the `link` of the category, so clicking the category opens a page instead of only expanding the list. The index opens with what the category covers and lists its pages, with a link and one line for each. A parent index lists its child categories, not every page under them, so the same list isn't repeated at two levels.
 
+When the index of a category has content of its own besides the list of its pages, such as Application Environments or Divert, readers who only expand the category in the sidebar don't see it. Add the index again as the first item of the category, with the label `Overview` (`Introduction` for Get Started):
+
+```js
+{
+  type: 'category',
+  label: 'Divert',
+  link: { type: 'doc', id: 'application-environments/divert/index' },
+  items: [
+    { type: 'doc', id: 'application-environments/divert/index', label: 'Overview' },
+    'application-environments/divert/shared-namespace',
+  ],
+}
+```
+
+In the frontmatter of that index page, set `pagination_label` instead of `sidebar_label` (a `sidebar_label` would replace the `Overview` label), and set `pagination_next` to the page that follows it, so its Next button doesn't point to the page itself.
+
 ### Section headings
 
-Use noun phrases, not imperative verbs or questions.
+Use noun phrases, not imperative verbs or questions, and write them in title case (`Hot Reload`, `Registry Credentials`, `Stopping the Development Container`), like page titles.
+
+Title case applies to every title a reader sees: the `title` of a page, a tutorial, or a blog post, the labels of the sidebar, and the section headings. Capitalize every word except articles (`a`, `an`, `the`), coordinating conjunctions (`and`, `or`, `but`), and prepositions (`of`, `in`, `on`, `to`, `for`, `with`, `without`, `from`, `as`), which stay lowercase unless they open the title or follow a colon. Pronouns and verbs are capitalized, however short: `Upgrade Your Okteto Instance`, `How It Works`. Commands, filenames, and field names keep their spelling: `Troubleshooting with kubectl`, `What okteto up Does`, `The .env File`. The headings of the references that name a field or a command (`dependencies ([string], optional)`, `deploy`) keep the name as it's written.
+
+The pages that explain a section of the Okteto Manifest take the title of their sidebar label: Build, Deploy, Test, Develop, and Destroy. Their first sentence names the feature (the Okteto Build Service, Okteto Test, Development Containers).
+
+The quickstart (`get-started/quickstart.mdx`) takes the Movies app through Build, Deploy, Test, and Destroy, and ends with the FAQ. It has no Develop and no Next Steps sections. The guides of each language (`application-environments/development-containers/<language>.mdx`, the pages of the Develop category after its overview) have the sections Prerequisites, Build (with the `Dockerfile`), Deploy, Test, Develop, and Destroy, with the optimizations for that language at each step, and no FAQ: coding agents read them to write or optimize an Okteto Manifest for that language.
 
 | Avoid | Use instead |
 |-------|-------------|
@@ -132,7 +154,7 @@ Embed links in the flow of the sentence. Don't use standalone "Learn more" lines
 
 ```mdx
 # Good
-[Namespaces](application-environments/namespaces.mdx) isolate the Development Environments of each team.
+[Namespaces](application-environments/namespaces.mdx) isolate the application environments of each team.
 Okteto uses [role-based access control (RBAC)](admin/user-roles-and-permissions.mdx) with two roles.
 
 # Avoid
@@ -148,7 +170,7 @@ Wrap all CLI commands, flags, file names, and code values in backticks.
 
 ```mdx
 Run `okteto deploy` to deploy your application.
-The `okteto.yaml` file defines your development environment.
+The `okteto.yaml` file defines how to build, deploy, and test your application.
 Set the `--wait` flag to block until the deployment completes.
 ```
 
@@ -197,6 +219,25 @@ Never hardcode the Okteto CLI, Helm chart, or Kubernetes versions. Import them f
 
 Don't embed or link videos, such as YouTube tutorials or recordings of the product. They go out of date as soon as the product or its UI changes, and nobody updates them. Explain the steps in text, with screenshots or diagrams where they help.
 
+### Agent instructions files
+
+Call the instructions file of a coding agent `AGENTS.md`, the name every agent reads. Don't mention agent-specific files, such as `CLAUDE.md`.
+
+### Samples
+
+- **Development Containers:** every `dev` example sets a `command` that starts the application with hot reload, such as `node --watch`, `air`, or `uvicorn --reload`. It's how `okteto up` is meant to work. Don't use `command: bash`, except for a container that starts without code, such as a remote workspace.
+- **Private images and cloud access:** where a sample uses an image or reaches a cloud provider, tell the reader to ask their Admin to configure [Registry Credentials](src/content/admin/registry-credentials/index.mdx) or [Cloud Credentials](src/content/admin/cloud-credentials/index.mdx).
+
+### Coding agents
+
+- A coding agent creates a Namespace for each session, with `okteto namespace create <ns> --use=false`, and passes `-n <ns>` to every command.
+- An agent troubleshoots through the Kubernetes API: `kubectl logs`, `kubectl top`, and `kubectl get events`, each with `-n <ns>`. Don't mention `okteto logs` in the pages about agents.
+- An agent never runs `okteto up`. In a collaborative workflow the developer runs it, and the agent only edits the code: hot reload applies each change.
+
+### References
+
+Besides the reference of each tool or file format, References holds the pages that explain how a part of Okteto works in detail, with a title of the form "How Remote Execution Works". The pages of Application Environments explain how to use the feature, and link to them.
+
 ### Images in samples
 
 Don't use `ghcr.io/okteto/pipeline-runner` in samples, in the `image` of a `deploy` or `destroy` section or anywhere else. Use the public image of the tool that the commands run, with a pinned tag, such as `alpine/helm:4.3.2` for Helm commands.
@@ -237,20 +278,22 @@ Use these terms exactly as written. Capitalization matters.
 
 | Term | When to use |
 |------|-------------|
-| **application environment** | Lowercase. The default term for what Okteto deploys: your application, its services, and its cloud dependencies, in a Namespace, from the Okteto Manifest. Use it instead of "Development Environment" whenever you mean the environments Okteto creates in general, for developers, pull requests, or coding agents. Development Environments and Preview Environments are application environments. Don't confuse it with the agent sandbox, where a coding agent runs. |
-| **Development Environment** | Only for the environment a developer works in with `okteto up`, on a page about that workflow. Capitalized. Everywhere else, write "application environment": "Okteto exposes the endpoints of your application environments", not "of your Development Environments". |
+| **application environment** | Lowercase. The term for what Okteto deploys: your application, with its services and the dependencies that run next to them in the cluster, such as databases and queues, in a Namespace, from the Okteto Manifest. Describe it in terms of Kubernetes only: resources outside the cluster, such as a storage bucket or a managed database, belong to the External Resources page, not to the definition of an application environment. It's the same environment for developers, pull requests, and coding agents: a developer's environment is an application environment too. Preview Environments are application environments. What `okteto deploy` creates from a repository is an application environment too, with the name of the repository by default: write "the name of the application environment", not "of the application". Don't confuse it with the agent sandbox, where a coding agent runs. |
+| **Development Environment** | Don't use it. The environment a developer works in is the whole application environment, and `okteto up` doesn't create a different kind of environment: it replaces one service of the application environment with a Development Container. Write "your application environment": "Okteto exposes the endpoints of your application environments", not "of your Development Environments". Keep it only when you quote a UI label verbatim. |
 | **Preview Environment** | Capitalized when referring to the Okteto feature. Lowercase when generic. |
 | **Namespace** | Capitalize when referring to an Okteto Namespace. Lowercase for generic Kubernetes namespace references. |
-| **Development Container** | Capitalized. |
-| **dev environment** | Lowercase. Informal shorthand, acceptable in tutorials and quickstarts. Avoid it in reference docs. |
+| **Development Container** | Capitalized. The container that `okteto up` runs in place of one service of the application environment, with hot reload and a debugger. It's part of an application environment, not an environment of its own. |
+| **dev environment** | Don't use it. Write "application environment". Keep it only when you quote a UI label verbatim, such as **Deploy Dev Environment**. |
+| **Overlay Namespace** | Capitalized. An application environment that runs only the services that change, on top of a **Shared Namespace** that runs the rest of the application. The other model is a **full replica**, which runs every service. **Divert** is the feature that routes requests between the two Namespaces: it isn't the name of the model. Don't write "overlay environment": the name of the model is always Overlay Namespace. |
+| **pull requests, test pipelines** | Either one names the third kind of user of an application environment, next to developers and coding agents: "developers, pull requests, and coding agents" in text, and "test pipelines" where the pipeline is the subject, as in a diagram. |
 
 Other products use near-synonyms for these concepts. Don't use them for Okteto concepts:
 
 | Avoid | Use instead |
 |-------|-------------|
-| workspace, remote workspace | Development Environment, or Namespace |
-| devbox, cloud IDE | Development Environment |
-| ephemeral environment | Preview Environment, when you name the feature. The term itself is fine, and worth using for search, to describe an application environment that lives for one pull request or one agent task |
+| workspace, remote workspace | application environment, or Namespace |
+| devbox, cloud IDE | application environment, or Development Container for the container where you code with `okteto up` |
+| ephemeral environment | Preview Environment, when you name the feature. The term itself is fine, and worth using for search: application environments are ephemeral, created on demand and deleted when the work is done |
 
 ### Access and roles
 
@@ -264,11 +307,11 @@ Other products use near-synonyms for these concepts. Don't use them for Okteto c
 
 | Term | Notes |
 |------|-------|
-| **Divert** | Capitalized as an Okteto feature name. |
+| **Divert** | Capitalized as an Okteto feature name. It routes requests from a Shared Namespace to an Overlay Namespace. |
 | **Remote Execution** | Capitalized. |
 | **File Sync** | Capitalized. The underlying behavior is "file sync" (lowercase) when used as a verb phrase. |
 | **Volume Snapshot** | Capitalized when referring to the Okteto feature. |
-| **Coding Agents** | Capitalized as a section/feature name. |
+| **coding agent** | Lowercase. "Coding Agents" is capitalized only as the name of the docs section. Don't write "AI agent". The skills are the "Okteto skills". |
 
 ### Deployment models
 

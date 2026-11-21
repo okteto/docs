@@ -1,32 +1,19 @@
 ---
 title: Application Environments
 description: An application environment is a running copy of your application, with its real dependencies, that Okteto creates in a Namespace on Kubernetes from the Okteto Manifest.
-sidebar_label: Application Environments
+pagination_label: Application Environments
+pagination_next: application-environments/namespaces
 ---
 
 import Image from "@theme/Image";
 
-An application environment is a running copy of your application. It runs in an [Okteto Namespace](application-environments/namespaces.mdx) on Kubernetes, and Okteto creates it from the definition in your [Okteto Manifest](application-environments/okteto-manifest.mdx). Developers, pull requests, and coding agents all create their environments from that same definition, so a change that works in one environment works in the others.
+An application environment is a running copy of your application. It runs in an [Okteto Namespace](application-environments/namespaces.mdx) on Kubernetes, and Okteto creates it from the definition in your [Okteto Manifest](#okteto-manifest). Developers, pull requests, and coding agents all create their environments from that same definition, so a change that works in one environment works in the others.
 
-An application environment includes your services, the databases and queues that run next to them in the cluster, and the cloud services they use, such as a managed database or a storage bucket. It can run every service of the application, or, with [Divert](application-environments/divert/index.mdx), only the services that change, on top of a shared Namespace that runs the rest. Most environments are ephemeral: you create one for a branch, a pull request, or an agent task, and delete it when the work is done.
-
-These pages cover how Okteto builds, deploys, tests, and serves your application environments:
-
-- [Okteto Manifest](application-environments/okteto-manifest.mdx): the file in your repository that defines how to build, deploy, test, and develop your application.
-- [Namespaces](application-environments/namespaces.mdx): the Kubernetes namespaces where application environments run, and how to create, share, and sleep them.
-- [Deploying Environments](application-environments/deploy/index.mdx): deploy an application environment from the Okteto UI, the Catalog, a Git repository, or a Develop on Okteto button.
-- [Build Service](application-environments/build-service.mdx): builds your images inside the cluster, and reuses an image when someone has already built it from the same code.
-- [Okteto Registry](application-environments/container-registry.mdx): the registry where each Namespace stores its images and Helm charts.
-- [Remote Execution](application-environments/remote-execution.mdx): runs your deploy, test, and destroy commands in a container inside the cluster.
-- [Okteto Test](application-environments/okteto-test.mdx): runs your tests inside the cluster, against the application environment.
-- [Endpoints](application-environments/endpoints/automatic-ssl.mdx): the HTTPS URLs of your application environments.
-- [Divert](application-environments/divert/index.mdx): deploy only the services you change, and use a shared Namespace for the rest of the application.
-- [Okteto Variables](application-environments/okteto-variables.mdx): the variables that Okteto sets in your deploy, destroy, and test commands, and in your services.
-- [Volume Snapshots](application-environments/use-volume-snapshots.mdx): initialize the volumes of an application environment with data from a snapshot.
+An application environment includes your services and the dependencies that run next to them in the cluster, such as databases and queues. It's either a full replica, which runs every service of the application, or an Overlay Namespace, which runs only the services that change, on top of a Shared Namespace that runs the rest. [Divert](application-environments/divert/index.mdx) routes the requests between the two Namespaces. Application environments are ephemeral: you create one for a branch, a pull request, or an agent task, and delete it when the work is done.
 
 ## Application Environment Workflow
 
-The Okteto CLI builds, deploys, and tests your application with [Remote Execution](application-environments/remote-execution.mdx): every operation runs in a container inside the cluster. Nothing depends on how the machine running the CLI is set up, whether that's a developer's laptop, a CI job, or a coding agent's sandbox:
+The Okteto CLI builds, deploys, and tests your application with [Remote Execution](reference/remote-execution.mdx): every operation runs in a container inside the cluster. Nothing depends on how the machine running the CLI is set up, whether that's a developer's laptop, a CI job, or a coding agent's sandbox:
 
 <Image
   src={require("@site/static/img/environment-workflow.webp").default}
@@ -42,6 +29,59 @@ Working with an application environment takes three steps:
    - `okteto deploy` builds the images for your services and deploys the application.
    - Optionally, `okteto up` speeds up the inner feedback loop with hot reloading and debuggers.
    - `okteto test` runs your tests against the application.
-3. `okteto namespace delete` deletes the Okteto Namespace and the application in it.
+3. `okteto namespace delete` deletes the Okteto Namespace and the application environment in it.
 
-To see this workflow in practice, follow [Deploy your app](get-started/deploy-your-app/index.mdx), which takes a sample application through each step.
+To see this workflow in practice, follow the [quickstart](get-started/quickstart.mdx), which takes a sample application through each step.
+
+## Okteto Manifest {#okteto-manifest}
+
+The Okteto Manifest (`okteto.yaml`) is a file in your repository that defines how to build, deploy, test, and develop your application. Developers, pull requests, and coding agents create their application environments from it, so they all build, deploy, and test the application the same way. This Okteto Manifest builds two images, deploys them with Helm, runs the end-to-end tests, and defines a Development Container for the `api` service:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+  frontend:
+    context: frontend
+
+deploy:
+  image: alpine/helm:4.3.2
+  commands:
+    - name: Helm Install
+      command: |
+        helm upgrade --install movies chart \
+          --set api.image=${OKTETO_BUILD_API_IMAGE} \
+          --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
+
+test:
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.65.1-noble
+    context: e2e
+    commands:
+      - bash run_tests.sh
+
+dev:
+  api:
+    command: node --watch server.js
+    sync:
+      - api:/usr/src/app
+```
+
+Each section of the Okteto Manifest has its own page in this section, and the [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every option.
+
+## Pages in This Section
+
+These pages explain each part of an application environment in detail:
+
+- [Namespaces](application-environments/namespaces.mdx): the Kubernetes namespaces where application environments run, and how to create, share, and sleep them.
+- <span id="build"></span>[Build](application-environments/build-service.mdx): the `build` section defines the images for your services. Okteto builds them inside the cluster, and stores them in the Okteto Registry.
+- <span id="deploy"></span><span id="dependencies"></span>[Deploy](application-environments/deploy.mdx): the `deploy` section lists the commands that deploy your application, and the `dependencies` section the other repositories to deploy with it.
+- [Endpoints](application-environments/endpoints/automatic-ssl.mdx): the HTTPS URLs of your application environments.
+- [Divert](application-environments/divert/index.mdx): an Overlay Namespace runs only the services you change, and Divert routes its requests to a Shared Namespace for the rest of the application.
+- <span id="test"></span>[Test](application-environments/okteto-test.mdx): the `test` section defines the tests that Okteto Test runs inside the cluster, against the application environment.
+- <span id="dev"></span>[Develop](application-environments/development-containers/index.mdx): the `dev` section defines the Development Containers where `okteto up` runs your local changes with hot reload and a debugger.
+- [Troubleshooting](application-environments/troubleshooting.mdx): `okteto kubeconfig` gives `kubectl` access to your Namespaces, to read the logs, the events, and the resource usage of your application environment.
+- <span id="destroy"></span>[Destroy](application-environments/destroy.mdx): `okteto destroy` deletes the application environment, and the `destroy` section lists the commands for what Okteto can't delete on its own.
+- <span id="external"></span>[External Resources](application-environments/external-resources.mdx): the `external` section lists the resources that your application uses outside Kubernetes.
+- [Okteto Variables](application-environments/okteto-variables.mdx): the variables that Okteto sets in your deploy, destroy, and test commands, and in your services.
+- [Volume Snapshots](application-environments/use-volume-snapshots.mdx): initialize the volumes of an application environment with data from a snapshot.

@@ -136,7 +136,7 @@ function environments(cx, y0) {
 
 // The scale diagram of the docs home: a cluster full of environments, some
 // of them asleep, and what keeps their cost down.
-const SCALE_ALT = 'Many application environments in Okteto Namespaces, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, Smart Tests, and Okteto Insights';
+const SCALE_ALT = 'Many application environments in Okteto Namespaces, some running and some asleep. The platform team controls their access with RBAC, quotas, network policies, and credentials, and their cost with the Garbage Collector, the Resource Manager, Smart Builds, and Okteto Insights';
 function scaleCluster(cx, y0, width, tile, gap) {
   const rows = [[1, 1, 0, 1], [1, 0, 1, 0], [0, 1, 1, 0]];
   const height = 154 + rows.length * (tile + gap) + 10;
@@ -191,8 +191,8 @@ const apiPill = (right, cy) => box(right - 100, cy - 28, 100, 56, { color: C.blu
 // application of the Divert docs: a full replica runs every service in each
 // environment, and Divert runs only the services that change and shares a
 // Namespace with the rest.
-const FULL_REPLICA_ALT = 'Full replica: the environment of a developer and the environment of a coding agent each run the whole application, with its API gateway, the rent service and its MongoDB database, and the catalog service and its MongoDB database';
-const DIVERT_ALT = 'Divert: the environment of a developer runs only the rent service and its MongoDB database, the environment of a coding agent runs only the catalog service, and both use a Shared Namespace that runs the whole application';
+const FULL_REPLICA_ALT = 'Full replica: a developer and a coding agent each have their own application environment, an Okteto Namespace that runs the whole application: its API gateway, the Rent service and its MongoDB database, and the Catalog service and its MongoDB database';
+const DIVERT_ALT = 'Overlay Namespaces: the Overlay Namespace of a developer runs only the Rent service and its MongoDB database, and the Overlay Namespace of a coding agent runs only the Catalog service. Divert routes their requests to a Shared Namespace that runs the whole application';
 // A database is indented under the service that owns it.
 const MODEL_SERVICES = [['box', 'API Gateway'], ['box', 'Rent'], ['database', 'MongoDB', true], ['box', 'Catalog'], ['database', 'MongoDB', true]];
 function modelRows(x, y, w, rows, changed = false) {
@@ -203,28 +203,63 @@ function modelRows(x, y, w, rows, changed = false) {
       + icon(name, rx + 28, ry + 23, 26, changed ? C.teal : C.blue) + text(label, rx + 54, ry + 31, 24, { anchor: 'start' });
   }).join('');
 }
-const modelHeight = (rows) => 66 + rows * 56;
-// An environment with its owner (a developer or an agent) on its top edge.
-function modelEnvironment(x, y, w, [owner, color], rows, changed = false) {
-  return box(x, y, w, modelHeight(rows.length), { color: C.blue, radius: 20 }) + circle(x + w / 2, y, 30, { color }) + icon(owner, x + w / 2, y, 32, color)
-    + modelRows(x + 20, y + 50, w - 40, rows, changed);
+// A Namespace of the model figures: a blue box with the Kubernetes mark on the
+// middle of its top edge, its title, an optional line under it, and its
+// services. The rows are narrower than the box and centered in it.
+const modelHeader = (subtitle) => (subtitle ? 126 : 96);
+const modelHeight = (rows, subtitle) => modelHeader(subtitle) + rows * 56 + 14;
+function modelEnvironment(x, y, w, title, subtitle, rows, changed = false) {
+  return box(x, y, w, modelHeight(rows.length, subtitle), { color: C.blue }) + logo('kubernetes', x + w / 2, y, 72)
+    + text(title, x + w / 2, y + 74, 26) + (subtitle ? text(subtitle, x + w / 2, y + 106, 22, { color: C.dim }) : '')
+    + modelRows(x + 30, y + modelHeader(subtitle), w - 60, rows, changed);
 }
-const DEVELOPER = () => ['user', C.teal];
-const AGENT = () => ['bot', C.purple];
-// 540 wide and 376 tall, from (x, y - 30).
-function fullReplica(x, y) {
-  return modelEnvironment(x, y, 260, DEVELOPER(), MODEL_SERVICES) + modelEnvironment(x + 280, y, 260, AGENT(), MODEL_SERVICES);
+// The owner of an environment: a circle with a line icon and the label under it.
+const DEVELOPER = () => ['user', 'Developer', C.teal];
+const AGENT = () => ['bot', 'Coding agent', C.purple];
+const owner = (cx, cy, [name, label, color]) => circle(cx, cy, 34, { color }) + icon(name, cx, cy, 36, color) + text(label, cx, cy + 68, 24);
+// An owner over its environment. 162 tall over the box.
+const ownerAbove = (cx, top, who) => owner(cx, top - 128, who);
+// Each owner has an application environment with every service. Wide: two
+// environments side by side. Stacked: one under the other.
+function fullReplica(x, y, stacked = false) {
+  const w = stacked ? 400 : 340;
+  const h = modelHeight(MODEL_SERVICES.length, true);
+  const second = stacked ? [x, y + h + 190] : [x + w + 40, y];
+  return ownerAbove(x + w / 2, y, DEVELOPER()) + modelEnvironment(x, y, w, 'Application environment', 'Okteto Namespace', MODEL_SERVICES)
+    + ownerAbove(second[0] + w / 2, second[1], AGENT()) + modelEnvironment(second[0], second[1], w, 'Application environment', 'Okteto Namespace', MODEL_SERVICES);
 }
-// 570 wide and 410 tall, from (x, y - 30).
+const RENT = [['box', 'Rent'], ['database', 'MongoDB', true]];
+const CATALOG = [['box', 'Catalog']];
+// Wide: the owners on the left, their Overlay Namespaces, and the Shared
+// Namespace on the right, with Divert on the arrows between them.
 function divert(x, y) {
-  // The two environments span the height of the Shared Namespace.
-  const agentY = y + 380 - modelHeight(1);
-  return modelEnvironment(x, y, 260, DEVELOPER(), [['box', 'Rent'], ['database', 'MongoDB', true]], true)
-    + modelEnvironment(x, agentY, 260, AGENT(), [['box', 'Catalog']], true)
-    + arrow(x + 266, y + modelHeight(2) / 2, x + 302, y + modelHeight(2) / 2, { color: C.dim })
-    + arrow(x + 266, agentY + modelHeight(1) / 2, x + 302, agentY + modelHeight(1) / 2, { color: C.dim })
-    + box(x + 310, y, 260, 380, { color: C.blue, radius: 20 }) + logo('kubernetes', x + 440, y, 64) + text('Shared Namespace', x + 440, y + 64, 24)
-    + modelRows(x + 330, y + 84, 220, MODEL_SERVICES);
+  const sharedH = modelHeight(MODEL_SERVICES.length);
+  const rentH = modelHeight(RENT.length);
+  const catalogH = modelHeight(CATALOG.length);
+  // The two Overlay Namespaces are taller than the Shared Namespace, which is centered next to them.
+  const agentY = y + rentH + 64;
+  const sharedY = y + (rentH + 64 + catalogH - sharedH) / 2;
+  const left = x + 150;
+  const shared = left + 300 + 150;
+  let out = owner(x + 50, y + rentH / 2 - 20, DEVELOPER()) + arrow(x + 96, y + rentH / 2 - 20, left - 12, y + rentH / 2 - 20, { color: C.teal })
+    + owner(x + 50, agentY + catalogH / 2 - 20, AGENT()) + arrow(x + 96, agentY + catalogH / 2 - 20, left - 12, agentY + catalogH / 2 - 20, { color: C.purple });
+  out += modelEnvironment(left, y, 300, 'Overlay Namespace', null, RENT, true) + modelEnvironment(left, agentY, 300, 'Overlay Namespace', null, CATALOG, true);
+  [[y + rentH / 2], [agentY + catalogH / 2]].forEach(([cy]) => {
+    out += arrow(left + 312, cy, shared - 12, cy, { color: C.dim }) + text('Divert', left + 375, cy - 16, 22, { color: C.dim });
+  });
+  return out + modelEnvironment(shared, sharedY, 320, 'Shared Namespace', null, MODEL_SERVICES);
+}
+// Stacked: the two Overlay Namespaces side by side, over the Shared Namespace.
+function divertStacked(x, y) {
+  const rentH = modelHeight(RENT.length);
+  const w = 265;
+  const sharedY = y + rentH + 130;
+  let out = ownerAbove(x + w / 2, y, DEVELOPER()) + modelEnvironment(x, y, w, 'Overlay Namespace', null, RENT, true)
+    + ownerAbove(x + w + 10 + w / 2, y, AGENT()) + modelEnvironment(x + w + 10, y, w, 'Overlay Namespace', null, CATALOG, true);
+  out += arrow(x + w / 2 - 30, y + rentH + 12, x + w / 2 - 30, sharedY - 12, { color: C.dim })
+    + arrow(x + w + 10 + w / 2 + 30, y + modelHeight(CATALOG.length) + 12, x + w + 10 + w / 2 + 30, sharedY - 12, { color: C.dim })
+    + text('Divert', x + w + 5, y + rentH + 78, 22, { color: C.dim });
+  return out + modelEnvironment(x + 60, sharedY, 2 * w + 10 - 120, 'Shared Namespace', null, MODEL_SERVICES);
 }
 
 // A light agent sandbox with the Okteto CLI, and the application environment
@@ -242,7 +277,7 @@ function agentSandbox(x, y, w) {
 function scaleFeatures(x, y0, width) {
   const groups = [
     ['Access', C.blue, [['shield-check', 'RBAC'], ['gauge', 'Quotas'], ['network', 'Network policies'], ['key-round', 'Credentials']]],
-    ['Cost', C.teal, [['moon', 'Garbage Collector'], ['cpu', 'Resource Manager'], ['zap', 'Smart Builds'], ['circle-check', 'Smart Tests'], ['eye', 'Okteto Insights']]],
+    ['Cost', C.teal, [['moon', 'Garbage Collector'], ['cpu', 'Resource Manager'], ['zap', 'Smart Builds'], ['eye', 'Okteto Insights']]],
   ];
   let out = '';
   let y = y0;
@@ -865,21 +900,12 @@ const covers = [
     })(),
   },
   {
-    out: tutorial('2026-11-20-connect-your-ide'),
-    alt: 'An IDE connects over SSH to a Development Container in an Okteto Namespace on Kubernetes',
-    svg: row([
-      tile('code', 'IDE', { color: C.teal }),
-      { icon: 'key-round' },
-      group('Namespace', [item('box', { size: 90 })], { top: 'kubernetes', minWidth: 260 }),
-    ]),
-  },
-  {
     out: tutorial('2026-11-13-cloud-infrastructure'),
     alt: 'A Namespace, Terraform, and the S3 bucket that Terraform creates for it',
     svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),
   },
   {
-    out: tutorial('2025-10-01-optimize-your-development-environment'),
+    out: tutorial('2025-10-01-optimize-your-application-environment'),
     alt: 'A snail goes through the optimizations (builds, remote execution, Volume Snapshots, and Divert) and comes out as a rocket',
     svg: row([
       badge('snail', null, { color: C.amber, r: 86 }),
@@ -1014,13 +1040,13 @@ const covers = [
     out: 'static/img/environments-at-scale.webp',
     background: 'white',
     alt: SCALE_ALT,
-    svg: () => scaleCluster(350, 75, 540, 96, 24) + arrow(770, 330, 645, 330, { color: C.blue }) + scaleFeatures(790, 48, 330),
+    svg: () => scaleCluster(350, 75, 540, 96, 24) + arrow(770, 330, 645, 330, { color: C.blue }) + scaleFeatures(790, 73, 330),
   },
   {
     out: 'static/img/environments-at-scale-mobile.webp',
     background: 'white',
     width: 600,
-    height: 1220,
+    height: 1170,
     alt: SCALE_ALT,
     svg: () => scaleCluster(300, 60, 480, 88, 18) + arrow(300, 640, 300, 548, { color: C.blue }) + scaleFeatures(100, 650, 400),
   },
@@ -1081,32 +1107,30 @@ const covers = [
   {
     out: 'static/img/environment-full-replica.webp',
     background: 'white',
-    height: 430,
     alt: FULL_REPLICA_ALT,
-    svg: () => fullReplica(330, 50),
+    svg: () => fullReplica(240, 186),
   },
   {
     out: 'static/img/environment-full-replica-mobile.webp',
     background: 'white',
     width: 600,
-    height: 430,
+    height: 1260,
     alt: FULL_REPLICA_ALT,
-    svg: () => fullReplica(30, 50),
+    svg: () => fullReplica(100, 190, true),
   },
   {
     out: 'static/img/environment-divert.webp',
     background: 'white',
-    height: 460,
     alt: DIVERT_ALT,
-    svg: () => divert(315, 50),
+    svg: () => divert(153, 107),
   },
   {
     out: 'static/img/environment-divert-mobile.webp',
     background: 'white',
     width: 600,
-    height: 460,
+    height: 900,
     alt: DIVERT_ALT,
-    svg: () => divert(15, 50),
+    svg: () => divertStacked(30, 190),
   },
   {
     out: 'static/img/agent-sandbox.webp',

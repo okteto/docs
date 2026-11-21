@@ -1,0 +1,59 @@
+---
+title: Troubleshooting with kubectl
+description: okteto kubeconfig gives kubectl access to your Okteto Namespaces, so you can read the logs, the events, and the resource usage of your application environment.
+sidebar_label: Troubleshooting
+id: troubleshooting
+---
+
+An application environment runs as ordinary Kubernetes resources in your Okteto Namespace, so `kubectl` and any other Kubernetes tool work with it. `okteto kubeconfig` gives them access to your Namespaces, and you troubleshoot your application environment the way you would troubleshoot any application on Kubernetes.
+
+## Kubernetes Credentials
+
+Run `okteto kubeconfig` to add the credentials of your Okteto instance to your kubeconfig file, and make them the current Kubernetes context:
+
+```bash
+okteto kubeconfig
+```
+
+```console
+ i  Updated kubernetes context 'okteto_example_com/cindy' in '/Users/cindy/.kube/config'
+```
+
+The credentials only give access to your own Namespaces and to the ones shared with you, and they use time-bound tokens, so there's nothing to rotate. See [Setup](user-settings/setup.mdx#using-your-kubernetes-credentials) to download them from the Okteto UI instead.
+
+## Troubleshooting Commands
+
+`kubectl` commands run against your current Okteto Namespace. To run them against another one, add the `-n <namespace>` flag.
+
+See which pods are running, and which ones fail to start:
+
+```bash
+kubectl get pods
+```
+
+Read the logs of a service:
+
+```bash
+kubectl logs deployment/api --since=5m
+```
+
+Find out why a pod doesn't start, for example an image that can't be pulled or a failing health check:
+
+```bash
+kubectl describe pod <pod-name>
+kubectl get events --sort-by=.lastTimestamp
+```
+
+See the CPU and memory that each pod uses:
+
+```bash
+kubectl top pods
+```
+
+Open a shell in a running container:
+
+```bash
+kubectl exec -it deployment/api -- sh
+```
+
+Coding agents troubleshoot the same way, with these commands and the `-n` flag of [their session's Namespace](coding-agents/index.mdx#parallel-tasks).

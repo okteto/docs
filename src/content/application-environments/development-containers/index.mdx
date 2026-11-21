@@ -1,0 +1,207 @@
+---
+title: Develop
+description: okteto up replaces a service of your application environment with a Development Container, where your local code changes run with hot reload and a debugger.
+pagination_label: Develop
+pagination_next: application-environments/development-containers/aspnetcore
+---
+
+import Image from "@theme/Image";
+
+A Development Container replaces one service of your [application environment](application-environments/index.mdx) while you code it. When you run [`okteto up`](reference/okteto-cli.mdx#up), you edit the code on your machine with your own tools, Okteto syncs every change to the Development Container in the cluster, and hot reload and your debugger pick it up.
+
+Development Containers are optional. `okteto up` works on an application environment that's already deployed, and deploys it first if it isn't. Run it for the service you're changing when you want a faster feedback loop than building and redeploying it. Coding agents and pull requests usually don't need one: they build, deploy, and test with `okteto deploy` and `okteto test`.
+
+## The dev Section
+
+The `dev` section of your Okteto Manifest defines a Development Container for each service you want to develop:
+
+```yaml title="okteto.yaml"
+build:
+  api-dev:
+    context: api
+    target: dev
+
+dev:
+  api:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    command: node --watch --inspect=0.0.0.0:9229 server.js
+    sync:
+      - api:/usr/src/app
+    forward:
+      - 8080:8080
+      - 9229:9229
+```
+
+- The key, `api`, is the name of the Deployment or StatefulSet that the Development Container replaces.
+- `image` is the [development image](#development-images), with your compilers, debuggers, and hot reload tools. Without it, the Development Container uses the image of the service.
+- `command` starts your application in the Development Container, with hot reload: here, `node --watch` restarts the application every time a file changes.
+- `sync` lists the local folders that [File Sync](#file-sync) keeps in sync with a path of the container.
+- `forward` lists the ports of the container that you reach on `localhost`, such as the port of the application or of the debugger.
+
+:::tip Always use a command with hot reload
+Set the `command` of every Development Container to one that reloads or restarts your application when a file changes, such as `node --watch`, `air` for Go, `uvicorn --reload` for Python, `dotnet watch`, or `watchexec`. It's what makes a Development Container worth using: you save a file, and the change runs in the cluster a moment later, with no build, no deploy, and nothing to restart by hand. It's also what a coding agent that works with you relies on to see its changes.
+:::
+
+If the `image` of a Development Container comes from a private registry, ask your Admin to configure [Registry Credentials](admin/registry-credentials/index.mdx), so Okteto can pull it.
+
+See the [`dev` reference](reference/okteto-manifest.mdx#dev-object-optional) for every option.
+
+## What okteto up Does
+
+Run `okteto up` with the name of the Development Container, from the folder of your Okteto Manifest:
+
+```bash
+okteto up api
+```
+
+<Image
+  src={require("@site/static/img/development-container.webp").default}
+  mobileSrc={require("@site/static/img/development-container-mobile.webp").default}
+  borderless
+  alt="okteto up replaces the api Deployment with api-okteto, a Development Container with hot reload, in your Okteto Namespace, next to the frontend and the database. File Sync keeps the source code on your machine and the Development Container in sync, in both directions, and you reach the application on localhost:8080"
+/>
+
+`okteto up`:
+
+1. Deploys the application, if it isn't deployed yet in your Namespace.
+2. Replaces the **api** Deployment with a development copy, a Deployment called **api-okteto**, with the `image` and the `command` of the Development Container. The copy inherits the manifest of the original Deployment, so it uses the same service account, environment variables, secrets, volumes, and sidecars: you develop in the same conditions your application runs in.
+3. Starts [File Sync](#file-sync), which keeps your local files and the Development Container in sync, in both directions.
+4. Forwards the ports of the `forward` field over [SSH](#ssh-server), so you reach the application and its debugger on `localhost`.
+5. Runs the `command` in the Development Container, which starts your application with hot reload, and shows its output in your terminal.
+
+From then on, every file you save reaches the Development Container in a moment, and your hot reload tool picks it up. The other services of the application environment keep running as they were, so you test your change against the real ones.
+
+When you're done, `okteto down` brings back the original **api** Deployment:
+
+```bash
+okteto down api
+```
+
+## Development Images {#development-images}
+
+A development image is the container image of your Development Container. It has everything you need to build, run, test, and debug a service, so a new developer runs `okteto up` instead of following a list of tools to install. The application image of the service stays small, and only the development image carries the development tools.
+
+### Contents of a Development Image
+
+A development image usually contains:
+
+- The language runtime, such as Node.js, Python, or Ruby.
+- The SDK of the runtime, such as the JDK or the Python headers.
+- Binary dependencies, such as OpenSSL or Git.
+- The tools that install your dependencies, such as pip, Bundler, or npm, and the dependencies themselves.
+- The tools that run your tests and analyze your code, such as pytest or pylint.
+- The tools for hot reload and debugging, such as a file watcher or a debugger.
+- Your source code.
+
+### Building a Development Image
+
+Define the development image as a stage of the `Dockerfile` of your service, next to the stage of its application image. For example, for a Node.js service:
+
+```dockerfile title="api/Dockerfile"
+FROM node:26.13.1-trixie-slim AS dev
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+FROM node:26.13.1-trixie-slim AS prod
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY . .
+CMD ["node", "server.js"]
+```
+
+The [`build`](application-environments/build-service.mdx) section of your Okteto Manifest builds both stages, and the `image` of your Development Container uses the development image through its [`OKTETO_BUILD_<NAME>_IMAGE`](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) variable:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+    target: prod
+  api-dev:
+    context: api
+    target: dev
+
+dev:
+  api:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    command: node --watch --inspect=0.0.0.0:9229 server.js
+    sync:
+      - api:/usr/src/app
+```
+
+### Recommendations
+
+Follow [Docker's best practices](https://docs.docker.com/build/building/best-practices/) for your Dockerfile, and:
+
+- Pin the versions of the base image and of every dependency, so every developer gets the same image.
+- Keep the `Dockerfile` in the repository of the service, next to its code.
+- With [multi-stage builds](https://docs.docker.com/build/building/multi-stage/), install the dependencies of both stages from the same lock file, so the Development Container and the application run the same versions.
+
+## File Sync {#file-sync}
+
+File Sync keeps your local files and your Development Container in sync while `okteto up` runs. The Okteto CLI starts [Syncthing](https://syncthing.net/) on your machine and in the Development Container, and Syncthing copies every change in both directions.
+
+`okteto status` shows how much of your code File Sync has synchronized. Run it from the folder where you ran `okteto up`, while `okteto up` is running, and add `--watch` to follow it until it gets to 100%:
+
+```bash
+okteto status --watch
+```
+
+```console
+ ✓  Synchronization status: 100.00%
+```
+
+If the synchronization doesn't finish, `okteto status --info` prints the URLs and the credentials of the Syncthing web UI, with the state of every file, and `okteto doctor` collects the logs you need to troubleshoot it or to ask for help. See the [`okteto status`](reference/okteto-cli.mdx#status) and [`okteto doctor`](reference/okteto-cli.mdx#doctor) references for every flag.
+
+### Ignoring Files {#ignoring-files}
+
+To keep files out of the synchronization, such as build artifacts, dependencies, or Git metadata, add a `.stignore` file to the root of the folder that you synchronize, with one file or path pattern per line. The patterns follow the syntax of `.gitignore`, and the first pattern that matches a file decides whether Syncthing ignores it. See [Syncthing's ignore syntax](https://docs.syncthing.net/users/ignoring.html) for every option. For example, for a Go project:
+
+```text title=".stignore"
+.git
+*.test
+*.out
+```
+
+Set the `OKTETO_AUTOGENERATE_STIGNORE` [feature flag](reference/feature-flags.mdx) to `true`, and `okteto up` generates a default `.stignore` file for your programming language.
+
+### Hot Reload and File Watchers {#hot-reload-and-file-watchers}
+
+If the hot reloader in your Development Container doesn't pick up your changes, even though File Sync copies them, the limit of inotify file watchers on your Kubernetes nodes is usually too low. `okteto up` warns you when the value of `/proc/sys/fs/inotify/max_user_watches` on the node is too low.
+
+Okteto raises this limit on every node by default, with the [`overrideFileWatchers`](self-hosted/helm-configuration.mdx#overridefilewatchers) Helm setting. If an Admin disabled that setting, set the limit on each node:
+
+```bash
+sudo sysctl -w fs.inotify.max_user_watches=10048576
+```
+
+## SSH Server {#ssh-server}
+
+`okteto up` runs an SSH server in your Development Container. The Okteto CLI uses it to run commands and forward ports between your machine and the Development Container, and you can use it to open a shell or to connect your IDE.
+
+When it starts, `okteto up` forwards a local port to the SSH server and adds a host entry to your `~/.ssh/config` file, named `<dev-name>.okteto` after the name under the `dev` section of your Okteto Manifest. While `okteto up` runs, connect with that host entry, which already has the port and the key:
+
+```bash
+ssh api.okteto
+```
+
+`okteto up` picks a random local port on every run. To set it, use the [`remote`](reference/okteto-manifest.mdx#remote-integer-optional) field of your Okteto Manifest, or the `--remote` flag of `okteto up`. The SSH server only accepts connections authenticated with the key pair that the Okteto CLI creates the first time you run `okteto up`, at `$HOME/.okteto/id_ecdsa_okteto`.
+
+IDEs with remote development over SSH, such as Visual Studio Code or the JetBrains IDEs, connect to the same host entry. [Connect Your IDE to a Development Container over SSH](development/connect-your-ide.mdx) shows how.
+
+## Guides by Language
+
+Hot reload and debugging depend on the tools of your language: the command that reloads the application when a file changes, and the debugger that your IDE attaches to. Each guide takes a sample application in one language through `okteto build`, `okteto deploy`, `okteto test`, and `okteto up`, with the optimizations for that language at each step: the layers of the development image, the caches of the tests, the hot reload command, and the debugger.
+
+- [ASP.NET](application-environments/development-containers/aspnetcore.mdx): `dotnet watch` for hot reload, and `vsdbg` for debugging with VS Code.
+- [Go](application-environments/development-containers/golang.mdx): Air for hot reload, and Delve for debugging with VS Code.
+- [Java](application-environments/development-containers/java.mdx): Spring Boot DevTools for hot reload, and the JVM debug agent for debugging with IntelliJ IDEA.
+- [Node.js](application-environments/development-containers/node.mdx): the Node.js watch mode for hot reload, and the Node.js inspector for debugging with VS Code.
+- [PHP](application-environments/development-containers/php.mdx): the built-in web server of PHP for hot reload, and Xdebug for debugging with PhpStorm.
+- [Python](application-environments/development-containers/python.mdx): Uvicorn for hot reload, and the Python Debug Server for debugging with PyCharm.
+- [Ruby](application-environments/development-containers/ruby.mdx): `sinatra/reloader` for hot reload, and `rdbg` for debugging with VS Code.
+- [Rust](application-environments/development-containers/rust.mdx): watchexec for hot reload, and LLDB for debugging with VS Code.
+
+Coding agents use the same guides: point your agent to the guide of your language when it writes or optimizes the Okteto Manifest of your application.

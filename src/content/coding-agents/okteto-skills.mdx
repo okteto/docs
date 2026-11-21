@@ -5,7 +5,7 @@ sidebar_label: Okteto Skills
 id: okteto-skills
 ---
 
-The Okteto skills teach a coding agent how to work with Okteto: discover your services from `okteto.yaml`, deploy with `okteto deploy`, run your tests with `okteto test`, read the logs, and which commands it must never run. They're open source, in the [okteto/okteto-agent-skills](https://github.com/okteto/okteto-agent-skills) repository, and use the open [Agent Skills](https://agentskills.io) format, so the same skills work in Claude Code, Codex, Cursor, GitHub Copilot, and other compatible agents.
+The Okteto skills teach a coding agent how to work with Okteto: discover your services from `okteto.yaml`, deploy with `okteto deploy`, run your tests with `okteto test`, troubleshoot with the Kubernetes API, and which commands it must never run. They're open source, in the [okteto/okteto-agent-skills](https://github.com/okteto/okteto-agent-skills) repository, and use the open [Agent Skills](https://agentskills.io) format, so the same skills work in Claude Code, Codex, Cursor, GitHub Copilot, and other compatible agents.
 
 The skills need the [Okteto CLI installed](get-started/install-okteto-cli.mdx) and connected to your Okteto instance. Your project doesn't need an `okteto.yaml` yet: if it's missing, the `okteto-onboarding` skill creates one.
 
@@ -55,23 +55,13 @@ The [`skills` CLI](https://github.com/vercel-labs/skills) installs the skills in
 npx skills add okteto/okteto-agent-skills
 ```
 
-Agents that read a plain instruction file can use the files of the repository instead. They carry the same guidance, but load it on every turn instead of on demand:
-
-```bash
-# Agents that read AGENTS.md
-cp agents/AGENTS.md <your-repo>/AGENTS.md
-
-# GitHub Copilot
-cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md
-```
-
-Run these commands from a clone of the [okteto/okteto-agent-skills](https://github.com/okteto/okteto-agent-skills) repository. The `/dev-setup` and `/debug-env` commands and the guardrail hooks are only in the Claude Code plugin.
+The `/dev-setup` and `/debug-env` commands and the guardrail hooks are only in the Claude Code plugin. If you'd rather not install the skills, see [Using Agents without the Okteto Skills](coding-agents/best-practices.mdx).
 
 ## Skills and Commands
 
 | | What it does | When it activates |
 |---|---|---|
-| `okteto` skill | Teaches the agent the Okteto CLI: `okteto deploy`, `okteto build`, `okteto test`, `okteto logs`, and `okteto exec`, how to read the services from `okteto.yaml`, the autonomous and collaborative workflows, worktree isolation, and the cleanup rules. | The project has an `okteto.yaml`, or you mention Okteto. |
+| `okteto` skill | Teaches the agent the Okteto CLI: `okteto deploy`, `okteto build`, and `okteto test`, how to read the services from `okteto.yaml`, the autonomous and collaborative workflows, the Namespace of each session, and the cleanup rules. | The project has an `okteto.yaml`, or you mention Okteto. |
 | `okteto-onboarding` skill | Discovers your services from Docker Compose files, Helm charts, Kubernetes manifests, or Dockerfiles, drafts an `okteto.yaml`, and validates it with `okteto validate`, `okteto build`, and `okteto deploy`. | The project has no `okteto.yaml`, and you ask to set it up for Okteto. |
 | `okteto-debugging` skill | Triages an unhealthy environment with a playbook for each failure: `CrashLoopBackOff`, `OOMKilled`, `ImagePullBackOff`, `Pending`, runtime errors, deploy failures, and File Sync issues. Its diagnostics are read-only. | You describe an unhealthy service, or paste output that shows one. |
 | `okteto-preview` skill | Deploys a Preview Environment for a branch or pull request with `okteto preview deploy`, gets its endpoints, and posts the URL on the pull request. It also covers Preview Environments in GitHub Actions and GitLab CI/CD. | You ask for a shareable environment or URL for a branch or pull request. |
@@ -84,25 +74,14 @@ Run these commands from a clone of the [okteto/okteto-agent-skills](https://gith
 The Claude Code plugin enforces the most important rules with hooks, even if the model forgets them:
 
 - **`okteto up` is always denied.** It's interactive and hangs the agent's shell, so the agent asks you to run it.
-- **`okteto destroy`, `okteto preview destroy`, and `okteto namespace delete` ask for your confirmation.** A pipeline that owns its environments, such as one that creates an environment per pull request, can allow them without confirmation by setting the `OKTETO_ALLOW_AGENT_DESTROY` environment variable to `1`. Don't set it on a developer's machine.
+- **`okteto destroy`, `okteto preview destroy`, and `okteto namespace delete` ask for your confirmation.** A pipeline that starts agents with nobody to confirm, and owns the environments they create, can allow these commands by setting the `OKTETO_ALLOW_AGENT_DESTROY` environment variable to `1`. Don't set it on a developer's machine.
 - **Sessions in an Okteto project start with a reminder.** When the repository has an `okteto.yaml`, the agent knows from the start that it's an Okteto project and that it has to verify its changes in an Okteto environment.
 
 ## Skill Activation
 
 Skills load on demand: the agent matches the description of each skill against your prompt and what it has seen of the project. A prompt that mentions Okteto, or a session where the agent has already read `okteto.yaml`, activates the `okteto` skill. In Claude Code, the plugin's session hook gives the agent that signal from the start.
 
-In other agents, a generic prompt such as "implement this feature" gives the agent no reason to use Okteto, so it may write the code and validate it locally, without deploying anything. To make verification in Okteto part of every task, add it to your repository's agent instructions file (`AGENTS.md` for most agents, `CLAUDE.md` for Claude Code):
-
-```markdown
-## Verifying changes
-
-This project deploys to Okteto. After implementing any change, verify it in an
-Okteto environment: deploy with `okteto deploy --wait` and run the tests
-defined in `okteto.yaml` with `okteto test`. Use the okteto skill for all
-environment work.
-```
-
-The instructions file loads in every session, so the agent treats verification in Okteto as part of done, even when the prompt never mentions Okteto.
+In other agents, a generic prompt such as "implement this feature" gives the agent no reason to use Okteto, so it may write the code and validate it locally, without deploying anything. Mention Okteto in your prompt, for example "implement this feature and verify it in Okteto", so the agent loads the skill.
 
 ## Example Prompts
 
@@ -111,8 +90,8 @@ What you ask the agent decides what it does:
 | Prompt | What the agent does |
 |---|---|
 | "Set this repo up for Okteto." | Creates and validates an `okteto.yaml` (`okteto-onboarding` skill). |
-| "I have `okteto up` running for the api service. Check the logs for errors and run the test suite." | Works inside your Development Container with `okteto exec` ([collaborative](coding-agents/collaborative-workflows.mdx)). |
-| "The `/api/orders` endpoint returns a 500 on an empty cart. Investigate and fix it." | Debugs against your running environment ([collaborative](coding-agents/collaborative-workflows.mdx)). |
+| "I have `okteto up` running for the api service. Fix the 500 error of the `/api/orders` endpoint on an empty cart." | Edits the code, and hot reload applies each change in your Development Container ([collaborative](coding-agents/collaborative-workflows.mdx)). |
+| "The api service keeps restarting. Find out why." | Reads the status, the logs, and the events of the service, and reports the cause and a fix (`okteto-debugging` skill). |
 | "Deploy the environment, add a `/health` endpoint to the api service, run the tests, and open a PR." | Deploys, codes, tests, and opens the pull request ([autonomous](coding-agents/autonomous-workflows.mdx)). |
 | "Pick up PROJ-123, implement it against a live environment, and open a PR when the tests pass." | Handles the whole ticket ([autonomous](coding-agents/autonomous-workflows.mdx)). |
-| "My dev environment is slow to start. Review the manifest." | Reviews and rewrites `okteto.yaml` for performance (`okteto-manifest-optimizer` skill). |
+| "My environment is slow to start. Review the manifest." | Reviews and rewrites `okteto.yaml` for performance (`okteto-manifest-optimizer` skill). |

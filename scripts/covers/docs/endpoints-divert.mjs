@@ -45,14 +45,16 @@ const bluePill = (x, cy, w) => box(x, cy - 24, w, 48, { color: C.blue, radius: 2
 const tealPill = (x, cy, w) => box(x, cy - 38, w, 76, { color: C.teal, radius: 26, strokeWidth: 3 })
   + text(URL, x + w / 2, cy - 6, 18, { color: C.teal }) + text('baggage: okteto-divert=cindy', x + w / 2, cy + 26, 22, { color: C.teal });
 
-// A Namespace: Staging (the Shared Namespace, with the Kubernetes mark) or
-// Cindy (her Overlay Namespace, with a user icon), titled on its top edge.
+// A Namespace: Staging (the Shared Namespace) or Cindy (her Overlay
+// Namespace), with the Kubernetes mark and its name on its top edge. The mark
+// sits at the left of the edge, not in the middle, because the connections
+// between the two Namespaces cross the middle of the edge.
 function ns(x, y, w, h, kind) {
   const label = kind === 'shared' ? 'Staging' : 'Cindy';
   let out = box(x, y, w, h, { color: C.blue, radius: 20 });
   out += `<rect x="${x + 22}" y="${y - 5}" width="${label.length * 15 + 72}" height="10" fill="${C.background}"/>`;
-  out += kind === 'shared' ? logo('kubernetes', x + 50, y, 50)
-    : circle(x + 50, y, 22, { color: C.teal }) + icon('user', x + 50, y, 24, C.teal);
+  // Both are Namespaces, so both carry the Kubernetes mark.
+  out += logo('kubernetes', x + 50, y, 50);
   return out + text(label, x + 82, y + 9, 26, { anchor: 'start' });
 }
 

@@ -13,14 +13,26 @@ const APP = [['box', 'frontend'], ['box', 'api'], ['database', 'mongoDB']];
 
 // A stage of the delivery pipeline (development, CI, production): its name
 // above, a box with a badge on the top edge, a title, and the services.
-function stage(x, y, w, { name, nameColor, badge, title, color }) {
+// With a subtitle (the Namespace line of an application environment), the
+// services start lower and the box is taller.
+function stage(x, y, w, { name, nameColor, badge, title, subtitle, color }) {
+  const rows = subtitle ? 138 : 112;
   let out = text(name, x + w / 2, y - 62, 32, { color: nameColor ?? C.text });
-  out += box(x, y, w, 330, { color });
+  out += box(x, y, w, rows + 218, { color });
   out += badge;
-  out += text(title, x + w / 2, y + 86, 26);
-  APP.forEach(([n, label], i) => { out += service(x + 24, y + 112 + i * 70, w - 48, n, label); });
+  out += text(title, x + w / 2, y + (subtitle ? 82 : 86), 26);
+  if (subtitle) out += text(subtitle, x + w / 2, y + 114, 22, { color: C.dim });
+  APP.forEach(([n, label], i) => { out += service(x + 24, y + rows + i * 70, w - 48, n, label); });
   return out;
 }
+// The three stages when they all run on Kubernetes: an application environment
+// for development, a Preview Environment for CI, and production.
+const K8S_STAGES = [
+  { name: 'Development', nameColor: C.teal, title: 'Application environment', subtitle: 'Okteto Namespace' },
+  { name: 'CI', nameColor: C.teal, title: 'Preview Environment', subtitle: 'Okteto Namespace' },
+  { name: 'Production', title: 'Your application', subtitle: 'Kubernetes namespace' },
+];
+const SAME_ALT = 'With Okteto, development, CI, and production all run the frontend, api, and mongoDB services on Kubernetes: an application environment for development, a Preview Environment for CI, and production, each in its own namespace';
 const iconBadge = (cx, cy, name) => circle(cx, cy, 40, { color: C.dim }) + icon(name, cx, cy, 40, C.text);
 // An arrow between two stages, with a sign on it: ≠ in red, = in teal.
 function link(x1, x2, cy, equal) {
@@ -42,7 +54,7 @@ function vlink(cx, y1, y2, equal) {
 // The autonomous agent loop (Coding Agents > Autonomous Workflows): the agent
 // takes a task, edits the code, deploys it, verifies it in its application
 // environment, fixes what fails, and opens a pull request when it passes.
-const LOOP_ALT = 'The autonomous agent loop: the agent takes a task, edits the code, deploys it with okteto deploy, verifies it with okteto test, the endpoints, and the logs, goes back to edit the code when something fails, and opens a pull request when everything passes';
+const LOOP_ALT = 'The autonomous agent loop: the agent takes a task, creates the Namespace of its session and deploys the application with okteto deploy, edits the code, deploys it again, and verifies it with okteto test, the endpoints, and the logs. It goes back to edit the code when something fails, and opens a pull request when everything passes';
 function step(x, y, w, h, name, label, color, lines = []) {
   let out = box(x, y, w, h, { color, radius: 18 }) + icon(name, x + w / 2, y + 48, 44, color) + text(label, x + w / 2, y + 108, 26);
   lines.forEach((line, i) => { out += text(line, x + w / 2, y + 148 + i * 34, 22, { color: C.dim, mono: true }); });
@@ -50,15 +62,21 @@ function step(x, y, w, h, name, label, color, lines = []) {
 }
 const endpoint = (cx, cy, name, label, color) => circle(cx, cy, 52, { color }) + icon(name, cx, cy, 50, color) + text(label, cx, cy + 92, 26);
 
+// The collaborative loop (Coding Agents > Collaborative Workflows): you ask the
+// agent for a change, the agent edits the code, File Sync copies it to the
+// Development Container that okteto up started, hot reload applies it, and you
+// check it on localhost.
+const COLLAB_ALT = 'The collaborative loop: you ask the coding agent for a change, the agent edits the code, File Sync copies it to the Development Container that okteto up started, hot reload applies it, and you check the change on localhost and ask for the next one';
+
 // ---------------------------------------------------------------------------
 // The review diagram (Preview Environments): everyone reviews the change in
 // the same Preview Environment.
-const REVIEW_ALT = 'A Preview Environment on Kubernetes runs the frontend, api, and mongoDB services. Automated tests, AI agents, developers, and QA engineers on one side, and product managers, designers, and sales and marketing on the other, all use it';
-const REVIEW_LEFT = () => [['circle-check', 'Automated Tests'], ['bot', 'AI Agents', C.purple], ['code', 'Developers'], ['search', 'QA Engineers']];
+const REVIEW_ALT = 'A Preview Environment, in its Okteto Namespace on Kubernetes, runs the frontend, api, and mongoDB services. Automated tests, coding agents, developers, and QA engineers on one side, and product managers, designers, and sales and marketing on the other, all use it';
+const REVIEW_LEFT = () => [['circle-check', 'Automated Tests'], ['bot', 'Coding Agents', C.purple], ['code', 'Developers'], ['search', 'QA Engineers']];
 const REVIEW_RIGHT = () => [['user', 'Product Managers'], ['pencil', 'Designers'], ['chart-column', 'Sales & Marketing']];
 function previewBox(x, y, w) {
-  let out = box(x, y, w, 360, { color: C.blue }) + logo('okteto', x + w / 2, y, 80)
-    + text('Preview Environment', x + w / 2, y + 84, 30) + text('Kubernetes', x + w / 2, y + 118, 22, { color: C.dim });
+  let out = box(x, y, w, 360, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
+    + text('Preview Environment', x + w / 2, y + 84, 30) + text('Okteto Namespace', x + w / 2, y + 118, 22, { color: C.dim });
   APP.forEach(([n, label], i) => { out += service(x + 30, y + 146 + i * 68, w - 60, n, label); });
   return out;
 }
@@ -69,7 +87,7 @@ const person = (cx, cy, [name, label, color], anchor) => circle(cx, cy, 34, { co
 // The CI diagrams (Preview Environments): a fat CI job that runs the whole
 // application with Docker, and a light CI job that uses Okteto.
 const FAT_ALT = 'A fat CI job: the CI runner holds test runtimes, browsers, and credentials, and a Docker daemon runs the frontend, api, and mongoDB services';
-const LIGHT_ALT = 'A light CI job with only a Git checkout and the Okteto CLI, connected to Kubernetes, where Okteto runs the frontend, api, and mongoDB services and the frontend and e2e tests of Okteto Test';
+const LIGHT_ALT = 'A light CI job with only a Git checkout and the Okteto CLI, connected to a Preview Environment in its Okteto Namespace on Kubernetes, which runs the frontend, api, and mongoDB services and the frontend and e2e tests of Okteto Test';
 function column(x, y, w, name, title, rows, { plain = false } = {}) {
   let out = box(x, y, w, 410, { color: C.dim, radius: 20 }) + circle(x + w / 2, y, 36, { color: C.dim }) + icon(name, x + w / 2, y, 36, C.text)
     + text(title, x + w / 2, y + 78, 26, { color: C.dim });
@@ -104,10 +122,11 @@ function lightJob(x, y, w) {
   return out;
 }
 function oktetoCluster(x, y, w) {
-  let out = box(x, y, w, 560, { color: C.blue }) + logo('okteto', x + w / 2, y, 80) + text('Kubernetes', x + w / 2, y + 84, 30);
-  APP.forEach(([n, label], i) => { out += service(x + 30, y + 112 + i * 68, w - 60, n, label); });
-  out += text('Okteto Test', x + w / 2, y + 352, 26, { color: C.teal });
-  ['frontend', 'e2e'].forEach((label, i) => { out += service(x + 30, y + 374 + i * 68, w - 60, 'circle-check', label, { color: C.teal }); });
+  let out = box(x, y, w, 572, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
+    + text('Preview Environment', x + w / 2, y + 82, 30) + text('Okteto Namespace', x + w / 2, y + 114, 22, { color: C.dim });
+  APP.forEach(([n, label], i) => { out += service(x + 30, y + 136 + i * 66, w - 60, n, label); });
+  out += text('Okteto Test', x + w / 2, y + 368, 26, { color: C.teal });
+  ['frontend', 'e2e'].forEach((label, i) => { out += service(x + 30, y + 386 + i * 66, w - 60, 'circle-check', label, { color: C.teal }); });
   return out;
 }
 
@@ -117,19 +136,21 @@ export default [
     background: 'white',
     alt: LOOP_ALT,
     svg: () => {
-      let out = endpoint(80, 290, 'ticket', 'Task', C.amber);
-      out += arrow(140, 290, 190, 290, { color: C.purple });
-      out += step(200, 190, 210, 200, 'code', 'Edit code', C.purple);
-      out += arrow(420, 290, 465, 290, { color: C.teal });
-      out += step(475, 190, 210, 200, 'rocket', 'Deploy', C.teal, ['okteto deploy']);
-      out += arrow(695, 290, 740, 290, { color: C.teal });
-      out += step(750, 160, 210, 260, 'circle-check', 'Verify', C.teal, ['okteto test', 'endpoints', 'logs']);
-      out += curve('M855 420 C855 510 305 510 305 400', { color: C.red, dashed: true, strokeWidth: 4 });
-      out += arrow(305, 410, 305, 398, { color: C.red });
-      out += text('fails: fix the code', 580, 512, 24, { color: C.red });
-      out += arrow(970, 290, 1040, 290, { color: C.teal });
-      out += text('passes', 1005, 270, 22, { color: C.teal });
-      out += endpoint(1100, 290, 'git-pull-request', 'Pull request', C.teal);
+      let out = endpoint(62, 290, 'ticket', 'Task', C.amber);
+      out += arrow(118, 290, 140, 290, { color: C.blue });
+      out += step(146, 190, 230, 200, 'layers', 'New Namespace', C.blue, ['okteto deploy']);
+      out += arrow(382, 290, 404, 290, { color: C.purple });
+      out += step(410, 190, 150, 200, 'code', 'Edit code', C.purple);
+      out += arrow(566, 290, 588, 290, { color: C.teal });
+      out += step(594, 190, 190, 200, 'rocket', 'Deploy', C.teal, ['okteto deploy']);
+      out += arrow(790, 290, 812, 290, { color: C.teal });
+      out += step(818, 160, 170, 260, 'circle-check', 'Verify', C.teal, ['okteto test', 'endpoints', 'logs']);
+      out += curve('M903 420 C903 510 485 510 485 400', { color: C.red, dashed: true, strokeWidth: 4 });
+      out += arrow(485, 410, 485, 398, { color: C.red });
+      out += text('fails: fix the code', 694, 512, 24, { color: C.red });
+      out += arrow(994, 290, 1056, 290, { color: C.teal });
+      out += text('passes', 1025, 270, 22, { color: C.teal });
+      out += endpoint(1112, 290, 'git-pull-request', 'Pull request', C.teal);
       return out;
     },
   },
@@ -137,22 +158,66 @@ export default [
     out: 'static/img/coding-agents-loop-mobile.webp',
     background: 'white',
     width: 600,
-    height: 1260,
+    height: 1520,
     alt: LOOP_ALT,
     svg: () => {
       let out = endpoint(300, 80, 'ticket', 'Task', C.amber);
-      out += arrow(300, 205, 300, 245, { color: C.purple });
-      out += step(170, 255, 260, 160, 'code', 'Edit code', C.purple);
-      out += arrow(300, 425, 300, 465, { color: C.teal });
-      out += step(170, 475, 260, 200, 'rocket', 'Deploy', C.teal, ['okteto deploy']);
+      out += arrow(300, 205, 300, 245, { color: C.blue });
+      out += step(170, 255, 260, 200, 'layers', 'New Namespace', C.blue, ['okteto deploy']);
+      out += arrow(300, 465, 300, 505, { color: C.purple });
+      out += step(170, 515, 260, 160, 'code', 'Edit code', C.purple);
       out += arrow(300, 685, 300, 725, { color: C.teal });
-      out += step(170, 735, 260, 260, 'circle-check', 'Verify', C.teal, ['okteto test', 'endpoints', 'logs']);
-      out += curve('M430 865 C560 865 560 335 440 335', { color: C.red, dashed: true, strokeWidth: 4 });
-      out += arrow(450, 335, 438, 335, { color: C.red });
-      out += text('fails', 548, 610, 24, { color: C.red });
-      out += arrow(300, 1005, 300, 1060, { color: C.teal });
-      out += text('passes', 320, 1040, 22, { color: C.teal, anchor: 'start' });
-      out += endpoint(300, 1120, 'git-pull-request', 'Pull request', C.teal);
+      out += step(170, 735, 260, 200, 'rocket', 'Deploy', C.teal, ['okteto deploy']);
+      out += arrow(300, 945, 300, 985, { color: C.teal });
+      out += step(170, 995, 260, 260, 'circle-check', 'Verify', C.teal, ['okteto test', 'endpoints', 'logs']);
+      out += curve('M430 1125 C560 1125 560 595 440 595', { color: C.red, dashed: true, strokeWidth: 4 });
+      out += arrow(450, 595, 438, 595, { color: C.red });
+      out += text('fails', 548, 870, 24, { color: C.red });
+      out += arrow(300, 1265, 300, 1320, { color: C.teal });
+      out += text('passes', 320, 1300, 22, { color: C.teal, anchor: 'start' });
+      out += endpoint(300, 1380, 'git-pull-request', 'Pull request', C.teal);
+      return out;
+    },
+  },
+  {
+    out: 'static/img/coding-agents-collaborative.webp',
+    background: 'white',
+    alt: COLLAB_ALT,
+    svg: () => {
+      let out = endpoint(70, 290, 'user', 'You', C.teal);
+      out += arrow(128, 290, 208, 290, { color: C.purple });
+      out += text('ask', 166, 268, 22, { color: C.purple });
+      out += step(216, 190, 250, 200, 'bot', 'Agent edits code', C.purple);
+      out += arrow(474, 290, 574, 290, { color: C.teal });
+      out += text('File Sync', 522, 268, 22, { color: C.teal });
+      out += step(582, 160, 330, 260, 'box', 'Development Container', C.teal, ['okteto up', 'hot reload']);
+      out += arrow(920, 290, 1040, 290, { color: C.teal });
+      out += endpoint(1100, 290, 'globe', 'localhost', C.teal);
+      out += curve('M1100 400 C1100 530 70 530 70 400', { color: C.purple, dashed: true, strokeWidth: 4 });
+      out += arrow(70, 410, 70, 398, { color: C.purple });
+      out += text('check the change, ask for the next one', 585, 532, 24, { color: C.purple });
+      return out;
+    },
+  },
+  {
+    out: 'static/img/coding-agents-collaborative-mobile.webp',
+    background: 'white',
+    width: 600,
+    height: 1040,
+    alt: COLLAB_ALT,
+    svg: () => {
+      let out = endpoint(300, 80, 'user', 'You', C.teal);
+      out += arrow(300, 205, 300, 245, { color: C.purple });
+      out += text('ask', 320, 232, 22, { color: C.purple, anchor: 'start' });
+      out += step(170, 255, 260, 160, 'bot', 'Agent edits code', C.purple);
+      out += arrow(300, 425, 300, 500, { color: C.teal });
+      out += text('File Sync', 320, 472, 22, { color: C.teal, anchor: 'start' });
+      out += step(135, 510, 330, 230, 'box', 'Development Container', C.teal, ['okteto up', 'hot reload']);
+      out += arrow(300, 750, 300, 800, { color: C.teal });
+      out += endpoint(300, 870, 'globe', 'localhost', C.teal);
+      out += curve('M352 870 C580 870 580 80 364 80', { color: C.purple, dashed: true, strokeWidth: 4 });
+      out += arrow(374, 80, 356, 80, { color: C.purple });
+      out += text('ask again', 470, 52, 22, { color: C.purple, anchor: 'start' });
       return out;
     },
   },
@@ -181,24 +246,18 @@ export default [
   {
     out: 'static/img/previews-same-platform.webp',
     background: 'white',
-    alt: 'With Okteto, development, CI, and production all run the frontend, api, and mongoDB services on Kubernetes',
-    svg: () => stage(40, 200, 300, { name: 'Development', nameColor: C.teal, badge: logo('okteto', 190, 200, 80), title: 'Kubernetes', color: C.blue })
-      + link(345, 445, 400, true)
-      + stage(450, 200, 300, { name: 'CI', nameColor: C.teal, badge: logo('okteto', 600, 200, 80), title: 'Kubernetes', color: C.blue })
-      + link(755, 855, 400, true)
-      + stage(860, 200, 300, { name: 'Production', badge: logo('kubernetes', 1010, 200, 80), title: 'Kubernetes', color: C.blue }),
+    alt: SAME_ALT,
+    svg: () => K8S_STAGES.map((st, n) => stage(30 + n * 410, 190, 320, { ...st, badge: logo('kubernetes', 190 + n * 410, 190, 80), color: C.blue })).join('')
+      + link(355, 435, 400, true) + link(765, 845, 400, true),
   },
   {
     out: 'static/img/previews-same-platform-mobile.webp',
     background: 'white',
     width: 600,
-    height: 1500,
-    alt: 'With Okteto, development, CI, and production all run the frontend, api, and mongoDB services on Kubernetes',
-    svg: () => stage(120, 110, 360, { name: 'Development', nameColor: C.teal, badge: logo('okteto', 300, 110, 80), title: 'Kubernetes', color: C.blue })
-      + vlink(300, 452, 534, true)
-      + stage(120, 640, 360, { name: 'CI', nameColor: C.teal, badge: logo('okteto', 300, 640, 80), title: 'Kubernetes', color: C.blue })
-      + vlink(300, 982, 1056, true)
-      + stage(120, 1160, 360, { name: 'Production', badge: logo('kubernetes', 300, 1160, 80), title: 'Kubernetes', color: C.blue }),
+    height: 1600,
+    alt: SAME_ALT,
+    svg: () => K8S_STAGES.map((st, n) => stage(120, 110 + n * 560, 360, { ...st, badge: logo('kubernetes', 300, 110 + n * 560, 80), color: C.blue })).join('')
+      + vlink(300, 478, 564, true) + vlink(300, 1038, 1124, true),
   },
   {
     out: 'static/img/previews-review.webp',

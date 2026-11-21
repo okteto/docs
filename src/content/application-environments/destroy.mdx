@@ -1,0 +1,82 @@
+---
+title: Destroy
+description: okteto destroy runs the commands of the destroy section of your Okteto Manifest and deletes the Kubernetes resources of your application environment.
+sidebar_label: Destroy
+id: destroy
+---
+
+import Image from "@theme/Image";
+
+`okteto destroy` deletes your application environment: every Kubernetes resource that `okteto deploy` created in the Namespace. Most applications don't need anything else. The `destroy` section of your Okteto Manifest is for what Okteto can't delete on its own.
+
+## What okteto destroy Deletes
+
+Run `okteto destroy` from the folder of your Okteto Manifest:
+
+```bash
+okteto destroy
+```
+
+Okteto deletes the Kubernetes resources of the application environment, including the Helm releases that your deploy commands installed, and keeps two kinds of resources:
+
+- **Persistent volumes.** To delete them too, add the `--volumes` flag.
+- **Resources with the `dev.okteto.com/policy: keep` annotation.**
+
+```bash
+okteto destroy --volumes
+```
+
+If a Namespace has several application environments, for example the ones of a monorepo with several Okteto Manifests, `okteto destroy` only deletes the one of the Okteto Manifest you run it for. To delete every application environment of the Namespace, run `okteto destroy --all`. To also destroy the repositories of the `dependencies` section, add the `--dependencies` flag.
+
+See the [`okteto destroy` reference](reference/okteto-cli.mdx#destroy) for every flag.
+
+## Destroy Commands
+
+The `destroy` section lists the commands that delete what your application created outside its Namespace, such as cluster-wide resources:
+
+```yaml title="okteto.yaml"
+destroy:
+  image: alpine/kubectl:1.36.1
+  commands:
+    - name: Delete the cluster role
+      command: kubectl delete clusterrole movies-reader --ignore-not-found
+```
+
+`okteto destroy` runs these commands first, in order, inside the cluster, in a container started from the `image` you set, with [Remote Execution](reference/remote-execution.mdx). Then it deletes the Kubernetes resources of the application environment.
+
+If the `image` of the `destroy` section comes from a private registry, ask your Admin to configure [Registry Credentials](admin/registry-credentials/index.mdx), so Okteto can pull it.
+
+If a command fails, `okteto destroy` stops, and the application environment stays as it was. To delete the Kubernetes resources even if a destroy command fails, add the `--force-destroy` flag:
+
+```bash
+okteto destroy --force-destroy
+```
+
+Applications that create resources outside Kubernetes, such as a storage bucket, delete them in the `destroy` section too. See [External Resources](application-environments/external-resources.mdx).
+
+See the [`destroy` reference](reference/okteto-manifest.mdx#destroy-string-optional) for every option of the section.
+
+## Destroying from the Okteto UI
+
+To destroy an application environment from the Okteto UI, click **Destroy** next to it in the Namespace view and confirm. Okteto runs its `destroy` commands and deletes its resources, as `okteto destroy` does. You can't recover them afterwards, so back up any data you need first.
+
+<Image
+  src={require("@site/static/img/destroy-dialog.png").default}
+  alt="The confirmation dialog to destroy the movies application environment, with the Include volumes option and the Cancel and Destroy buttons"
+  width="450"
+/>
+
+The dialog has two options:
+
+- **Include volumes:** also deletes the persistent volumes.
+- **Include all direct dependencies:** also destroys the repositories of the `dependencies` section. It only shows up when there are dependencies.
+
+## Deleting the Namespace
+
+Deleting an [Okteto Namespace](application-environments/namespaces.mdx) deletes every application environment in it. For an environment that lives in its own Namespace, such as the one of a pull request or an agent task, that's the simplest cleanup:
+
+```bash
+okteto namespace delete feature-login
+```
+
+Okteto runs the `destroy` commands of each application environment before it deletes the Namespace. The [Garbage Collector](admin/cleanup.mdx) sleeps the Namespaces that nobody uses, and deletes them after the period that your Admin configures.

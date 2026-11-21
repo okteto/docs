@@ -10,8 +10,8 @@ import TabItem from "@theme/TabItem";
 
 Private Endpoints restrict access to the endpoints of your application to the Okteto users who have access to your Namespace. Before they reach the application, users sign in with their Okteto account. The Okteto UI shows a shield icon next to each Private Endpoint.
 
-:::warning Deprecated
-Private Endpoints are deprecated and don't work with Gateway API: when your Okteto instance uses Gateway API, endpoints marked as private are exposed like any other endpoint. To keep your applications off the public internet, see [Private Endpoints](self-hosted/manage/migrate-to-gateway-api.mdx#private-endpoints) in the Gateway API migration guide.
+:::warning Deprecated in Self-Hosted
+Private Endpoints are deprecated in Self-Hosted instances, and they don't work with Gateway API there: when your Okteto instance uses Gateway API, endpoints marked as private are exposed like any other endpoint. To keep your applications off the public internet, see [Private Endpoints](self-hosted/manage/migrate-to-gateway-api.mdx#private-endpoints) in the Gateway API migration guide. Private Endpoints aren't deprecated in Bring Your Own Cloud (BYOC), where they work with Ingress objects and HTTPRoutes.
 :::
 
 ## Enabling Private Endpoints
@@ -22,8 +22,29 @@ Private Endpoints are deprecated and don't work with Gateway API: when your Okte
     { label: 'Docker Compose', value: 'compose', },
     { label: 'Ingress', value: 'ingress', },
     { label: 'Service', value: 'service', },
+    { label: 'HTTPRoute', value: 'httproute', },
   ]}
 >
+
+<TabItem value="httproute">
+
+In BYOC, add the `dev.okteto.com/private: "true"` annotation to your own [HTTPRoutes](application-environments/endpoints/httproutes.mdx):
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hello-world
+  annotations:
+    dev.okteto.com/private: "true"
+spec:
+  rules:
+    - backendRefs:
+        - name: hello-world
+          port: 8080
+```
+
+</TabItem>
 
 <TabItem value="compose">
 

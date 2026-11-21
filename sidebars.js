@@ -12,7 +12,7 @@ module.exports = {
       label: 'Get Started',
       link: { type: 'doc', id: 'index' },
       items: [
-        'get-started/install-okteto-cli',
+        { type: 'doc', id: 'index', label: 'Introduction' },
         {
           type: 'category',
           label: 'Install Okteto Platform',
@@ -26,18 +26,8 @@ module.exports = {
             'get-started/install/openshift',
           ],
         },
-        {
-          type: 'category',
-          label: 'Deploy your app',
-          link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
-          items: [
-            'get-started/deploy-your-app/build',
-            'get-started/deploy-your-app/deploy',
-            'get-started/deploy-your-app/inspect',
-            'get-started/deploy-your-app/test',
-            'get-started/deploy-your-app/develop',
-          ],
-        },
+        'get-started/install-okteto-cli',
+        'get-started/quickstart',
       ],
     },
     {
@@ -45,23 +35,10 @@ module.exports = {
       label: 'Application Environments',
       link: { type: 'doc', id: 'application-environments/index' },
       items: [
-        'application-environments/okteto-manifest',
+        { type: 'doc', id: 'application-environments/index', label: 'Overview' },
         'application-environments/namespaces',
-        {
-          type: 'category',
-          label: 'Deploying Environments',
-          link: { type: 'doc', id: 'application-environments/deploy/index' },
-          items: [
-            'application-environments/deploy/deploy-from-catalog',
-            'application-environments/deploy/deploy-from-git',
-            'application-environments/deploy/from-private-repositories',
-            'application-environments/deploy/develop-on-okteto-button',
-          ],
-        },
         'application-environments/build-service',
-        'application-environments/container-registry',
-        'application-environments/remote-execution',
-        'application-environments/okteto-test',
+        'application-environments/deploy',
         {
           type: 'category',
           label: 'Endpoints',
@@ -80,6 +57,7 @@ module.exports = {
           label: 'Divert',
           link: { type: 'doc', id: 'application-environments/divert/index' },
           items: [
+            { type: 'doc', id: 'application-environments/divert/index', label: 'Overview' },
             'application-environments/divert/shared-namespace',
             'application-environments/divert/overlay-namespace',
             'application-environments/divert/header-propagation',
@@ -87,6 +65,26 @@ module.exports = {
             'application-environments/divert/data-cloning',
           ],
         },
+        'application-environments/okteto-test',
+        {
+          type: 'category',
+          label: 'Develop',
+          link: { type: 'doc', id: 'application-environments/development-containers/index' },
+          items: [
+            { type: 'doc', id: 'application-environments/development-containers/index', label: 'Overview' },
+            'application-environments/development-containers/aspnetcore',
+            'application-environments/development-containers/golang',
+            'application-environments/development-containers/java',
+            'application-environments/development-containers/node',
+            'application-environments/development-containers/php',
+            'application-environments/development-containers/python',
+            'application-environments/development-containers/ruby',
+            'application-environments/development-containers/rust',
+          ],
+        },
+        'application-environments/troubleshooting',
+        'application-environments/destroy',
+        'application-environments/external-resources',
         'application-environments/okteto-variables',
         'application-environments/use-volume-snapshots',
       ],
@@ -96,6 +94,7 @@ module.exports = {
       label: 'Coding Agents',
       link: { type: 'doc', id: 'coding-agents/index' },
       items: [
+        { type: 'doc', id: 'coding-agents/index', label: 'Overview' },
         'coding-agents/okteto-skills',
         'coding-agents/autonomous-workflows',
         'coding-agents/collaborative-workflows',
@@ -106,30 +105,10 @@ module.exports = {
       type: 'category',
       label: 'Preview Environments',
       link: { type: 'doc', id: 'previews/index' },
-      items: ['previews/using-github-actions', 'previews/using-gitlab-cicd'],
-    },
-    {
-      type: 'category',
-      label: 'Development Containers',
-      link: { type: 'doc', id: 'development-containers/index' },
       items: [
-        'development-containers/file-synchronization',
-        'development-containers/ssh-server',
-        'development-containers/images',
-        {
-          type: 'category',
-          label: 'Language Guides',
-          items: [
-            'development-containers/aspnetcore',
-            'development-containers/golang',
-            'development-containers/java',
-            'development-containers/node',
-            'development-containers/php',
-            'development-containers/python',
-            'development-containers/ruby',
-            'development-containers/rust',
-          ],
-        },
+        { type: 'doc', id: 'previews/index', label: 'Overview' },
+        'previews/using-github-actions',
+        'previews/using-gitlab-cicd',
       ],
     },
     {
@@ -157,12 +136,10 @@ module.exports = {
             'admin/installation',
             'admin/catalog',
             'admin/users',
-            'admin/user-roles-and-permissions',
             'admin/build-service',
             'admin/nodes',
             'admin/namespaces',
             'admin/previews',
-            'admin/okteto-insights-dashboards',
           ],
         },
         {
@@ -208,6 +185,8 @@ module.exports = {
             },
           ],
         },
+        'admin/user-roles-and-permissions',
+        'admin/okteto-insights-dashboards',
       ],
     },
     {
@@ -217,12 +196,12 @@ module.exports = {
       items: [
         {
           type: 'category',
-          label: 'Complete the installation',
+          label: 'Complete the Installation',
           link: { type: 'doc', id: 'self-hosted/install/index' },
           items: [
             {
               type: 'category',
-              label: 'Wildcard certificate',
+              label: 'Wildcard Certificate',
               link: { type: 'doc', id: 'self-hosted/install/certificates/index' },
               items: [
                 'self-hosted/install/certificates/cert-manager',
@@ -232,7 +211,7 @@ module.exports = {
             },
             {
               type: 'category',
-              label: 'Okteto Registry storage',
+              label: 'Okteto Registry Storage',
               link: { type: 'doc', id: 'self-hosted/install/okteto-registry-storage/index' },
               items: [
                 'self-hosted/install/okteto-registry-storage/filesystem',
@@ -311,9 +290,12 @@ module.exports = {
         'reference/okteto-cli',
         'reference/okteto-manifest',
         'reference/docker-compose',
+        'reference/feature-flags',
         'reference/okteto-api',
         'reference/okteto-insights-metrics',
-        'reference/feature-flags',
+        'reference/develop-on-okteto-button',
+        'reference/remote-execution',
+        'reference/smart-builds',
       ],
     },
     'release-notes',

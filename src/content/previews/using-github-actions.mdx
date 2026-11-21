@@ -17,7 +17,7 @@ GitHub Actions deploys a Preview Environment for every pull request with the Git
 - An Okteto instance, and an Admin who can create an [Admin Access Token](admin/admin-access-tokens.mdx) for it.
 - A [GitHub account](https://github.com).
 
-The steps use the [Movies app](https://github.com/okteto/getting-started) of [Deploy your app](get-started/deploy-your-app/index.mdx). Fork the repository to your GitHub account so you can configure secrets and open pull requests. GitHub turns off the workflows of a fork: open the **Actions** tab of your fork and enable them. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](application-environments/okteto-manifest.mdx#deploy) and [`test`](application-environments/okteto-manifest.mdx#test) sections.
+The steps use the [Movies app](https://github.com/okteto/getting-started), a sample application with a frontend, an API, and a database. Fork the repository to your GitHub account so you can configure secrets and open pull requests. GitHub turns off the workflows of a fork: open the **Actions** tab of your fork and enable them. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](application-environments/deploy.mdx) and [`test`](application-environments/okteto-test.mdx) sections.
 
 ## Step 1: Create the Workflow
 
@@ -88,23 +88,19 @@ The workflow also uses `secrets.GITHUB_TOKEN`, which GitHub populates automatica
 
 Make a change in a new branch of your repository and open a pull request against `main`. On a fork, open the pull request against your fork, not the original repository: GitHub preselects the original one, and your secrets only exist in your fork. GitHub receives the event and starts your workflow. You can see the workflow's status and logs in the **Checks** section of the pull request.
 
-<p align="center">
-  <Image
-    src={require("@site/static/img/preview-check.png").default}
-    alt="The Checks section of a pull request in GitHub, with the status of the preview workflow"
-    width="650"
-  />
-</p>
+<Image
+  src={require("@site/static/img/preview-check.png").default}
+  alt="The Checks section of a pull request in GitHub, with the status of the preview workflow"
+  width="650"
+/>
 
 When the deployment finishes, the workflow comments the URL of your Preview Environment on the pull request. Open it to see your changes running, and share it with your team to review them.
 
-<p align="center">
-  <Image
-    src={require("@site/static/img/preview-message+1.50.png").default}
-    alt="GitHub Actions comment on the pull request with the Preview Environment name and its endpoint URLs"
-    width="650"
-  />
-</p>
+<Image
+  src={require("@site/static/img/preview-message+1.50.png").default}
+  alt="GitHub Actions comment on the pull request with the Preview Environment name and its endpoint URLs"
+  width="650"
+/>
 
 Every time the branch is updated, the same workflow runs again and redeploys the Preview Environment.
 
@@ -160,7 +156,7 @@ Add the following steps at the end of the `preview` job in your `.github/workflo
 What each step does:
 
 - `actions/checkout` clones the repository so the `okteto/test` action can read your Okteto Manifest and send the test `context` to Okteto.
-- `okteto/test` runs the tests in the [`test` section](application-environments/okteto-manifest.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. To run only some tests, use the `tests` input, for example `tests: e2e`.
+- `okteto/test` runs the tests in the [`test` section](application-environments/okteto-test.mdx) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. To run only some tests, use the `tests` input, for example `tests: e2e`.
 - `actions/upload-artifact` attaches the Playwright report exported through the `artifacts` field to the workflow run. The `if: ${{ !cancelled() }}` condition uploads it even when a test fails, so you can inspect the results of a failed run.
 
 The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the `caches` of your tests, and `file` to set the path of your Okteto Manifest. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.
@@ -208,8 +204,8 @@ The workflows on this page use the GitHub Actions for Okteto. They're all in the
 
 - [Context](https://github.com/marketplace/actions/okteto-context) (`okteto/context`): connects the workflow to your Okteto instance.
 - [Build](https://github.com/marketplace/actions/okteto-build) (`okteto/build`): builds an image with the Okteto Build Service.
-- [Deploy Pipeline](https://github.com/marketplace/actions/okteto-pipeline) (`okteto/pipeline`): deploys an application from a Git repository.
-- [Destroy Pipeline](https://github.com/marketplace/actions/destroy-okteto-pipeline) (`okteto/destroy-pipeline`): destroys an application deployed from a Git repository.
+- [Deploy Pipeline](https://github.com/marketplace/actions/okteto-pipeline) (`okteto/pipeline`): deploys an application environment from a Git repository.
+- [Destroy Pipeline](https://github.com/marketplace/actions/destroy-okteto-pipeline) (`okteto/destroy-pipeline`): destroys an application environment deployed from a Git repository.
 - [Deploy Preview](https://github.com/marketplace/actions/deploy-preview-environment) (`okteto/deploy-preview`): deploys a Preview Environment.
 - [Destroy Preview](https://github.com/marketplace/actions/destroy-preview-environment) (`okteto/destroy-preview`): destroys a Preview Environment.
 - [Test](https://github.com/marketplace/actions/okteto-test) (`okteto/test`): runs the tests of your Okteto Manifest.

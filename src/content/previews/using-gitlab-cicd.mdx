@@ -14,7 +14,7 @@ GitLab CI/CD deploys a Preview Environment for every merge request with the Okte
 - An Okteto instance, and an Admin who can create an [Admin Access Token](admin/admin-access-tokens.mdx) for it.
 - A [GitLab account](https://gitlab.com).
 
-The steps use the [Movies app](https://gitlab.com/okteto/getting-started) of [Deploy your app](get-started/deploy-your-app/index.mdx). Fork the project to your GitLab account so you can configure CI/CD variables and open merge requests. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](application-environments/okteto-manifest.mdx#deploy) and [`test`](application-environments/okteto-manifest.mdx#test) sections.
+The steps use the [Movies app](https://gitlab.com/okteto/getting-started), a sample application with a frontend, an API, and a database. Fork the project to your GitLab account so you can configure CI/CD variables and open merge requests. If you're using your own application, make sure your Okteto Manifest defines the [`deploy`](application-environments/deploy.mdx) and [`test`](application-environments/okteto-test.mdx) sections.
 
 ## Step 1: Create the Pipeline
 
@@ -75,12 +75,10 @@ The pipeline reads your Okteto credentials from CI/CD variables, so you don't co
 
 Add them in your project under **Settings → CI/CD → Variables** with the **Add variable** button. Select **Mask variable** for `OKTETO_TOKEN`, and clear **Protect variable** for both: merge request pipelines run on unprotected branches and can't read protected variables.
 
-<p align="center">
-  <Image
-    src={require("@site/static/img/gitlab-settings-cicd-add-variables-added+1.50.png").default}
-    alt="GitLab CI/CD Variables section with the OKTETO_CONTEXT and OKTETO_TOKEN variables, with OKTETO_TOKEN masked"
-  />
-</p>
+<Image
+  src={require("@site/static/img/gitlab-settings-cicd-add-variables-added+1.50.png").default}
+  alt="GitLab CI/CD Variables section with the OKTETO_CONTEXT and OKTETO_TOKEN variables, with OKTETO_TOKEN masked"
+/>
 
 ## Step 3: Open a Merge Request
 
@@ -88,13 +86,11 @@ Make a change in a new branch of your repository and open a merge request agains
 
 When the deployment finishes, the merge request shows the Preview Environment. Click **View app** to see your changes running, and share the URL with your team to review them.
 
-<p align="center">
-  <Image
-    src={require("@site/static/img/gitlab-merge-request+1.50.png").default}
-    alt="GitLab merge request widget with a passed pipeline, the preview/mr-2 environment, and a View app button linking to the Preview Environment"
-    width="650"
-  />
-</p>
+<Image
+  src={require("@site/static/img/gitlab-merge-request+1.50.png").default}
+  alt="GitLab merge request widget with a passed pipeline, the preview/mr-2 environment, and a View app button linking to the Preview Environment"
+  width="650"
+/>
 
 Every time the branch is updated, the pipeline runs again and redeploys the Preview Environment.
 
@@ -150,7 +146,7 @@ test:
 
 What the `test` job does:
 
-- `okteto test --namespace mr-$CI_MERGE_REQUEST_IID` runs the tests in the [`test` section](application-environments/okteto-manifest.mdx#test) of your Okteto Manifest, in the Namespace of the Preview Environment. To run only some tests, pass their names, for example `okteto test e2e --namespace mr-$CI_MERGE_REQUEST_IID`.
+- `okteto test --namespace mr-$CI_MERGE_REQUEST_IID` runs the tests in the [`test` section](application-environments/okteto-test.mdx) of your Okteto Manifest, in the Namespace of the Preview Environment. To run only some tests, pass their names, for example `okteto test e2e --namespace mr-$CI_MERGE_REQUEST_IID`.
 - `artifacts` attaches the Playwright report exported through the `artifacts` field to the pipeline. `when: always` keeps it even when a test fails, so you can inspect the results of a failed run.
 
 See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the rest of the available flags, such as `--timeout` and `--var`.

@@ -1,5 +1,5 @@
 ---
-title: "Manage your Kubernetes Context Directly from VS Code"
+title: "Manage Your Kubernetes Context Directly from VS Code"
 description: "Manage your Kubernetes Context Directly from VS Code"
 slug: manage-your-kubernetes-context-directly-from-vs-code
 date: 2019-09-22

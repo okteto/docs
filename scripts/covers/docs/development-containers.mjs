@@ -4,61 +4,62 @@
 import { C, text, icon, logo, box, circle, arrow } from '../style.mjs';
 
 // okteto up replaces the api Deployment with api-okteto, a Development
-// Container, and File Sync keeps the source code on the developer's machine
-// and the container in sync, in both directions (the Development Containers
-// index). Redrawn from the old sync-development-arch.png, with its elements:
-// the source code, Sync, the Namespace, api, api-okteto, frontend, database.
-const ALT = 'okteto up replaces the api Deployment with api-okteto, a Development Container in your Okteto Namespace, next to the frontend and the database. File Sync keeps the source code on your machine and the Development Container in sync, in both directions';
+// Container that runs the application with hot reload. File Sync keeps the
+// source code on the developer's machine and the container in sync, in both
+// directions, and the developer reaches the application on localhost (the
+// Development Containers index). Redrawn from the old sync-development-arch.png,
+// with its elements: the source code, Sync, the Namespace, api, api-okteto,
+// frontend, database.
+const ALT = 'okteto up replaces the api Deployment with api-okteto, a Development Container with hot reload, in your Okteto Namespace, next to the frontend and the database. File Sync keeps the source code on your machine and the Development Container in sync, in both directions, and you reach the application on localhost:8080';
 
-// 300 wide and 230 tall.
-function machine(x, y, w) {
-  return box(x, y, w, 230, { color: C.teal }) + icon('laptop', x + w / 2, y + 95, 96, C.teal)
-    + text('Source code', x + w / 2, y + 190, 28);
+const TEAL_FILL = '#e2f5f3';
+const PORT = 'localhost:8080';
+
+// A service row, narrower than the Namespace and centered in it.
+const service = (x, y, w, name, label) => box(x, y, w, 58, { color: C.dim, fill: C.row, radius: 12, strokeWidth: 2 })
+  + icon(name, x + 38, y + 29, 30, C.blue) + text(label, x + 72, y + 38, 26, { anchor: 'start' });
+// The Development Container: the service it replaces, and hot reload. 124 tall.
+const devContainer = (x, y, w) => box(x, y, w, 124, { color: C.teal, fill: TEAL_FILL, radius: 12, strokeWidth: 3 })
+  + icon('box', x + 38, y + 32, 30, C.teal) + text('api-okteto', x + 72, y + 41, 26, { anchor: 'start', color: C.teal })
+  + text('replaces api', x + 72, y + 75, 22, { anchor: 'start', color: C.dim })
+  + icon('zap', x + 38, y + 100, 26, C.teal) + text('hot reload', x + 72, y + 108, 22, { anchor: 'start' });
+// The source code on the developer's machine: a circle with a line icon and the label under it.
+const source = (cx, cy) => circle(cx, cy, 46, { color: C.teal }) + icon('laptop', cx, cy, 48, C.teal) + text('Source code', cx, cy + 82, 26);
+// The localhost endpoint: a pill, which sits on the border of the Namespace.
+const pill = (x, cy, w) => box(x, cy - 28, w, 56, { color: C.blue, radius: 28, strokeWidth: 3 }) + text(PORT, x + w / 2, cy + 8, 22, { color: C.blue });
+
+// Wide: the source code on the left, the Namespace on the right, and the
+// localhost pill on the left border of the Namespace.
+function wide() {
+  const x = 560;
+  const y = 125;
+  const rows = x + 110;
+  const dev = y + 200;
+  let out = box(x, y, 540, 420, { color: C.blue }) + logo('kubernetes', x + 270, y, 80) + text('Okteto Namespace', x + 270, y + 86, 30);
+  out += service(rows, y + 128, 320, 'box', 'frontend') + devContainer(rows, dev, 320) + service(rows, dev + 138, 320, 'database', 'database');
+  out += source(170, dev + 30) + arrow(228, dev + 30, rows - 8, dev + 30, { color: C.teal, both: true })
+    + text('File Sync', 370, dev + 12, 24, { color: C.teal });
+  out += pill(rows - 285, dev + 94, 240) + arrow(rows - 45, dev + 94, rows - 8, dev + 94, { color: C.blue });
+  return `<g transform="translate(-20 0)">${out}</g>`;
 }
 
-const ROWS = [
-  ['box', 'frontend'],
-  ['box', 'api-okteto', true],
-  ['database', 'database'],
-];
-// 136 + 3 * 72 + 24 tall.
-function namespace(x, y, w) {
-  let out = box(x, y, w, 376, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
-    + text('Okteto Namespace', x + w / 2, y + 86, 30);
-  ROWS.forEach(([name, label, dev], i) => {
-    const ry = y + 128 + i * 72;
-    out += box(x + 30, ry, w - 60, 58, { color: dev ? C.teal : C.dim, fill: dev ? '#e2f5f3' : C.row, radius: 12, strokeWidth: dev ? 3 : 2 })
-      + icon(name, x + 68, ry + 29, 30, dev ? C.teal : C.blue)
-      + text(label, x + 102, ry + 38, 26, { anchor: 'start', color: dev ? C.teal : C.text });
-    if (dev) out += text('replaces api', x + w - 52, ry + 38, 22, { anchor: 'end', color: C.dim });
-  });
-  return out;
-}
-
-// The two-way File Sync arrow, with the Okteto mark over it.
-function sync(x1, x2, y) {
-  const cx = (x1 + x2) / 2;
-  return arrow(x1, y, x2, y, { color: C.teal, both: true }) + circle(cx, y - 70, 38, { color: C.teal })
-    + logo('okteto', cx, y - 70, 50) + text('File Sync', cx, y + 46, 26, { color: C.teal });
+// Stacked: the Namespace on top, with the Development Container as its last
+// row, the localhost pill on its bottom border, and the source code under it.
+function stacked() {
+  const x = 50;
+  const y = 60;
+  const rows = x + 100;
+  const dev = y + 272;
+  const border = dev + 124 + 73;
+  let out = box(x, y, 500, border - y, { color: C.blue }) + logo('kubernetes', 300, y, 80) + text('Okteto Namespace', 300, y + 86, 30);
+  out += service(rows, y + 128, 300, 'box', 'frontend') + service(rows, y + 200, 300, 'database', 'database') + devContainer(rows, dev, 300);
+  out += pill(290, border, 220) + arrow(400, border - 28, 400, dev + 132, { color: C.blue });
+  out += arrow(200, border + 110, 200, dev + 132, { color: C.teal, both: true }) + text('File Sync', 222, border + 78, 24, { color: C.teal, anchor: 'start' })
+    + source(200, border + 166);
+  return { svg: out, height: border + 166 + 82 + 40 };
 }
 
 export default [
-  {
-    out: 'static/img/development-container.webp',
-    background: 'white',
-    alt: ALT,
-    svg: () => machine(70, 210, 300) + sync(400, 640, 325) + namespace(670, 145, 460),
-  },
-  {
-    out: 'static/img/development-container-mobile.webp',
-    background: 'white',
-    width: 600,
-    height: 1000,
-    alt: ALT,
-    svg: () => machine(150, 40, 300)
-      + arrow(300, 300, 300, 470, { color: C.teal, both: true })
-      + circle(225, 385, 38, { color: C.teal }) + logo('okteto', 225, 385, 50)
-      + text('File Sync', 330, 394, 26, { color: C.teal, anchor: 'start' })
-      + namespace(70, 560, 460),
-  },
+  { out: 'static/img/development-container.webp', background: 'white', alt: ALT, svg: () => wide() },
+  { out: 'static/img/development-container-mobile.webp', background: 'white', width: 600, height: stacked().height, alt: ALT, svg: () => stacked().svg },
 ];

@@ -1,176 +1,71 @@
 ---
-title: Best Practices and Troubleshooting
-description: The command rules for coding agents that use Okteto, worktree isolation, cleanup, and fixes for common problems.
-sidebar_label: Best Practices
+title: Using Agents without the Okteto Skills
+description: The rules to give a coding agent that works with Okteto when you don't install the Okteto skills, to add to the AGENTS.md file of your repository.
+sidebar_label: Without the Okteto Skills
 ---
 
-Coding agents work best with Okteto when they follow the same patterns as developers: they read `okteto.yaml` to discover the services, build with the Okteto Build Service, and deploy through the Okteto CLI. Most problems come from an agent that bypasses these patterns. The [Okteto skills](coding-agents/okteto-skills.mdx) teach agents these rules, and the guardrail hooks of the Claude Code plugin enforce the most important ones.
+The [Okteto skills](coding-agents/okteto-skills.mdx) teach a coding agent how to work with Okteto. If you don't want to install them, give the agent these rules yourself, in the `AGENTS.md` file of your repository.
 
-## Command Rules
+## Instructions to Copy
 
-| Command | Agent may run it? | Notes |
-|---------|----------------|-------|
-| `okteto deploy --wait` | Yes | Builds the images and deploys the application. Always pass `--wait`. |
-| `okteto build <service>` | Yes | Builds one image with the Okteto Build Service. |
-| `okteto test <name>` | Yes | Runs a test of your Okteto Manifest. Add `-- <command>` to replace its commands for one run. |
-| `okteto validate` | Yes | Checks `okteto.yaml` for syntax and schema errors. |
-| `okteto logs <service>` | Yes | Shows the logs of a service. |
-| `okteto endpoints` | Yes | Lists the URLs of the application environment. |
-| `okteto doctor` | Yes | Generates a diagnostic bundle for troubleshooting. |
-| `okteto exec -- <command>` | Collaborative only | Runs a command in the Development Container that you started with `okteto up`. |
-| `okteto status` | Collaborative only | Shows the File Sync status of your Development Container. |
-| `okteto down` | Yes | Ends `okteto up` for a service and restores its deployment, without destroying the environment. |
-| `okteto up <service>` | Never | Interactive, and hangs the agent's shell. You run it in a [collaborative workflow](coding-agents/collaborative-workflows.mdx). |
-| `okteto namespace create <ns>` | Yes | Creates a Namespace for a worktree. See [Worktree Isolation](#worktree-isolation). |
-| `okteto namespace delete <ns>` | Only a Namespace it created | Deletes a Namespace. Never a shared Namespace, or one that existed before. |
-| `okteto destroy` | Only with authorization | Deletes everything that `okteto deploy` created. Needs an explicit policy or your approval. See [Cleanup and Teardown](#cleanup-and-teardown). |
-| `kubectl`, `helm` (read-only) | Yes | `get`, `describe`, `logs`, `events`, and `helm status`, to diagnose problems. |
-| `kubectl`, `helm` (changes) | No | Changes made outside `okteto deploy` aren't tracked by Okteto. Use `okteto deploy`. |
-| `docker build` | No | The image doesn't reach the Okteto Registry. Use `okteto build`. |
+Add this to the `AGENTS.md` file of your repository:
 
-Every command that targets an environment accepts the `-n <ns>` flag, which runs it against another Namespace without changing the active context. Agents use it to isolate git worktrees.
+```markdown title="AGENTS.md"
+## Working with Okteto
 
-## Best Practices
+This project deploys to Okteto. Verify every change in an Okteto application
+environment before you report it as done.
 
-### Read `okteto.yaml` to Discover the Services
-
-The `okteto.yaml` file lists the services, the images to build, and the tests. Agents read it instead of assuming service names or a project structure, so they work the same way in every repository:
-
-```bash
-# Good: the service name comes from the build section of okteto.yaml
-okteto build api
-
-# Bad: the agent guesses the name, and the service is actually called "backend"
-okteto build server
+- Create a Namespace for this session with
+  `okteto namespace create <name> --use=false`, named after the branch, and
+  pass `-n <name>` to every `okteto` and `kubectl` command. Don't run
+  `okteto namespace use`.
+- Read `okteto.yaml` to find the services, the images, and the tests. Don't
+  guess their names. If you change it, run `okteto validate` before you deploy.
+- Build images with `okteto build <service>`. Don't run `docker build`.
+- Deploy with `okteto deploy --wait`. Don't run `kubectl apply` or
+  `helm install`.
+- Test with `okteto test <name>`. To run part of a test, pass the command
+  after `--`.
+- Check the change with the URLs of `okteto endpoints`, and troubleshoot with
+  read-only `kubectl` commands: `kubectl logs`, `kubectl get events`, and
+  `kubectl top pods`.
+- Never run `okteto up`: it's interactive. Ask the developer to run it. While
+  it runs, don't build, deploy, or test: only edit the code, and hot reload
+  applies your changes.
+- After you open the pull request, delete the Namespace you created for this
+  session with `okteto namespace delete <name>`. If a developer is working
+  with you, ask first. Never delete or destroy a Namespace you didn't create.
 ```
 
-### Build with `okteto build`, Not `docker build`
+## Recommendations
 
-`okteto build` builds the image with the [Okteto Build Service](application-environments/build-service.mdx), inside the cluster, and pushes it to the Okteto Registry, where the application environment can pull it. An image built with `docker build` stays on the agent's machine, and the sandbox needs a Docker daemon to build it.
+Each rule of the instructions has a reason.
 
-```bash
-# Good
-okteto build api
+### A Namespace for Each Session {#worktree-isolation}
 
-# Bad: the image never reaches the Okteto Registry
-docker build -t api .
-```
+Each session gets an application environment of its own, so two sessions never overwrite each other's work. `--use=false` and the `-n` flag leave the Okteto context untouched, because every session on the same machine shares it. See [A Namespace for Each Session](coding-agents/index.mdx#parallel-tasks).
 
-### Deploy with `okteto deploy`, Not `kubectl` or `helm`
+### Services from okteto.yaml
 
-`okteto deploy` builds the images, deploys the application, and tracks what it creates, so `okteto destroy` deletes it. Resources created with `kubectl apply` or `helm install` don't show up in the Okteto UI, `okteto destroy` doesn't delete them, and they can leak between environments. Read-only `kubectl` commands are fine for diagnosis.
+The `okteto.yaml` file lists the services, the images to build, and the tests, so the agent works the same way in every repository instead of guessing names.
 
-```bash
-# Good: builds, deploys, and tracks everything
-okteto deploy --wait
+### Builds with okteto build
 
-# Bad: these resources outlive the environment
-helm install my-release ./charts
-kubectl apply -f manifests/
-```
+`okteto build` builds the image inside the cluster and pushes it to the Okteto Registry, where the application environment pulls it. An image built with `docker build` stays in the agent's sandbox, and needs a Docker daemon there.
 
-### Wait for the Deployment with `--wait`
+### Deploys with okteto deploy
 
-`okteto deploy --wait` returns when the services are ready. Without `--wait`, the agent can run the tests before the services finish starting:
+`okteto deploy --wait` waits until every service is ready, and Okteto tracks what it creates. Resources that the agent creates with `kubectl apply` or `helm install` don't show up in the Okteto UI, and `okteto destroy` doesn't delete them.
 
-```bash
-# Good: waits until every service is ready
-okteto deploy --wait
+### Tests with okteto test
 
-# Risky: the services might not be ready yet
-okteto deploy
-```
+`okteto test` runs the tests of your Okteto Manifest inside the cluster, against the application environment. The Kubernetes API gives the agent the rest: the logs, the events, and the resource usage of its services.
 
-### Run Only the Tests That Cover the Change
+### okteto up for the Developer
 
-Running a whole test suite to check one test is slow. Pass the test command after `--` to replace the commands of a test for one run, without editing `okteto.yaml`:
+`okteto up` is interactive, and it hangs the agent's shell. In a [collaborative workflow](coding-agents/collaborative-workflows.mdx), you run it in your own terminal, and its hot reload applies the changes that the agent makes.
 
-```bash
-# Good: runs only the test that covers the change
-okteto test unit -- go test ./pkg/api -run TestLogin
+### Namespace Cleanup
 
-# Slow: runs every command of the unit test
-okteto test unit
-```
-
-The tests in `depends_on` still run first, with their own commands. For shell features such as `&&` or pipes, pass `--command '...'` instead. See the [`okteto test` reference](reference/okteto-cli.mdx#overriding-the-commands-of-a-test-container) for every rule.
-
-### Never Run `okteto up`
-
-`okteto up` starts an interactive session with a terminal and File Sync, so it hangs if an agent runs it. In a collaborative workflow, you run `okteto up` and the agent uses `okteto exec`. In an autonomous workflow, the agent uses `okteto build` and `okteto deploy` instead. The Claude Code plugin denies `okteto up` with a hook.
-
-### Never Run `okteto destroy` Without Authorization
-
-`okteto destroy` deletes everything in the environment, including work in progress. An agent runs it only with an explicit policy or your approval. The Claude Code plugin asks for your confirmation before it runs.
-
-## Worktree Isolation
-
-A Namespace holds everything that `okteto deploy` creates. The active Namespace comes from the Okteto context, which is global to the machine, not to a folder. That matters as soon as an agent works in more than one checkout at once.
-
-A single checkout can use the default Namespace of its context, without extra flags. Parallel checkouts or git worktrees that deploy to the same Namespace overwrite each other's environment, get the wrong results from `okteto endpoints` and `okteto logs`, and an `okteto destroy` in one deletes the other.
-
-Give each worktree its own Namespace. The agent creates it once:
-
-```bash
-okteto namespace create <ns>
-```
-
-Then it passes `-n <ns>` to every command for the rest of the session:
-
-```bash
-okteto deploy --wait -n <ns>
-okteto build <service> -n <ns>
-okteto endpoints -n <ns>
-okteto test <name> -n <ns>
-```
-
-Agents derive the Namespace name from the branch or the worktree folder. A Namespace name has lowercase letters, numbers, and `-`, and starts and ends with a letter or a number.
-
-Agents use the `-n <ns>` flag, not `okteto namespace use <ns>`. `okteto namespace use` changes the active Namespace of the global context, which affects every other worktree or agent on the same machine. The `-n` flag only applies to one command, so it's safe when several run at once.
-
-## Cleanup and Teardown
-
-Pick the right command to tear an environment down, and make sure the agent is allowed to run it:
-
-| Command | What it does | When to use it |
-|---------|--------------|-------------|
-| `okteto down` | Ends `okteto up` for one service and restores its deployment. The environment keeps running. | You're done with a service, but still need the environment. |
-| `okteto destroy` | Deletes everything that `okteto deploy` created in the Namespace. | The environment isn't needed anymore, and you authorized the teardown. |
-| `okteto namespace delete <ns>` | Deletes the Namespace and everything in it. | Only for a Namespace the agent created for a worktree, or when you ask for it explicitly. |
-
-Running `okteto destroy` when you only wanted to leave `okteto up` is a common mistake. When in doubt, `okteto down` is the safe choice.
-
-In a [collaborative workflow](coding-agents/collaborative-workflows.mdx), the agent suggests `okteto destroy` and lets you run it. In an [autonomous workflow](coding-agents/autonomous-workflows.mdx), the agent runs it only when the task authorizes the cleanup, when a cleanup policy is written in the repository's agent instructions or in the ticket, or when the environment belongs to the pipeline that runs the agent. Otherwise, it leaves the environment running and reports the command to tear it down.
-
-A Namespace that the agent created for a worktree is the agent's to delete, without a separate instruction:
-
-```bash
-okteto destroy -n <ns>           # delete what okteto deploy created
-okteto namespace delete <ns>     # then delete the empty Namespace
-```
-
-## Troubleshooting
-
-### The Agent Hangs
-
-The most common cause is that the agent ran `okteto up`, which waits for input from a terminal. Stop the agent. In a collaborative workflow, you run `okteto up` in your own terminal, and the agent uses `okteto exec`. In an autonomous workflow, the agent uses `okteto build` and `okteto deploy`. The Claude Code plugin of the [Okteto skills](coding-agents/okteto-skills.mdx) prevents this with a hook.
-
-### The Build Fails
-
-Read the output of `okteto build <service>`. Common causes are dependencies missing from the Dockerfile, files left out of the build context by `.dockerignore`, and registry authentication errors. If the agent runs `docker build`, switch it to `okteto build`.
-
-### The Tests Fail After a Deployment
-
-Make sure the agent deploys with `okteto deploy --wait`, so every service is running before the tests start. Then check `okteto logs <service> --since 5m` for startup errors or crash loops, and review the `test` section of `okteto.yaml`: the image, the commands, and `depends_on` of each test.
-
-### The Agent Uses the Wrong Service Names
-
-The agent isn't reading `okteto.yaml`. Install the [Okteto skills](coding-agents/okteto-skills.mdx), which teach the agent to discover the services from it.
-
-### The Endpoints Don't Respond
-
-Run `okteto endpoints` to get the current URLs. If none show up, check that `okteto deploy --wait` finished without errors, read `okteto logs <service>`, and check that your `okteto.yaml` or Helm chart exposes the right ports.
-
-### The Agent Creates Resources That Okteto Doesn't Track
-
-The agent ran `kubectl`, `helm`, or another tool to change the cluster instead of `okteto deploy`. Those resources don't show up in the Okteto UI, and `okteto destroy` doesn't delete them. Deploy everything with `okteto deploy`, and add any custom command to the `deploy` section of `okteto.yaml`.
+An autonomous workflow ends in a pull request, which gets its own [Preview Environment](previews/index.mdx), so the Namespace of the session isn't needed anymore. The agent only deletes the Namespace that it created: `okteto destroy` and `okteto namespace delete` delete work in progress.

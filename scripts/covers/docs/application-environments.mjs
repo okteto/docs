@@ -69,7 +69,7 @@ function link(x1, y1, x2, y2, label, { color = C.teal } = {}) {
 }
 
 const BUILD_YAML = ['build:', '  api:', '    context: api', '    dockerfile: Dockerfile', '    args:', '      GO_VERSION: 1.20'];
-const DEPLOY_YAML = ['deploy:', '  image: runner:1.0', '  commands:', '    - helm upgrade --install', '        movies chart'];
+const DEPLOY_YAML = ['deploy:', '  image: alpine/helm:4.3.2', '  commands:', '    - helm upgrade --install', '        movies chart'];
 
 // The inside of the cluster for each diagram, drawn from the top-left corner
 // (x, y) of the area under the cluster title, w wide. Returns the drawing,
@@ -100,7 +100,7 @@ const INSIDE = {
     let out = buildkit(x, y, w);
     out += arrow(x + w / 2, y + 72, x + w / 2, y + 128, { color: C.blue }) + text('exec', x + w / 2 + 16, y + 108, 24, { anchor: 'start', color: C.blue });
     out += box(x, y + 130, w, 170, { color: C.blue, fill: C.row, radius: 14, strokeWidth: 2.5 })
-      + icon('box', x + 40, y + 168, 30, C.blue) + text('runner:1.0', x + 70, y + 177, 24, { anchor: 'start', mono: true });
+      + icon('box', x + 40, y + 168, 30, C.blue) + text('alpine/helm:4.3.2', x + 70, y + 177, 24, { anchor: 'start', mono: true });
     out += `<path d="M${x} ${y + 200} H${x + w}" stroke="${C.dim}" stroke-width="2" opacity="0.6"/>`;
     out += text('$', x + 28, y + 242, MONO, { anchor: 'start', mono: true, color: C.teal })
       + text('helm upgrade --install', x + 52, y + 242, MONO, { anchor: 'start', mono: true })
@@ -151,7 +151,7 @@ const ALT = {
   build: 'Cindy runs okteto build with an Okteto Manifest that builds the api image. Okteto builds it on BuildKit in the cluster and pushes the image cindy/api:okteto to the Okteto Registry',
   smartFirst: 'Smart Builds on the first build: Cindy runs okteto build, BuildKit builds the api image and pushes it as okteto/api:09f8e, the hash of its build context, and the Okteto Registry tags cindy/api:okteto to it',
   smartReuse: 'Smart Builds on a later build: David runs okteto build with the same build context, Okteto skips the build on BuildKit, and the Okteto Registry tags david/api:okteto to the existing okteto/api:09f8e image',
-  remote: 'Cindy runs okteto deploy with an Okteto Manifest whose deploy section uses the runner:1.0 image. Okteto runs the deploy commands on BuildKit in the cluster, in a container of the runner:1.0 image that runs helm upgrade --install movies chart',
+  remote: 'Cindy runs okteto deploy with an Okteto Manifest whose deploy section uses the alpine/helm:4.3.2 image. Okteto runs the deploy commands on BuildKit in the cluster, in a container of the alpine/helm:4.3.2 image that runs helm upgrade --install movies chart',
 };
 
 const OUT = { build: 'build-service-flow', smartFirst: 'smart-builds-first-build', smartReuse: 'smart-builds-reuse', remote: 'remote-execution-flow' };
