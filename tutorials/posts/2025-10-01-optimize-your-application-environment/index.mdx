@@ -85,6 +85,37 @@ RUN --mount=type=cache,sharing=private,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -o /usr/src/api
 ```
 
+### Caches in the Image or in Cache Mounts
+
+A dependency cache or a compiler cache can live in two places, and the choice affects more than the build.
+
+**In the image.** Without a cache mount, what a `RUN` instruction downloads or compiles stays in a layer of the image. The build reuses that layer while the instructions before it don't change, so install the dependencies before you copy the code. The image then has everything ready for whatever starts from it: a test that runs in that image compiles only what changed, with no `caches` in its `test` section, and a Development Container that uses it starts with a warm cache, with no volume.
+
+**In a cache mount.** With a cache mount, the cache stays in BuildKit, outside the image. A build that finds the cache compiles only what changed, even when the layer has to run again, so it can be faster. A cache mount belongs to the BuildKit instance that ran the build, so a build that lands on another instance doesn't find it. And the image doesn't have the cache, so neither do the containers that start from it: add the same folders to the [`caches`](/docs/reference/okteto-manifest/#caches-string-optional) of your tests and to the [`volumes`](/docs/reference/okteto-manifest/#volumes-string-optional) of your Development Container, or each of them starts cold.
+
+```yaml title="okteto.yaml"
+test:
+  unit:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    caches:
+      - /go/pkg/mod
+      - /root/.cache/go-build
+    commands:
+      - go test ./...
+
+dev:
+  api:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    command: air
+    sync:
+      - .:/usr/src/app
+    volumes:
+      - /go/pkg/mod
+      - /root/.cache/go-build
+```
+
+Start with the caches in the image: one mechanism serves the build, the tests, and the Development Container. Move a cache to a cache mount when compiling your own code on every build takes too long, as in a large Rust or Java project, and add the caches of the tests and the volumes of the Development Container with it. A cache mount is always a good fit for a cache that nothing needs after the build, such as the download cache of a package manager (`/root/.npm` or `/root/.cache/pip`).
+
 ### Build Context
 
 Every build starts by sending its context, the folder of the Dockerfile, to the Build Service. A `.dockerignore` file keeps out the files the build doesn't need. Exclude everything, and then include only those files:
