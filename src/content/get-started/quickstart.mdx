@@ -12,7 +12,7 @@ The Movies app has three services:
 
 - `frontend`: a React application, built with Vite, that lists the movies and your favorites.
 - `api`: a Node.js API that reads the movies from MongoDB, and saves your favorites in it.
-- `mongodb`: a MongoDB database, deployed with the [Bitnami Helm chart](https://github.com/bitnami/charts/tree/main/bitnami/mongodb). A `seed` job loads the movies into it on every deployment.
+- `mongodb`: a MongoDB database that runs the official `mongo` image. A `seed` job loads the movies into it on every deployment.
 
 <Image
   src={require("@site/static/img/deploy-movies-app.webp").default}
@@ -45,16 +45,7 @@ build:
 deploy:
   image: alpine/helm:4.3.2
   commands:
-    - name: Deploy MongoDB
-      command: |
-        helm upgrade --install mongodb oci://registry-1.docker.io/bitnamicharts/mongodb \
-          --version 20.0.21 \
-          --set auth.rootPassword=password \
-          --set "auth.usernames={okteto}" \
-          --set "auth.passwords={password}" \
-          --set "auth.databases={okteto}"
-
-    - name: Deploy the Movies app
+    - name: Helm Install
       command: |
         helm upgrade --install movies chart \
           --set api.image=${OKTETO_BUILD_API_IMAGE} \
@@ -77,7 +68,7 @@ It has three sections, `build`, `deploy`, and `test`, and each one has a command
 
 ## Build
 
-Kubernetes runs containers, so the first step to deploy the Movies app is to build the container images of its services. The `frontend` and the `api` services each have their code and a `Dockerfile` in the repository. MongoDB runs the image of its Helm chart, so there's nothing to build for it.
+Kubernetes runs containers, so the first step to deploy the Movies app is to build the container images of its services. The `frontend` and the `api` services each have their code and a `Dockerfile` in the repository. MongoDB runs the official `mongo` image, so there's nothing to build for it.
 
 The [build](reference/okteto-manifest.mdx#build-object-optional) section of the Okteto Manifest tells Okteto which images to build:
 
@@ -114,29 +105,20 @@ The advantage is that you don't need Docker, or access to a Docker daemon, to bu
 
 Okteto stores the reference of each image in an `OKTETO_BUILD_<IMAGE>_IMAGE` [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry), such as `OKTETO_BUILD_API_IMAGE`, so the deploy commands know which images to use.
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest lists the commands that deploy the application. They are the commands you already use to deploy to Kubernetes, with tools such as Helm or `kubectl`. The Movies app has two: the first one installs MongoDB with the Bitnami Helm chart, and the second one installs the Helm chart in the `chart` folder of the repository, with the images you built:
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest lists the commands that deploy the application. They are the commands you already use to deploy to Kubernetes, with tools such as Helm or `kubectl`. For the Movies app, one command installs the Helm chart in its `chart` folder with the images you built:
 
 ```yaml title="okteto.yaml"
 deploy:
   image: alpine/helm:4.3.2
   commands:
-    - name: Deploy MongoDB
-      command: |
-        helm upgrade --install mongodb oci://registry-1.docker.io/bitnamicharts/mongodb \
-          --version 20.0.21 \
-          --set auth.rootPassword=password \
-          --set "auth.usernames={okteto}" \
-          --set "auth.passwords={password}" \
-          --set "auth.databases={okteto}"
-
-    - name: Deploy the Movies app
+    - name: Helm Install
       command: |
         helm upgrade --install movies chart \
           --set api.image=${OKTETO_BUILD_API_IMAGE} \
           --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-Like the build, the commands don't run on your machine. They run with [Remote Execution](reference/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm either. The chart of the repository deploys the `frontend` and `api` services, the `seed` job, and the Ingress that exposes the application.
+Like the build, the command doesn't run on your machine. It runs with [Remote Execution](reference/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm either. The chart deploys the `frontend` and `api` services, MongoDB with its volume, the `seed` job, and the Ingress that exposes the application.
 
 Run `okteto deploy` to deploy the application. The `--wait` flag makes the command wait until the pods of the application are healthy:
 
@@ -148,18 +130,14 @@ okteto deploy --wait
  i  Using cindy @ okteto.example.com as context
  i  Okteto Smart Builds is skipping build of "frontend" because it's already built from cache.
  i  Okteto Smart Builds is skipping build of "api" because it's already built from cache.
- i  Running stage 'Deploy MongoDB'
-Executing command 'Deploy MongoDB'...
- ...
-Command 'Deploy MongoDB' successfully executed
- i  Running stage 'Deploy the Movies app'
-Executing command 'Deploy the Movies app'...
+ i  Running stage 'Helm Install'
+Executing command 'Helm Install'...
 Release "movies" does not exist. Installing it now.
 NAME: movies
 NAMESPACE: cindy
 STATUS: deployed
 REVISION: 1
-Command 'Deploy the Movies app' successfully executed
+Command 'Helm Install' successfully executed
  i  Endpoints available:
   - https://movies-cindy.okteto.example.com
   - https://movies-cindy.okteto.example.com/api
@@ -239,7 +217,7 @@ The Playwright report is now in the `e2e/playwright-report` folder on your machi
 
 ## Destroy
 
-When you're done with the application environment, delete it. [`okteto destroy`](application-environments/destroy.mdx) uninstalls the two Helm releases from your Namespace:
+When you're done with the application environment, delete it. [`okteto destroy`](application-environments/destroy.mdx) uninstalls the Helm release of the Movies app from your Namespace:
 
 ```bash
 okteto destroy
@@ -248,8 +226,6 @@ okteto destroy
 ```console
  i  Using cindy @ okteto.example.com as context
  i  Images were already built. To rebuild your images run 'okteto build'
- i  Running 'helm uninstall mongodb'
-release "mongodb" uninstalled
  i  Running 'helm uninstall movies'
 release "movies" uninstalled
  ✓  Development environment 'getting-started' successfully destroyed
@@ -273,7 +249,7 @@ Upload only the files that each command needs: the context upload is key to perf
 
 No. Okteto supports two models, and you choose one for your application:
 
-- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where the `deploy` commands deploy the three services of the Movies app. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](application-environments/deploy.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with ten services or fewer.
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of the Movies app. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](application-environments/deploy.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with ten services or fewer.
 - **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](application-environments/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them from 15 to 20 services.
 
 ### How do I create a Preview Environment of my application for every pull request?
