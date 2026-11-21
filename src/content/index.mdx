@@ -41,16 +41,14 @@ Okteto supports two models for an environment, and you choose one for each appli
   alt="Overlay Namespaces: the Overlay Namespace of a developer runs only the Rent service and its MongoDB database, and the Overlay Namespace of a coding agent runs only the Catalog service. Divert routes their requests to a Shared Namespace that runs the whole application"
 />
 
-Application environments are ephemeral: you create one on demand for a pull request or an agent task, and delete it when the work is done, or the Okteto Garbage Collector deletes it once nobody uses it. Every environment gets its own HTTPS URLs, which anyone on the team can open in a browser.
+## Benefits
 
 An application environment for every change gives a team:
 
+- **One standard for every workflow:** developers, agents, and CI use the same definition, so their environments don't drift apart, and a test that fails in CI fails the same way in a developer's environment or in a coding agent's sandbox.
 - **Isolation:** developers, coding agents, and pull requests test in parallel, without competing for a shared staging environment or breaking each other's work.
-- **Issues that reproduce:** the change runs against the application's real services and dependencies, so integration and configuration issues show up before the code merges, not in staging or in production.
-- **Better output from coding agents:** agents exercise the running application. They call its endpoints, run the tests, and read the logs, and they fix what fails before they open a pull request.
-- **One standard for every workflow:** developers, agents, and CI use the same definition, so their environments don't drift apart, and a test that fails in CI fails the same way in a developer's environment.
-
-Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot use the same definition through the Okteto skills, which teach them to build, deploy, and test their changes in their own environment. Builds, deployments, and tests run in the cluster, so the agent's sandbox stays light: it needs the Okteto CLI, but no Docker daemon and none of your application's dependencies.
+- **Issues caught before the merge:** every change runs on Kubernetes, against the application's real services and dependencies, so integration and configuration issues show up before the code merges, not in staging or in production.
+- **A light setup everywhere:** Okteto runs builds, deployments, and tests as containers inside the cluster, so you don't need Docker or the dependencies of your programming language to test your application. A laptop, a CI job, and an agent sandbox only need the Okteto CLI.
 
 <Image
   src={require("@site/static/img/agent-sandbox.webp").default}
@@ -59,9 +57,18 @@ Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot use the sam
   alt="A light agent sandbox with the agent binary, Git access, and the Okteto CLI deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue, and gets back the results and the logs"
 />
 
-## Governance and Cost Control for Platform Teams
+- **A URL for every change:** every environment gets its own HTTPS URLs, so developers, product managers, and customers open the running change in a browser, with nothing to set up.
 
-Platform teams set the rules once, and Okteto applies them to every application environment, including the ones that coding agents create. People sign in with your company's identity provider, and the kubeconfig that the Okteto CLI generates uses time-bound tokens, so nobody has to create, distribute, or rotate cluster credentials.
+<Image
+  src={require("@site/static/img/preview-url.webp").default}
+  mobileSrc={require("@site/static/img/preview-url-mobile.webp").default}
+  borderless
+  alt="A coding agent deploys its change to an environment with its own URL, pr-142.acme.dev, that developers, product managers, and customers open in the browser"
+/>
+
+## Application Environments at Scale
+
+When every developer, pull request, and agent task gets its own application environment, a platform team has hundreds of them to operate. Okteto helps the platform team operate them at scale: the team sets the rules once, and Okteto applies them to every application environment, including the ones that coding agents create. Okteto generates time-bound tokens for every application environment, so nobody has to create, distribute, or rotate credentials.
 
 <Image
   src={require("@site/static/img/environments-at-scale.webp").default}
@@ -77,7 +84,7 @@ Access controls keep every developer, coding agent, and pull request in its own 
 - **Network policies:** isolate the traffic of each Namespace, and block destinations such as the cloud metadata service.
 - **Cloud and Registry Credentials:** deploy commands reach your cloud account and your private registries without anyone holding static keys.
 
-When every developer, pull request, and agent task creates environments on demand, a team runs hundreds of environments at once, and most of them sit idle most of the day. Cost controls keep the spend close to what's actually in use:
+Most of those environments sit idle most of the day. Cost controls keep the spend close to what's actually in use:
 
 - **Garbage Collector:** sleeps idle environments, and deletes the ones nobody uses.
 - **Resource Manager:** sets the CPU and memory requests of each service from its real usage.
@@ -88,7 +95,7 @@ When every developer, pull request, and agent task creates environments on deman
 
 Okteto runs in your own Kubernetes cluster, including clusters in air-gapped networks. Where you start depends on what you want to do:
 
-- **Install Okteto:** platform teams [install Okteto in their cluster](get-started/install/index.mdx) with its Helm chart.
-- **Deploy your first application:** if your platform team already runs Okteto, follow the [quickstart](get-started/quickstart.mdx).
-- **Use coding agents:** [install the Okteto skills](coding-agents/okteto-skills.mdx) in Claude Code, Codex, Cursor, or another agent, so it deploys and tests its changes in its own environment.
-- **Test every pull request:** [configure Preview Environments](previews/index.mdx) with GitHub Actions or GitLab CI/CD, so every pull request deploys its own environment and runs your tests against it.
+- **[Install Okteto](get-started/install/index.mdx):** platform teams install Okteto in their cluster with its Helm chart.
+- **[Deploy your first application](get-started/quickstart.mdx):** if your platform team already runs Okteto, follow the quickstart.
+- **[Use coding agents](coding-agents/okteto-skills.mdx):** install the Okteto skills in Claude Code, Codex, Cursor, or another agent, so it deploys and tests its changes in its own environment.
+- **[Test every pull request](previews/index.mdx):** configure Preview Environments with GitHub Actions or GitLab CI/CD, so every pull request deploys its own environment and runs your tests against it.
