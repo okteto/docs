@@ -28,7 +28,6 @@ The [Okteto Manifest](reference/okteto-manifest.mdx) defines the application env
 | `build` | `okteto build` | Builds the images of the application in your cluster |
 | `deploy` | `okteto deploy` | Deploys the application in your Namespace |
 | `test` | `okteto test` | Runs the tests against the deployed application |
-| | `okteto destroy` | Deletes the application from your Namespace |
 
 ## Prerequisites
 
@@ -41,7 +40,9 @@ cd getting-started
 
 ## Build
 
-The [build](reference/okteto-manifest.mdx#build-object-optional) section of the Okteto Manifest lists the images of the application, one for each service that has a `Dockerfile`:
+Kubernetes runs containers, so the first step to deploy the Movies app is to build the container images of its services. The `frontend` and the `api` services each have their code and a `Dockerfile` in the repository. MongoDB runs the official `mongo` image, so there's nothing to build for it.
+
+The [build](reference/okteto-manifest.mdx#build-object-optional) section of the Okteto Manifest tells Okteto which images to build:
 
 ```yaml title="okteto.yaml"
 build:
@@ -52,9 +53,7 @@ build:
     context: frontend
 ```
 
-`api` and `frontend` are the names of the images, and `context` is the folder of each service, with its code and its `Dockerfile`.
-
-Build the two images:
+Run `okteto build` to build the two images:
 
 ```bash
 okteto build
@@ -76,7 +75,9 @@ The advantage is that you don't need Docker, or access to a Docker daemon, to bu
 
 ## Deploy
 
-Okteto stores the reference of each image in an `OKTETO_BUILD_<IMAGE>_IMAGE` [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry), such as `OKTETO_BUILD_API_IMAGE`. The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section lists the commands that deploy the application. For the Movies app, one command installs the Helm chart in its `chart` folder with those images:
+Okteto stores the reference of each image in an `OKTETO_BUILD_<IMAGE>_IMAGE` [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry), such as `OKTETO_BUILD_API_IMAGE`, so the deploy commands know which images to use.
+
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest lists the commands that deploy the application. They are the commands you already use to deploy to Kubernetes, with tools such as Helm or `kubectl`. For the Movies app, one command installs the Helm chart in its `chart` folder with the images you built:
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -91,15 +92,11 @@ deploy:
 
 Like the build, the command doesn't run on your machine. It runs with [Remote Execution](reference/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm either. The chart deploys the `frontend` and `api` services, MongoDB with its volume, the `seed` job, and the Ingress that exposes the application.
 
-If your application is defined in a Docker Compose file, follow the [Develop a Docker Compose Application with Okteto](/tutorials/compose-getting-started/) tutorial instead.
-
-Deploy the application. The `--wait` flag makes the command wait until the pods of the application are healthy:
+Run `okteto deploy` to deploy the application. The `--wait` flag makes the command wait until the pods of the application are healthy:
 
 ```bash
 okteto deploy --wait
 ```
-
-Okteto builds the images that aren't built yet, runs the deploy command, and prints the endpoints of the application:
 
 ```console
  i  Using cindy @ okteto.example.com as context
@@ -119,7 +116,7 @@ Command 'Helm Install' successfully executed
  ✓  Development environment 'getting-started' successfully deployed
 ```
 
-Your application environment is now running in `cindy`, the Namespace of your Okteto context in this example. Okteto creates an [HTTPS endpoint](application-environments/endpoints/automatic-ssl.mdx) for the [Ingress](application-environments/endpoints/ingress.mdx) in the Helm chart: requests to `/` go to the `frontend` service, and requests to `/api` go to the `api` service. If your application uses the Gateway API, Okteto does the same for its [HTTPRoutes](application-environments/endpoints/httproutes.mdx). The Okteto UI shows the endpoints next to the resources of the application:
+Okteto creates an [HTTPS endpoint](application-environments/endpoints/automatic-ssl.mdx) for the [Ingress](application-environments/endpoints/ingress.mdx) in the Helm chart: requests to `/` go to the `frontend` service, and requests to `/api` go to the `api` service. If your application uses the Gateway API, Okteto does the same for its [HTTPRoutes](application-environments/endpoints/httproutes.mdx). The Okteto UI shows the endpoints next to the resources of the application:
 
 <Image
   src={require("@site/static/img/okteto-ui-movies.png").default}
@@ -137,7 +134,7 @@ Open the endpoint in your browser to see the Movies app, and click the star of a
 
 ## Test
 
-The `test` section of the Okteto Manifest defines the [tests](application-environments/okteto-test.mdx) of the application. The Movies app has one, `e2e`, which runs [Playwright](https://playwright.dev/) tests that open the Movies app in a browser, compare the movies it shows with the data stored in MongoDB, and move a movie to the favorites:
+With the application running, you can test it the way your users use it, against its real services. The `test` section of the Okteto Manifest defines the [tests](application-environments/okteto-test.mdx) of the application. The Movies app has one, `e2e`, which runs [Playwright](https://playwright.dev/) tests that open the Movies app in a browser, compare the movies it shows with the data stored in MongoDB, and move a movie to the favorites:
 
 ```yaml title="okteto.yaml"
 test:
@@ -161,7 +158,7 @@ test:
 
 The test also runs with Remote Execution, in a container inside your Namespace, next to the application. It reaches the application in two ways: its public endpoints, built from the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` variables, and its private services, such as MongoDB at `mongodb.${OKTETO_NAMESPACE}`. It tests the real application, not a mock.
 
-Run the tests:
+Run `okteto test` to run the tests:
 
 ```bash
 okteto test
@@ -192,7 +189,7 @@ The Playwright report is now in the `e2e/playwright-report` folder on your machi
 
 ## Destroy
 
-[`okteto destroy`](application-environments/destroy.mdx) deletes the application environment: it uninstalls the Helm release of the Movies app from your Namespace.
+When you're done with the application environment, delete it. [`okteto destroy`](application-environments/destroy.mdx) uninstalls the Helm release of the Movies app from your Namespace:
 
 ```bash
 okteto destroy

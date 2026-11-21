@@ -6,7 +6,7 @@ sidebar_label: Go
 
 import Image from "@theme/Image";
 
-This guide builds, deploys, tests, and develops the [Go Sample App](https://github.com/okteto/go-getting-started), a hello world service that shows the poster of a movie, *Captain Okteto*, in an [application environment](application-environments/index.mdx) in your Kubernetes cluster. Each step uses the optimizations for Go: the layers of the development image, the caches of the tests, Air for hot reload, and Delve for debugging with VS Code. To see the Okteto workflow in an application with several services first, follow the [quickstart](get-started/quickstart.mdx).
+This guide builds, deploys, tests, and develops the [Go Sample App](https://github.com/okteto/go-getting-started), a hello world service whose page shows a message, the Go version, and the pod that serves it, in an [application environment](application-environments/index.mdx) in your Kubernetes cluster. Each step uses the optimizations for Go: the layers of the development image, the caches of the tests, Air for hot reload, and Delve for debugging with VS Code. To see the Okteto workflow in an application with several services first, follow the [quickstart](get-started/quickstart.mdx).
 
 ## Prerequisites
 
@@ -137,11 +137,11 @@ Command 'envsubst < k8s.yml | kubectl apply -f -' successfully executed
  ✓  Development environment 'go-getting-started' successfully deployed
 ```
 
-Open the endpoint in your browser to see the poster of the Go Sample App, with the Go version and the pod that serves it:
+Open the endpoint in your browser to see the page of the Go Sample App, with its message, the Go version, and the pod that serves it:
 
 <Image
   src={require("@site/static/img/hello-world-golang.png").default}
-  alt="The poster of the Go Sample App: a shield with the Okteto logo, the title Captain Okteto, a Kubernetes production, starring Go 1.26.5, now showing on the hello-world pod"
+  alt="The page of the Go Sample App: the Okteto logo, the message Built, deployed, and tested on Kubernetes, the Go 1.26.5 runtime, and the name of the hello-world pod"
   width="500"
 />
 
@@ -188,13 +188,13 @@ okteto test
  i  Images were already built. To rebuild your images run 'okteto build'
  i  Executing test container 'unit'
  i  Running 'go test -v -coverprofile=coverage.out ./...'
-=== RUN   TestNowShowing
---- PASS: TestNowShowing (0.00s)
-=== RUN   TestPoster
---- PASS: TestPoster (0.00s)
+=== RUN   TestHello
+--- PASS: TestHello (0.00s)
+=== RUN   TestPage
+--- PASS: TestPage (0.00s)
 PASS
 coverage: 44.4% of statements
-ok  	github.com/okteto/go-getting-started	0.009s	coverage: 44.4% of statements
+ok  	github.com/okteto/go-getting-started	0.007s	coverage: 44.4% of statements
  ✓  Command 'go test -v -coverprofile=coverage.out ./...' successfully executed
  ✓  Test container 'unit' passed
 ```
@@ -270,10 +270,10 @@ running...
 Starting hello-world server...
 ```
 
-Open `main.go` in your IDE, change the line at the top of the poster, on line 14, and save the file:
+Open `main.go` in your IDE, change the message on line 14, and save the file:
 
 ```go title="main.go"
-const studio = "An Okteto Original"
+const message = "Built, deployed, and tested on Okteto."
 ```
 
 Okteto synchronizes `main.go` to the Development Container, and Air rebuilds and restarts the application:
@@ -285,7 +285,7 @@ running...
 Starting hello-world server...
 ```
 
-The poster in your browser shows the new line a moment later, without reloading the page, because it asks the service for the movie every second. The change runs in your cluster without building an image or redeploying the application.
+The page in your browser shows the new message a moment later, without reloading it, because it asks the service for its info every second. The change runs in your cluster without building an image or redeploying the application.
 
 Press `Ctrl+C` to stop Air and exit `okteto up`.
 
@@ -325,7 +325,7 @@ The `.vscode/launch.json` file of the Go Sample App attaches VS Code to Delve th
 
 `remotePath` is the path in the `sync` field of the Okteto Manifest. If you synchronize your code to another path, change `remotePath` to match it.
 
-Open the Go Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. The application starts. Add a breakpoint on line 46 of `main.go`, the first line of the `nowShowing` function. The poster in your browser asks for the movie every second, so execution stops at the breakpoint right away, and you can inspect the request and the variables:
+Open the Go Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. The application starts. Add a breakpoint on line 42 of `main.go`, the first line of the `hello` function. The page in your browser asks the service for its info every second, so execution stops at the breakpoint right away, and you can inspect the request and the variables:
 
 <Image
   src={require("@site/static/img/golang-debug.png").default}
