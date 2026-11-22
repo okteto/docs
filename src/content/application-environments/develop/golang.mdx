@@ -63,10 +63,7 @@ COPY --from=dev /usr/local/bin/hello-world /usr/local/bin/hello-world
 CMD ["/usr/local/bin/hello-world"]
 ```
 
-- The `dev` stage is the development image. It has the Go toolchain, [Air](https://github.com/air-verse/air) for hot reload, [Delve](https://github.com/go-delve/delve) for debugging, and the source code.
-- The `prod` stage is the production image. It has only the binary that the `dev` stage built, on a small base image.
-
-The `Dockerfile` installs the tools before `COPY . .`, so a code change doesn't install them again.
+The `Dockerfile` installs the tools, [Air](https://github.com/air-verse/air) for hot reload and [Delve](https://github.com/go-delve/delve) for debugging, before `COPY . .`, so a code change doesn't install them again.
 
 Both `RUN` instructions mount the Go module cache (`/go/pkg/mod`) and the Go build cache (`/root/.cache/go-build`) as [cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts), which the Okteto Build Service keeps between builds. When a code change runs `go build` again, Go compiles only the packages that changed and doesn't download any module twice.
 
