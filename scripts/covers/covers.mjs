@@ -1073,7 +1073,7 @@ const covers = [
   {
     out: 'static/img/deploy-movies-app.webp',
     background: 'white',
-    alt: 'Movies app architecture',
+    alt: 'Sample App architecture',
     svg: () => {
       let out = circle(215, 289, 46, { color: C.teal }) + icon('user', 215, 289, 48, C.teal) + text('Developer', 215, 369, 26);
       out += moviesEnvironment(895, 110, 510, 450);
@@ -1092,7 +1092,7 @@ const covers = [
     background: 'white',
     width: 600,
     height: 790,
-    alt: 'Movies app architecture',
+    alt: 'Sample App architecture',
     svg: () => {
       let out = circle(300, 70, 46, { color: C.teal }) + icon('user', 300, 70, 48, C.teal) + text('Developer', 362, 80, 26, { anchor: 'start' });
       out += arrow(300, 122, 300, 190, { color: C.blue });
