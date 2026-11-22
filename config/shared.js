@@ -165,7 +165,7 @@ function footer(site, { llmsTxtUrl }) {
         title: 'Docs',
         items: [
           linkTo(site, 'docs', '/get-started/install', 'Installation Guide'),
-          linkTo(site, 'docs', '/get-started/deploy-your-app', 'Getting Started Guide'),
+          linkTo(site, 'docs', '/get-started/quickstart', 'Quickstart'),
           linkTo(site, 'docs', '/reference/okteto-manifest', 'Okteto Manifest'),
           linkTo(site, 'docs', '/reference/okteto-cli', 'Okteto CLI Reference'),
           linkTo(site, 'docs', '/release-notes', 'Release Notes'),
