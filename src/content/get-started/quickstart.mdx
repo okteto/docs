@@ -10,7 +10,7 @@ This quickstart takes a sample application and creates an [application environme
 
 An application environment is a running copy of an application in its own Namespace, with its services and its dependencies, such as a database. Every environment gets its own HTTPS URL, so you can open it in your browser.
 
-The Sample App is a small catalog of movies. It has four components:
+Kube Movies is a small catalog of movies. It has four components:
 
 - `frontend`: a React application, built with Vite, that shows the movies and your favorites.
 - `api`: a Node.js API that reads the movies from MongoDB and saves your favorites.
@@ -21,12 +21,12 @@ The Sample App is a small catalog of movies. It has four components:
   src={require("@site/static/img/deploy-movies-app.webp").default}
   mobileSrc={require("@site/static/img/deploy-movies-app-mobile.webp").default}
   borderless
-  alt="Sample App architecture"
+  alt="Kube Movies architecture"
 />
 
 ## Prerequisites
 
-First, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it for your Okteto instance. Then clone the Sample App and move into its folder. You run every command of this quickstart from there:
+First, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it for your Okteto instance. Then clone Kube Movies and move into its folder. You run every command of this quickstart from there:
 
 ```bash
 git clone https://github.com/okteto/getting-started
@@ -35,7 +35,7 @@ cd getting-started
 
 ## Okteto Manifest
 
-The [Okteto Manifest](reference/okteto-manifest.mdx) is the file that defines an application environment. It's an `okteto.yaml` file at the root of your repository, so every developer, pull request, and coding agent that works on the application creates its environment the same way. This is the Okteto Manifest of the Sample App:
+The [Okteto Manifest](reference/okteto-manifest.mdx) is the file that defines an application environment. It's an `okteto.yaml` file at the root of your repository, so every developer, pull request, and coding agent that works on the application creates its environment the same way. This is the Okteto Manifest of Kube Movies:
 
 ```yaml title="okteto.yaml"
 build:
@@ -108,7 +108,7 @@ That's why you don't need Docker, or access to a Docker daemon, to work with Okt
 
 Okteto keeps the reference of each image it builds in a [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) named `OKTETO_BUILD_<IMAGE>_IMAGE`, such as `OKTETO_BUILD_API_IMAGE`. That's how the next step knows which images to deploy.
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest is a list of commands, the same ones you'd run to deploy to any Kubernetes cluster, with Helm, `kubectl`, or the tool you already use. The Sample App needs only one. It installs the Helm chart of the `chart` folder, and passes it the two images:
+The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest is a list of commands, the same ones you'd run to deploy to any Kubernetes cluster, with Helm, `kubectl`, or the tool you already use. Kube Movies needs only one. It installs the Helm chart of the `chart` folder, and passes it the two images:
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -152,20 +152,20 @@ The last lines of the output are the URLs of your application. Okteto created an
 <Image
   src={require("@site/static/img/okteto-ui-movies.png").default}
   mobileSrc={require("@site/static/img/okteto-ui-movies-mobile.png").default}
-  alt="Okteto UI showing the cindy Namespace with the getting-started application environment deployed: the api, frontend, and mongodb Deployments running, the seed Job completed, and the two endpoints of the Sample App"
+  alt="Okteto UI showing the cindy Namespace with the getting-started application environment deployed: the api, frontend, and mongodb Deployments running, the seed Job completed, and the two endpoints of Kube Movies"
 />
 
-Open the URL in your browser and the Sample App is there. Click the star of a movie to add it to your favorites:
+Open the URL in your browser and Kube Movies is there. Click the star of a movie to add it to your favorites:
 
 <Image
   src={require("@site/static/img/next-ui-movies.png").default}
-  alt="The Sample App in a browser, with the favorites of Cindy and the rest of the movies, all of them with titles from the Kubernetes world"
+  alt="Kube Movies in a browser, with the favorites of Cindy and the rest of the movies, all of them with titles from the Kubernetes world"
   width="850"
 />
 
 ## Test
 
-Your application is running, so you can test it the way your users use it: against the real services, not against mocks. The `test` section of the Okteto Manifest defines the [tests](application-environments/okteto-test.mdx). The Sample App has one, `e2e`, a set of [Playwright](https://playwright.dev/) tests that open the application in a browser, compare the movies on the page with the ones stored in MongoDB, and move a movie to the favorites:
+Your application is running, so you can test it the way your users use it: against the real services, not against mocks. The `test` section of the Okteto Manifest defines the [automated tests](application-environments/okteto-test.mdx). Kube Movies uses [Playwright](https://playwright.dev/) to open the application in a browser, compare the movies on the page with the ones stored in MongoDB, and move a movie to the favorites:
 
 ```yaml title="okteto.yaml"
 test:
@@ -181,9 +181,7 @@ test:
       - playwright-report
 ```
 
-The test runs in the official Playwright image, in the same version of Playwright that `e2e/package.json` pins. Okteto sends it the `e2e` folder, its `context`, and runs its `commands`. If any command exits with a non-zero code, the test fails. The other two fields save you time: `caches` keeps the npm cache between runs, and `artifacts` copies the Playwright results and the HTML report to your machine when the test finishes.
-
-Like the deploy command, the test runs with Remote Execution, in a container inside your Namespace, where the application runs. From there it opens the public URLs of the application, which it builds from the `OKTETO_NAMESPACE` and `OKTETO_DOMAIN` variables, and it also talks to the private services, such as MongoDB at `mongodb.${OKTETO_NAMESPACE}`.
+The test runs in the official Playwright image, in the same version of Playwright that `e2e/package.json` pins. Like the deploy command, it runs with Remote Execution, in a container inside your Namespace, where the application runs.
 
 Run the tests with `okteto test`:
 
@@ -212,11 +210,17 @@ Running 7 tests using 1 worker
  ✓  Test container 'e2e' passed
 ```
 
-The tests passed, and the Playwright report is in the `e2e/playwright-report` folder on your machine.
+That's the loop for every round of changes:
+
+1. Run `okteto deploy` to update your application environment.
+1. Run `okteto test` to check it.
+1. Open its URLs to try the change yourself.
+
+The Okteto CLI is all you installed to get here. No Docker, no Node.js, no MongoDB, and no Playwright with its browsers: the builds, the deploy commands, and the tests all ran in your cluster.
 
 ## Destroy
 
-When you're done, clean up. [`okteto destroy`](application-environments/destroy.mdx) deletes the application environment: it uninstalls the Helm release of the Sample App from your Namespace.
+When you're done, clean up. [`okteto destroy`](application-environments/destroy.mdx) deletes the application environment: it uninstalls the Helm release of Kube Movies from your Namespace.
 
 ```bash
 okteto destroy
@@ -248,7 +252,7 @@ Upload only the files that each command needs: the context upload is key to perf
 
 No. Okteto supports two models, and you choose one for your application:
 
-- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of the Sample App. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](application-environments/deploy.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](application-environments/deploy.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
 - **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](application-environments/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them for an application with 20 services or more.
 
 ### How do I create a Preview Environment of my application for every pull request?
@@ -257,7 +261,7 @@ Add a workflow to your CI pipeline that deploys the application in a [Preview En
 
 ### How do I start each environment with realistic data?
 
-Load the data with a script in your `deploy` commands, as the `seed` job of the Sample App does, or copy the data of another application environment with a [Volume Snapshot](application-environments/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
+Load the data with a script in your `deploy` commands, as the `seed` job of Kube Movies does, or copy the data of another application environment with a [Volume Snapshot](application-environments/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
 
 ### How do I create resources outside Kubernetes, such as a cloud database?
 

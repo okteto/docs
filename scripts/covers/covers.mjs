@@ -1073,7 +1073,7 @@ const covers = [
   {
     out: 'static/img/deploy-movies-app.webp',
     background: 'white',
-    alt: 'Sample App architecture',
+    alt: 'Kube Movies architecture',
     svg: () => {
       // The rows of the environment, from its top edge: the two services, the
       // database, and the seed job that loads the data into it.
@@ -1097,7 +1097,7 @@ const covers = [
     background: 'white',
     width: 600,
     height: 910,
-    alt: 'Sample App architecture',
+    alt: 'Kube Movies architecture',
     svg: () => {
       let out = circle(300, 70, 46, { color: C.teal }) + icon('user', 300, 70, 48, C.teal) + text('Developer', 362, 80, 26, { anchor: 'start' });
       out += arrow(300, 122, 300, 190, { color: C.blue });
