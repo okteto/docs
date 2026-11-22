@@ -166,6 +166,8 @@ yarn develop:blog         # blog dev server: http://localhost:8081/blog/
 yarn build                # production build of the three sites, used to catch broken links
 ```
 
+The dev server (`yarn start`) includes only the unreleased version (`src/content`) and the official one, so it starts faster. `yarn build` always builds every version. To see every version in the dev server, for example after changing an archived one, run `DOCS_ALL_VERSIONS=true yarn start`.
+
 ### Commits
 
 Per `CONTRIBUTING.md`, commits must be signed off (`git commit -s`). Do not skip this: it's a DCO requirement.

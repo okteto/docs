@@ -20,6 +20,8 @@ yarn develop:tutorials    # tutorials: http://localhost:8082/tutorials/
 yarn develop:blog         # blog: http://localhost:8081/blog/
 ```
 
+The dev server (`yarn start`) includes only the unreleased version (`src/content`) and the official one, so it starts faster. `yarn build` always builds every version. To see every version in the dev server, for example after changing an archived one, run `DOCS_ALL_VERSIONS=true yarn start`.
+
 However, it is possible to build the website locally using okteto itself without any need to install required dependencies and specific version of build tool.
 
 ### 💻 Develop locally (using Okteto)
