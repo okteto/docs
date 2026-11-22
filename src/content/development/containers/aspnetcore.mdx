@@ -1,61 +1,30 @@
 ---
-title: Getting Started with Okteto and ASP.NET
-description: Build, deploy, test, develop, and debug an ASP.NET Core application with Okteto.
+title: Okteto with ASP.NET
+description: Build, deploy, test, and develop an ASP.NET application with Okteto, with the optimizations for ASP.NET, hot reload, and a debugger connected to VS Code.
 sidebar_label: ASP.NET
-id: aspnetcore
 ---
 
 import Image from "@theme/Image";
 
-Okteto runs your ASP.NET Core application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [ASP.NET Core Sample App](https://github.com/okteto/aspnetcore-getting-started), a hello world web API, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](agentic/index.mdx).
+This guide takes the [ASP.NET Core Sample App](https://github.com/okteto/aspnetcore-getting-started) through the whole Okteto workflow, in an [application environment](core/application-environments.mdx) in your Kubernetes cluster. The ASP.NET Core Sample App is a hello world service. Its page shows a message, the .NET version, and the pod that serves it.
+
+The sample is small, but its configuration is optimized, so you can use it as a reference for your own ASP.NET application. Along the way, the guide points out what makes each step fast in an ASP.NET project: the cache mount that the build and the tests share, the ignore files that keep every upload small (`.dockerignore`, `.oktetoignore`, and `.stignore`), and `dotnet watch` and `vsdbg` for hot reload and debugging from VS Code.
 
 ## Prerequisites
 
 - The Okteto CLI, installed and configured to access your Okteto instance. See the [installation guide](get-started/install-okteto-cli.mdx).
 - To debug the application: [VS Code](https://code.visualstudio.com/) with the [C# extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp), and an `ssh` client on your machine.
 
-Clone the ASP.NET Core Sample App:
+Clone the ASP.NET Core Sample App and move into its folder. Every command in this guide runs from there:
 
 ```bash
 git clone https://github.com/okteto/aspnetcore-getting-started
 cd aspnetcore-getting-started
 ```
 
-## The Dockerfile
+## Build
 
-The `Dockerfile` of the ASP.NET Core Sample App defines two images, one per stage:
-
-```dockerfile title="Dockerfile"
-FROM mcr.microsoft.com/dotnet/sdk:10.0.404-noble AS dev
-
-RUN curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v 18.7.10521.2 -l /usr/local/bin/vsdbg
-
-WORKDIR /usr/src/app
-COPY helloworld.csproj .
-RUN dotnet restore
-COPY . .
-RUN dotnet build && \
-    dotnet publish -c Release -o /app
-
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.15-noble-chiseled AS prod
-
-WORKDIR /app
-COPY --from=dev /app .
-ENTRYPOINT ["dotnet", "helloworld.dll"]
-```
-
-- `dev` is the development image. It contains the .NET SDK, which includes [`dotnet watch`](https://learn.microsoft.com/aspnet/core/test/hot-reload) for hot reload, [`vsdbg`](https://github.com/dotnet/vscode-csharp/wiki/Attaching-to-remote-processes) for debugging, and the source code. `dotnet build` fills the `bin` and `obj` folders of the image, so the first build of `dotnet watch` in the Development Container is incremental. `dotnet publish` writes the application to `/app`.
-- `prod` is the application image. It contains only the ASP.NET Core runtime and the application published in the `dev` stage. [Chiseled images](https://learn.microsoft.com/dotnet/core/docker/container-images) have no shell or package manager, and run as a non-root user.
-
-The `dev` stage follows the recommendations for [development images](development/images.mdx): every version is pinned, and the stage that builds the application doubles as the development image.
-
-## The Okteto Manifest
-
-The `okteto.yml` file is the [Okteto Manifest](reference/okteto-manifest.mdx) of the ASP.NET Core Sample App.
-
-### Build
-
-The [build](reference/okteto-manifest.mdx#build-object-optional) section builds both images:
+The ASP.NET Core Sample App uses two container images. `dev` is the image you develop in: it has the .NET SDK and the tools to test, reload, and debug the application. `hello-world` is the production image: a small image with nothing but the ASP.NET Core runtime and the published application. The [build](reference/okteto-manifest.mdx#build-object-optional) section of the `okteto.yml` file defines both:
 
 ```yaml title="okteto.yml"
 build:
@@ -69,60 +38,109 @@ build:
       - dev
 ```
 
-`target` selects a stage of the `Dockerfile`. `depends_on` makes Okteto build the `dev` image first, so `hello-world` reuses its cached layers. Okteto pushes both images to the [Okteto Registry](core/container-registry.mdx) and stores their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+Both images come from the same `Dockerfile`. `target` picks the stage each image builds, and `depends_on` tells Okteto to build `dev` first, so `hello-world` reuses its cached layers:
 
-### Deploy
+```dockerfile title="Dockerfile"
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404-noble AS dev
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section installs the Helm chart in the `chart` folder, with the application image that Okteto built:
+RUN curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v 18.7.10521.2 -l /usr/local/bin/vsdbg
+
+WORKDIR /usr/src/app
+COPY helloworld.csproj .
+# The cache mounts keep the NuGet packages folder in the Okteto Build
+# Service, which reuses it between builds. The tests of the Okteto Manifest
+# use the same cache
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore
+COPY . .
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet build && \
+    dotnet publish -c Release -o /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15-noble-chiseled AS prod
+
+WORKDIR /app
+COPY --from=dev /app .
+ENTRYPOINT ["dotnet", "helloworld.dll"]
+```
+
+The `Dockerfile` installs [`vsdbg`](https://github.com/dotnet/vscode-csharp/wiki/Attaching-to-remote-processes), the debugger, and restores the project's packages before `COPY . .`, so a code change doesn't run those steps again. Hot reload needs no extra tool: [`dotnet watch`](https://learn.microsoft.com/aspnet/core/test/hot-reload) is part of the .NET SDK.
+
+The two `RUN` instructions that restore and compile the application mount the NuGet packages folder (`/root/.nuget/packages`) as a [cache mount](https://docs.docker.com/build/cache/optimize/#use-cache-mounts), which the Okteto Build Service keeps between builds. When a change to `helloworld.csproj` runs `dotnet restore` again, NuGet doesn't download any package twice.
+
+The build context makes the biggest difference, here and in any application. Every `okteto build` starts by uploading the `Dockerfile`'s folder to the Okteto Build Service, and the `.dockerignore` file decides what goes in. The ASP.NET Core Sample App's `.dockerignore` excludes everything and then allows only what `dotnet restore` and `dotnet publish` read: the project file, the C# files, the settings files, and the `wwwroot` folder with the page. Its last three lines leave out the build output and the tests, which are a project of their own.
+
+```text title=".dockerignore"
+*
+!*.csproj
+!**/*.cs
+!appsettings*.json
+!wwwroot
+**/bin/**
+**/obj/**
+tests/**
+```
+
+The upload stays small, and a change to any other file, such as the README or `k8s.yml`, doesn't rebuild the images.
+
+## Deploy
+
+`okteto deploy` first builds the images that aren't built yet. Okteto pushes them to the [Okteto Registry](core/container-registry.mdx) and stores their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+The ASP.NET Core Sample App deploys with a plain Kubernetes manifest. Its [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section has a single command, which applies `k8s.yml` with `kubectl`:
 
 ```yaml title="okteto.yml"
 deploy:
-  image: alpine/helm:4.3.2
-  commands:
-    - helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}
+  - envsubst < k8s.yml | kubectl apply -f -
 ```
 
-The command runs with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm on your machine.
+In `k8s.yml`, the Deployment's image is the `OKTETO_BUILD_HELLO_WORLD_IMAGE` variable. `envsubst` replaces it with the image Okteto built, and then `kubectl` applies the file.
 
-## Deploying the ASP.NET Core Sample App
+The deploy has its own ignore file. `okteto deploy` uploads your folder to the container that runs the command, and the `.oktetoignore` file decides what goes in. Its `deploy` section excludes everything except `k8s.yml`, the only file the command reads, so there's almost nothing to upload. Its `destroy` section does the same for `okteto destroy`:
 
-Run `okteto deploy` from the root folder of the ASP.NET Core Sample App:
+```text title=".oktetoignore"
+[deploy]
+*
+!k8s.yml
+
+[destroy]
+*
+!k8s.yml
+```
+
+To deploy the application, run `okteto deploy`:
 
 ```bash
 okteto deploy
 ```
 
-Okteto builds the `dev` and `hello-world` images, runs the deploy command, and prints the endpoint of the application:
+Okteto builds the two images, runs the deploy command, and prints the application's endpoint:
 
 ```console
  i  Using cindy @ okteto.example.com as context
  ✓  Image 'registry.okteto.example.com/cindy/aspnetcore-getting-started-dev:okteto' successfully pushed
  ✓  Image 'registry.okteto.example.com/cindy/aspnetcore-getting-started-hello-world:okteto' successfully pushed
- i  Running stage 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'
-Executing command 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'...
-Release "hello-world" does not exist. Installing it now.
-NAME: hello-world
-NAMESPACE: cindy
-STATUS: deployed
-REVISION: 1
+ i  Running stage 'envsubst < k8s.yml | kubectl apply -f -'
+Executing command 'envsubst < k8s.yml | kubectl apply -f -'...
+deployment.apps/hello-world created
+service/hello-world created
+Command 'envsubst < k8s.yml | kubectl apply -f -' successfully executed
  i  Endpoints available:
   - https://hello-world-cindy.okteto.example.com
  ✓  Development environment 'aspnetcore-getting-started' successfully deployed
 ```
 
-Open the endpoint in your browser to see the `Hello world!` response. The Okteto UI shows the same endpoint:
+Open the endpoint in your browser. The page shows the application's message, the .NET version it runs on, and the pod that served the request:
 
 <Image
-  src={require("@site/static/img/okteto-ui-aspnetcore.png").default}
-  mobileSrc={require("@site/static/img/okteto-ui-aspnetcore-mobile.png").default}
-  alt="Okteto UI showing the cindy Namespace with the aspnetcore-getting-started Dev Environment deployed, its hello-world Deployment running, and its endpoint"
+  src={require("@site/static/img/hello-world-aspnetcore.png").default}
+  alt="The page of the ASP.NET Core Sample App: Hello World, the Okteto logo, the message Built, deployed, and tested on Kubernetes, the .NET 10.0.15 runtime, and the name of the hello-world pod"
+  width="500"
 />
 
-Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the [Ingress](core/endpoints/ingress.mdx) in the Helm chart. If your application uses the Gateway API, it does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx).
+## Test
 
-## Testing the ASP.NET Core Sample App
-
-The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the [xUnit](https://xunit.net/) tests of the `tests` folder:
+The ASP.NET Core Sample App has [xUnit](https://xunit.net/) unit tests in the `tests` folder. The `test` section of the Okteto Manifest defines a [test](reference/okteto-manifest.mdx#test-object-optional), `unit`, that runs them:
 
 ```yaml title="okteto.yml"
 test:
@@ -136,24 +154,27 @@ test:
       - test-results.trx
 ```
 
-- `image`: the development image, so the tests run with the same .NET SDK as the Development Container.
-- `caches`: the NuGet packages folder, kept between runs of the Test Container.
-- `commands`: the commands that run the tests. `dotnet test` builds the `tests` project, runs its tests, and writes the results to `test-results.trx`. The Test Container fails if any of them exits with a non-zero code.
-- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the test results.
+The test runs with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster. The container starts from the development image, so it has the same .NET SDK as the Development Container. If any of the `commands` exits with a non-zero code, the test fails. When the test finishes, Okteto copies its `artifacts`, here the test results, to your machine.
 
-xUnit v3 runs on [Microsoft.Testing.Platform](https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro), and the `global.json` file tells `dotnet test` to use it:
+`dotnet test` builds the `tests` project and runs its tests on [Microsoft.Testing.Platform](https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro), the test runner that the `global.json` file selects.
 
-```json title="global.json"
-{
-  "test": {
-    "runner": "Microsoft.Testing.Platform"
-  }
-}
+The [`caches`](reference/okteto-manifest.mdx#caches-string-optional) entry is the same folder that the `Dockerfile` mounts, and it's the same cache too: Okteto identifies a cache by its repository, context, and path, and the test and the build share all three. So `dotnet test` starts with the packages that the build and the earlier test runs downloaded, and downloads only the ones that are missing.
+
+The tests have their own section in the `.oktetoignore` file, so `okteto test` uploads only what `dotnet test` reads:
+
+```text title=".oktetoignore"
+[test]
+*
+!**/*.csproj
+!**/*.cs
+!global.json
+!appsettings*.json
+!wwwroot
+**/bin/**
+**/obj/**
 ```
 
-Test Containers run with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster.
-
-Run the unit tests from the root folder of the ASP.NET Core Sample App:
+Run the unit tests with `okteto test`:
 
 ```bash
 okteto test
@@ -165,32 +186,32 @@ okteto test
  i  Executing test container 'unit'
  i  Running 'dotnet test --project tests --report-xunit-trx --report-xunit-trx-filename test-results.trx --results-directory .'
 Running tests from /okteto/src/tests/bin/Debug/net10.0/helloworld.Tests.dll (net10.0|x64)
-/okteto/src/tests/bin/Debug/net10.0/helloworld.Tests.dll (net10.0|x64) passed (731ms)
+/okteto/src/tests/bin/Debug/net10.0/helloworld.Tests.dll (net10.0|x64) passed (1s 015ms)
   In process file artifacts produced:
     - /okteto/src/test-results.trx
 Test run summary: Passed!
-  total: 1
+  total: 2
   failed: 0
-  succeeded: 1
+  succeeded: 2
   skipped: 0
-  duration: 973ms
+  duration: 1s 243ms
  ✓  Command 'dotnet test --project tests --report-xunit-trx --report-xunit-trx-filename test-results.trx --results-directory .' successfully executed
  ✓  Test container 'unit' passed
 ```
 
 The test results are now in `test-results.trx`, in the root folder of the ASP.NET Core Sample App on your machine. TRX is the test results format of Visual Studio and Azure Pipelines.
 
-Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](agentic/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when a coding agent writes and tests the code on its own. With the [Okteto skills](agentic/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the application's endpoints, and a link to that Namespace.
 
-## Developing in a Development Container
+## Develop
 
-If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+A [Development Container](development/containers/index.mdx) feels like developing on your machine: every change you save reloads the application, and you can attach a debugger. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the development image's hot reload and debugging tools in your cluster. This step is optional: coding agents work well with the `okteto deploy` and `okteto test` loop and don't need a Development Container.
 
-While `okteto up` is running, an AI agent with the [Okteto agent skills](agentic/index.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
+While `okteto up` is running, a coding agent with the [Okteto skills](agentic/index.mdx) stops building, deploying, and testing, and only edits the code: File Sync copies each change to the Development Container, and hot reload applies it to the running application.
 
-### Configuration
+### The dev Section
 
-The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the `okteto.yml` file defines the Development Container of the ASP.NET Core Sample App:
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the Okteto Manifest defines the ASP.NET Core Sample App's Development Container:
 
 ```yaml title="okteto.yml"
 dev:
@@ -207,15 +228,29 @@ dev:
           - SYS_PTRACE
 ```
 
-The `hello-world` key matches the name of the Deployment in the Helm chart. These are the fields of the Development Container:
+The `hello-world` key is the name of the Deployment in `k8s.yml` that the Development Container replaces. This is what each field does:
 
-- `image`: the development image built in the `build` section.
-- `command`: starts `dotnet watch`, which builds and runs the application. When a `.cs` file changes, `dotnet watch` applies the change to the running application with hot reload, or rebuilds and restarts the application if hot reload can't apply it.
-- `sync`: synchronizes the root folder of the ASP.NET Core Sample App with `/usr/src/app`, the working directory of the development image.
-- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the NuGet packages and the build output come from the development image, so there's no volume to create and attach. In projects with many dependencies, enable it and add `/root/.nuget/packages` to [volumes](reference/okteto-manifest.mdx#volumes-string-optional) to keep the NuGet cache between `okteto up` sessions.
-- `securityContext`: adds the `SYS_PTRACE` capability that `vsdbg` needs to attach to the application.
+- `image`: the development image from the `build` section.
+- `command`: starts `dotnet watch`, which builds and runs the application. Every time a `.cs` file changes, `dotnet watch` applies the change to the running application with hot reload, without restarting it. If hot reload can't apply a change, `dotnet watch` asks you whether to restart the application.
+- `sync`: synchronizes the ASP.NET Core Sample App's root folder with `/usr/src/app`, the development image's working directory.
+- `persistentVolume`: disables the Development Container's persistent volume, so there's no volume to create and attach. Okteto synchronizes every file on each `okteto up`, and `dotnet watch` builds the application when it starts. The NuGet packages folder isn't part of the development image, because it's a cache mount of the build, so a project with NuGet packages downloads them again on every `okteto up`. The ASP.NET Core Sample App has none. For a larger project, keep the Development Container's NuGet packages folder in a persistent volume. [Caches in Development Containers](/tutorials/optimize-your-application-environment/#caches-in-development-containers) explains how.
+- `securityContext`: adds the `SYS_PTRACE` capability, which `vsdbg` needs to attach to the application.
 
-### Hot reload
+The third ignore file is `.stignore`, for File Sync. `okteto up` synchronizes your folder with the Development Container in both directions, and this file leaves out what shouldn't travel. That's the Git metadata, which is large and only matters on your machine, and the build output and the test reports that `dotnet` generates inside the Development Container, which would otherwise come back to your machine:
+
+```text title=".stignore"
+.git
+/bin
+/obj
+/tests/bin
+/tests/obj
+*.trx
+.vscode
+.idea
+.DS_Store
+```
+
+### Hot Reload
 
 Run `okteto up` to replace the `hello-world` Deployment with the Development Container:
 
@@ -244,31 +279,26 @@ info: Microsoft.Hosting.Lifetime[0]
       Application started. Press Ctrl+C to shut down.
 ```
 
-Open `Controllers/HelloWorldController.cs` in your IDE, change the response message on line 12 to `Hello world from Okteto!`, and save the file:
+Now change the code. Open `Controllers/HelloWorldController.cs` in your IDE, edit the message on line 11, and save the file:
 
 ```csharp title="Controllers/HelloWorldController.cs"
-    [HttpGet]
-    public string Get()
-    {
-        var message = "Hello world from Okteto!";
-        return message;
-    }
+    public static string Message => "Built, deployed, and tested on Okteto.";
 ```
 
-Okteto synchronizes `HelloWorldController.cs` to the Development Container, and `dotnet watch` applies the change to the running application without restarting it:
+Okteto synchronizes `HelloWorldController.cs` to the Development Container. `dotnet watch` notices the change and applies it to the running application, without restarting it:
 
 ```console
 dotnet watch ⌚ File updated: ./Controllers/HelloWorldController.cs
-dotnet watch 🔥 C# and Razor changes applied in 731ms.
+dotnet watch 🔥 C# and Razor changes applied in 927ms.
 ```
 
-Reload the endpoint in your browser to see the new message. The change runs in your cluster without building an image or redeploying the application.
+A moment later, the page in your browser shows the new message. You don't even have to reload it, because the page asks the service for its info every second. Your change is running in your cluster, and you didn't build an image or redeploy the application.
 
-Press `Ctrl+C` to stop `dotnet watch` and exit `okteto up`.
+When you're done, press `Ctrl+C` to stop `dotnet watch` and exit `okteto up`.
 
 ### Debugging with VS Code
 
-`vsdbg` attaches to the application that `dotnet watch` runs, so keep `okteto up` running. VS Code starts `vsdbg` in the Development Container over SSH: `okteto up` adds the `hello-world.okteto` host to your SSH configuration, and the `.vscode/launch.json` file of the ASP.NET Core Sample App runs `vsdbg` through it:
+To debug the application, keep `okteto up` running, or run it again if you stopped it: `vsdbg` attaches to the application that `dotnet watch` runs. VS Code starts `vsdbg` in the Development Container over SSH. `okteto up` adds the `hello-world.okteto` host to your SSH configuration, and the ASP.NET Core Sample App's `.vscode/launch.json` file tells VS Code to run `vsdbg` through it:
 
 ```json title=".vscode/launch.json"
 {
@@ -294,48 +324,68 @@ Press `Ctrl+C` to stop `dotnet watch` and exit `okteto up`.
 }
 ```
 
-`sourceFileMap` maps `/usr/src/app`, the path in the `sync` field of the Okteto Manifest, to the folder that you open in VS Code. If you synchronize your code to another path, change `sourceFileMap` to match it. `vsdbg` only works with the Microsoft builds of VS Code and Visual Studio.
+`sourceFileMap` maps the path of the code in the Development Container, the same one as in the `sync` field of the Okteto Manifest, to the folder you open in VS Code. If you synchronize your code to another path, change `sourceFileMap` to match. `vsdbg` only works with the Microsoft builds of VS Code and Visual Studio.
 
-Open the ASP.NET Core Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. VS Code lists the processes of the Development Container: select `helloworld`, the process of `/usr/src/app/bin/Debug/net10.0/helloworld`. Add a breakpoint on line 12 of `Controllers/HelloWorldController.cs` and reload the endpoint in your browser. Execution stops at the breakpoint, and you can inspect the request and the variables.
+Open the ASP.NET Core Sample App in VS Code, go to the **Run and Debug** view, and run the **Connect to okteto** configuration. VS Code lists the processes of the Development Container: select `helloworld`, the process of `/usr/src/app/bin/Debug/net10.0/helloworld`. Now add a breakpoint on line 17 of `Controllers/HelloWorldController.cs`, the first line of the `Get` method. The page in your browser asks the service for its info every second, so execution stops at the breakpoint right away, and you can inspect the request and the variables.
 
 To end the debugging session, click **Disconnect** in the debug toolbar. `vsdbg` detaches, and the application keeps running with `dotnet watch`.
 
-## Cleaning up
+### Stopping the Development Container
 
-`okteto down` stops the Development Container and brings back the `hello-world` Deployment with the application image:
+When you finish developing, run `okteto down`. It stops the Development Container and brings back the `hello-world` Deployment with the production image:
 
 ```bash
 okteto down
 ```
 
-When you're done, `okteto destroy` uninstalls the Helm release of the ASP.NET Core Sample App from your Namespace:
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Development container 'hello-world' deactivated
+```
+
+## Destroy
+
+To delete the application, run [`okteto destroy`](reference/okteto-cli.mdx#destroy). It removes the ASP.NET Core Sample App's Deployment and Service from your Namespace:
 
 ```bash
 okteto destroy
 ```
 
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ ✓  Development environment 'aspnetcore-getting-started' successfully destroyed
+```
+
 ## FAQ
+
+### How do I set up my own repository the same way?
+
+Use a coding agent with the [Okteto skills](agentic/index.mdx). Ask it to set up your repository for Okteto: it discovers your services, writes the Okteto Manifest, and validates it with `okteto build` and `okteto deploy`.
 
 ### How do I make builds, deploys, and `okteto up` faster?
 
-Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](agentic/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
-
-### How do I deploy an application with several services and a database?
-
-Follow the [quickstart](get-started/quickstart.mdx) if you deploy with a Helm chart, or [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) if you use Docker Compose. If your services live in several repositories, see [Deploy a multi-repo application with dependencies](/tutorials/dependencies/).
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](agentic/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
 
 ### Do I need to deploy the whole application in every Namespace?
 
-No. [Divert](development/divert/index.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
+No. Okteto supports two models, and you choose one for your application:
+
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in the [quickstart](get-started/quickstart.mdx), where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](reference/okteto-manifest.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
+- **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](development/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them for an application with 20 services or more.
+
+### How do I create a Preview Environment of my application for every pull request?
+
+Add a workflow to your CI pipeline that deploys the application in a [Preview Environment](previews/index.mdx) when a pull request opens or changes, runs `okteto test` against it, and destroys it when the pull request closes. The workflow uses the Okteto Manifest, so `okteto build`, `okteto deploy`, and `okteto test` work the same way in your CI pipeline, for coding agents, and on developer machines. Follow the guide for [GitHub Actions](previews/using-github-actions.mdx) or for [GitLab CI/CD](previews/using-gitlab-cicd.mdx).
 
 ### How do I start each environment with realistic data?
 
-Create its database from a [Volume Snapshot](core/use-volume-snapshots.mdx) instead of running a seed script on every deploy. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
+Load the data with a script in your `deploy` commands, or copy the data of another application environment with a [Volume Snapshot](core/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
 
 ### How do I create resources outside Kubernetes, such as a cloud database?
 
-Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own cloud resources. [Create cloud infrastructure with Terraform](/tutorials/cloud-infrastructure/) shows how, with an Amazon S3 bucket for each environment.
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own resources. See the [Create Cloud Infrastructure with Terraform](/tutorials/cloud-infrastructure/) tutorial, which creates an Amazon S3 bucket for each environment.
 
-### Where can I find every field of the Okteto Manifest?
+### Can I access my application environment with `kubectl`?
 
-The [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every field of `build`, `deploy`, `destroy`, `test`, and `dev`.
+Yes. Run `okteto kubeconfig` to add the credentials of your Okteto Namespaces to your kubeconfig file, and use `kubectl` as usual: `kubectl get pods`, `kubectl logs`, or `kubectl describe`. See [Kubernetes Credentials](core/credentials/kubernetes-credentials.mdx) for how Okteto generates those credentials.
