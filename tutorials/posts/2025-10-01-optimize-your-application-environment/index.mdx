@@ -70,51 +70,24 @@ COPY --from=build --chown=user:group /app/dist /app/dist
 
 ### Cache Mounts
 
-BuildKit [cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts) keep dependency and compiler caches between builds, so a build reuses the packages and artifacts it already downloaded or compiled. Common caches are the npm or Yarn cache for Node.js, `.m2` for Maven, and `.cache/go-build` for Go.
+BuildKit [cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts) keep dependency and compiler caches between builds, so a build reuses the packages and artifacts it already downloaded or compiled. Common caches are the npm or Yarn cache for Node.js, `.m2` for Maven, and the module and build caches for Go:
 
 ```docker
-FROM golang:1.24
+FROM golang:1.26
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-COPY main.go main.go
-RUN --mount=type=cache,sharing=private,target=/root/.cache/go-build \
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -o /usr/src/api
 ```
 
-### Caches in the Image or in Cache Mounts
-
-A dependency cache or a compiler cache can live in two places, and the choice affects more than the build.
-
-**In the image.** Without a cache mount, what a `RUN` instruction downloads or compiles stays in a layer of the image. The build reuses that layer while the instructions before it don't change, so install the dependencies before you copy the code. The image then has everything ready for whatever starts from it: a test that runs in that image compiles only what changed, with no `caches` in its `test` section, and a Development Container that uses it starts with a warm cache, with no volume.
-
-**In a cache mount.** With a cache mount, the cache stays in BuildKit, outside the image. A build that finds the cache compiles only what changed, even when the layer has to run again, so it can be faster. A cache mount belongs to the BuildKit instance that ran the build, so a build that lands on another instance doesn't find it. And the image doesn't have the cache, so neither do the containers that start from it: add the same folders to the [`caches`](/docs/reference/okteto-manifest/#caches-string-optional) of your tests and to the [`volumes`](/docs/reference/okteto-manifest/#volumes-string-optional) of your Development Container, or each of them starts cold.
-
-```yaml title="okteto.yaml"
-test:
-  unit:
-    image: ${OKTETO_BUILD_API_DEV_IMAGE}
-    caches:
-      - /go/pkg/mod
-      - /root/.cache/go-build
-    commands:
-      - go test ./...
-
-dev:
-  api:
-    image: ${OKTETO_BUILD_API_DEV_IMAGE}
-    command: air
-    sync:
-      - .:/usr/src/app
-    volumes:
-      - /go/pkg/mod
-      - /root/.cache/go-build
-```
-
-Start with the caches in the image: one mechanism serves the build, the tests, and the Development Container. Move a cache to a cache mount when compiling your own code on every build takes too long, as in a large Rust or Java project, and add the caches of the tests and the volumes of the Development Container with it. A cache mount is always a good fit for a cache that nothing needs after the build, such as the download cache of a package manager (`/root/.npm` or `/root/.cache/pip`).
+A cache mount stays in the Build Service: it isn't part of the image. Your tests reuse it when they declare the same folders as [caches](#caches-in-tests). A Development Container doesn't have it, so it needs [a cache of its own](#caches-in-development-containers).
 
 ### Build Context
 
@@ -172,6 +145,19 @@ test:
       - npm test
 ```
 
+A test shares its caches with the builds of the same repository. Okteto identifies a cache by the repository, the context, and the path, so a cache of a test is the same cache as a cache mount of a `Dockerfile` when both have the same path and the same context. With the two cache mounts of the Go image, this test starts with the modules that the build downloaded and the packages it compiled:
+
+```yaml title="okteto.yaml"
+test:
+  unit:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    caches:
+      - /go/pkg/mod
+      - /root/.cache/go-build
+    commands:
+      - go test ./...
+```
+
 ## Fast File Sync
 
 `okteto up` synchronizes your local folder with the Development Container in both directions with [File Sync](/docs/reference/file-synchronization/). The first sync of each `okteto up` transfers every file that isn't ignored, and every later change on either side is synchronized again. A `.stignore` file in the synchronized folder lists the files that File Sync skips:
@@ -200,6 +186,34 @@ Ignore three kinds of files:
 - Files that the application, the compiler, the tests, or the debugger generate in the container: they don't need to come back to your machine.
 
 With fewer files to synchronize, `okteto up` starts sooner and keeps up with your changes. [Ignoring files](/docs/reference/file-synchronization/#ignoring-files) describes the syntax.
+
+## Caches in Development Containers
+
+A Development Container starts from its image, and a cache mount isn't part of the image. The dependencies and the compiler output that your build keeps in cache mounts aren't in the container, so the first compilation of every `okteto up` starts from scratch. That takes a few seconds in a small application. In a large one, give the Development Container a cache of its own, in one of two ways.
+
+### Persistent Volume
+
+`okteto up` creates a [persistent volume](/docs/reference/okteto-manifest/#persistentvolume-object-optional) for the Development Container, where it keeps the synchronized files between sessions. List your cache folders in [`volumes`](/docs/reference/okteto-manifest/#volumes-string-optional), and it keeps them too:
+
+```yaml title="okteto.yaml"
+dev:
+  api:
+    image: ${OKTETO_BUILD_API_DEV_IMAGE}
+    command: air
+    sync:
+      - .:/usr/src/app
+    volumes:
+      - /go/pkg/mod
+      - /root/.cache/go-build
+```
+
+The volume belongs to one Development Container in one Namespace. The first `okteto up` fills the cache, and every later one starts warm. It needs nothing besides the storage of your cluster, so start with it.
+
+### Distributed Caches
+
+A distributed cache stores the compiler output in a service that every container reaches over the network: [sccache](https://github.com/mozilla/sccache) for Rust and C++, the [Gradle build cache](https://docs.gradle.org/current/userguide/build_cache.html), [Bazel remote caching](https://bazel.build/remote/caching), or a [`GOCACHEPROG`](https://pkg.go.dev/cmd/go/internal/cacheprog) program for Go. Every Development Container reads from it and writes to it, so even the first `okteto up` in a new Namespace starts warm, with what your teammates, your pull requests, and your coding agents already compiled. Your builds and your tests can use the same cache.
+
+A distributed cache is one more service to run, and every container needs access to it. It pays off when compilations are long and Namespaces are short-lived, as when coding agents create a Namespace for each task. Set it up in the development image, and point the tool to the cache with the [`environment`](/docs/reference/okteto-manifest/#environment-string-optional) of the Development Container.
 
 ## Smaller Environments with Shared Services
 

@@ -6,7 +6,7 @@ sidebar_label: Go
 
 import Image from "@theme/Image";
 
-This guide takes the [Go Sample App](https://github.com/okteto/go-getting-started) through the whole Okteto workflow, in an [application environment](application-environments/index.mdx) in your Kubernetes cluster: you build it, deploy it, test it, and develop it with hot reload and a debugger. The Go Sample App is a hello world service whose page shows a message, the Go version, and the pod that serves it. Along the way, the guide points out the choices that make each step fast in a Go project: how the development image is built, the ignore files that keep every upload small (`.dockerignore`, `.oktetoignore`, and `.stignore`), and how Air and Delve give you hot reload and debugging from VS Code. The sample is small, but its configuration is optimized, so you can use it as a reference to configure your own Go application with Okteto.
+This guide takes the [Go Sample App](https://github.com/okteto/go-getting-started) through the whole Okteto workflow, in an [application environment](application-environments/index.mdx) in your Kubernetes cluster: you build it, deploy it, test it, and develop it with hot reload and a debugger. The Go Sample App is a hello world service whose page shows a message, the Go version, and the pod that serves it. Along the way, the guide points out the choices that make each step fast in a Go project: the cache mounts that the build and the tests share, the ignore files that keep every upload small (`.dockerignore`, `.oktetoignore`, and `.stignore`), and how Air and Delve give you hot reload and debugging from VS Code. The sample is small, but its configuration is optimized, so you can use it as a reference to configure your own Go application with Okteto.
 
 ## Prerequisites
 
@@ -41,12 +41,19 @@ Both images come from the same `Dockerfile`. `target` picks the stage that each 
 ```dockerfile title="Dockerfile"
 FROM golang:1.26.5-trixie AS dev
 
-RUN GOBIN=/usr/local/bin go install github.com/air-verse/air@v1.67.4 && \
+# The cache mounts keep the Go module cache and the Go build cache in the
+# Okteto Build Service, which reuses them between builds. The tests of the
+# Okteto Manifest use the same two caches
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOBIN=/usr/local/bin go install github.com/air-verse/air@v1.67.4 && \
     GOBIN=/usr/local/bin go install github.com/go-delve/delve/cmd/dlv@v1.27.1
 
 WORKDIR /usr/src/app
 COPY . .
-RUN go build -o /usr/local/bin/hello-world
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -o /usr/local/bin/hello-world
 
 FROM debian:trixie-slim AS prod
 
@@ -59,6 +66,8 @@ CMD ["/usr/local/bin/hello-world"]
 
 The tools are installed before `COPY . .`, so a change in the code doesn't install them again.
 
+Both `RUN` instructions mount the Go module cache (`/go/pkg/mod`) and the Go build cache (`/root/.cache/go-build`) as [cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts). The Okteto Build Service keeps them between builds. When a change in the code runs `go build` again, Go compiles only the packages that changed, and it doesn't download a module twice.
+
 What makes the biggest difference, in this and in any application, is the build context. Every `okteto build` starts by uploading the folder of the `Dockerfile` to the Okteto Build Service, and the `.dockerignore` file decides what goes in it. The one of the Go Sample App excludes everything, and then allows only what `go build` reads: the Go files, `go.mod`, and the `static` folder with the page.
 
 ```text title=".dockerignore"
@@ -70,8 +79,6 @@ What makes the biggest difference, in this and in any application, is the build 
 ```
 
 With this file, the upload is small, and a change to any other file, such as the README or `k8s.yml`, doesn't rebuild the images.
-
-The `Dockerfile` doesn't use cache mounts, so the Go build cache stays in the development image, and the tests and the Development Container start from it. [Caches in the Image or in Cache Mounts](/tutorials/optimize-your-application-environment/#caches-in-the-image-or-in-cache-mounts) explains when each option is the better one.
 
 ## Deploy
 
@@ -136,13 +143,18 @@ The Go Sample App has unit tests in `main_test.go`, and the `test` section of th
 test:
   unit:
     image: ${OKTETO_BUILD_DEV_IMAGE}
+    caches:
+      - /go/pkg/mod
+      - /root/.cache/go-build
     commands:
       - go test -v -coverprofile=coverage.out ./...
     artifacts:
       - coverage.out
 ```
 
-The test runs with [Remote Execution](reference/remote-execution.mdx), in a container inside your cluster that uses the development image. It has the same Go toolchain as the Development Container, and the Go build cache that the image already brings, so the test doesn't need `caches` of its own. If any of the `commands` exits with a non-zero code, the test fails. When it finishes, Okteto copies its `artifacts`, in this case the coverage profile, to your machine.
+The test runs with [Remote Execution](reference/remote-execution.mdx), in a container inside your cluster that uses the development image, so it has the same Go toolchain as the Development Container. If any of the `commands` exits with a non-zero code, the test fails. When it finishes, Okteto copies its `artifacts`, in this case the coverage profile, to your machine.
+
+The [`caches`](reference/okteto-manifest.mdx#caches-string-optional) are the two folders that the `Dockerfile` mounts as cache mounts, and they're the same caches. Okteto identifies a cache by the repository, the context, and the path, and the test and the images share all three. `go test` starts with the modules that the build downloaded and the packages it compiled, so it compiles only the test code.
 
 The tests have their section in the `.oktetoignore` file too. `okteto test` uploads only what `go test` reads:
 
@@ -217,7 +229,7 @@ The `hello-world` key is the name of the Deployment in `k8s.yml`, the one that t
 - `image`: the development image built in the `build` section.
 - `command`: starts Air, which rebuilds and restarts the application every time a `.go` file changes.
 - `sync`: synchronizes the root folder of the Go Sample App with `/usr/src/app`, the working directory of the development image.
-- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the Go build cache comes from the development image, so there's no volume to create and attach. In a project with many dependencies, enable it and add `/go/pkg/mod` and `/root/.cache/go-build` to [volumes](reference/okteto-manifest.mdx#volumes-string-optional), to keep the Go caches between `okteto up` sessions.
+- `persistentVolume`: disables the persistent volume of the Development Container, so there's no volume to create and attach. Okteto synchronizes the files again on every `okteto up`, and Air compiles the application from scratch when it starts, because the cache mounts of the build aren't part of the development image. In a larger project, keep the Go caches of the Development Container in a persistent volume or in a distributed cache: [Caches in Development Containers](/tutorials/optimize-your-application-environment/#caches-in-development-containers) explains both.
 - `securityContext`: adds the `SYS_PTRACE` capability that Delve needs.
 - `forward`: forwards port `2345`, where Delve listens, to your machine.
 
