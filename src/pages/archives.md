@@ -21,16 +21,16 @@ Here you can find the documentation for previously released versions of Okteto.
 
 | Version |     Documentation      |                                        Release Notes |
 | :------ | :--------------------: | ---------------------------------------------------: |
-| 1.49    | [Documentation](pathname:///1.49) |                [Release Notes](pathname:///1.49/release-notes/) |
-| 1.48    | [Documentation](pathname:///1.48) |                [Release Notes](pathname:///1.48/release-notes/) |
-| 1.47    | [Documentation](pathname:///1.47) |                [Release Notes](pathname:///1.47/release-notes/) |
-| 1.46    | [Documentation](pathname:///1.46) |                [Release Notes](pathname:///1.46/release-notes/) |
-| 1.45    | [Documentation](pathname:///1.45) |                [Release Notes](pathname:///1.45/release-notes/) |
-| 1.44    | [Documentation](pathname:///1.44) |                [Release Notes](pathname:///1.44/release-notes/) |
-| 1.43    | [Documentation](pathname:///1.43) |                [Release Notes](pathname:///1.43/release-notes/) |
-| 1.42    | [Documentation](pathname:///1.42) |                [Release Notes](pathname:///1.42/release-notes/) |
-| 1.41    | [Documentation](pathname:///1.41) |                [Release Notes](pathname:///1.41/release-notes/) |
-| 1.40    | [Documentation](pathname:///1.40) |                [Release Notes](pathname:///1.40/release-notes/) |
-| 1.39    | [Documentation](pathname:///1.39) |                [Release Notes](pathname:///1.39/release-notes/) |
+| 1.49    | [Documentation](pathname:///1.49) |                [Release Notes](/1.49/release-notes/) |
+| 1.48    | [Documentation](pathname:///1.48) |                [Release Notes](/1.48/release-notes/) |
+| 1.47    | [Documentation](pathname:///1.47) |                [Release Notes](/1.47/release-notes/) |
+| 1.46    | [Documentation](pathname:///1.46) |                [Release Notes](/1.46/release-notes/) |
+| 1.45    | [Documentation](pathname:///1.45) |                [Release Notes](/1.45/release-notes/) |
+| 1.44    | [Documentation](pathname:///1.44) |                [Release Notes](/1.44/release-notes/) |
+| 1.43    | [Documentation](pathname:///1.43) |                [Release Notes](/1.43/release-notes/) |
+| 1.42    | [Documentation](pathname:///1.42) |                [Release Notes](/1.42/release-notes/) |
+| 1.41    | [Documentation](pathname:///1.41) |                [Release Notes](/1.41/release-notes/) |
+| 1.40    | [Documentation](pathname:///1.40) |                [Release Notes](/1.40/release-notes/) |
+| 1.39    | [Documentation](pathname:///1.39) |                [Release Notes](/1.39/release-notes/) |
 
 Release notes for previous versions can be found here: [Archived Release Notes](/archived-release-notes/)

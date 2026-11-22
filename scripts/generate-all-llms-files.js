@@ -209,14 +209,11 @@ function main() {
 
   const { versions, rootVersion } = readVersions();
 
-  const skipped = [];
   for (const version of versions) {
     const isRoot = version === rootVersion;
     const entries = collectEntries(BUILD_OUT_DIR, listVersionTwins(BUILD_OUT_DIR, version, rootVersion), isRoot ? '' : `${version}/`);
     if (entries.length === 0) {
-      // A local build only includes the unreleased and the official versions
-      // (onlyIncludeVersions in docusaurus.config.js).
-      skipped.push(version);
+      console.warn(`No pages found for version ${version} - skipping.`);
       continue;
     }
 
@@ -239,10 +236,6 @@ function main() {
 
     const size = ((llmsTxt.length + llmsFullTxt.length) / 1024 / 1024).toFixed(2);
     console.log(`Wrote build/docs/${isRoot ? '' : version + '/'}llms.txt + llms-full.txt (${size} MB, ${entries.length} pages)`);
-  }
-
-  if (skipped.length > 0) {
-    console.warn(`No pages found for versions ${skipped.join(', ')} - skipped.`);
   }
 }
 

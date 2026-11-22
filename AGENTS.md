@@ -169,7 +169,7 @@ yarn develop:blog         # blog dev server: http://localhost:8081/blog/
 yarn build                # production build of the three sites, used to catch broken links
 ```
 
-Locally, the docs include only the unreleased version (`src/content`) and the official one (`onlyIncludeVersions` in `docusaurus.config.js`). Netlify builds every version. After changing an archived version, run `DOCS_ALL_VERSIONS=true yarn build` to check it. Links from a page of `src/pages/` to an archived version use `pathname://` (see `src/pages/archives.md`), because the local build has no route for them.
+The dev server (`yarn start`) includes only the unreleased version (`src/content`) and the official one, so it starts faster. `yarn build` always builds every version. To see every version in the dev server, for example after changing an archived one, run `DOCS_ALL_VERSIONS=true yarn start`.
 
 ### Commits
 

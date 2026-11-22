@@ -28,9 +28,6 @@ COPY src/content src/content
 COPY tutorials tutorials
 COPY blog blog
 
-# Local builds only include the unreleased and the official versions of the
-# docs (see docusaurus.config.js). The image serves all of them.
-ENV DOCS_ALL_VERSIONS=true
 RUN --mount=type=cache,target=/app/node_modules/.cache/webpack \
     --mount=type=cache,target=/app/.docusaurus \
     --mount=type=cache,target=/app/.docusaurus-blog \

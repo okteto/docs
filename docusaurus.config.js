@@ -3,14 +3,13 @@ const shared = require('./config/shared');
 
 const docsContentPath = 'src/content';
 
-// The dev server and local builds only include the unreleased version
-// (src/content) and the official one, so they start and build faster.
-// Netlify (it sets CI and NETLIFY) and the Docker image (DOCS_ALL_VERSIONS in
-// the Dockerfile) build every version. To build them all locally, for example
+// The dev server (`yarn start`) only includes the unreleased version
+// (src/content) and the official one, so it starts faster. `yarn build`
+// always builds every version. To see them all in the dev server, for example
 // to check a change in an archived version, run
-// `DOCS_ALL_VERSIONS=true yarn build`.
-const buildAllVersions =
-  Boolean(process.env.CI || process.env.NETLIFY) || process.env.DOCS_ALL_VERSIONS === 'true';
+// `DOCS_ALL_VERSIONS=true yarn start`.
+const devVersionsOnly =
+  process.env.NODE_ENV === 'development' && process.env.DOCS_ALL_VERSIONS !== 'true';
 const [officialVersion] = require('./versions.json');
 
 // Strip Docusaurus heading-anchor links (class "hash-link") from the Markdown
@@ -243,7 +242,7 @@ module.exports = {
           // links to other sites (see config/shared.js).
           remarkPlugins: [shared.remarkCrossSiteLinks('docs')],
           lastVersion: '1.50',
-          ...(buildAllVersions ? {} : { onlyIncludeVersions: ['current', officialVersion] }),
+          ...(devVersionsOnly ? { onlyIncludeVersions: ['current', officialVersion] } : {}),
           versions: {
             current: {
               // aka unreleased version in development
