@@ -865,7 +865,7 @@ const covers = [
     svg: row([group('Namespace', pods(3), { dashed: true, color: C.teal }), 'arrow', mark('terraform', { size: 120 }), 'arrow', group('S3 bucket', [item('bucket', { color: C.amber, size: 84 })], { color: C.amber, minWidth: 230 })]),
   },
   {
-    out: tutorial('2025-10-01-optimize-your-development-environment'),
+    out: tutorial('2025-10-01-optimize-your-application-environment'),
     alt: 'A snail goes through the optimizations (builds, remote execution, Volume Snapshots, and Divert) and comes out as a rocket',
     svg: row([
       badge('snail', null, { color: C.amber, r: 86 }),

@@ -1,58 +1,28 @@
 ---
-title: Getting Started with Okteto and Go
-description: Build, deploy, test, develop, and debug a Go application with Okteto.
+title: Okteto with Go
+description: Build, deploy, test, and develop a Go application with Okteto, with the optimizations for Go, hot reload, and a debugger connected to VS Code.
 sidebar_label: Go
-id: golang
 ---
 
 import Image from "@theme/Image";
 
-Okteto runs your Go application in Kubernetes while you edit it on your machine: every time you save a file, the change runs in your cluster a few seconds later, and you can debug it with breakpoints from your IDE. The [Go Sample App](https://github.com/okteto/go-getting-started), a hello world HTTP server, is configured so that Okteto builds, deploys, and tests it directly in your Kubernetes cluster. To do the same in your own repository, we recommend using an AI agent with the [Okteto agent skills](agentic/index.mdx).
+This guide takes the [Go Sample App](https://github.com/okteto/go-getting-started) through the whole Okteto workflow, in an [application environment](core/application-environments.mdx) in your Kubernetes cluster: you build it, deploy it, test it, and develop it with hot reload and a debugger. The Go Sample App is a hello world service whose page shows a message, the Go version, and the pod that serves it. Along the way, the guide points out the choices that make each step fast in a Go project: the cache mounts that the build and the tests share, the ignore files that keep every upload small (`.dockerignore`, `.oktetoignore`, and `.stignore`), and how Air and Delve give you hot reload and debugging from VS Code. The sample is small, but its configuration is optimized, so you can use it as a reference to configure your own Go application with Okteto.
 
 ## Prerequisites
 
 - The Okteto CLI, installed and configured to access your Okteto instance. See the [installation guide](get-started/install-okteto-cli.mdx).
 - To debug the application: [VS Code](https://code.visualstudio.com/) with the [Go extension](https://marketplace.visualstudio.com/items?itemName=golang.go).
 
-Clone the Go Sample App:
+Clone the Go Sample App and move to its folder. Every command of this guide runs from there:
 
 ```bash
 git clone https://github.com/okteto/go-getting-started
 cd go-getting-started
 ```
 
-## The Dockerfile
+## Build
 
-The `Dockerfile` of the Go Sample App defines two images, one per stage:
-
-```dockerfile title="Dockerfile"
-FROM golang:1.26.5-trixie AS dev
-
-RUN GOBIN=/usr/local/bin go install github.com/air-verse/air@v1.67.4 && \
-    GOBIN=/usr/local/bin go install github.com/go-delve/delve/cmd/dlv@v1.27.1
-
-WORKDIR /usr/src/app
-COPY . .
-RUN go build -o /usr/local/bin/hello-world
-
-FROM debian:trixie-slim AS prod
-
-COPY --from=dev /usr/local/bin/hello-world /usr/local/bin/hello-world
-CMD ["/usr/local/bin/hello-world"]
-```
-
-- `dev` is the development image. It contains the Go toolchain, [Air](https://github.com/air-verse/air) for hot reload, [Delve](https://github.com/go-delve/delve) for debugging, and the source code. The `go build` step fills the Go build cache of the image, so the first build in the Development Container is incremental.
-- `prod` is the application image. It contains only the binary built in the `dev` stage.
-
-The `dev` stage follows the recommendations for [development images](development/images.mdx): every version is pinned, and the stage that builds the application doubles as the development image.
-
-## The Okteto Manifest
-
-The `okteto.yml` file is the [Okteto Manifest](reference/okteto-manifest.mdx) of the Go Sample App.
-
-### Build
-
-The [build](reference/okteto-manifest.mdx#build-object-optional) section builds both images:
+The Go Sample App uses two container images, and each one has its purpose. The first one, `dev`, is the image you develop in: it has the Go compiler and the tools to test, reload, and debug the application. The second one, `hello-world`, is the production image: a small image with nothing but the compiled binary. Both are defined in the [build](reference/okteto-manifest.mdx#build-object-optional) section of the [Okteto Manifest](reference/okteto-manifest.mdx), the `okteto.yml` file of the repository:
 
 ```yaml title="okteto.yml"
 build:
@@ -66,60 +36,108 @@ build:
       - dev
 ```
 
-`target` selects a stage of the `Dockerfile`. `depends_on` makes Okteto build the `dev` image first, so `hello-world` reuses its cached layers. Okteto pushes both images to the [Okteto Registry](core/container-registry.mdx) and stores their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+Both images come from the same `Dockerfile`. `target` picks the stage that each image builds, and `depends_on` makes Okteto build `dev` first, so that `hello-world` reuses its cached layers. This is the `Dockerfile`:
 
-### Deploy
+```dockerfile title="Dockerfile"
+FROM golang:1.26.5-trixie AS dev
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section installs the Helm chart in the `chart` folder, with the application image that Okteto built:
+# The cache mounts keep the Go module cache and the Go build cache in the
+# Okteto Build Service, which reuses them between builds. The tests of the
+# Okteto Manifest use the same two caches
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOBIN=/usr/local/bin go install github.com/air-verse/air@v1.67.4 && \
+    GOBIN=/usr/local/bin go install github.com/go-delve/delve/cmd/dlv@v1.27.1
+
+WORKDIR /usr/src/app
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -o /usr/local/bin/hello-world
+
+FROM debian:trixie-slim AS prod
+
+COPY --from=dev /usr/local/bin/hello-world /usr/local/bin/hello-world
+CMD ["/usr/local/bin/hello-world"]
+```
+
+- The `dev` stage is the development image. It has the Go toolchain, [Air](https://github.com/air-verse/air) for hot reload, [Delve](https://github.com/go-delve/delve) for debugging, and the source code.
+- The `prod` stage is the production image. It only has the binary that the `dev` stage built, on a small base image.
+
+The tools are installed before `COPY . .`, so a change in the code doesn't install them again.
+
+Both `RUN` instructions mount the Go module cache (`/go/pkg/mod`) and the Go build cache (`/root/.cache/go-build`) as [cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts). The Okteto Build Service keeps them between builds. When a change in the code runs `go build` again, Go compiles only the packages that changed, and it doesn't download a module twice.
+
+What makes the biggest difference, in this and in any application, is the build context. Every `okteto build` starts by uploading the folder of the `Dockerfile` to the Okteto Build Service, and the `.dockerignore` file decides what goes in it. The one of the Go Sample App excludes everything, and then allows only what `go build` reads: the Go files, `go.mod`, and the `static` folder with the page.
+
+```text title=".dockerignore"
+*
+!go.mod
+!go.sum
+!**/*.go
+!static
+```
+
+With this file, the upload is small, and a change to any other file, such as the README or `k8s.yml`, doesn't rebuild the images.
+
+## Deploy
+
+`okteto deploy` builds the images that aren't built yet. Okteto pushes them to the [Okteto Registry](core/container-registry.mdx) and keeps their references in the `OKTETO_BUILD_DEV_IMAGE` and `OKTETO_BUILD_HELLO_WORLD_IMAGE` [variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry).
+
+The Go Sample App deploys with plain Kubernetes manifests. Its [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section has a single command, which applies `k8s.yml` with `kubectl`:
 
 ```yaml title="okteto.yml"
 deploy:
-  image: alpine/helm:4.3.2
-  commands:
-    - helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}
+  - envsubst < k8s.yml | kubectl apply -f -
 ```
 
-The command runs with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm on your machine.
+In `k8s.yml`, the image of the Deployment is the `OKTETO_BUILD_HELLO_WORLD_IMAGE` variable. `envsubst` replaces it with the image that Okteto built, before `kubectl` applies the file.
 
-## Deploying the Go Sample App
+The deploy has its own ignore file. `okteto deploy` uploads your folder to the container that runs the command, and the `.oktetoignore` file decides what goes in it. Its `deploy` section excludes everything except `k8s.yml`, the only file that the command reads, so there's almost nothing to upload. The `destroy` section does the same for `okteto destroy`:
 
-Run `okteto deploy` from the root folder of the Go Sample App:
+```text title=".oktetoignore"
+[deploy]
+*
+!k8s.yml
+
+[destroy]
+*
+!k8s.yml
+```
+
+To deploy the application, run `okteto deploy`:
 
 ```bash
 okteto deploy
 ```
 
-Okteto builds the `dev` and `hello-world` images, runs the deploy command, and prints the endpoint of the application:
+Okteto builds the two images, runs the deploy command, and prints the endpoint of the application:
 
 ```console
  i  Using cindy @ okteto.example.com as context
  ✓  Image 'registry.okteto.example.com/cindy/go-getting-started-dev:okteto' successfully pushed
  ✓  Image 'registry.okteto.example.com/cindy/go-getting-started-hello-world:okteto' successfully pushed
- i  Running stage 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'
-Executing command 'helm upgrade --install hello-world chart --set image=${OKTETO_BUILD_HELLO_WORLD_IMAGE}'...
-Release "hello-world" does not exist. Installing it now.
-NAME: hello-world
-NAMESPACE: cindy
-STATUS: deployed
-REVISION: 1
+ i  Running stage 'envsubst < k8s.yml | kubectl apply -f -'
+Executing command 'envsubst < k8s.yml | kubectl apply -f -'...
+deployment.apps/hello-world created
+service/hello-world created
+Command 'envsubst < k8s.yml | kubectl apply -f -' successfully executed
  i  Endpoints available:
   - https://hello-world-cindy.okteto.example.com
  ✓  Development environment 'go-getting-started' successfully deployed
 ```
 
-Open the endpoint in your browser to see the `Hello world!` response. The Okteto UI shows the same endpoint:
+Open the endpoint in your browser. The page shows the message of the application, the Go version it runs, and the pod that served the request:
 
 <Image
-  src={require("@site/static/img/okteto-ui-golang.png").default}
-  mobileSrc={require("@site/static/img/okteto-ui-golang-mobile.png").default}
-  alt="Okteto UI showing the cindy Namespace with the go-getting-started Dev Environment deployed, its hello-world Deployment running, and its endpoint"
+  src={require("@site/static/img/hello-world-golang.png").default}
+  alt="The page of the Go Sample App: Hello World, the Okteto logo, the message Built, deployed, and tested on Kubernetes, the Go 1.26.5 runtime, and the name of the hello-world pod"
+  width="500"
 />
 
-Okteto creates an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the [Ingress](core/endpoints/ingress.mdx) in the Helm chart. If your application uses the Gateway API, it does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx).
+## Test
 
-## Testing the Go Sample App
-
-The `test` section of the Okteto Manifest defines a [Test Container](reference/okteto-manifest.mdx#test-object-optional) that runs the unit tests in `main_test.go`:
+The Go Sample App has unit tests in `main_test.go`, and the `test` section of the Okteto Manifest defines a [test](reference/okteto-manifest.mdx#test-object-optional), `unit`, that runs them:
 
 ```yaml title="okteto.yml"
 test:
@@ -134,14 +152,22 @@ test:
       - coverage.out
 ```
 
-- `image`: the development image, so the tests run with the same Go toolchain as the Development Container.
-- `caches`: the Go module and build caches, kept between runs of the Test Container.
-- `commands`: the commands that run the tests. The Test Container fails if any of them exits with a non-zero code.
-- `artifacts`: the files that Okteto copies to your machine when the tests finish, in this case the coverage profile.
+The test runs with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster that uses the development image, so it has the same Go toolchain as the Development Container. If any of the `commands` exits with a non-zero code, the test fails. When it finishes, Okteto copies its `artifacts`, in this case the coverage profile, to your machine.
 
-Test Containers run with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster.
+The [`caches`](reference/okteto-manifest.mdx#caches-string-optional) are the two folders that the `Dockerfile` mounts as cache mounts, and they're the same caches. Okteto identifies a cache by the repository, the context, and the path, and the test and the images share all three. `go test` starts with the modules that the build downloaded and the packages it compiled, so it compiles only the test code.
 
-Run the unit tests from the root folder of the Go Sample App:
+The tests have their section in the `.oktetoignore` file too. `okteto test` uploads only what `go test` reads:
+
+```text title=".oktetoignore"
+[test]
+*
+!go.mod
+!go.sum
+!**/*.go
+!static
+```
+
+To run the unit tests, run `okteto test`:
 
 ```bash
 okteto test
@@ -152,32 +178,34 @@ okteto test
  i  Images were already built. To rebuild your images run 'okteto build'
  i  Executing test container 'unit'
  i  Running 'go test -v -coverprofile=coverage.out ./...'
-=== RUN   TestHelloServer
---- PASS: TestHelloServer (0.00s)
+=== RUN   TestHello
+--- PASS: TestHello (0.00s)
+=== RUN   TestPage
+--- PASS: TestPage (0.00s)
 PASS
-coverage: 20.0% of statements
-ok  	github.com/okteto/go-getting-started	0.004s	coverage: 20.0% of statements
+coverage: 44.4% of statements
+ok  	github.com/okteto/go-getting-started	0.007s	coverage: 44.4% of statements
  ✓  Command 'go test -v -coverprofile=coverage.out ./...' successfully executed
  ✓  Test container 'unit' passed
 ```
 
-The coverage profile is now in `coverage.out`, in the root folder of the Go Sample App on your machine:
+The coverage profile is now in `coverage.out`, in the root folder of the Go Sample App on your machine, and you can inspect it with the Go tools:
 
 ```bash
 go tool cover -func=coverage.out
 ```
 
-Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when an AI agent writes and tests the code autonomously. With the [Okteto agent skills](agentic/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
+Running `okteto deploy` and `okteto test` after each change is usually fast enough, especially when a coding agent writes and tests the code autonomously. With the [Okteto skills](agentic/index.mdx), the agent runs this loop in its own Namespace and reports back the tests it ran, the endpoints of the application, and a link to that Namespace.
 
-## Developing in a Development Container
+## Develop
 
-If you use AI agents, the Development Container is optional: agents work well with the `okteto deploy` and `okteto test` cycle, and don't need one. A Development Container gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster.
+A [Development Container](development/containers/index.mdx) gives you the experience of developing on your machine, with hot reload and a debugger on every change. When you run `okteto up`, Okteto replaces the `hello-world` Deployment with the Development Container, keeps your local files synchronized with it, and runs the hot-reload and debugging tools of the development image in your cluster. This step is optional: coding agents work well with the `okteto deploy` and `okteto test` cycle, and don't need a Development Container.
 
-While `okteto up` is running, an AI agent with the [Okteto agent skills](agentic/index.mdx) skips the build and deploy cycle: your changes already reach the Development Container through File Sync, so the agent waits for you to tell it what to run next.
+While `okteto up` is running, a coding agent with the [Okteto skills](agentic/index.mdx) stops building, deploying, and testing, and only edits the code: File Sync copies each change to the Development Container, and hot reload applies it to the running application.
 
-### Configuration
+### The dev Section
 
-The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the `okteto.yml` file defines the Development Container of the Go Sample App:
+The [dev](reference/okteto-manifest.mdx#dev-object-optional) section of the Okteto Manifest defines the Development Container of the Go Sample App:
 
 ```yaml title="okteto.yml"
 dev:
@@ -196,16 +224,29 @@ dev:
       - 2345:2345
 ```
 
-The `hello-world` key matches the name of the Deployment in the Helm chart. These are the fields of the Development Container:
+The `hello-world` key is the name of the Deployment in `k8s.yml`, the one that the Development Container replaces. This is what each field does:
 
 - `image`: the development image built in the `build` section.
 - `command`: starts Air, which rebuilds and restarts the application every time a `.go` file changes.
 - `sync`: synchronizes the root folder of the Go Sample App with `/usr/src/app`, the working directory of the development image.
-- `persistentVolume`: disables the persistent volume of the Development Container. Okteto synchronizes the files again on every `okteto up`, and the Go build cache comes from the development image, so there's no volume to create and attach. In projects with many dependencies, enable it and add `/go/pkg/mod` and `/root/.cache/go-build` to [volumes](reference/okteto-manifest.mdx#volumes-string-optional) to keep the Go caches between `okteto up` sessions.
+- `persistentVolume`: disables the persistent volume of the Development Container, so there's no volume to create and attach. Okteto synchronizes the files again on every `okteto up`, and Air compiles the application from scratch when it starts, because the cache mounts of the build aren't part of the development image. In a larger project, keep the Go caches of the Development Container in a persistent volume or in a distributed cache: [Caches in Development Containers](/tutorials/optimize-your-application-environment/#caches-in-development-containers) explains both.
 - `securityContext`: adds the `SYS_PTRACE` capability that Delve needs.
 - `forward`: forwards port `2345`, where Delve listens, to your machine.
 
-### Hot reload
+The third ignore file is `.stignore`, for File Sync. `okteto up` synchronizes your folder with the Development Container, in both directions, and this file leaves out what shouldn't travel: the Git metadata, which is large and only matters on your machine, and the binaries that Air and Delve generate inside the Development Container, which would otherwise come back to your machine:
+
+```text title=".stignore"
+.git
+/tmp
+/go-getting-started
+__debug_bin*
+*.test
+*.out
+.vscode
+.DS_Store
+```
+
+### Hot Reload
 
 Run `okteto up` to replace the `hello-world` Deployment with the Development Container:
 
@@ -232,15 +273,13 @@ running...
 Starting hello-world server...
 ```
 
-Open `main.go` in your IDE, change the response message on line 17 to `Hello world from Okteto!`, and save the file:
+Now change the code. Open `main.go` in your IDE, edit the message on line 14, and save the file:
 
 ```go title="main.go"
-func helloServer(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello world from Okteto!")
-}
+const message = "Built, deployed, and tested on Okteto."
 ```
 
-Okteto synchronizes `main.go` to the Development Container, and Air rebuilds and restarts the application:
+Okteto synchronizes `main.go` to the Development Container, and Air notices the change, rebuilds the application, and restarts it:
 
 ```console
 main.go has changed
@@ -249,26 +288,26 @@ running...
 Starting hello-world server...
 ```
 
-Reload the endpoint in your browser to see the new message. The change runs in your cluster without building an image or redeploying the application.
+A moment later, the page in your browser shows the new message. You don't even have to reload it, because it asks the service for its info every second. The change is running in your cluster, and you didn't build an image or redeploy the application.
 
-Press `Ctrl+C` to stop Air and exit `okteto up`.
+When you're done, press `Ctrl+C` to stop Air and exit `okteto up`.
 
 ### Debugging with VS Code
 
-Delve builds and runs its own copy of the application, so start the Development Container with Delve instead of Air. The command after `--` replaces the `command` of the Okteto Manifest:
+To debug the application, start the Development Container with Delve instead of Air, because Delve builds and runs its own copy of the application. Pass the command after `--`, and it replaces the `command` of the Okteto Manifest:
 
 ```bash
 okteto up -- make debug
 ```
 
-`make debug` runs `dlv debug --headless --listen=:2345 --log --api-version=2`. Delve builds the application and waits for a debugger on port `2345` before it starts it:
+`make debug` runs `dlv debug --headless --listen=:2345 --log --api-version=2`. Delve builds the application, but it doesn't start it until a debugger connects on port `2345`:
 
 ```console
 API server listening at: [::]:2345
 info layer=debugger launching process with args: [./__debug_bin3004072740]
 ```
 
-The `.vscode/launch.json` file of the Go Sample App attaches VS Code to Delve through the port that `okteto up` forwards to your machine:
+That's the port that `okteto up` forwards to your machine, and the `.vscode/launch.json` file of the Go Sample App tells VS Code to attach to it:
 
 ```json title=".vscode/launch.json"
 {
@@ -287,9 +326,9 @@ The `.vscode/launch.json` file of the Go Sample App attaches VS Code to Delve th
 }
 ```
 
-`remotePath` is the path in the `sync` field of the Okteto Manifest. If you synchronize your code to another path, change `remotePath` to match it.
+`remotePath` is the path of the code in the Development Container, the one in the `sync` field of the Okteto Manifest. If you synchronize your code to another path, change `remotePath` to match it.
 
-Open the Go Sample App in VS Code, open the **Run and Debug** view, and run the **Connect to okteto** configuration. The application starts. Add a breakpoint on line 17 of `main.go` and reload the endpoint in your browser. Execution stops at the breakpoint, and you can inspect the request and the variables:
+Open the Go Sample App in VS Code, go to the **Run and Debug** view, and run the **Connect to okteto** configuration. The application starts. Now add a breakpoint on line 42 of `main.go`, the first line of the `hello` function. Since the page in your browser asks the service for its info every second, execution stops at the breakpoint right away, and you can inspect the request and the variables:
 
 <Image
   src={require("@site/static/img/golang-debug.png").default}
@@ -297,44 +336,64 @@ Open the Go Sample App in VS Code, open the **Run and Debug** view, and run the 
   width="850"
 />
 
-`Ctrl+C` doesn't stop Delve. To end the debugging session, run `okteto down` in another terminal from the root folder of the Go Sample App, and then run `okteto up` to go back to hot reload.
+`Ctrl+C` doesn't stop Delve. To end the debugging session, run `okteto down` in another terminal, from the root folder of the Go Sample App. Then run `okteto up` again to go back to hot reload.
 
-## Cleaning up
+### Stopping the Development Container
 
-`okteto down` stops the Development Container and brings back the `hello-world` Deployment with the application image:
+When you finish developing, `okteto down` stops the Development Container and brings back the `hello-world` Deployment, with the application image:
 
 ```bash
 okteto down
 ```
 
-When you're done, `okteto destroy` uninstalls the Helm release of the Go Sample App from your Namespace:
+```console
+ i  Using cindy @ okteto.example.com as context
+ ✓  Development container 'hello-world' deactivated
+```
+
+## Destroy
+
+To delete the application, run [`okteto destroy`](reference/okteto-cli.mdx#destroy). It removes the Deployment and the Service of the Go Sample App from your Namespace:
 
 ```bash
 okteto destroy
 ```
 
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Images were already built. To rebuild your images run 'okteto build'
+ ✓  Development environment 'go-getting-started' successfully destroyed
+```
+
 ## FAQ
+
+### How do I set up my own repository the same way?
+
+Use a coding agent with the [Okteto skills](agentic/index.mdx). Ask it to set up your repository for Okteto: it discovers your services, writes the Okteto Manifest, and validates it with `okteto build` and `okteto deploy`.
 
 ### How do I make builds, deploys, and `okteto up` faster?
 
-Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. An AI agent with the [Okteto agent skills](agentic/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize your Development Environments](/tutorials/optimize-your-development-environment/) covers these and other optimizations.
-
-### How do I deploy an application with several services and a database?
-
-Follow the [quickstart](get-started/quickstart.mdx) if you deploy with a Helm chart, or [Develop a Docker Compose application with Okteto](/tutorials/compose-getting-started/) if you use Docker Compose. If your services live in several repositories, see [Deploy a multi-repo application with dependencies](/tutorials/dependencies/).
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](agentic/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
 
 ### Do I need to deploy the whole application in every Namespace?
 
-No. [Divert](development/divert/index.mdx) lets you deploy only the services you change and reuse the services of a shared environment.
+No. Okteto supports two models, and you choose one for your application:
+
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in the [quickstart](get-started/quickstart.mdx), where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](reference/okteto-manifest.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
+- **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](development/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them for an application with 20 services or more.
+
+### How do I create a Preview Environment of my application for every pull request?
+
+Add a workflow to your CI pipeline that deploys the application in a [Preview Environment](previews/index.mdx) when a pull request opens or changes, runs `okteto test` against it, and destroys it when the pull request closes. The workflow uses the Okteto Manifest, so `okteto build`, `okteto deploy`, and `okteto test` work the same way in your CI pipeline, for coding agents, and on developer machines. Follow the guide for [GitHub Actions](previews/using-github-actions.mdx) or for [GitLab CI/CD](previews/using-gitlab-cicd.mdx).
 
 ### How do I start each environment with realistic data?
 
-Create its database from a [Volume Snapshot](core/use-volume-snapshots.mdx) instead of running a seed script on every deploy. [Data from Volume Snapshots](/tutorials/optimize-your-development-environment/#data-from-volume-snapshots) shows how.
+Load the data with a script in your `deploy` commands, or copy the data of another application environment with a [Volume Snapshot](core/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
 
 ### How do I create resources outside Kubernetes, such as a cloud database?
 
-Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own cloud resources. [Create cloud infrastructure with Terraform](/tutorials/cloud-infrastructure/) shows how, with an Amazon S3 bucket for each environment.
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own resources. See the [Create Cloud Infrastructure with Terraform](/tutorials/cloud-infrastructure/) tutorial, which creates an Amazon S3 bucket for each environment.
 
-### Where can I find every field of the Okteto Manifest?
+### Can I access my application environment with `kubectl`?
 
-The [Okteto Manifest reference](reference/okteto-manifest.mdx) lists every field of `build`, `deploy`, `destroy`, `test`, and `dev`.
+Yes. Run `okteto kubeconfig` to add the credentials of your Okteto Namespaces to your kubeconfig file, and use `kubectl` as usual: `kubectl get pods`, `kubectl logs`, or `kubectl describe`. See [Kubernetes Credentials](core/credentials/kubernetes-credentials.mdx) for how Okteto generates those credentials.
