@@ -26,18 +26,7 @@ module.exports = {
             'get-started/install/openshift',
           ],
         },
-        {
-          type: 'category',
-          label: 'Deploy your app',
-          link: { type: 'doc', id: 'get-started/deploy-your-app/index' },
-          items: [
-            'get-started/deploy-your-app/build',
-            'get-started/deploy-your-app/deploy',
-            'get-started/deploy-your-app/inspect',
-            'get-started/deploy-your-app/test',
-            'get-started/deploy-your-app/develop',
-          ],
-        },
+        'get-started/quickstart',
       ],
     },
     {
