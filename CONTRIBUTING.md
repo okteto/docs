@@ -110,11 +110,4 @@ yarn start
 
 ### Ejected components
 
-Even if we try never to eject components to facilitate updating Docusaurus, sometimes we need to do it to add custom functionality. Here's a list of the components we've currently ejected and their reasons:
-
-<details>
-  <summary>CodeBlock</summary>
-<ul>
-<li>Add the ability to filter out `$` in code blocks when using the copy to clipboard button https://github.com/okteto/docs/blob/main/src/theme/CodeBlock/index.js#L83-L84</li>
-  </ul>
-</details>
+Even if we try never to eject components to facilitate updating Docusaurus, sometimes we need to do it to add custom functionality. The ejected components are in `src/theme/`.
