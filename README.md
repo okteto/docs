@@ -20,6 +20,8 @@ yarn develop:tutorials    # tutorials: http://localhost:8082/tutorials/
 yarn develop:blog         # blog: http://localhost:8081/blog/
 ```
 
+Locally, the docs include only the unreleased version (`src/content`) and the official one, so the dev server and `yarn build` are faster. Netlify builds every version. To build them all locally, for example after changing an archived version, run `DOCS_ALL_VERSIONS=true yarn build`.
+
 However, it is possible to build the website locally using okteto itself without any need to install required dependencies and specific version of build tool.
 
 ### 💻 Develop locally (using Okteto)
@@ -173,7 +175,7 @@ Update [`src/pages/archives.md`](src/pages/archives.md):
 
 2. **Add previous official version** to the "Previously released versions" table:
    ```markdown
-   | 1.40    | [Documentation](/1.40) |                [Release Notes](/1.40/release-notes/) |
+   | 1.40    | [Documentation](pathname:///1.40) | [Release Notes](pathname:///1.40/release-notes/) |
    ```
 
 3. **Remove the oldest version** from the "Previously released versions" table
@@ -192,10 +194,10 @@ rm -rf versioned_sidebars/version-1.29-sidebars.json
 
 ### Step 8: Verify the Build
 
-Run the build to catch any broken links or anchors:
+Run the build with every version to catch any broken links or anchors:
 
 ```bash
-yarn build
+DOCS_ALL_VERSIONS=true yarn build
 ```
 
 Fix any errors before proceeding. The build doesn't check the links from the tutorials (`tutorials/`) to the docs: tutorials aren't versioned and link to the official version, so check that the pages and headings they link to still exist in the new official version. Common issues:
@@ -249,7 +251,7 @@ For agents or scripts automating this process, here are the key parameters:
    - Remove `{OLDEST_VERSION}` from previous versions table
 8. **Delete files:** `versioned_docs/version-{OLDEST_VERSION}/` and `versioned_sidebars/version-{OLDEST_VERSION}-sidebars.json`
 9. **versions.json** - Remove `{OLDEST_VERSION}` from array (should be last item)
-10. **Run:** `yarn build` to verify
+10. **Run:** `DOCS_ALL_VERSIONS=true yarn build` to verify (without the variable, a local build only includes the unreleased and the official versions)
 
 **Version count:** Maintain exactly 12 versions in `versions.json` after completion.
 

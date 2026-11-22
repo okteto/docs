@@ -169,6 +169,8 @@ yarn develop:blog         # blog dev server: http://localhost:8081/blog/
 yarn build                # production build of the three sites, used to catch broken links
 ```
 
+Locally, the docs include only the unreleased version (`src/content`) and the official one (`onlyIncludeVersions` in `docusaurus.config.js`). Netlify builds every version. After changing an archived version, run `DOCS_ALL_VERSIONS=true yarn build` to check it. Links from a page of `src/pages/` to an archived version use `pathname://` (see `src/pages/archives.md`), because the local build has no route for them.
+
 ### Commits
 
 Per `CONTRIBUTING.md`, commits must be signed off (`git commit -s`). Do not skip this: it's a DCO requirement.
