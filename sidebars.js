@@ -109,6 +109,7 @@ module.exports = {
         { type: 'doc', id: 'previews/index', label: 'Overview' },
         'previews/using-github-actions',
         'previews/using-gitlab-cicd',
+        'previews/using-other-ci-tools',
       ],
     },
     {
