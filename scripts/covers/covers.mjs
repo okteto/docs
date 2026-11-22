@@ -1075,14 +1075,19 @@ const covers = [
     background: 'white',
     alt: 'Sample App architecture',
     svg: () => {
-      let out = circle(215, 289, 46, { color: C.teal }) + icon('user', 215, 289, 48, C.teal) + text('Developer', 215, 369, 26);
-      out += moviesEnvironment(895, 110, 510, 450);
-      out += arrow(265, 289, 302, 289, { color: C.blue });
-      out += curve('M530 317 V379 H600', { color: C.blue });
-      out += arrow(700, 289, 737, 289, { color: C.blue }) + arrow(700, 379, 737, 379, { color: C.blue });
-      out += urlPill(700, 289) + apiPill(700, 379);
-      out += service(745, 260, 300, 'box', 'frontend') + service(745, 350, 300, 'box', 'api') + service(745, 470, 300, 'database', 'MongoDB');
-      out += arrow(895, 416, 895, 462, { color: C.dim, both: true });
+      // The rows of the environment, from its top edge: the two services, the
+      // database, and the seed job that loads the data into it.
+      const top = 66;
+      const [front, api, mongo, seed] = [top + 146, top + 226, top + 338, top + 450];
+      let out = circle(215, front + 29, 46, { color: C.teal }) + icon('user', 215, front + 29, 48, C.teal) + text('Developer', 215, front + 109, 26);
+      out += moviesEnvironment(895, top, 510, 538);
+      out += arrow(265, front + 29, 302, front + 29, { color: C.blue });
+      out += curve(`M530 ${front + 57} V${api + 29} H600`, { color: C.blue });
+      out += arrow(700, front + 29, 737, front + 29, { color: C.blue }) + arrow(700, api + 29, 737, api + 29, { color: C.blue });
+      out += urlPill(700, front + 29) + apiPill(700, api + 29);
+      out += service(745, front, 300, 'box', 'frontend') + service(745, api, 300, 'box', 'api') + service(745, mongo, 300, 'database', 'MongoDB') + service(745, seed, 300, 'terminal', 'seed');
+      out += arrow(895, api + 66, 895, mongo - 8, { color: C.dim, both: true });
+      out += arrow(895, seed - 8, 895, mongo + 66, { color: C.dim });
       // Shifted left so the drawing is centered on the canvas.
       return `<g transform="translate(-52 0)">${out}</g>`;
     },
@@ -1091,16 +1096,17 @@ const covers = [
     out: 'static/img/deploy-movies-app-mobile.webp',
     background: 'white',
     width: 600,
-    height: 790,
+    height: 910,
     alt: 'Sample App architecture',
     svg: () => {
       let out = circle(300, 70, 46, { color: C.teal }) + icon('user', 300, 70, 48, C.teal) + text('Developer', 362, 80, 26, { anchor: 'start' });
       out += arrow(300, 122, 300, 190, { color: C.blue });
-      out += moviesEnvironment(360, 300, 420, 450);
+      out += moviesEnvironment(360, 300, 420, 570);
       out += curve('M90 256 V569 H100', { color: C.blue }) + arrow(90, 479, 222, 479, { color: C.blue }) + arrow(200, 569, 222, 569, { color: C.blue });
       out += urlPill(470, 228) + apiPill(200, 569);
-      out += service(230, 450, 260, 'box', 'frontend') + service(230, 540, 260, 'box', 'api') + service(230, 660, 260, 'database', 'MongoDB');
+      out += service(230, 450, 260, 'box', 'frontend') + service(230, 540, 260, 'box', 'api') + service(230, 660, 260, 'database', 'MongoDB') + service(230, 780, 260, 'terminal', 'seed');
       out += arrow(360, 606, 360, 652, { color: C.dim, both: true });
+      out += arrow(360, 772, 360, 726, { color: C.dim });
       return out;
     },
   },
