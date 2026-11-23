@@ -82,7 +82,7 @@ module.exports = {
             'application-environments/develop/rust',
           ],
         },
-        'application-environments/troubleshooting',
+        'application-environments/kubeconfig',
         'application-environments/destroy',
         'application-environments/external-resources',
         'application-environments/okteto-variables',
