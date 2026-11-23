@@ -49,6 +49,25 @@ okteto namespace wake feature-login
 
 Running `okteto deploy` or `okteto up` in a sleeping Namespace also wakes it up. An Admin can mark a Namespace as [persistent](admin/namespaces.mdx#persistent-namespaces), so it never sleeps and nobody deletes it. See [Activity](admin/cleanup.mdx#what-counts-as-activity) for everything that keeps a Namespace awake, and when a request to an endpoint wakes it up.
 
+### Keeping a Resource Awake
+
+To keep a Deployment or a StatefulSet running while the rest of its Namespace sleeps, such as a database that takes long to start, add the `dev.okteto.com/persistent` label to it:
+
+```yaml
+metadata:
+  name: database
+  labels:
+    dev.okteto.com/persistent: "true"
+```
+
+To add the label to a resource that is already deployed, use `kubectl`:
+
+```bash
+kubectl label deployment database dev.okteto.com/persistent=true
+```
+
+Okteto skips the resources with that label when the Namespace goes to sleep, whether you put it to sleep or the Garbage Collector does. See [Persistent Resources](admin/cleanup.mdx#persistent-resources).
+
 ## Sharing a Namespace
 
 By default, only you have access to your Namespaces. To work with your team in the same application environment, share the Namespace: click **Share** in the Namespace view of the Okteto UI, add your teammates in **Invite members**, and save. Okteto gives them access to the Namespace and to everything deployed in it.
