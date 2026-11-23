@@ -123,7 +123,9 @@ Diagrams in the docs share these shapes. The `deploy-movies-app` and `environmen
   - A box inside another keeps the same distance to its container wherever it appears: the gap between a dashed group and the bottom of its Namespace is the same in every Namespace.
   - An element that feeds two others sits halfway between them, and its two arrows mirror each other. Two elements that feed one enter it at the same distance from its center.
   - An arrow that enters a box has room: leave about 50px between the border it crosses and the element it points to, so the arrowhead doesn't touch the border.
-  - An arrow never runs over a label. When arrows enter a Namespace through the left of its top edge, put its name at the right of the edge.
+  - No line runs over a label or over the name of a Namespace. Route the arrow around it: into the Namespace through its left border, or through its top edge at the right of the name.
+  - In a diagram with several Namespaces, such as the ones of Divert, the Kubernetes mark and the name of each Namespace (`Staging`, `Cindy`) always go at the left of its top edge, in every diagram of the section.
+  - A dashed group keeps the same distance to the border of its Namespace in every diagram of a section: 40px to the right and bottom borders in the wide version, and 20px to the side borders in the stacked version for phones.
 - **Text hierarchy:** in an endpoint with a second line, such as a request header under its URL, the second line is smaller than the URL.
 
 ### Logos and icons
