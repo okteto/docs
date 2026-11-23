@@ -15,7 +15,8 @@ import Metadata from '@theme-original/DocItem/Metadata';
  doc metadata at build time, so nothing needs updating when a version is cut.
 
  The @id references point at the site-level graph declared in
- config/jsonld.js. Keep both in sync.
+ config/jsonld.js. They come from there too, through `customFields.jsonLd`
+ (docusaurus.config.js).
 */
 
 const withSlash = (path) => (path.endsWith('/') ? path : `${path}/`);
@@ -45,7 +46,7 @@ function usePageJsonLd() {
   const sidebar = useDocsSidebar();
 
   const siteUrl = siteConfig.url;
-  const docsRoot = `${siteUrl}${siteConfig.baseUrl}`;
+  const refs = siteConfig.customFields.jsonLd;
   const permalink = withSlash(metadata.permalink);
   const pageUrl = `${siteUrl}${permalink}`;
   const versionRoot = withSlash(activeVersion?.path ?? siteConfig.baseUrl);
@@ -56,9 +57,9 @@ function usePageJsonLd() {
     headline: metadata.title,
     description: metadata.description,
     mainEntityOfPage: pageUrl,
-    isPartOf: { '@id': `${docsRoot}#website` },
-    about: { '@id': `${siteUrl}/#product` },
-    publisher: { '@id': `${siteUrl}/#organization` },
+    isPartOf: refs.website,
+    about: refs.about,
+    publisher: refs.publisher,
     inLanguage: 'en-US',
   };
   if (metadata.lastUpdatedAt) {

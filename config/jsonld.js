@@ -5,13 +5,16 @@
 // the publisher and product identity instead of inferring it.
 //
 // The @id values are the identity: they must be the same, character for
-// character, on every site and in every page-level block that references them
-// (src/theme/DocItem/Metadata). Change them here only.
+// character, on every site and in every page-level block that references them.
+// Change them here only: the page-level blocks (src/theme/DocItem/Metadata and
+// src/theme/BlogPostPage/StructuredData) read them from the site's
+// `customFields.jsonLd` (see pageJsonLdRefs below).
 
 const { SITE_URL, SITES } = require('./shared');
 
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const PRODUCT_ID = `${SITE_URL}/#product`;
+const websiteId = (baseUrl) => `${SITE_URL}${baseUrl}#website`;
 
 const organization = {
   '@type': 'Organization',
@@ -56,7 +59,7 @@ function siteJsonLd({ baseUrl, name }) {
       organization,
       {
         '@type': 'WebSite',
-        '@id': `${SITE_URL}${baseUrl}#website`,
+        '@id': websiteId(baseUrl),
         url: `${SITE_URL}${baseUrl}`,
         name,
         publisher: { '@id': ORGANIZATION_ID },
@@ -77,7 +80,21 @@ function siteJsonLdHeadTag(site) {
   };
 }
 
+// The references a page of the site makes to its site-level graph, for the
+// site's `customFields.jsonLd`: who publishes the page, the site it's part of
+// and, with `aboutProduct`, the product it's about. The docs and the tutorials
+// are about the product. The blog also covers other topics, so it leaves
+// `aboutProduct` out.
+function pageJsonLdRefs({ baseUrl, aboutProduct = false }) {
+  return {
+    publisher: { '@id': ORGANIZATION_ID },
+    website: { '@id': websiteId(baseUrl) },
+    ...(aboutProduct ? { about: { '@id': PRODUCT_ID } } : {}),
+  };
+}
+
 module.exports = {
   siteJsonLd,
   siteJsonLdHeadTag,
+  pageJsonLdRefs,
 };

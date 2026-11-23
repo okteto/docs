@@ -1,6 +1,6 @@
 const path = require('path');
 const shared = require('./config/shared');
-const { siteJsonLdHeadTag } = require('./config/jsonld');
+const { siteJsonLdHeadTag, pageJsonLdRefs } = require('./config/jsonld');
 
 const docsContentPath = 'src/content';
 
@@ -114,6 +114,9 @@ module.exports = {
     // Read by src/components/Newsletter: the docs sign readers up to the
     // product updates email, with each Okteto release.
     newsletter: 'productUpdates',
+    // Read by src/theme/DocItem/Metadata: the references of each page to the
+    // site-level JSON-LD graph.
+    jsonLd: pageJsonLdRefs({ baseUrl: BASE_URL, aboutProduct: true }),
   },
   staticDirectories: shared.staticDirectories('static'),
   markdown: {
@@ -126,7 +129,7 @@ module.exports = {
   headTags: [
     ...shared.headTags(BASE_URL),
     // Site-level JSON-LD entity graph (Organization, WebSite, SoftwareApplication),
-    // shared with the tutorials (config/jsonld.js). The page-level
+    // shared with the tutorials and the blog (config/jsonld.js). The page-level
     // TechArticle/BreadcrumbList block (src/theme/DocItem/Metadata) references
     // its @id values.
     siteJsonLdHeadTag({ baseUrl: BASE_URL, name: 'Okteto Documentation' }),
