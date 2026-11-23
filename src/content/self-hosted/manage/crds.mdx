@@ -107,7 +107,7 @@ To configure a catalog item, create a resource like this:
 - `spec.manifestPath`: the path to the manifest file in the repository (optional)
 - `spec.name`: the display name in the Catalog UI list
 - `spec.repositoryUrl`: the repository URL
-- `spec.variables`: the variables suggested to the user at deployment time. Define each variable by name only, or by name and value (optional)
+- `spec.variables`: the variables suggested to the user at deployment time. Define each variable by name only, or by name and value (optional). A variable can also read its value from a Kubernetes Secret: see [Secret Variables](#secret-variables)
 
 ```yaml title="my-catalog-item.yaml"
 apiVersion: git.okteto.com/v1
@@ -128,6 +128,57 @@ spec:
 
 Run `kubectl apply -f my-catalog-item.yaml` to add the catalog item to the Okteto Catalog in your cluster.
 
+### Secret Variables
+
+A variable can read its value from a key of a Kubernetes Secret instead of setting a `value`. Set its `type` to `secret` and add a `secretKeyRef`:
+
+- `type`: `string` or `secret`. Defaults to `string`
+- `secretKeyRef.name`: the name of the Secret, in the `okteto` namespace
+- `secretKeyRef.key`: the key of the Secret that stores the value
+
+A secret variable can't have a `value`, and a string variable can't have a `secretKeyRef`.
+
+```yaml title="my-catalog-item.yaml"
+apiVersion: git.okteto.com/v1
+kind: CatalogItem
+metadata:
+  name: my-catalog-item
+  namespace: okteto
+spec:
+  name: my-catalog-item
+  repositoryUrl: https://github.com/okteto/movies-with-helm
+  variables:
+    - name: DB_HOST
+      value: postgres
+    - name: DB_PASSWORD
+      type: secret
+      secretKeyRef:
+        name: movies-db
+        key: password
+```
+
+Okteto only reads Secrets with the label `dev.okteto.com/catalog-secret: "true"`:
+
+```yaml title="movies-db-secret.yaml"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: movies-db
+  namespace: okteto
+  labels:
+    dev.okteto.com/catalog-secret: "true"
+type: Opaque
+stringData:
+  password: <password>
+```
+
+Run `kubectl apply -f movies-db-secret.yaml -f my-catalog-item.yaml` to create both.
+
+:::note
+- Secret variables need the [`catalog.secretVariables.enabled`](self-hosted/helm-configuration.mdx#catalog) Helm setting. [Secret Variables](admin/catalog.mdx#secret-variables) explains how Okteto passes them to your deploys.
+- Kubernetes doesn't check the names of the variables. The name of a secret variable can only have letters, digits, and `_`, can't start with a digit, and can't start with `OKTETO_`. Otherwise, the deploy fails.
+- If you install the CRDs yourself ([`crds.install: false`](self-hosted/helm-configuration.mdx#crds)), update the `catalogitems.git.okteto.com` CRD to the one of your Okteto version. Older versions of the CRD don't support `type` or `secretKeyRef`.
+:::
 
 ## Cloud Credentials
 
