@@ -139,56 +139,6 @@ api:
       memory: 128Mi
 ```
 
-### autoscaler (deprecated)
-
-The cluster autoscaler service. Disabled by default. It tells the Kubernetes cluster autoscaler to scale nodes when the actual CPU or memory usage of a node exceeds the limits. To limit the autoscaler's analysis to a subset of nodes, use [`globals.nodeSelectors.dev`](self-hosted/helm-configuration.mdx#nodeselectors). The deprecated `tolerations.devPool` still works and, when set, takes precedence.
-
-> **Requirements**: the cluster autoscaler and the metrics server must be installed in your cluster.
-
-- `annotations`: Annotations to add to the autoscaler pods.
-- `cpu.up`: Increase the cluster size when the CPU consumption is greater than or equal to this value. It defaults to 60 percent.
-- `cpu.down`: Decrease the cluster size when the CPU consumption is less than this value. It defaults to 40 percent.
-- `image`: The image the autoscaler uses to deploy the autoscaler agent. It defaults to `busybox`.
-- `labels`: Labels to add to the autoscaler pods.
-- `memory.up`: Increase the cluster size when the memory consumption is greater than or equal to this value. It defaults to 70 percent.
-- `memory.down`: Decrease the cluster size when the memory consumption is less than this value. It defaults to 50 percent.
-- `nodes.increment`: The number of new nodes to request when all the current nodes are overloaded. For example, if this value is 3, the autoscaler requests 3 new nodes when all the cluster nodes are overloaded. It defaults to 1.
-- `nodes.min`: Minimum number of nodes in the cluster. It defaults to 1.
-- `nodes.max`: Maximum number of nodes in the cluster. It defaults to 10. Zero means unlimited.
-- `nodes.poolLabel`: The node label that identifies a node's pool. For example, `cloud.google.com/gke-nodepool` in GKE and `eks.amazonaws.com/nodegroup` in EKS. If set, the autoscaler scales each node pool independently.
-- `pods.up`: Increase the cluster size when the ratio of pods in a node to the maximum pods per node is greater than or equal to this value. It defaults to 90 percent.
-- `pods.down`: Decrease the cluster size when the ratio of pods in a node to the maximum pods per node is less than this value. It defaults to 80 percent.
-- `priorityClassName`: The priority class for the autoscaler pods.
-- `schedule`: How often, in seconds, the autoscaler checks whether the cluster needs scaling. It defaults to 300.
-- `slackWebhook`: A Slack webhook URL where the autoscaler sends notifications of its events.
-- `volumes.up`: Increase the cluster size when the ratio of volumes in a node to the maximum volumes per node is greater than or equal to this value. It defaults to 90 percent.
-- `volumes.down`: Decrease the cluster size when the ratio of volumes in a node to the maximum volumes per node is less than this value. It defaults to 80 percent.
-
-```yaml
-autoscaler:
-  enabled: false
-  image: busybox
-  schedule: 300
-  cpu:
-    up: 60
-    down: 40
-  memory:
-    up: 70
-    down: 50
-  pods:
-    up: 90
-    down: 80
-  volumes:
-    up: 90
-    down: 80
-  nodes:
-    increment: 1
-    min: 1
-    max: 10
-    poolLabel: cloud.google.com/gke-nodepool
-  slackWebhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
-```
-
 ### buildkit
 
 The [Okteto Build Service](application-environments/build-service.mdx). `okteto build` uses it to build container images in the cluster.
@@ -604,7 +554,7 @@ installerChecker:
 
 ### migration
 
-The Helm hook Job that applies the data and resource migrations required by the Okteto version you're installing. It runs automatically on every install and upgrade, after the Okteto Webhook is ready. It updates existing Okteto resources (users, Namespaces, ingresses, Personal Access Tokens, Preview Environments, and Catalog items) to the schema of the new version. It doesn't install CRDs: [`crds`](#crds) manages them.
+The Helm hook Job that applies the data and resource migrations required by the Okteto version you're installing. It runs automatically on every install and upgrade, after the Okteto Webhook is ready. It updates existing Okteto resources (users, Namespaces, ingresses, Personal Access Tokens, Preview Environments, and Catalog items) to the schema of the new version. It also creates, updates, or deletes the `okteto-warm-nodes` Deployment of [warm nodes](#warmnodes). It doesn't install CRDs: [`crds`](#crds) manages them.
 
 :::note
 Okteto needs this job to work correctly. Don't disable it.
@@ -668,29 +618,6 @@ By default, the Private Endpoints component inherits the configuration of the [`
 
 - `clientID`: Overrides `auth.*.clientID`.
 - `clientSecret`: Overrides `auth.*.clientSecret`.
-
-### prepullImages
-
-The prepull images daemonset makes the essential Okteto images available on every node in your cluster. Jobs and operations start faster, because their containers don't pull images when they're created.
-
-:::note
-The prepullImages feature assumes that your cluster nodes can pull every Okteto image, either because the images are public or through IAM roles or permissions configured on the nodes. Okteto makes the same assumption for every image in the Okteto control plane. This feature doesn't add image pull secrets or any authentication configuration.
-:::
-
-- `enabled`: Whether to install the prepull images daemonset. It defaults to `true`.
-- `priorityClassName`: The priority class for the prepull images pods. The PriorityClass must already exist in your cluster. This value takes precedence over `globals.priorityClassName`. If it isn't set, the pods inherit the priority class from `globals.priorityClassName`.
-
-```yaml
-prepullImages:
-  enabled: true
-  priorityClassName: "high-priority"
-```
-
-The daemonset prepulls these images on every node:
-
-- **ghcr.io/okteto/backend:{variables.chartVersion}**
-- **ghcr.io/okteto/pipeline-runner:{variables.chartVersion}**
-- **ghcr.io/okteto/okteto:{variables.cliVersion}**
 
 ### regcredsManager
 
@@ -840,6 +767,58 @@ telemetry:
 
 Disabling telemetry also disables the Okteto CLI analytics.
 
+### warmNodes
+
+Warm nodes are nodes for your application environments that Okteto keeps ready, with the Okteto images and the images in `extraImages` already pulled. When a pod in a Namespace doesn't fit on any other node, Kubernetes runs it on a warm node, so it starts without waiting for those images to download. Warm nodes are disabled by default. Once you enable them, Okteto keeps 1 warm node, and Admins set how many to keep, from 0 to 20, in [**Admin > Nodes**](admin/nodes.mdx#warm-nodes).
+
+> **Requirements**: the Kubernetes cluster autoscaler must be installed in your cluster.
+
+Each warm node runs a pod of the `okteto-warm-nodes` Deployment, in the `okteto` namespace:
+
+- Each warm pod runs alone on its node: no other warm pod and no pod of a Namespace managed by Okteto runs on the same node. The warm pods run on the nodes for your application environments, with the same [`globals.nodeSelectors.dev`](#nodeselectors), [`globals.tolerations.dev`](#tolerations), and [`affinity.devPool`](#affinity) as the pods of your Namespaces.
+- The warm pods have a lower priority than the pods of your Namespaces. When one of your pods doesn't fit on any other node, the Kubernetes scheduler preempts a warm pod and runs your pod on its node.
+- The Deployment then creates a new warm pod, which stays `Pending` until the cluster autoscaler adds a node for it. That node is the new warm node.
+
+Each warm node is an idle node of the node pool, which adds to your infrastructure costs. If the node pool is at its maximum size, the new warm pods stay `Pending`, and **Admin > Nodes** shows fewer warm nodes than the number you set.
+
+:::warning
+The warm pods request almost no CPU or memory, so warm nodes assume that all the nodes for your application environments have the same size. Provisioners that choose the size of each new node from the pending pods, such as Karpenter or node auto-provisioning, create warm nodes that are too small for the pods of your Namespaces.
+:::
+
+The warm nodes pull the images of the Okteto CLI, the pipeline runner, and the Okteto backend, in the versions of your Okteto installation, and then the images in `extraImages`.
+
+:::note
+The warm pods pull private images with the [Registry Credentials](admin/registry-credentials/index.mdx) of your Okteto instance, or with the credentials available to the nodes, such as IAM roles. An image in `extraImages` that can't be pulled doesn't keep the other images from being pulled.
+:::
+
+The [migration](#migration) job creates or updates the `okteto-warm-nodes` Deployment on every install and upgrade, and deletes it when you disable warm nodes. Upgrades keep the number of warm nodes, and revert any other change made by hand to the Deployment. If the job can't apply or delete the Deployment, the install or upgrade fails. `helm uninstall` deletes the Deployment too. After a `helm rollback` to a version earlier than 1.51, delete the Deployment yourself:
+
+```bash
+kubectl delete deployment okteto-warm-nodes --namespace=okteto
+```
+
+- `enabled`: Whether Okteto keeps warm nodes. Defaults to `false`.
+- `countManagedExternally`: Whether you set the number of warm nodes outside of Okteto. Defaults to `false`: Admins set it in **Admin > Nodes**, up to 20. When `true`, Okteto doesn't change the number, **Admin > Nodes** shows it as read-only, and you set it by scaling the `okteto-warm-nodes` Deployment, for example from your GitOps tool or with `kubectl scale deployment okteto-warm-nodes --replicas=5 --namespace=okteto`.
+- `extraImages`: Images to pull on the warm nodes besides the Okteto images, for example the images that your application environments use.
+- `labels`: Labels to add to the `okteto-warm-nodes` Deployment.
+- `annotations`: Annotations to add to the `okteto-warm-nodes` Deployment.
+- `podLabels`: Labels to add to the warm pods, besides the global `podLabels`. If both set the same key, this value wins.
+- `podAnnotations`: Annotations to add to the warm pods, besides the global `podAnnotations`. If both set the same key, this value wins.
+- `priorityClass.create`: Whether to create the priority class of the warm pods. Defaults to `true`. Set it to `false` to use an existing priority class with the name in `priorityClass.name`: the install or upgrade fails if it doesn't exist.
+- `priorityClass.name`: The name of the priority class of the warm pods. Defaults to `okteto-warm-nodes`.
+- `priorityClass.value`: The priority of the warm pods. Defaults to `-10`. It must be lower than the priority of the pods of your Namespaces, so they can preempt the warm pods, and greater than or equal to the `--expendable-pods-priority-cutoff` of the cluster autoscaler (`-10` by default), so the pending warm pods make it add nodes. With `create: false`, the value of your priority class applies, and Okteto doesn't check it.
+- `priorityClass.preemptionPolicy`: The preemption policy of the priority class. Defaults to `Never`, so the warm pods never preempt other pods.
+
+Kubernetes doesn't allow changing the `value` or the `preemptionPolicy` of an existing priority class, so `helm upgrade` fails if you change them after the priority class is created.
+
+```yaml
+warmNodes:
+  enabled: true
+  extraImages:
+    - node:24
+    - python:3.13
+```
+
 ### webhook
 
 The webhook service. It creates ingresses, generates hostnames, and enforces policies, among other tasks.
@@ -896,13 +875,6 @@ affinity:
           values:
           - "true"
       weight: 10
-  oktetoPool:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - preference:
-        matchExpressions:
-        - key: dev.okteto.com/overloaded
-          operator: DoesNotExist
-      weight: 50
 ```
 
 In this example, pods in Namespaces created by Okteto prefer to land on spot nodes.

@@ -40,6 +40,26 @@ Review the [release notes](release-notes.mdx) before upgrading: they list new fe
 
 Okteto Chart 2.0 will make Gateway API the default installation mode. Migrate your instance with [Migrate to Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx) before you upgrade to 2.0.
 
+## Upgrading to Okteto 1.51.x – Okteto Autoscaler Removed
+
+Okteto 1.51 removes the Okteto Autoscaler and the Helm settings related to it. `helm upgrade` deletes their resources, and prints a warning if your values still use these settings. Remove them from your `config.yaml`:
+
+- `autoscaler`: The Okteto Autoscaler told the Kubernetes cluster autoscaler to add nodes when the real CPU and memory usage of the nodes went beyond its thresholds. The cluster autoscaler now adds nodes based on the CPU and memory requests of your pods. The upgrade removes what the Okteto Autoscaler left in your cluster: its `autoscaler-agent` Deployments, the `dev.okteto.com/overloaded` label of the nodes, and the `cluster-autoscaler.kubernetes.io/scale-down-disabled` annotation of the nodes where the Okteto Autoscaler set it. If you set this annotation yourself, the upgrade keeps it.
+- `nodeReadinessChecker`: Okteto no longer labels new nodes with `dev.okteto.com/node-ready`. The upgrade removes the node selector on this label from the DaemonSets of your Namespaces, so they also run on new nodes. Existing nodes keep the label.
+- `prepullImages`: Okteto no longer pulls its images on every node. This setting was enabled by default, so it affects every installation: the jobs that Okteto runs on a new node, such as the pipelines of your application environments, pull the Okteto images first.
+- `unsupported.staticIPs`: Okteto no longer assigns static IPs to the nodes.
+
+If you used the Okteto Autoscaler, prepare for the change before upgrading:
+
+- **Requests that match real usage**: Configure the [Resource Manager](admin/resource-manager.mdx) in **Automatic** mode from **Admin > Resource Manager**. It sets the CPU and memory requests of new pods from the real usage of their containers, so the cluster autoscaler adds and removes nodes according to what your workloads use.
+- **Warm nodes**: Enable [warm nodes](self-hosted/helm-configuration.mdx#warmnodes) to keep nodes ready for your application environments, with the Okteto images and the images you choose already pulled. A pod that doesn't fit on any other node runs on a warm node, without waiting for a new node. Warm nodes also pull the images that `prepullImages` used to pull on every node.
+
+If you enabled warm nodes and roll back to Okteto 1.50 with `helm rollback`, delete the `okteto-warm-nodes` Deployment, which Helm doesn't manage:
+
+```bash
+kubectl delete deployment okteto-warm-nodes --namespace=okteto
+```
+
 ## Upgrading to Okteto 1.50.x – Okteto Registry Images in Azure Storage
 
 Okteto 1.50 upgrades the Okteto Registry to [distribution](https://github.com/distribution/distribution) 3.1.2, which names the blobs in Azure Storage without the leading `/` that earlier versions used ([distribution#4278](https://github.com/distribution/distribution/issues/4278)). Only [Azure Storage](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx) is affected: Google Cloud Storage, Amazon S3, DigitalOcean Spaces, and filesystem storage keep their images.

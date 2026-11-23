@@ -1,15 +1,41 @@
 ---
 title: Nodes
-description: The Nodes section of the Admin Dashboard shows the usage of each node of your Kubernetes cluster.
+description: The Nodes section of the Admin Dashboard shows the usage of each node of your Kubernetes cluster and sets the number of warm nodes.
 sidebar_label: Nodes
 id: nodes
 ---
 
 import Image from "@theme/Image";
 
-**Admin > Nodes** shows each node of your Kubernetes cluster with its usage: the number of running pods, the number of volumes in use, and its CPU and memory utilization.
+**Admin > Nodes** shows each node of your Kubernetes cluster with its CPU usage, memory usage, and number of pods, compared with the node's capacity. When warm nodes are enabled, Admins also set the number of warm nodes there, and the table marks which nodes are warm.
 
 <Image
   src={require("@site/static/img/admin-nodes.png").default}
-  alt="The Nodes section of the Admin Dashboard, with the pods, volumes, CPU, and memory of each node of the cluster"
+  alt="The Nodes section of the Admin Dashboard, with the Warm Nodes setting and a table with the CPU, memory, and pods of each node of the cluster"
 />
+
+The table refreshes every 30 seconds while the page is open in your browser.
+
+## Warm Nodes
+
+Warm nodes are nodes for your application environments that Okteto keeps ready, with the Okteto images and the extra images you configure already pulled. When a pod in a Namespace doesn't fit on any other node, Kubernetes runs it on a warm node, so it starts without waiting for those images to download. The cluster autoscaler then adds a new node to replace the warm node. Each warm node is an idle node, which adds to your infrastructure costs.
+
+Warm nodes are disabled by default, and **Admin > Nodes** shows the **Warm Nodes** setting only when they're enabled. To enable them, and for their requirements, see [`warmNodes`](self-hosted/helm-configuration.mdx#warmnodes) in the Helm configuration.
+
+### Setting the Number of Warm Nodes
+
+1. Open **Admin > Nodes**.
+2. In **Warm Nodes**, enter the number of nodes to keep warm, from 0 to 20.
+3. Click **Save**.
+
+Okteto adds or removes warm nodes to match the number. A new warm node takes some time to be ready: the cluster autoscaler adds the node, and the node pulls the images. Set the number to 0 to stop keeping warm nodes without disabling them.
+
+If the number was set above 20 outside of the Admin Dashboard, for example with `kubectl scale`, **Admin > Nodes** shows it with a warning. You can only save a number up to 20.
+
+### Read-Only Number of Warm Nodes
+
+When the [`warmNodes.countManagedExternally`](self-hosted/helm-configuration.mdx#warmnodes) Helm setting is `true`, you set the number of warm nodes outside of Okteto, for example from your GitOps tool. **Admin > Nodes** shows the number with the **Read-only** tag, and without the **Save** button.
+
+### Warm Tag
+
+The table shows a **Warm** tag next to the name of each warm node. A node is warm while a warm pod runs on it, including while it's still pulling the images. When one of your pods takes a warm node, the node loses the tag, and the new warm node gets it once the cluster autoscaler adds it. If the cluster autoscaler can't add nodes, for example because the node pool is at its maximum size, the table shows fewer warm nodes than the number you set.
