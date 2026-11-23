@@ -54,7 +54,18 @@ function vlink(cx, y1, y2, equal) {
 // The autonomous agent loop (Coding Agents > Autonomous Workflows): the agent
 // takes a task, edits the code, deploys it, verifies it in its application
 // environment, fixes what fails, and opens a pull request when it passes.
-const LOOP_ALT = 'The autonomous agent loop: the agent takes a task, creates the Namespace of its session and deploys the application with okteto deploy, edits the code, deploys it again, and verifies it with okteto test, the endpoints, and the logs. It goes back to edit the code when something fails, and opens a pull request when everything passes';
+const LOOP_ALT = 'The autonomous agent loop: the coding agent creates the Namespace of its session, edits the code, deploys it with okteto deploy, and verifies it with okteto test. When something fails, it goes back to edit the code. When everything passes, it opens a pull request and destroys the Namespace';
+// The agent loop: six steps of the same size in a row, each with a line icon,
+// a verb, and what it acts on under the box. The coding agent starts the row.
+const LOOP = [
+  ['layers', 'Create', 'Namespace', C.blue],
+  ['code', 'Edit', 'code', C.teal],
+  ['rocket', 'Deploy', 'okteto deploy', C.teal],
+  ['circle-check', 'Verify', 'okteto test', C.teal],
+  ['git-pull-request', 'Open', 'pull request', C.teal],
+  ['trash-2', 'Destroy', 'Namespace', C.blue],
+];
+const agent = (cx, cy) => circle(cx, cy, 44, { color: C.purple }) + icon('bot', cx, cy, 46, C.purple) + text('Coding agent', cx, cy + 82, 24);
 function step(x, y, w, h, name, label, color, lines = []) {
   let out = box(x, y, w, h, { color, radius: 18 }) + icon(name, x + w / 2, y + 48, 44, color) + text(label, x + w / 2, y + 108, 26);
   lines.forEach((line, i) => { out += text(line, x + w / 2, y + 148 + i * 34, 22, { color: C.dim, mono: true }); });
@@ -134,23 +145,27 @@ export default [
   {
     out: 'static/img/coding-agents-loop.webp',
     background: 'white',
+    height: 400,
     alt: LOOP_ALT,
     svg: () => {
-      let out = endpoint(62, 290, 'ticket', 'Task', C.amber);
-      out += arrow(118, 290, 140, 290, { color: C.blue });
-      out += step(146, 190, 230, 200, 'layers', 'New Namespace', C.blue, ['okteto deploy']);
-      out += arrow(382, 290, 404, 290, { color: C.purple });
-      out += step(410, 190, 150, 200, 'code', 'Edit code', C.purple);
-      out += arrow(566, 290, 588, 290, { color: C.teal });
-      out += step(594, 190, 190, 200, 'rocket', 'Deploy', C.teal, ['okteto deploy']);
-      out += arrow(790, 290, 812, 290, { color: C.teal });
-      out += step(818, 160, 170, 260, 'circle-check', 'Verify', C.teal, ['okteto test', 'endpoints', 'logs']);
-      out += curve('M903 420 C903 510 485 510 485 400', { color: C.red, dashed: true, strokeWidth: 4 });
-      out += arrow(485, 410, 485, 398, { color: C.red });
-      out += text('fails: fix the code', 694, 512, 24, { color: C.red });
-      out += arrow(994, 290, 1056, 290, { color: C.teal });
-      out += text('passes', 1025, 270, 22, { color: C.teal });
-      out += endpoint(1112, 290, 'git-pull-request', 'Pull request', C.teal);
+      // Square steps, 28px apart, on one row. The loop back to Edit runs over
+      // the row, so nothing crosses the labels under the boxes.
+      const W = 136;
+      const cy = 240;
+      const x = (i) => 195 + i * 164;
+      let out = agent(100, cy) + arrow(150, cy, x(0) - 6, cy, { color: C.dim });
+      LOOP.forEach(([name, verb, what, color], i) => {
+        out += box(x(i), cy - 68, W, W, { color, fill: C.row, radius: 18, strokeWidth: 3 })
+          + icon(name, x(i) + W / 2, cy - 22, 40, color) + text(verb, x(i) + W / 2, cy + 38, 26)
+          + text(what, x(i) + W / 2, cy + 104, 22, { color: C.dim });
+        if (i) out += arrow(x(i) - 24, cy, x(i) - 6, cy, { color: C.dim });
+      });
+      const from = x(3) + W / 2;
+      const to = x(1) + W / 2;
+      out += curve(`M${from} ${cy - 74} C${from} 70 ${to} 70 ${to} ${cy - 86}`, { color: C.red, dashed: true, strokeWidth: 4 })
+        + arrow(to, cy - 88, to, cy - 74, { color: C.red })
+        + text('fails: fix the code', (from + to) / 2, 62, 22, { color: C.red })
+        + text('passes', x(4) - 14, cy - 86, 22, { color: C.teal });
       return out;
     },
   },
@@ -158,24 +173,22 @@ export default [
     out: 'static/img/coding-agents-loop-mobile.webp',
     background: 'white',
     width: 600,
-    height: 1520,
+    height: 950,
     alt: LOOP_ALT,
     svg: () => {
-      let out = endpoint(300, 80, 'ticket', 'Task', C.amber);
-      out += arrow(300, 205, 300, 245, { color: C.blue });
-      out += step(170, 255, 260, 200, 'layers', 'New Namespace', C.blue, ['okteto deploy']);
-      out += arrow(300, 465, 300, 505, { color: C.purple });
-      out += step(170, 515, 260, 160, 'code', 'Edit code', C.purple);
-      out += arrow(300, 685, 300, 725, { color: C.teal });
-      out += step(170, 735, 260, 200, 'rocket', 'Deploy', C.teal, ['okteto deploy']);
-      out += arrow(300, 945, 300, 985, { color: C.teal });
-      out += step(170, 995, 260, 260, 'circle-check', 'Verify', C.teal, ['okteto test', 'endpoints', 'logs']);
-      out += curve('M430 1125 C560 1125 560 595 440 595', { color: C.red, dashed: true, strokeWidth: 4 });
-      out += arrow(450, 595, 438, 595, { color: C.red });
-      out += text('fails', 548, 870, 24, { color: C.red });
-      out += arrow(300, 1265, 300, 1320, { color: C.teal });
-      out += text('passes', 320, 1300, 22, { color: C.teal, anchor: 'start' });
-      out += endpoint(300, 1380, 'git-pull-request', 'Pull request', C.teal);
+      // The same steps, stacked: icon, verb, and what it acts on in each row.
+      const y = (i) => 230 + i * 118;
+      let out = agent(300, 90) + arrow(300, 190, 300, y(0) - 6, { color: C.dim });
+      LOOP.forEach(([name, verb, what, color], i) => {
+        out += box(150, y(i), 300, 84, { color, fill: C.row, radius: 18, strokeWidth: 3 })
+          + icon(name, 196, y(i) + 42, 36, color) + text(verb, 236, y(i) + 38, 26, { anchor: 'start' })
+          + text(what, 236, y(i) + 66, 22, { anchor: 'start', color: C.dim });
+        if (i) out += arrow(300, y(i) - 30, 300, y(i) - 6, { color: C.dim });
+      });
+      out += curve(`M456 ${y(3) + 42} C560 ${y(3) + 42} 560 ${y(1) + 42} 470 ${y(1) + 42}`, { color: C.red, dashed: true, strokeWidth: 4 })
+        + arrow(468, y(1) + 42, 456, y(1) + 42, { color: C.red })
+        + text('fails', 590, (y(1) + y(3)) / 2 + 50, 22, { color: C.red, anchor: 'end' })
+        + text('passes', 316, y(4) - 12, 22, { color: C.teal, anchor: 'start' });
       return out;
     },
   },
