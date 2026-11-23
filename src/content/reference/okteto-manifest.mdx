@@ -1282,6 +1282,31 @@ The base image used to run your test.
 
 If it is not defined, Okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin has changed it in the [installer settings](self-hosted/helm-configuration.mdx#installer) with a [custom installer image](self-hosted/helm-configuration.mdx#custom-installer-image)
 
+#### profiles ([string], optional)
+
+A list of profiles the test belongs to. When you run `okteto test` without naming tests, it runs the tests without profiles. Enable a profile with the [`--profile`](reference/okteto-cli.mdx#selecting-tests-with-profiles) flag or the `OKTETO_PROFILES` environment variable to also run the tests that have it. When you name tests, they run whatever their profiles.
+
+```yaml
+test:
+  unit:
+    commands:
+      - make unit
+  seed-db:
+    profiles: [long-running, release]
+    commands:
+      - make seed
+  e2e:
+    profiles: [long-running, release]
+    depends_on:
+      - seed-db
+    commands:
+      - make e2e
+```
+
+A profile name must start with a letter or a number, and contain only letters, numbers, `_`, `.`, and `-`.
+
+When you select tests by profile, each test in `depends_on` must have no profiles or an enabled profile. Otherwise, `okteto test` fails before running any test.
+
 ## Environment Variables
 
 There are multiple parts of the Okteto Manifest that deal with environment variables in one sense or another.
