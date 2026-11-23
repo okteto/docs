@@ -50,13 +50,17 @@ const tealPill = (x, cy, w, size = 18) => box(x, cy - 38, w, 76, { color: C.teal
 // Namespace), with the Kubernetes mark and its name on its top edge. The mark
 // sits at the left of the edge, not in the middle, because the connections
 // between the two Namespaces cross the middle of the edge.
-function ns(x, y, w, h, kind) {
+// With right, the name goes at the right of the edge, for the diagrams whose
+// arrows enter the Namespace through the left of its top edge.
+function ns(x, y, w, h, kind, { right = false } = {}) {
   const label = kind === 'shared' ? 'Staging' : 'Cindy';
+  const lw = label.length * 15 + 72;
+  const lx = right ? x + w - 44 - lw : x + 22;
   let out = box(x, y, w, h, { color: C.blue, radius: 20 });
-  out += `<rect x="${x + 22}" y="${y - 5}" width="${label.length * 15 + 72}" height="10" fill="${C.background}"/>`;
+  out += `<rect x="${lx}" y="${y - 5}" width="${lw}" height="10" fill="${C.background}"/>`;
   // Both are Namespaces, so both carry the Kubernetes mark.
-  out += logo('kubernetes', x + 50, y, 50);
-  return out + text(label, x + 82, y + 9, 26, { anchor: 'start' });
+  out += logo('kubernetes', lx + 28, y, 50);
+  return out + text(label, lx + 60, y + 9, 26, { anchor: 'start' });
 }
 
 // A dashed subsystem or database server inside a Namespace, titled on its top edge.
@@ -165,84 +169,99 @@ function propagationNarrow(propagates) {
 // ---------------------------------------------------------------------------
 // Queue Splitting: each subsystem owns its broker.
 
-// A subsystem in a row: API, Kafka, worker, and the database they share.
+// A subsystem in a row: API, Kafka, worker, and the database they share. It has
+// the same padding above and below its content, and 50px between its dashed
+// border and the services, so the arrows that enter it have room.
 function subsystemWide(y, api, worker, dbName, teal = false, title = 'Rentals subsystem') {
   const c = teal ? C.teal : C.dim;
-  return group(330, y, 810, 200, title, { color: teal ? C.teal : C.dim })
-    + svc(350, y + 40, 210, api, { teal }) + db(650, y + 40, 130, 'Kafka', teal) + svc(870, y + 40, 250, worker, { teal })
-    + path([[560, y + 66], [646, y + 66]], { color: c }) + path([[780, y + 66], [866, y + 66]], { color: c })
-    + db(615, y + 130, 200, dbName, teal)
-    + line([[455, y + 92], [455, y + 156], [615, y + 156]], c) + line([[995, y + 92], [995, y + 156], [815, y + 156]], c);
+  const r = y + 36; // the top of the first row
+  return group(335, y, 810, 210, title, { color: c })
+    + svc(385, r, 230, api, { teal }) + db(675, r, 130, 'Kafka', teal) + svc(865, r, 230, worker, { teal })
+    + path([[615, r + 26], [671, r + 26]], { color: c }) + path([[805, r + 26], [861, r + 26]], { color: c })
+    + db(640, r + 86, 200, dbName, teal)
+    + line([[500, r + 52], [500, r + 112], [640, r + 112]], c) + line([[980, r + 52], [980, r + 112], [840, r + 112]], c);
 }
 
 function queuesWide(overlay) {
-  let out = bluePill(30, 60, 360) + path([[225, 84], [225, 356]], { color: C.blue })
-    + ns(30, 130, 1150, 490, 'shared')
-    + svc(60, 360, 210, 'API Gateway')
-    + subsystemWide(170, 'Rent API', 'Rent Worker', 'PostgreSQL')
-    + subsystemWide(400, 'Catalog API', 'Catalog Worker', 'MongoDB', false, 'Catalog subsystem')
-    + path([[270, 376], [300, 376], [300, 236], [346, 236]]) + path([[270, 396], [300, 396], [300, 466], [346, 466]]);
+  // Every Namespace keeps 50px above its first subsystem and 40px below its
+  // last one. The API Gateway sits halfway between the two API rows.
+  const T = 190;
+  const B = 440;
+  const G = (T + B) / 2 + 62;
+  let out = bluePill(35, 60, 360) + ns(30, 140, 1150, 550, 'shared', { right: true })
+    + svc(65, G - 26, 210, 'API Gateway')
+    + subsystemWide(T, 'Rent API', 'Rent Worker', 'PostgreSQL')
+    + subsystemWide(B, 'Catalog API', 'Catalog Worker', 'MongoDB', false, 'Catalog subsystem')
+    + path([[275, G - 10], [305, G - 10], [305, T + 62], [381, T + 62]]) + path([[275, G + 10], [305, G + 10], [305, B + 62], [381, B + 62]]);
   if (overlay) {
-    out += tealPill(420, 60, 360) + path([[440, 98], [440, 112], [260, 112], [260, 356]], { color: C.teal })
-      + ns(30, 680, 1150, 250, 'overlay')
-      + subsystemWide(720, 'Rent API', 'Rent Worker', 'PostgreSQL', true)
-      + path([[210, 412], [210, 786], [346, 786]], { color: C.teal });
+    out += path([[135, 84], [135, G - 30]], { color: C.blue })
+      + tealPill(415, 60, 360) + path([[435, 98], [435, 116], [205, 116], [205, G - 30]], { color: C.teal })
+      + ns(30, 750, 1150, 300, 'overlay', { right: true })
+      + subsystemWide(800, 'Rent API', 'Rent Worker', 'PostgreSQL', true)
+      + path([[170, G + 26], [170, 862], [381, 862]], { color: C.teal });
+  } else {
+    out += path([[170, 84], [170, G - 30]], { color: C.blue });
   }
   return out;
 }
 
-// A subsystem in a column: API, Kafka, worker, and the database on the right.
+// A subsystem in a column: API, Kafka, worker, and the database on the right,
+// with the same paddings as the wide one.
 function subsystemNarrow(y, api, worker, dbName, teal = false, title = 'Rentals subsystem') {
   const c = teal ? C.teal : C.dim;
-  return group(50, y, 540, 270, title, { right: true, color: teal ? C.teal : C.dim })
-    + svc(70, y + 30, 240, api, { teal }) + db(70, y + 110, 240, 'Kafka', teal) + svc(70, y + 190, 240, worker, { teal })
-    + path([[150, y + 82], [150, y + 106]], { color: c }) + path([[150, y + 162], [150, y + 186]], { color: c })
-    + db(380, y + 110, 190, dbName, teal)
-    + line([[310, y + 44], [475, y + 44], [475, y + 110]], c) + line([[310, y + 216], [475, y + 216], [475, y + 162]], c);
+  const r = y + 50;
+  return group(50, y, 540, 302, title, { right: true, color: c })
+    + svc(100, r, 220, api, { teal }) + db(100, r + 80, 220, 'Kafka', teal) + svc(100, r + 160, 220, worker, { teal })
+    + path([[210, r + 52], [210, r + 76]], { color: c }) + path([[210, r + 132], [210, r + 156]], { color: c })
+    + db(350, r + 80, 190, dbName, teal)
+    + line([[320, r + 14], [445, r + 14], [445, r + 80]], c) + line([[320, r + 198], [445, r + 198], [445, r + 132]], c);
 }
 
 function queuesNarrow(overlay) {
   const top = overlay ? 100 : 0;
-  let out = bluePill(30, 50, 420);
+  let out = '';
   if (overlay) {
-    out += tealPill(190, 135, 420) + path([[90, 74], [90, 200], [240, 200], [240, 266]], { color: C.blue })
-      + path([[420, 173], [420, 266]], { color: C.teal });
+    out += bluePill(30, 50, 420) + tealPill(190, 135, 420)
+      + path([[60, 74], [60, 205], [270, 205], [270, 266]], { color: C.blue })
+      + path([[580, 173], [580, 205], [370, 205], [370, 266]], { color: C.teal });
   } else {
-    out += path([[300, 74], [300, 166]], { color: C.blue });
+    out += bluePill(110, 50, 420) + path([[320, 74], [320, 166]], { color: C.blue });
   }
-  out += ns(30, 130 + top, 580, 720, 'shared')
+  out += ns(30, 130 + top, 580, 824, 'shared')
     + svc(190, 170 + top, 260, 'API Gateway')
-    + subsystemNarrow(260 + top, 'Rent API', 'Rent Worker', 'PostgreSQL')
-    + subsystemNarrow(560 + top, 'Catalog API', 'Catalog Worker', 'MongoDB', false, 'Catalog subsystem')
-    + path([[230, 222 + top], [230, 286 + top]]) + path([[190, 196 + top], [40, 196 + top], [40, 616 + top], [66, 616 + top]]);
+    + subsystemNarrow(270 + top, 'Rent API', 'Rent Worker', 'PostgreSQL')
+    + subsystemNarrow(612 + top, 'Catalog API', 'Catalog Worker', 'MongoDB', false, 'Catalog subsystem')
+    + path([[210, 222 + top], [210, 316 + top]]) + path([[190, 196 + top], [40, 196 + top], [40, 688 + top], [96, 688 + top]]);
   if (overlay) {
-    out += ns(30, 920 + top, 580, 330, 'overlay')
-      + subsystemNarrow(960 + top, 'Rent API', 'Rent Worker', 'PostgreSQL', true)
-      + path([[450, 196 + top], [600, 196 + top], [600, 1030 + top], [314, 1030 + top]], { color: C.teal });
+    out += ns(30, 1014 + top, 580, 392, 'overlay')
+      + subsystemNarrow(1064 + top, 'Rent API', 'Rent Worker', 'PostgreSQL', true)
+      + path([[450, 196 + top], [600, 196 + top], [600, 1040 + top], [210, 1040 + top], [210, 1110 + top]], { color: C.teal });
   }
   return out;
 }
 
 // Message-level routing: both rent workers share the broker and filter by the header.
 function routingWide() {
-  return bluePill(30, 60, 360) + tealPill(420, 60, 360)
-    + path([[225, 84], [225, 226]], { color: C.blue }) + path([[440, 98], [440, 112], [260, 112], [260, 226]], { color: C.teal })
-    + ns(30, 130, 1150, 240, 'shared')
-    + svc(60, 230, 210, 'API Gateway') + svc(350, 230, 170, 'Rent API') + db(600, 230, 140, 'Broker') + svc(900, 230, 210, 'Rent Worker')
-    + path([[270, 256], [346, 256]]) + path([[520, 256], [596, 256]]) + path([[740, 256], [896, 256]])
-    + label('baggage in message headers', 700, 330, { color: C.dim, anchor: 'end' })
-    + label('skips okteto-divert=cindy', 1005, 330, { color: C.dim, anchor: 'middle' })
-    + ns(30, 430, 1150, 180, 'overlay')
-    + svc(900, 480, 210, 'Rent Worker', { teal: true }) + label('only okteto-divert=cindy', 1005, 570, { anchor: 'middle' })
-    + path([[720, 282], [720, 506], [896, 506]], { color: C.teal });
+  // Both Namespaces have the same height and the same paddings, and the four
+  // services of the row are evenly spaced.
+  return bluePill(35, 60, 360) + tealPill(415, 60, 360)
+    + path([[135, 84], [135, 186]], { color: C.blue }) + path([[435, 98], [435, 116], [205, 116], [205, 186]], { color: C.teal })
+    + ns(30, 130, 1150, 190, 'shared', { right: true })
+    + svc(65, 190, 210, 'API Gateway') + svc(392, 190, 170, 'Rent API') + db(678, 190, 140, 'Broker') + svc(935, 190, 210, 'Rent Worker')
+    + path([[275, 216], [388, 216]]) + path([[562, 216], [674, 216]]) + path([[818, 216], [931, 216]])
+    + label('baggage in message headers', 748, 284, { color: C.dim, anchor: 'end' })
+    + label('skips okteto-divert=cindy', 1145, 284, { color: C.dim, anchor: 'end' })
+    + ns(30, 380, 1150, 190, 'overlay', { right: true })
+    + svc(935, 440, 210, 'Rent Worker', { teal: true }) + label('only okteto-divert=cindy', 1145, 534, { anchor: 'end' })
+    + path([[780, 242], [780, 466], [931, 466]], { color: C.teal });
 }
 
 function routingNarrow() {
   return bluePill(30, 50, 420) + tealPill(190, 135, 420)
-    + path([[90, 74], [90, 200], [240, 200], [240, 266]], { color: C.blue }) + path([[420, 173], [420, 266]], { color: C.teal })
+    + path([[60, 74], [60, 205], [270, 205], [270, 266]], { color: C.blue }) + path([[580, 173], [580, 205], [370, 205], [370, 266]], { color: C.teal })
     + ns(30, 230, 580, 470, 'shared')
     + svc(190, 270, 260, 'API Gateway') + svc(190, 370, 260, 'Rent API') + db(190, 470, 260, 'Broker') + svc(190, 590, 260, 'Rent Worker')
-    + path([[220, 322], [220, 366]]) + path([[220, 422], [220, 466]]) + path([[220, 522], [220, 586]])
+    + path([[320, 322], [320, 366]]) + path([[320, 422], [320, 466]]) + path([[320, 522], [320, 586]])
     + label('baggage in message headers', 545, 562, { color: C.dim, anchor: 'end' })
     + label('skips okteto-divert=cindy', 320, 674, { color: C.dim, anchor: 'middle' })
     + ns(30, 760, 580, 180, 'overlay')
@@ -254,45 +273,53 @@ function routingNarrow() {
 // Data Cloning.
 
 function sharedDataWide() {
-  return bluePill(30, 200, 340) + tealPill(30, 290, 340)
-    + ns(410, 80, 770, 250, 'shared')
-    + svc(440, 200, 220, 'API Gateway') + svc(730, 200, 220, 'Catalog API') + db(980, 200, 170, 'MongoDB')
-    + path([[660, 226], [726, 226]]) + line([[950, 226], [980, 226]])
-    + path([[370, 200], [436, 216]], { color: C.blue }) + path([[370, 290], [436, 238]], { color: C.teal })
-    + ns(410, 410, 770, 190, 'overlay') + svc(730, 490, 220, 'Catalog API', { teal: true })
-    + path([[600, 252], [600, 516], [726, 516]], { color: C.teal })
-    + path([[950, 516], [1065, 516], [1065, 256]], { color: C.teal }) + label('reads', 1080, 380);
+  const G = 175; // the row of the shared services
+  const R = 425; // Cindy's row
+  return bluePill(30, G - 50, 380, 20) + tealPill(30, G + 50, 380, 20)
+    + ns(440, 80, 730, 190, 'shared')
+    + svc(465, G - 26, 220, 'API Gateway') + svc(745, G - 26, 200, 'Catalog API') + db(975, G - 26, 170, 'MongoDB')
+    + path([[685, G], [741, G]]) + line([[945, G], [975, G]])
+    + path([[410, G - 50], [461, G - 12]], { color: C.blue }) + path([[410, G + 50], [461, G + 12]], { color: C.teal })
+    + ns(440, 330, 730, 190, 'overlay') + svc(745, R - 26, 200, 'Catalog API', { teal: true })
+    + path([[575, G + 26], [575, R], [741, R]], { color: C.teal })
+    + path([[945, R], [1060, R], [1060, G + 30]], { color: C.teal }) + label('reads', 1075, 306);
 }
 
 function sharedDataNarrow() {
   return bluePill(30, 50, 420) + tealPill(150, 135, 420)
-    + path([[90, 74], [90, 200], [260, 200], [260, 266]], { color: C.blue }) + path([[400, 173], [400, 266]], { color: C.teal })
+    + path([[60, 74], [60, 205], [250, 205], [250, 266]], { color: C.blue }) + path([[540, 173], [540, 205], [350, 205], [350, 266]], { color: C.teal })
     + ns(30, 230, 540, 240, 'shared')
     + svc(170, 270, 260, 'API Gateway') + svc(80, 380, 220, 'Catalog API') + db(320, 380, 200, 'MongoDB')
     + path([[200, 322], [200, 376]]) + line([[300, 406], [320, 406]])
-    + ns(30, 530, 540, 170, 'overlay') + svc(80, 610, 220, 'Catalog API', { teal: true })
-    + path([[170, 296], [48, 296], [48, 636], [76, 636]], { color: C.teal })
-    + path([[300, 636], [420, 636], [420, 436]], { color: C.teal }) + label('reads', 434, 506);
+    + ns(30, 530, 540, 170, 'overlay') + svc(80, 600, 220, 'Catalog API', { teal: true })
+    + path([[170, 296], [48, 296], [48, 626], [76, 626]], { color: C.teal })
+    + path([[300, 626], [420, 626], [420, 436]], { color: C.teal }) + label('reads', 434, 506);
 }
 
 function multitenancyWide() {
-  return bluePill(20, 250, 340) + tealPill(20, 340, 340)
-    + path([[360, 250], [396, 258]], { color: C.blue }) + path([[360, 340], [396, 280]], { color: C.teal })
-    + ns(380, 40, 800, 490, 'shared')
-    + svc(400, 240, 210, 'API Gateway') + svc(660, 120, 200, 'Rent API') + svc(660, 360, 200, 'Catalog API')
-    + group(895, 90, 270, 180, 'PostgreSQL') + db(910, 120, 240, 'rentals') + db(910, 190, 240, 'rentals__cindy', true)
-    + group(895, 330, 270, 180, 'MongoDB') + db(910, 360, 240, 'catalog') + db(910, 430, 240, 'catalog__cindy', true)
-    + path([[610, 256], [630, 256], [630, 146], [656, 146]]) + path([[610, 276], [630, 276], [630, 386], [656, 386]])
-    + path([[860, 136], [906, 136]]) + path([[860, 386], [906, 386]])
-    + path([[860, 160], [885, 160], [885, 216], [906, 216]], { color: C.teal }) + label('okteto-divert=cindy', 760, 208, { anchor: 'middle' })
-    + ns(380, 590, 800, 170, 'overlay') + svc(660, 670, 200, 'Catalog API', { teal: true })
-    + path([[580, 292], [580, 696], [656, 696]], { color: C.teal })
-    + path([[860, 696], [885, 696], [885, 456], [906, 456]], { color: C.teal });
+  // G is the row of the API Gateway, halfway between the Rent API (A) and the
+  // Catalog API (B). Each database server has the same padding on every side.
+  const G = 285;
+  const A = G - 120;
+  const B = G + 120;
+  const R = 711; // Cindy's row
+  return bluePill(20, G - 50, 340) + tealPill(20, G + 50, 340)
+    + path([[360, G - 50], [396, G - 12]], { color: C.blue }) + path([[360, G + 50], [396, G + 12]], { color: C.teal })
+    + ns(380, 60, 800, 516, 'shared', { right: true })
+    + svc(400, G - 26, 200, 'API Gateway') + svc(640, A - 26, 190, 'Rent API') + svc(640, B - 26, 190, 'Catalog API')
+    + group(860, A - 61, 300, 192, 'PostgreSQL') + db(900, A - 26, 220, 'rentals') + db(900, A + 44, 220, 'rentals__cindy', true)
+    + group(860, B - 61, 300, 192, 'MongoDB') + db(900, B - 26, 220, 'catalog') + db(900, B + 44, 220, 'catalog__cindy', true)
+    + path([[600, G - 10], [620, G - 10], [620, A], [636, A]]) + path([[600, G + 10], [620, G + 10], [620, B], [636, B]])
+    + path([[830, A - 8], [896, A - 8]]) + path([[830, B - 8], [896, B - 8]])
+    + path([[830, A + 12], [845, A + 12], [845, A + 70], [896, A + 70]], { color: C.teal }) + label('okteto-divert=cindy', 735, A + 64, { anchor: 'middle' })
+    + ns(380, 636, 800, 150, 'overlay', { right: true }) + svc(640, R - 26, 190, 'Catalog API', { teal: true })
+    + path([[500, G + 26], [500, R], [636, R]], { color: C.teal })
+    + path([[830, R], [845, R], [845, B + 70], [896, B + 70]], { color: C.teal });
 }
 
 function multitenancyNarrow() {
   return bluePill(30, 50, 420) + tealPill(190, 135, 420)
-    + path([[90, 74], [90, 200], [260, 200], [260, 266]], { color: C.blue }) + path([[420, 173], [420, 266]], { color: C.teal })
+    + path([[60, 74], [60, 205], [270, 205], [270, 266]], { color: C.blue }) + path([[580, 173], [580, 205], [370, 205], [370, 266]], { color: C.teal })
     + ns(30, 230, 580, 470, 'shared')
     + svc(190, 270, 260, 'API Gateway') + svc(60, 370, 240, 'Rent API') + svc(340, 370, 250, 'Catalog API')
     + path([[240, 322], [240, 366]]) + path([[400, 322], [400, 366]])
@@ -300,9 +327,9 @@ function multitenancyNarrow() {
     + group(330, 490, 270, 182, 'MongoDB') + db(345, 520, 240, 'catalog') + db(345, 600, 240, 'catalog__cindy', true)
     + path([[280, 422], [280, 516]]) + path([[560, 422], [560, 516]])
     + path([[300, 396], [320, 396], [320, 626], [304, 626]], { color: C.teal }) + label('okteto-divert=cindy', 265, 462, { anchor: 'end' })
-    + ns(30, 740, 580, 140, 'overlay') + svc(340, 790, 250, 'Catalog API', { teal: true })
-    + path([[190, 296], [40, 296], [40, 816], [336, 816]], { color: C.teal })
-    + path([[465, 790], [465, 656]], { color: C.teal });
+    + ns(30, 740, 580, 140, 'overlay') + svc(340, 784, 250, 'Catalog API', { teal: true })
+    + path([[190, 296], [40, 296], [40, 810], [336, 810]], { color: C.teal })
+    + path([[465, 784], [465, 656]], { color: C.teal });
 }
 
 // ---------------------------------------------------------------------------
@@ -332,10 +359,10 @@ export default [
   ...pair('divert-overview', OVERVIEW_ALT, () => overviewWide(), () => overviewNarrow(), [630, 600, 850]),
   ...pair('divert-propagation-missing', MISSING_ALT, () => propagationWide(false), () => propagationNarrow(false), [600, 600, 770]),
   ...pair('divert-propagation', PROPAGATION_ALT, () => propagationWide(true), () => propagationNarrow(true), [600, 600, 770]),
-  ...pair('divert-queues', QUEUES_ALT, () => queuesWide(false), () => queuesNarrow(false), [650, 640, 880]),
-  ...pair('divert-queues-overlay', QUEUES_OVERLAY_ALT, () => queuesWide(true), () => queuesNarrow(true), [960, 640, 1380]),
-  ...pair('divert-queues-routing', ROUTING_ALT, () => routingWide(), () => routingNarrow(), [640, 640, 970]),
-  ...pair('divert-data-shared', SHARED_ALT, () => sharedDataWide(), () => sharedDataNarrow(), [630, 600, 730]),
+  ...pair('divert-queues', QUEUES_ALT, () => queuesWide(false), () => queuesNarrow(false), [730, 640, 994]),
+  ...pair('divert-queues-overlay', QUEUES_OVERLAY_ALT, () => queuesWide(true), () => queuesNarrow(true), [1090, 640, 1546]),
+  ...pair('divert-queues-routing', ROUTING_ALT, () => routingWide(), () => routingNarrow(), [610, 640, 970]),
+  ...pair('divert-data-shared', SHARED_ALT, () => sharedDataWide(), () => sharedDataNarrow(), [560, 600, 730]),
   ...pair('divert-data-clone', CLONE_ALT, () => overviewWide('PostgreSQL', true), () => overviewNarrow('PostgreSQL', true), [630, 600, 850]),
-  ...pair('divert-data-multitenancy', MULTITENANCY_ALT, () => multitenancyWide(), () => multitenancyNarrow(), [790, 640, 910]),
+  ...pair('divert-data-multitenancy', MULTITENANCY_ALT, () => multitenancyWide(), () => multitenancyNarrow(), [830, 640, 910]),
 ];

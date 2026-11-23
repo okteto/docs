@@ -118,6 +118,13 @@ Diagrams in the docs share these shapes. The `deploy-movies-app` and `environmen
 - **An endpoint** (a URL, a path such as `/api`) is a pill: a rounded box whose radius is half its height. Pills that lead into an environment sit on its border, with the same height, and end at the same point inside it. A long URL can go down to 18px so its pill doesn't take the whole width.
 - **Arrows** are short, and the arrows of the same flow have the same length. Draw only the connections the page explains.
 - **Balance:** center the drawing on the canvas, with the same white space on each side.
+- **Symmetry, always:** it's the first thing a reader notices when it's missing. Check each of these before you render:
+  - A box has the same padding above and below its content, and the same on its left and right. Boxes of the same kind (two Namespaces, two dashed groups) use the same paddings in every diagram of a page.
+  - A box inside another keeps the same distance to its container wherever it appears: the gap between a dashed group and the bottom of its Namespace is the same in every Namespace.
+  - An element that feeds two others sits halfway between them, and its two arrows mirror each other. Two elements that feed one enter it at the same distance from its center.
+  - An arrow that enters a box has room: leave about 50px between the border it crosses and the element it points to, so the arrowhead doesn't touch the border.
+  - An arrow never runs over a label. When arrows enter a Namespace through the left of its top edge, put its name at the right of the edge.
+- **Text hierarchy:** in an endpoint with a second line, such as a request header under its URL, the second line is smaller than the URL.
 
 ### Logos and icons
 

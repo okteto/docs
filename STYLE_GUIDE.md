@@ -211,6 +211,8 @@ Images inside a page (docs, tutorials, and blog posts) have a white background, 
 
 Diagrams and covers are drawn with `scripts/covers` in the docs, the tutorials, and the blog alike (diagrams with `background: 'white'`): see "Images" in [`AGENTS.md`](AGENTS.md#images).
 
+Diagrams are symmetric. Before you publish one, check that every box has the same padding above and below its content and on both sides, that boxes of the same kind use the same paddings across the diagrams of a page, that an element connected to two others sits halfway between them with mirrored arrows, and that no arrowhead touches the border it just crossed or runs over a label. The full checklist is in [`AGENTS.md`](AGENTS.md#images).
+
 ### Version numbers
 
 Never hardcode the Okteto CLI, Helm chart, or Kubernetes versions. Import them from `src/content/variables.json` (`import variables from '../variables.json';`, with the path relative to the page) and write `{variables.cliVersion}`, or `${variables.cliVersion}` inside a template literal.
