@@ -92,21 +92,21 @@ function overviewWide(dbName = 'MongoDB', snapshot = false) {
   const R = 495; // Cindy's row
   let out = bluePill(30, G - 50, 380, 20) + tealPill(30, G + 50, 380, 20)
     + ns(440, 60, 730, 300, 'shared')
-    + svc(470, G - 26, 220, 'API Gateway')
-    + svc(760, G - 101, 180, 'Rent') + db(970, G - 101, 170, dbName)
-    + svc(760, G + 49, 180, 'Catalog') + db(970, G + 49, 170, 'MongoDB')
-    + line([[940, G - 75], [970, G - 75]]) + line([[940, G + 75], [970, G + 75]])
-    + path([[850, G - 49], [850, G + 45]])
-    + path([[690, G - 10], [725, G - 10], [725, G - 75], [756, G - 75]]) + path([[690, G + 10], [725, G + 10], [725, G + 75], [756, G + 75]])
-    + path([[410, G - 50], [466, G - 12]], { color: C.blue }) + path([[410, G + 50], [466, G + 12]], { color: C.teal })
+    + svc(478, G - 26, 200, 'API Gateway')
+    + svc(743, G - 101, 170, 'Rent') + db(943, G - 101, 190, dbName)
+    + svc(743, G + 49, 170, 'Catalog') + db(943, G + 49, 190, 'MongoDB')
+    + line([[913, G - 75], [943, G - 75]]) + line([[913, G + 75], [943, G + 75]])
+    + path([[828, G - 49], [828, G + 45]])
+    + path([[678, G - 10], [710, G - 10], [710, G - 75], [739, G - 75]]) + path([[678, G + 10], [710, G + 10], [710, G + 75], [739, G + 75]])
+    + path([[410, G - 50], [474, G - 12]], { color: C.blue }) + path([[410, G + 50], [474, G + 12]], { color: C.teal })
     + ns(440, 420, 730, 150, 'overlay')
-    + svc(620, R - 26, 180, 'Rent', { teal: true }) + db(830, R - 26, 170, dbName, true)
-    + line([[800, R], [830, R]], C.teal)
-    + path([[640, G + 26], [640, R - 30]], { color: C.teal })
-    + path([[780, R - 26], [780, G + 105]], { color: C.teal });
+    + svc(610, R - 26, 170, 'Rent', { teal: true }) + db(810, R - 26, 190, dbName, true)
+    + line([[780, R], [810, R]], C.teal)
+    + path([[630, G + 26], [630, R - 30]], { color: C.teal })
+    + path([[760, R - 26], [760, G + 105]], { color: C.teal });
   if (snapshot) {
-    out += path([[1140, G - 75], [1155, G - 75], [1155, R], [1004, R]], { color: C.teal, dashed: true })
-      + label('Volume Snapshot', 1141, 398, { anchor: 'end' });
+    out += path([[1133, G - 75], [1152, G - 75], [1152, R], [1006, R]], { color: C.teal, dashed: true })
+      + label('Volume Snapshot', 1138, 398, { anchor: 'end' });
   }
   return out;
 }
@@ -276,11 +276,11 @@ function sharedDataWide() {
   const G = 175; // the row of the shared services
   const R = 425; // Cindy's row
   return bluePill(30, G - 50, 380, 20) + tealPill(30, G + 50, 380, 20)
-    + ns(440, 80, 730, 190, 'shared')
+    + ns(440, 80, 730, 190, 'shared', { right: true })
     + svc(465, G - 26, 220, 'API Gateway') + svc(745, G - 26, 200, 'Catalog API') + db(975, G - 26, 170, 'MongoDB')
     + path([[685, G], [741, G]]) + line([[945, G], [975, G]])
     + path([[410, G - 50], [461, G - 12]], { color: C.blue }) + path([[410, G + 50], [461, G + 12]], { color: C.teal })
-    + ns(440, 330, 730, 190, 'overlay') + svc(745, R - 26, 200, 'Catalog API', { teal: true })
+    + ns(440, 330, 730, 190, 'overlay', { right: true }) + svc(745, R - 26, 200, 'Catalog API', { teal: true })
     + path([[575, G + 26], [575, R], [741, R]], { color: C.teal })
     + path([[945, R], [1060, R], [1060, G + 30]], { color: C.teal }) + label('reads', 1075, 306);
 }
@@ -311,7 +311,7 @@ function multitenancyWide() {
     + group(860, B - 61, 300, 192, 'MongoDB') + db(900, B - 26, 220, 'catalog') + db(900, B + 44, 220, 'catalog__cindy', true)
     + path([[600, G - 10], [620, G - 10], [620, A], [636, A]]) + path([[600, G + 10], [620, G + 10], [620, B], [636, B]])
     + path([[830, A - 8], [896, A - 8]]) + path([[830, B - 8], [896, B - 8]])
-    + path([[830, A + 12], [845, A + 12], [845, A + 70], [896, A + 70]], { color: C.teal }) + label('okteto-divert=cindy', 735, A + 64, { anchor: 'middle' })
+    + path([[830, A + 12], [845, A + 12], [845, A + 70], [896, A + 70]], { color: C.teal }) + label('okteto-divert=cindy', 735, A - 40, { anchor: 'middle' })
     + ns(380, 636, 800, 150, 'overlay', { right: true }) + svc(640, R - 26, 190, 'Catalog API', { teal: true })
     + path([[500, G + 26], [500, R], [636, R]], { color: C.teal })
     + path([[830, R], [845, R], [845, B + 70], [896, B + 70]], { color: C.teal });
