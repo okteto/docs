@@ -1,0 +1,71 @@
+---
+title: Recommendations for Coding Agents
+description: What to tell a coding agent that works with Okteto when you don't use the Okteto skills, to add to your AGENTS.md file or to your own skills.
+sidebar_label: Recommendations
+---
+
+The [Okteto skills](coding-agents/okteto-skills.mdx) teach a coding agent how to work with Okteto. If you'd rather not use them, you can give your agent the same guidance yourself. This page has the recommendations we'd give any agent, ready to add to the `AGENTS.md` file of your repository or to turn into skills of your own.
+
+## Instructions for Your Agent {#command-rules}
+
+Copy this block into the `AGENTS.md` file of your repository. If you write your own skills, use it as their starting point:
+
+```markdown title="AGENTS.md"
+## Working with Okteto
+
+This project deploys to Okteto. Verify every change in an Okteto application
+environment before you report it as done.
+
+- Create a Namespace for this session with
+  `okteto namespace create <name> --use=false`, named after the branch, and
+  pass `-n <name>` to every `okteto` and `kubectl` command. Don't run
+  `okteto namespace use`.
+- Read `okteto.yaml` to find the services, the images, and the tests. Don't
+  guess their names. If you change it, run `okteto validate` before you deploy.
+- Build images with `okteto build <service>`. Don't run `docker build`.
+- Deploy with `okteto deploy --wait`. Don't run `kubectl apply` or
+  `helm install`.
+- Test with `okteto test <name>`. To run part of a test, pass the command
+  after `--`.
+- Check the change with the URLs of `okteto endpoints`, and troubleshoot with
+  read-only `kubectl` commands: `kubectl logs`, `kubectl get events`, and
+  `kubectl top pods`.
+- Never run `okteto up`: it's interactive. Ask the developer to run it. While
+  it runs, don't build, deploy, or test: only edit the code, and hot reload
+  applies your changes.
+- After you open the pull request, delete the Namespace you created for this
+  session with `okteto namespace delete <name>`. If a developer is working
+  with you, ask first. Never delete or destroy a Namespace you didn't create.
+```
+
+## Reasons behind the Recommendations
+
+Here's the reasoning behind each instruction, so you can adapt them to your project.
+
+### A Namespace for Each Session {#worktree-isolation}
+
+Give every session an application environment of its own, so two sessions never overwrite each other's work. Every session on the same machine shares the Okteto context, which is why the agent creates its Namespace with `--use=false` and passes `-n` to every command instead of switching the context. See [A Namespace for Each Session](coding-agents/index.mdx#parallel-tasks).
+
+### Services from okteto.yaml
+
+The `okteto.yaml` file already lists your services, the images to build, and the tests. When the agent reads it instead of guessing names, it works the same way in every repository.
+
+### Builds with okteto build
+
+`okteto build` builds the image inside the cluster and pushes it to the Okteto Registry, where the application environment pulls it from. An image built with `docker build` never leaves the agent's sandbox, and the sandbox would need a Docker daemon to build it.
+
+### Deploys with okteto deploy
+
+`okteto deploy --wait` returns when every service is ready, and Okteto keeps track of everything it creates. Whatever the agent creates on its own with `kubectl apply` or `helm install` doesn't show up in the Okteto UI, and `okteto destroy` won't delete it.
+
+### Tests with okteto test
+
+`okteto test` runs the tests of your Okteto Manifest inside the cluster, against the application environment. For everything else the agent needs to see, such as logs, events, and resource usage, the Kubernetes API is enough.
+
+### okteto up for the Developer
+
+`okteto up` is interactive, so it hangs the agent's shell. In a [collaborative workflow](coding-agents/collaborative-workflows.mdx), you run it in your own terminal, and hot reload applies the changes the agent makes.
+
+### Namespace Cleanup
+
+An autonomous workflow ends in a pull request, which gets its own [Preview Environment](previews/index.mdx), so the session's Namespace is no longer needed and the agent can delete it. It should only ever delete the Namespace it created: `okteto destroy` and `okteto namespace delete` delete work in progress, and that work could be someone else's.

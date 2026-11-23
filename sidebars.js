@@ -98,7 +98,7 @@ module.exports = {
         'coding-agents/okteto-skills',
         'coding-agents/autonomous-workflows',
         'coding-agents/collaborative-workflows',
-        'coding-agents/best-practices',
+        'coding-agents/recommendations',
       ],
     },
     {
