@@ -164,9 +164,9 @@ Okteto uses [role-based access control (RBAC)](admin/user-roles-and-permissions.
 
 Inside the docs, link to the `.mdx` file with a path relative to `src/content/`, as above, and append anchors normally (`reference/okteto-manifest.mdx#mode-string-optional`). Between the docs, the tutorials, and the blog, link with a root-relative URL: `/tutorials/<slug>/` for a tutorial, `/docs/<path>/` for a docs page, and `/blog/<slug>/` for a post. Don't link to `https://www.okteto.com/...` for a page of one of the three. The build doesn't check links between them, so when you move a page, update the pages of the other two that link to it.
 
-### Code and CLI
+### Code and Commands
 
-Wrap all CLI commands, flags, file names, and code values in backticks.
+Wrap all Okteto CLI commands, flags, file names, and code values in backticks.
 
 ```mdx
 Run `okteto deploy` to deploy your application.
@@ -174,7 +174,7 @@ The `okteto.yaml` file defines how to build, deploy, and test your application.
 Set the `--wait` flag to block until the deployment completes.
 ```
 
-CLI commands are always lowercase: `okteto up`, `okteto deploy`, `okteto test`, `okteto build`.
+Okteto CLI commands are always lowercase: `okteto up`, `okteto deploy`, `okteto test`, `okteto build`.
 
 ### Admonitions
 
@@ -260,12 +260,12 @@ Use these terms exactly as written. Capitalization matters.
 
 | Term | Notes |
 |------|-------|
-| **Okteto CLI** | Always "Okteto CLI", never "okteto CLI" or "the CLI" on first reference. "the CLI" is fine on subsequent references. |
+| **Okteto CLI** | Always "Okteto CLI", in every reference: never "the CLI" on its own, "okteto CLI", or "Okteto's CLI". "CLI" without "Okteto" is only for another tool (`AWS CLI`, the `helm` CLI) or for a UI label quoted verbatim (**Command Line (CLI)**). |
 | **Okteto Manifest** | Capitalized as a product name. The file itself is `okteto.yaml` (lowercase, code-formatted). |
 | **Okteto Registry** | Capitalized. Never "the registry" on first reference. |
 | **Okteto Catalog** | Capitalized. |
 | **Okteto Insights** | Capitalized. |
-| **Okteto Test** | Capitalized as a product feature. The CLI command is `okteto test` (lowercase, code-formatted). Don't write "Test Containers" or "test containers" for the entries of the `test` section: readers confuse them with Testcontainers, the testing library. Name the feature Okteto Test, and each entry a test (for example, "the `unit` test"). |
+| **Okteto Test** | Capitalized as a product feature. The Okteto CLI command is `okteto test` (lowercase, code-formatted). Don't write "Test Containers" or "test containers" for the entries of the `test` section: readers confuse them with Testcontainers, the testing library. Name the feature Okteto Test, and each entry a test (for example, "the `unit` test"). |
 | **Okteto AI** | Capitalized. |
 | **Okteto API** | Capitalized. |
 | **Okteto Platform** | Capitalized when referring to the product as a whole. |
