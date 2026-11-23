@@ -28,19 +28,17 @@ dev:
     sync:
       - api:/usr/src/app
     forward:
-      - 8080:8080
       - 9229:9229
+      - 27017:mongodb:27017
 ```
 
 - The key, `api`, is the name of the Deployment or StatefulSet that the Development Container replaces.
 - `image` is the [development image](#development-images), with your compilers, debuggers, and hot reload tools. Without it, the Development Container uses the image of the service.
 - `command` starts your application in the Development Container, with hot reload: here, `node --watch` restarts the application every time a file changes.
 - `sync` lists the local folders that [File Sync](#file-sync) keeps in sync with a path of the container.
-- `forward` lists the ports of the container that you reach on `localhost`, such as the port of the application or of the debugger.
+- `forward` lists the ports that you reach on `localhost`: a port of the container, such as its debugger, or a port of another service of your Namespace, such as the database. Your application doesn't need one, because it keeps its Okteto endpoint.
 
-:::tip Always use a command with hot reload
-Set the `command` of every Development Container to one that reloads or restarts your application when a file changes, such as `node --watch`, `air` for Go, `uvicorn --reload` for Python, `dotnet watch`, or `watchexec`. It's what makes a Development Container worth using: you save a file, and the change runs in the cluster a moment later, with no build, no deploy, and nothing to restart by hand. It's also what a coding agent that works with you relies on to see its changes.
-:::
+The `command` has to start your application with hot reload, so every change you save runs in the cluster a moment later. See the [guide for your language](#guides-by-language) for the command to use.
 
 If the `image` of a Development Container comes from a private registry, ask your Admin to configure [Registry Credentials](admin/registry-credentials/index.mdx), so Okteto can pull it.
 
@@ -58,16 +56,16 @@ okteto up api
   src={require("@site/static/img/development-container.webp").default}
   mobileSrc={require("@site/static/img/development-container-mobile.webp").default}
   borderless
-  alt="okteto up replaces the api Deployment with api-okteto, a Development Container with hot reload, in your Okteto Namespace, next to the frontend and the database. File Sync keeps the source code on your machine and the Development Container in sync, in both directions, and you reach the application on localhost:8080"
+  alt="okteto up replaces the api Deployment with api-okteto, a Development Container with hot reload, in your Okteto Namespace, next to the frontend and the database. File Sync keeps the source code on your machine and the Development Container in sync, in both directions, and you reach the database on localhost:27017"
 />
 
-`okteto up`:
+This is what the command does, step by step:
 
-1. Deploys the application, if it isn't deployed yet in your Namespace.
-2. Replaces the **api** Deployment with a development copy, a Deployment called **api-okteto**, with the `image` and the `command` of the Development Container. The copy inherits the manifest of the original Deployment, so it uses the same service account, environment variables, secrets, volumes, and sidecars: you develop in the same conditions your application runs in.
-3. Starts [File Sync](#file-sync), which keeps your local files and the Development Container in sync, in both directions.
-4. Forwards the ports of the `forward` field over [SSH](#ssh-server), so you reach the application and its debugger on `localhost`.
-5. Runs the `command` in the Development Container, which starts your application with hot reload, and shows its output in your terminal.
+1. It deploys the application, if it isn't deployed yet in your Namespace.
+2. It replaces the **api** Deployment with a development copy, a Deployment called **api-okteto**, with the `image` and the `command` of the Development Container. The copy inherits the manifest of the original Deployment, so it uses the same service account, environment variables, secrets, volumes, and sidecars: you develop in the same conditions your application runs in.
+3. It starts [File Sync](#file-sync), which keeps your local files and the Development Container in sync, in both directions.
+4. It forwards the ports of the `forward` field over [SSH](#ssh-server), so you reach the debugger of your application, and services such as the database, on `localhost`.
+5. It runs the `command` in the Development Container, which starts your application with hot reload, and shows its output in your terminal.
 
 From then on, every file you save reaches the Development Container in a moment, and your hot reload tool picks it up. The other services of the application environment keep running as they were, so you test your change against the real ones.
 
