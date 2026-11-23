@@ -26,7 +26,7 @@ Okteto deletes the Kubernetes resources of the application environment, includin
 okteto destroy --volumes
 ```
 
-If a Namespace has several application environments, for example the ones of a monorepo with several Okteto Manifests, `okteto destroy` only deletes the one of the Okteto Manifest you run it for. To delete every application environment of the Namespace, run `okteto destroy --all`. To also destroy the repositories of the `dependencies` section, add the `--dependencies` flag.
+If a Namespace has several application environments, for example the ones of a monorepo with several Okteto Manifests, `okteto destroy` only deletes the one of the Okteto Manifest you run it for. To destroy them all, see [Destroying Every Application Environment](#destroying-every-application-environment). To also destroy the repositories of the `dependencies` section, add the `--dependencies` flag.
 
 See the [`okteto destroy` reference](reference/okteto-cli.mdx#destroy) for every flag.
 
@@ -71,12 +71,14 @@ The dialog has two options:
 - **Include volumes:** also deletes the persistent volumes.
 - **Include all direct dependencies:** also destroys the repositories of the `dependencies` section. It only shows up when there are dependencies.
 
-## Deleting the Namespace
+## Destroying Every Application Environment
 
-Deleting an [Okteto Namespace](application-environments/namespaces.mdx) deletes every application environment in it. For an environment that lives in its own Namespace, such as the one of a pull request or an agent task, that's the simplest cleanup:
+To destroy every application environment of a Namespace at once, add the `--all` flag:
 
 ```bash
-okteto namespace delete feature-login
+okteto destroy --all
 ```
 
-Okteto runs the `destroy` commands of each application environment before it deletes the Namespace. The [Garbage Collector](admin/cleanup.mdx) sleeps the Namespaces that nobody uses, and deletes them after the period that your Admin configures.
+Okteto destroys each application environment, and keeps the Namespace and the resources with the `dev.okteto.com/policy: keep` annotation.
+
+In the Okteto UI, **Destroy All** in the Namespace view does the same.
