@@ -85,8 +85,9 @@ const COLLAB_ALT = 'The collaborative loop: you ask the coding agent for a chang
 const REVIEW_ALT = 'A Preview Environment, in its Okteto Namespace on Kubernetes, runs the frontend, api, and mongoDB services. Automated tests, coding agents, developers, and QA engineers on one side, and product managers, designers, and sales and marketing on the other, all use it';
 const REVIEW_LEFT = () => [['circle-check', 'Automated Tests'], ['bot', 'Coding Agents', C.purple], ['code', 'Developers'], ['search', 'QA Engineers']];
 const REVIEW_RIGHT = () => [['user', 'Product Managers'], ['pencil', 'Designers'], ['chart-column', 'Sales & Marketing']];
+const PREVIEW_H = 360;
 function previewBox(x, y, w) {
-  let out = box(x, y, w, 360, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
+  let out = box(x, y, w, PREVIEW_H, { color: C.blue }) + logo('kubernetes', x + w / 2, y, 80)
     + text('Preview Environment', x + w / 2, y + 84, 30) + text('Okteto Namespace', x + w / 2, y + 118, 22, { color: C.dim });
   APP.forEach(([n, label], i) => { out += service(x + 30, y + 146 + i * 68, w - 60, n, label); });
   return out;
@@ -277,14 +278,20 @@ export default [
     background: 'white',
     alt: REVIEW_ALT,
     svg: () => {
+      // The people of each side are centered on the middle of the Preview
+      // Environment, 100px apart, and every arrow is horizontal, with the same
+      // length, and stops before the border.
+      const M = 150 + PREVIEW_H / 2;
       let out = previewBox(430, 150, 340);
-      REVIEW_LEFT().forEach((p, i) => {
-        const cy = 190 + i * 100;
-        out += person(330, cy, p, 'end') + arrow(370, cy, 422, 300 + (i - 1.5) * 50, { color: p[2] ?? C.teal });
+      const left = REVIEW_LEFT();
+      left.forEach((p, i) => {
+        const cy = M + (i - (left.length - 1) / 2) * 100;
+        out += person(330, cy, p, 'end') + arrow(374, cy, 418, cy, { color: p[2] ?? C.teal });
       });
-      REVIEW_RIGHT().forEach((p, i) => {
-        const cy = 240 + i * 100;
-        out += person(870, cy, p, 'start') + arrow(830, cy, 778, 330 + (i - 1) * 50, { color: C.teal });
+      const right = REVIEW_RIGHT();
+      right.forEach((p, i) => {
+        const cy = M + (i - (right.length - 1) / 2) * 100;
+        out += person(870, cy, p, 'start') + arrow(826, cy, 782, cy, { color: C.teal });
       });
       return out;
     },
