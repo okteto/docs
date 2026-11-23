@@ -41,12 +41,13 @@ for (const path of [...new Set(paths)]) {
   });
   page.on('pageerror', (e) => errors.push(`page error: ${String(e).slice(0, 200)}`));
   page.on('response', (r) => {
-    if (r.url().startsWith(base) && r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`);
+    if (new URL(r.url()).origin === new URL(page.url()).origin && r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`);
   });
   let status = 0;
   try {
-    status = (await page.goto(base + path, { waitUntil: 'networkidle', timeout: 45000 }))?.status() ?? 0;
-    await page.waitForTimeout(1000);
+    // Not `networkidle`: some ad and analytics requests never finish
+    status = (await page.goto(base + path, { waitUntil: 'load', timeout: 45000 }))?.status() ?? 0;
+    await page.waitForTimeout(2000);
   } catch (e) {
     errors.push(`load: ${e.message.split('\n')[0]}`);
   }
