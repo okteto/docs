@@ -15,7 +15,7 @@ import Metadata from '@theme-original/DocItem/Metadata';
  doc metadata at build time, so nothing needs updating when a version is cut.
 
  The @id references point at the site-level graph declared in
- docusaurus.config.js (siteJsonLd). Keep both in sync.
+ config/jsonld.js. Keep both in sync.
 */
 
 const withSlash = (path) => (path.endsWith('/') ? path : `${path}/`);

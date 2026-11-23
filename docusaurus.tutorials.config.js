@@ -7,6 +7,7 @@
 // tutorials/README.md for how to write one.
 
 const shared = require('./config/shared');
+const { siteJsonLdHeadTag } = require('./config/jsonld');
 
 const BASE_URL = shared.SITES.tutorials;
 const LLMS_TXT_URL = `${shared.SITE_URL}/docs/llms.txt`;
@@ -26,7 +27,13 @@ module.exports = {
       onBrokenMarkdownLinks: 'throw',
     },
   },
-  headTags: shared.headTags(BASE_URL),
+  headTags: [
+    ...shared.headTags(BASE_URL),
+    // Site-level JSON-LD entity graph: the same Organization and product as the
+    // docs (config/jsonld.js), and this site as a WebSite. Each tutorial adds
+    // its own BlogPosting (Docusaurus blog plugin).
+    siteJsonLdHeadTag({ baseUrl: BASE_URL, name: 'Okteto Tutorials' }),
+  ],
   customFields: {
     // Read by src/theme/SearchMetadata and src/theme/BlogPostPaginator.
     searchTag: 'tutorials',

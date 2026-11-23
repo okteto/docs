@@ -1,5 +1,6 @@
 const path = require('path');
 const shared = require('./config/shared');
+const { siteJsonLdHeadTag } = require('./config/jsonld');
 
 const docsContentPath = 'src/content';
 
@@ -103,58 +104,6 @@ function remarkLlmsIndexPointer() {
   };
 }
 
-// Site-level JSON-LD entity graph: who publishes these docs (Organization),
-// the docs site itself (WebSite), and the product they document (SoftwareApplication).
-// Rendered into the <head> of every docs page so answer engines and search read
-// the publisher and product identity instead of inferring it. The page-level
-// TechArticle/BreadcrumbList block (src/theme/DocItem/Metadata) references
-// these @id values.
-const siteJsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Organization',
-      '@id': `${SITE_URL}/#organization`,
-      name: 'Okteto, Inc.',
-      url: `${SITE_URL}/`,
-      description:
-        'Okteto runs coding agents and application environments on your Kubernetes infrastructure.',
-      logo: {
-        '@type': 'ImageObject',
-        '@id': `${SITE_URL}/#logo`,
-        // Google requires a raster logo (no SVG), at least 112x112 px.
-        url: `${SITE_URL}${BASE_URL}favicon/android-chrome-512x512.png`,
-        width: 512,
-        height: 512,
-      },
-      sameAs: [
-        'https://github.com/okteto/okteto',
-        'https://twitter.com/oktetohq',
-        'https://www.youtube.com/@OktetoHQ',
-        'https://www.linkedin.com/company/okteto',
-      ],
-    },
-    {
-      '@type': 'WebSite',
-      '@id': `${SITE_URL}${BASE_URL}#website`,
-      url: `${SITE_URL}${BASE_URL}`,
-      name: 'Okteto Documentation',
-      publisher: { '@id': `${SITE_URL}/#organization` },
-      inLanguage: 'en-US',
-    },
-    {
-      '@type': 'SoftwareApplication',
-      '@id': `${SITE_URL}/#product`,
-      name: 'Okteto Platform',
-      description:
-        'Okteto launches coding agents on your Kubernetes cluster and gives every developer, coding agent and pull request an on-demand application environment, built from a single definition.',
-      url: `${SITE_URL}/`,
-      applicationCategory: 'DeveloperApplication',
-      publisher: { '@id': `${SITE_URL}/#organization` },
-    },
-  ],
-};
-
 module.exports = {
   ...shared.siteConfig,
   title: 'Okteto Documentation',
@@ -176,14 +125,11 @@ module.exports = {
   themes: ['@docusaurus/theme-mermaid'],
   headTags: [
     ...shared.headTags(BASE_URL),
-    {
-      // Site-level entity graph (Organization, WebSite, SoftwareApplication).
-      tagName: 'script',
-      attributes: {
-        type: 'application/ld+json',
-      },
-      innerHTML: JSON.stringify(siteJsonLd),
-    },
+    // Site-level JSON-LD entity graph (Organization, WebSite, SoftwareApplication),
+    // shared with the tutorials (config/jsonld.js). The page-level
+    // TechArticle/BreadcrumbList block (src/theme/DocItem/Metadata) references
+    // its @id values.
+    siteJsonLdHeadTag({ baseUrl: BASE_URL, name: 'Okteto Documentation' }),
     {
       // Machine-readable pointer so agents crawling the HTML can find the index.
       tagName: 'link',
