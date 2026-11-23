@@ -475,6 +475,22 @@ affinity:
 
 If set to true, `okteto up` creates a deployment if `name` doesn't match any existing deployment in the current namespace (default: `false`).
 
+With `autocreate`, the Development Container needs an image. Set [`image`](reference/okteto-manifest.mdx#image-string-optional), or define a [`build`](reference/okteto-manifest.mdx#build) entry with the same name as the Development Container. `okteto up` builds that image if it isn't built yet, and uses it:
+
+```yaml
+build:
+  api:
+    context: api
+dev:
+  api:
+    autocreate: true
+    command: node --watch server.js
+    sync:
+      - api:/usr/src/app
+```
+
+If the Development Container has neither, `okteto up` fails with the error `'image' is required for development container 'api' when 'autocreate' is enabled`.
+
 #### command (string, optional)
 
 Sets the command of your Development Container. If empty, it defaults to `sh`. Use a command that starts your application with hot reload, such as `node --watch`, `air`, `uvicorn --reload`, or `dotnet watch`, so every change you save runs without restarting anything by hand:
@@ -609,6 +625,8 @@ interface: 0.0.0.0
 #### image (string, optional)
 
 Sets the docker image of your development container. Defaults to the image specified in your deployment.
+
+With [`autocreate`](reference/okteto-manifest.mdx#autocreate-bool-optional), there's no deployment to take the image from. Set `image`, or define a [`build`](reference/okteto-manifest.mdx#build) entry with the same name as the Development Container, and `okteto up` uses the image from that build.
 
 > See the [development images](application-environments/develop/index.mdx#development-images) documentation for more details.
 
