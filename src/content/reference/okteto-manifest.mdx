@@ -25,7 +25,7 @@ deploy:
   - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 dev:
   api:
-    command: ["bash"]
+    command: node --watch --inspect=0.0.0.0:9229 server.js
     forward:
       - 8080:8080
       - 9229:9229
@@ -43,7 +43,7 @@ test:
 ```
 
 
-## Validating and Autocompleting the Okteto Manifest in your IDE
+## Validating and Autocompleting the Okteto Manifest in Your IDE
 
 Okteto provides a JSON Schema for the Okteto Manifest that enables autocompletion, real-time validation, and error detection in your IDE.
 
@@ -67,11 +67,13 @@ For **JetBrains IDEs**, you can use the built-in [JSON Schema feature](https://w
 - Files: `okteto.yml` and `okteto.yaml`
 
 
-## Schema reference
+## Schema Reference
 
-### build (object, optional)
+<span id="build-object-optional"></span>
 
-A list of images to build as part of your development environment.
+### build (object, optional) {#build}
+
+A list of images to build for your application environment.
 
 ```yaml
 build:
@@ -100,7 +102,7 @@ Each image supports the following fields:
 - `context`: the build context. Relative paths are relative to the location of the Okteto Manifest (default: `.`)
 - `depends_on`: list of images that need to be built first.
 - `dockerfile`: the path to the Dockerfile. It's a relative path to the build context (default: `Dockerfile`).
-- `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](core/container-registry.mdx) is used).
+- `image`: the name of the image to build and push. In clusters that have Okteto installed, this is optional (if not specified, the [Okteto Registry](application-environments/build-service.mdx#okteto-registry) is used).
 - `secrets`: list of secrets exposed to the build. Each secret can be defined in one of three forms:
 
   **Shorthand (file path):**
@@ -142,15 +144,17 @@ You can build all these images by running `okteto build`, or `okteto build xxx` 
 If you use multiple Dockerfiles, you can use different ignore-files for each Dockerfile. You do so using a special naming convention for the ignore-files. Place your ignore-file in the same directory as the Dockerfile, and prefix the ignore-file with the name of the Dockerfile, as shown in the following example: `dev.Dockerfile` and `dev.Dockerfile.dockerignore`
 :::
 
-For a list of [environment variables](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) available in your deploy commands to refer to images built in the `build` section, see the variables reference.
+For a list of [environment variables](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) available in your deploy commands to refer to images built in the `build` section, see the variables reference.
 
 > Okteto will automatically add all the build environment variables from all previous images in the dependency chain as build arguments. To refer to them, remember to add the `ARG` instruction on your Dockerfile.
 
+<span id="dependencies-string-optional"></span>
+
 ### dependencies ([string], optional) {#dependencies}
 
-A list of repositories you want to deploy as part of your development environment. The tutorial [Deploy a multi-repo application with dependencies](/tutorials/dependencies/) deploys an application whose services live in three repositories, with dependencies that deploy in parallel and one that waits for another with `depends_on`.
+A list of repositories you want to deploy as part of your application environment. The tutorial [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/) deploys an application whose services live in three repositories, with dependencies that deploy in parallel and one that waits for another with `depends_on`.
 
-Dev environments with declared dependencies will surface additional options during redeploy and destroy actions in the Okteto UI
+Application environments with declared dependencies get additional options in the redeploy and destroy actions of the Okteto UI
 
 ```yaml
 dependencies:
@@ -213,9 +217,11 @@ dependencies:
 
 In this example, `database` and `messaging` deploy in parallel, and `backend` starts once both have deployed successfully. Because `backend` has `wait: true`, the commands in the `deploy` section start once `database`, `messaging`, and `backend` are deployed and healthy. `frontend` has `wait: false`: Okteto schedules it once `backend` has deployed, and it runs at the same time as the commands in the `deploy` section. `okteto deploy` doesn't wait for it. The `depends_on` graph is validated when the manifest loads: self-references, unknown names, and cycles fail before anything is deployed.
 
-### deploy ([string], optional)
+<span id="deploy-string-optional"></span>
 
-A list of commands to deploy your development environment.
+### deploy ([string], optional) {#deploy}
+
+A list of commands to deploy your application environment.
 
 It's usually a combination of `helm`, `kubectl`, and `okteto` commands.
 
@@ -246,32 +252,32 @@ deploy:
     command: echo "$OKTETO_FOLDER" # Prints /app
 ```
 
-See the [environment variables](core/okteto-variables.mdx#runtime-environment-variables-injected-into-pods) available in your deploy commands.
+See the [environment variables](application-environments/okteto-variables.mdx#default-environment-variables) available in your deploy commands.
 
-#### Deploy remotely (recommended) {#deploy-remotely}
+#### Deploy Image and Remote Execution {#deploy-remotely}
 
-If you define an image in your `deploy` section, `okteto deploy` will run in remote mode:
+`okteto deploy` runs the deploy commands in a container inside the cluster, with [Remote Execution](reference/remote-execution.mdx). The `image` field sets the image of that container:
 
 ```yaml
 deploy:
-  image: ghcr.io/okteto/pipeline-runner:1.0.0
+  image: alpine/helm:4.3.2
   context: .
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-The `context` field specifies the working directory for running the deploy commands. If left empty, it defaults to the directory containing the Okteto Manifest.
-
-If you don't define an image, you can run in remote mode adding the `remote` field to your manifest:
+- `image`: the image of the container that runs the commands. Without it, Okteto uses its [default image](reference/remote-execution.mdx#defining-your-own-image).
+- `context`: the working directory for the deploy commands. It defaults to the directory of the Okteto Manifest.
+- `remote`: set it to `false` to run the deploy commands on the machine that runs the Okteto CLI, instead of in the cluster. Local execution is deprecated.
 
 ```yaml
 deploy:
-  remote: true
+  remote: false
   commands:
     - helm upgrade --install movies chart --set api.image=${OKTETO_BUILD_API_IMAGE} --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-See [Remote Execution](core/remote-execution.mdx) for details on how remote mode works.
+If your Admin set the [**Deploy Execution Mode**](admin/cli.mdx#deploy-execution-mode) to **Local**, which is deprecated, the commands run on your machine unless the `deploy` section sets an `image` or `remote: true`.
 
 #### Deploy with Compose
 
@@ -329,7 +335,7 @@ Your deploy commands will be executed before deploying your Docker Compose files
 
 #### Divert
 
-Use the `divert` section to deploy only the services you change on top of a Shared Namespace. See [Divert](development/divert/index.mdx) to learn how it works.
+Use the `divert` section to deploy only the services you change on top of a Shared Namespace. See [Divert](application-environments/divert/index.mdx) to learn how it works.
 
 <Tabs
   defaultValue="gateway-api"
@@ -379,9 +385,11 @@ deploy:
 </TabItem>
 </Tabs>
 
-### destroy ([string], optional)
+<span id="destroy-string-optional"></span>
 
-A list of commands to destroy external resources created by your development environment.
+### destroy ([string], optional) {#destroy}
+
+A list of commands to destroy the external resources that your application environment creates.
 
 `okteto destroy` automatically takes care of destroying all the Kubernetes resources created by `okteto deploy` in your namespace.
 
@@ -400,41 +408,34 @@ destroy:
     command: helm uninstall movies
 ```
 
-See the [environment variables](core/okteto-variables.mdx#runtime-environment-variables-injected-into-pods) available in your destroy commands.
+See the [environment variables](application-environments/okteto-variables.mdx#default-environment-variables) available in your destroy commands.
 
-#### Destroy remotely (recommended) {#destroy-remotely}
+#### Destroy Image and Remote Execution {#destroy-remotely}
 
-If you define an image in your `destroy` section, `okteto destroy` will run in remote mode:
+`okteto destroy` runs the destroy commands in a container inside the cluster, with [Remote Execution](reference/remote-execution.mdx). The `image` field sets the image of that container:
 
 ```yaml
 destroy:
-  image: ghcr.io/okteto/tfenv-ci:1.4
+  image: hashicorp/terraform:1.17.2
   context: .
   commands:
     - terraform destroy --auto-approve
 ```
 
-The `context` field specifies the working directory for running the destroy commands. If left empty, it defaults to the directory containing the Okteto Manifest.
+- `image`: the image of the container that runs the commands. Without it, Okteto uses its [default image](reference/remote-execution.mdx#defining-your-own-image).
+- `context`: the working directory for the destroy commands. It defaults to the directory of the Okteto Manifest.
+- `remote`: set it to `false` to run the destroy commands on the machine that runs the Okteto CLI, instead of in the cluster. Local execution is deprecated.
 
-If you don't define an image, you can run in remote mode adding the `remote` field to your manifest:
+<span id="dev-object-optional"></span>
 
-```yaml
-destroy:
-  remote: true
-  commands:
-    - helm uninstall movies
-```
+### dev (object, optional) {#dev}
 
-See [Remote Execution](core/remote-execution.mdx) for details on how remote mode works.
-
-### dev (object, optional)
-
-A list of development containers to define the behavior of [okteto up](reference/okteto-cli.mdx#up) and synchronize your code in your development environment.
+A list of Development Containers. Each one defines how [`okteto up`](reference/okteto-cli.mdx#up) replaces a service of your application environment and synchronizes your code with it.
 
 ```yaml
 dev:
   api:
-    command: ["bash"]
+    command: node --watch --inspect=0.0.0.0:9229 server.js
     forward:
       - 8080:8080
       - 9229:9229
@@ -476,7 +477,7 @@ If set to true, `okteto up` creates a deployment if `name` doesn't match any exi
 
 #### command (string, optional)
 
-Sets the command of your development container. If empty, it defaults to `sh`:
+Sets the command of your Development Container. If empty, it defaults to `sh`. Use a command that starts your application with hot reload, such as `node --watch`, `air`, `uvicorn --reload`, or `dotnet watch`, so every change you save runs without restarting anything by hand:
 
 ```yaml
 command: bundle exec thin -p 3000
@@ -609,7 +610,7 @@ interface: 0.0.0.0
 
 Sets the docker image of your development container. Defaults to the image specified in your deployment.
 
-> See the [development images](development/images.mdx) documentation for more details.
+> See the [development images](application-environments/develop/index.mdx#development-images) documentation for more details.
 
 You can use an environment variable to replace the image, or any part of it:
 
@@ -621,7 +622,7 @@ image: ghcr.io/okteto/dev:$USER
 
 #### imagePullPolicy (string, optional)
 
-The image pull policy of your development environment (default: `Always`)
+The image pull policy of your Development Container (default: `Always`)
 
 #### lifecycle (boolean, optional)
 
@@ -756,7 +757,7 @@ resources:
 
 #### remote (integer, optional)
 
-The local port to use for SSH communication with your development environment. Defaults to a random value.
+The local port to use for SSH communication with your Development Container. Defaults to a random value.
 
 ```yaml
 remote: 2222
@@ -901,7 +902,7 @@ sync:
   - $HOME/.ssh:/root/.ssh
 ```
 
-> Use the `.stignore` file on each local folder to avoid synchronizing build artifacts, dependencies, or git metadata. See the [file synchronization reference](reference/file-synchronization.mdx) for details.
+> Use the `.stignore` file on each local folder to avoid synchronizing build artifacts, dependencies, or git metadata. See the [file synchronization reference](application-environments/develop/index.mdx#file-sync) for details.
 
 File sync can only update files that can be modified by your development container User ID.
 If you are using Okteto with persistent volumes, remember to set the field [securityContext.runAsUser](#securitycontext-object-optional) if your development container User ID is not `root`.
@@ -972,9 +973,11 @@ The `local:remote` syntax in the `volumes` field is deprecated. Okteto converts 
 
 Sets the working directory of your development container.
 
-### external (object, optional)
+<span id="external-object-optional"></span>
 
-A list of external resources that are part of your development environment. Use this section for resources that are deployed outside of the Okteto cluster, like Cloud resources or dashboards.
+### external (object, optional) {#external}
+
+A list of external resources that are part of your application environment. Use this section for resources that are deployed outside of the Okteto cluster, like Cloud resources or dashboards.
 
 ```yaml
 external:
@@ -1006,7 +1009,7 @@ The name of the endpoint.
 
 The url of the endpoint.
 
-##### Use dynamic endpoints for an external URL
+##### Use Dynamic Endpoints for an External URL
 
 The url value related to an external resource can be set during deployment stage by sharing `$OKTETO_EXTERNAL_{EXTERNAL_NAME}_ENDPOINTS_{ENDPOINT_NAME}_URL`. This allows a value to be generated dynamically at deployment time.
 
@@ -1151,7 +1154,9 @@ Images are allowed, as long as they are referenced by `https://`. Images from un
 
 Inline HTML markup will be escaped and render as text.
 
-### forward ([string], optional)
+<span id="forward-string-optional-1"></span>
+
+### forward ([string], optional) {#forward}
 
 When declaring a global forward, Okteto will automatically handle port collision when two or more `okteto up` sessions are running simultaneously. If the `okteto up` session detects that the port is already in use, and said port is defined as global forward,  `okteto up` will ignore the port collision and continue the `up` sequence. If the port is later available, `okteto up` session will automatically connect to it without interrupting the session.
 
@@ -1175,17 +1180,23 @@ forward:
       app: db
 ```
 
-### icon (string, optional)
+<span id="icon-string-optional-1"></span>
 
-The icon associated to your development environment in the Okteto UI (optional).
+### icon (string, optional) {#icon}
 
-### name (string, optional)
+The icon of your application environment in the Okteto UI (optional).
 
-The name of your development environment. It defaults to the name of your git repository.
+<span id="name-string-optional"></span>
 
-### test (object, optional)
+### name (string, optional) {#name}
 
-A dictionary of Test Containers to run tests using [Remote Execution](core/remote-execution.mdx#how-remote-execution-works).
+The name of your application environment. It defaults to the name of your Git repository.
+
+<span id="test-object-optional"></span>
+
+### test (object, optional) {#test}
+
+A dictionary of tests that [Okteto Test](application-environments/okteto-test.mdx) runs inside the cluster, with [Remote Execution](reference/remote-execution.mdx#how-remote-execution-works).
 
 ```yaml
 test:
@@ -1210,7 +1221,7 @@ test:
       - "localhost:127.0.0.1"
 ```
 
-Each key is the name of your Test Container, and it has the following fields:
+Each key is the name of a test, and it has the following fields:
 
 #### artifacts ([string], optional)
 
@@ -1222,7 +1233,7 @@ A list of cache mounts to be used as part of running the tests. This is used to 
 
 #### commands ([string], required)
 
-Provide a list of commands to run the tests. For the tests to be considered successful, each command must exit with a zero exit code. If any command returns a non-zero exit code, the Test Container will be marked as failed.
+Provide a list of commands to run the tests. For the tests to be considered successful, each command must exit with a zero exit code. If any command returns a non-zero exit code, the test is marked as failed.
 
 #### context (string, optional)
 
@@ -1234,7 +1245,7 @@ If `context` is used, the `.oktetoignore` file must be place in the `context` fo
 
 #### depends_on ([string], optional)
 
-A list of Test Containers this test depends on. When a Test Container is executed, all its dependencies are executed first. The Test Containers defined in `depends_on` must exist in the current Okteto Manifest.
+A list of tests this test depends on. When a test runs, all its dependencies run first. The tests listed in `depends_on` must exist in the current Okteto Manifest.
 
 #### hosts ([string], optional)
 
@@ -1253,12 +1264,12 @@ The base image used to run your test.
 
 If it is not defined, Okteto uses the [pipeline-runner](https://github.com/okteto/pipeline-runner) image unless an Okteto Cluster admin has changed it in the [installer settings](self-hosted/helm-configuration.mdx#installer) with a [custom installer image](self-hosted/helm-configuration.mdx#custom-installer-image)
 
-## Environment variables
+## Environment Variables
 
 There are multiple parts of the Okteto Manifest that deal with environment variables in one sense or another.
 This section should help you find the information you need.
 
-### Substitute environment variables
+### Substitute Environment Variables
 
 It’s possible to use environment variables in your shell to populate values inside an Okteto Manifest:
 

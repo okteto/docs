@@ -1,0 +1,83 @@
+---
+title: How Smart Builds Work
+description: Smart Builds skip the build of an image when someone already built it from the same code, with a hash of its build context and its build parameters.
+sidebar_label: Smart Builds
+id: smart-builds
+---
+
+import Image from "@theme/Image";
+
+Smart Builds skip the build of an image of the [`build`](application-environments/build-service.mdx) section when someone already built it from the same code, in any Namespace of your Okteto instance.
+
+## The Hash of an Image
+
+BuildKit reuses the cached layers of a build, but a fully cached build still takes a minute or two: the Okteto CLI sends the build context, BuildKit pulls the base image and checks every instruction, and the final image is pushed to the registry again. Smart Builds skip all of that when someone already built the same image.
+
+For each image, Okteto computes a hash of its build context and its build parameters. The first time someone builds the image, Okteto pushes it with that hash as its tag, in the `okteto` namespace of the Okteto Registry, and tags the image of their own Namespace to it:
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.example.com:443...
+ ...
+ => pushing manifest for registry.okteto.example.com/okteto/api:09f8e
+ ✓  Image 'registry.okteto.example.com/cindy/api:okteto' successfully pushed
+```
+
+<Image
+  src={require("@site/static/img/smart-builds-first-build.webp").default}
+  mobileSrc={require("@site/static/img/smart-builds-first-build-mobile.webp").default}
+  borderless
+  alt="Smart Builds on the first build: Cindy runs okteto build, BuildKit builds the api image and pushes it as okteto/api:09f8e, the hash of its build context, and the Okteto Registry tags cindy/api:okteto to it"
+/>
+
+When anyone builds the same image again, with the same build context and parameters, Okteto computes the same hash. The image `okteto/api:09f8e` already exists, so Okteto skips the build and only tags the image of their Namespace to it, in a few seconds:
+
+```console
+ i  Using david @ okteto.example.com as context
+ i  Okteto Smart Builds is skipping build of "api" because it's already built from cache.
+```
+
+<Image
+  src={require("@site/static/img/smart-builds-reuse.webp").default}
+  mobileSrc={require("@site/static/img/smart-builds-reuse-mobile.webp").default}
+  borderless
+  alt="Smart Builds on a later build: David runs okteto build with the same build context, Okteto skips the build on BuildKit, and the Okteto Registry tags david/api:okteto to the existing okteto/api:09f8e image"
+/>
+
+Smart Builds work across every Namespace of your Okteto instance: developers, pull requests, and coding agents that build the same code share the same images.
+
+## Git Repository Requirement
+
+Smart Builds compute the hash from the Git repository of your application: its commit, its diffs, its untracked files, and the content of its folders. Without a Git repository, Okteto builds every image. Setting `OKTETO_GIT_BRANCH` or `OKTETO_GIT_COMMIT` isn't enough.
+
+If the `deploy` commands of your Okteto Manifest run Okteto CLI commands that build images, such as `okteto deploy -f compose.yml`, don't exclude the `.git` folder in your [`.oktetoignore` file](reference/remote-execution.mdx#ignoring-files). Otherwise, Smart Builds can't read the Git repository, and Okteto builds every image.
+
+## Explicit Image Tags
+
+Smart Builds use the hash as the tag of the image, so they're off for an image whose `image` field sets its own tag:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    # The explicit tag turns off Smart Builds for this image
+    image: registry.okteto.example.com/${OKTETO_NAMESPACE}/movies-api:custom
+    context: api
+```
+
+Leave the `image` field out to use Smart Builds:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+```
+
+## Turning Off Smart Builds
+
+To build your images even if someone already built them, add the `--no-cache` flag. It also skips the BuildKit cache:
+
+```bash
+okteto build --no-cache
+```
+
+To turn off Smart Builds for every build of a machine or a pipeline, set the `OKTETO_SMART_BUILDS_ENABLED` variable to `false`. Set it as an [Admin Variable](admin/admin-variables.mdx) to turn off Smart Builds for every user of your Okteto instance.

@@ -1,0 +1,55 @@
+---
+title: Variables
+description: The Variables section of your Settings stores your own Okteto Variables, which Okteto passes to every application environment you deploy.
+sidebar_label: Variables
+id: variables
+---
+
+import Image from "@theme/Image";
+
+**Settings > Variables** stores your own [Okteto Variables](application-environments/okteto-variables.mdx). Okteto passes them to every application environment you deploy, from the Okteto CLI or the Okteto UI: your Okteto Manifest expands them with the `${VARIABLE}` syntax, and the commands of its `deploy`, `destroy`, and `test` sections get them as environment variables. Use them for values that only apply to you, such as your own API keys. Nobody else on your team sees them.
+
+<Image
+  src={require("@site/static/img/variables-user+1.32.png").default}
+  alt="The Variables section of the Settings, with a table of variable names and masked values, a Remove button for each variable, and an Add Variable button"
+  width="790"
+/>
+
+## Adding a Variable
+
+1. In the Okteto UI, open **Settings > Variables**.
+1. Click **Add Variable**.
+1. Enter the **Name** and the **Value** of the variable, and click **Add Variable**. The name can only have letters, numbers, underscores, and hyphens: Okteto turns spaces into underscores and removes the other characters.
+
+   <Image
+     src={require("@site/static/img/settings-variables-add.png").default}
+     alt="The Add Variable dialog, with the name API_URL and the value https://api.example.com"
+     width="450"
+   />
+
+If a variable with the same name already exists, Okteto asks you to confirm before it replaces its value. Once you add a variable, the table masks its value.
+
+To delete a variable, click **Remove** next to it and confirm. You can't recover a deleted variable.
+
+## Precedence
+
+When two variables have the same name, Okteto uses the one that's higher in this list:
+
+1. A variable that you pass when you deploy, with `--var` or in the **Deploy** dialog.
+1. A [Catalog](admin/catalog.mdx#add-environment-variables) variable.
+1. An environment variable of your terminal. The Okteto CLI warns you when it overrides one of your variables.
+1. A variable of the `.env` file next to your Okteto Manifest.
+1. Your variables, the ones in **Settings > Variables**.
+1. The [Admin Variables](admin/admin-variables.mdx) that an Admin defines for every user.
+
+So your variables override the Admin Variables, and anything you set for one deploy overrides yours. See [Okteto Variables](application-environments/okteto-variables.mdx#precedence) for the full order, with the built-in variables.
+
+Okteto Variables don't reach your Development Containers. To set variables in a Development Container, use the [`environment`](reference/okteto-manifest.mdx#environment-string-optional) field of the `dev` section of your Okteto Manifest.
+
+## Reserved Variables
+
+`OKTETO_TOKEN`, `OKTETO_URL`, `OKTETO_CONTEXT`, and `OKTETO_NAMESPACE` are reserved: they configure the [Okteto CLI context](user-settings/personal-access-tokens.mdx#using-a-token-with-the-okteto-cli) in scripts and CI pipelines. You can't use them as the name of a variable in your Settings, in Admin Variables, in Catalog variables, or in the variables that you pass when you deploy.
+
+## Masking
+
+The Okteto CLI masks the values of your variables in the logs of your deployments and tests, so your secrets don't leak into a log that someone else reads. It only masks values longer than 5 characters, so short values such as `true` or `false` stay readable.

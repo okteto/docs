@@ -1,0 +1,97 @@
+---
+title: Setup
+description: The Setup section of your Settings downloads the Okteto CLI context and the Kubernetes credentials for your Okteto Namespaces, and sets your primary email.
+sidebar_label: Setup
+id: setup
+---
+
+import Image from "@theme/Image";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+**Settings > Setup** connects the Okteto CLI and your Kubernetes tools, such as `kubectl` and Helm, to your Okteto instance. It has three groups:
+
+- **Okteto Context:** downloads the configuration that points the Okteto CLI to your Okteto instance.
+- **Kubernetes Credentials:** downloads a kubeconfig file for your Okteto Namespaces.
+- **Account:** lists the emails linked to your account, and sets the primary one, which Okteto uses for account notifications.
+
+<Image
+  src={require("@site/static/img/settings-setup.png").default}
+  alt="The Setup section of the user settings, with the Download Context and Download Config File buttons and the primary email of the account"
+/>
+
+You can also get both configurations from your terminal with the Okteto CLI, without opening the Okteto UI.
+
+## Okteto CLI Context
+
+The Okteto CLI connects to your Okteto instance through a context. To create it from your terminal, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and run `okteto context use` with the URL of your Okteto instance:
+
+```bash
+okteto context use https://okteto.example.com
+```
+
+```console
+Authentication will continue in your default browser
+ ✓  Context 'okteto.example.com' created
+```
+
+If you aren't logged in to Okteto yet, the command opens your browser to log in. To log in without a browser, for example in a script or a coding agent's sandbox, pass a [Personal Access Token](user-settings/personal-access-tokens.mdx) with the `--token` flag.
+
+To get the context from the Okteto UI instead, click **Download Context** in the **Okteto Context** group. Your browser downloads a `config.json` file. Move it to the `~/.okteto/context` folder, where the Okteto CLI stores its contexts. The file replaces the contexts that you already have in that folder.
+
+## Kubernetes Credentials
+
+Your Kubernetes credentials are a kubeconfig file that gives `kubectl`, Helm, and any other Kubernetes tool access to your Okteto Namespaces. The kubeconfig uses a [credential plugin](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins) that runs the Okteto CLI to get a time-bound token for each request, so the Okteto CLI must be in your `PATH` and connected to your Okteto instance.
+
+To add your credentials to your kubeconfig from your terminal, run:
+
+```bash
+okteto kubeconfig
+```
+
+```console
+Updated kubernetes context 'okteto_example_com/cindy' in '/Users/cindy/.kube/config'
+```
+
+`okteto kubeconfig` adds the credentials to your kubeconfig file and makes them the current Kubernetes context.
+
+To get them from the Okteto UI instead, click **Download Config File** in the **Kubernetes Credentials** group. Your browser downloads an `okteto-kube.config` file. Point the `KUBECONFIG` environment variable to it:
+
+<Tabs
+  defaultValue="mac-linux"
+  values={[
+    { label: 'macOS / Linux', value: 'mac-linux', },
+    { label: 'Windows', value: 'windows', },
+  ]}
+>
+<TabItem value="mac-linux">
+
+```bash
+export KUBECONFIG=$HOME/Downloads/okteto-kube.config:${KUBECONFIG:-$HOME/.kube/config}
+```
+
+</TabItem>
+
+<TabItem value="windows">
+
+```powershell
+$Env:KUBECONFIG=("$HOME\Downloads\okteto-kube.config;$Env:KUBECONFIG;$HOME\.kube\config")
+```
+
+</TabItem>
+
+</Tabs>
+
+## Using Your Kubernetes Credentials
+
+With your Kubernetes credentials, the Kubernetes tools you already use, such as `kubectl`, `helm`, or `skaffold`, work with your Okteto Namespaces from your terminal. To check that the credentials work, list the pods of your current Okteto Namespace:
+
+```bash
+kubectl get pods
+```
+
+```console
+No resources found in cindy namespace.
+```
+
+The credential plugin gets time-bound tokens for your service account, which is more secure than the static tokens that Kubernetes generates in secrets. To use static tokens instead, set the `OKTETO_USE_STATIC_KUBETOKEN` environment variable to `true` before you run any Okteto CLI command. Kubernetes doesn't recommend static tokens, and `kubectl` 1.27 and later print a warning when you use them.

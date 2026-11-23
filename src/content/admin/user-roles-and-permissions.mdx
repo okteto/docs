@@ -1,0 +1,113 @@
+---
+title: User Roles and Permissions
+description: Okteto has two roles, Admin and Developer, and maps each one to Kubernetes RBAC in the Namespaces of your instance.
+sidebar_label: User Roles and Permissions
+id: user-roles-and-permissions
+---
+
+Okteto uses role-based access control (RBAC) with two roles: Admin and Developer. Each role decides what a user can do in the Okteto UI and the Okteto CLI, and Okteto maps it to Kubernetes RBAC in the Namespaces of your instance.
+
+## User Roles
+
+### Admins
+
+Admins manage every Namespace and Preview Environment of the instance, and the instance itself. An Admin can:
+
+- Delete, share, wake, sleep, and mark as persistent any Namespace or Preview Environment.
+- Deploy and destroy application environments in any Namespace, with the Okteto CLI or with `kubectl`.
+- Access every resource of any application environment.
+- [Transfer the ownership](admin/namespaces.mdx#transfer-namespace-ownership) of a Namespace to another user.
+- Manage the instance from the [Admin Dashboard](admin/index.mdx): its [users](admin/users.mdx), [nodes](admin/nodes.mdx), [Namespaces](admin/namespaces.mdx), [Preview Environments](admin/previews.mdx), [Admin Variables](admin/admin-variables.mdx), [Admin Access Tokens](admin/admin-access-tokens.mdx), and [Catalog](admin/catalog.mdx).
+
+With this access, an Admin can manage and troubleshoot an application environment when its owner isn't available.
+
+### Developers
+
+Developers create and manage their own Namespaces and Preview Environments. A Developer can:
+
+- Create Namespaces and Preview Environments.
+- Delete the Namespaces and Preview Environments they own, and share their Namespaces with other users.
+- Deploy application environments, with the Okteto CLI or with `kubectl`, in their own Namespaces and Preview Environments, and in the Namespaces shared with them.
+- Wake and sleep the Namespaces they own or are members of.
+
+### Access to Preview Environments {#access-to-global-preview-environments}
+
+Every Developer has read access to every Preview Environment, so anyone on the team can review a change and troubleshoot it with `kubectl`, without elevated permissions. Any Developer can also wake a sleeping Preview Environment from the Okteto UI. Only its owner and Admins can put it to sleep manually, and the [Garbage Collector](admin/cleanup.mdx) sleeps it after the period of inactivity that an Admin configures.
+
+## Permission Model
+
+In these tables, ✅ means that the role can do the action, ❌ means that it can't, and - means that the action doesn't apply to the role.
+
+### Namespace Operations
+
+| Action | Admin | Owner | Member | Other Developers |
+| --- | --- | --- | --- | --- |
+| Create | ✅ | ✅ | - | - |
+| Read | ✅ | ✅ | ✅ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ |
+| Share | ✅ | ✅ | ❌ | ❌ |
+| Deploy an application environment | ✅ | ✅ | ✅ | ❌ |
+| Redeploy an application environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy an application environment | ✅ | ✅ | ✅ | ❌ |
+| Destroy all | ✅ | ✅ | ✅ | ❌ |
+| Wake | ✅ | ✅ | ✅ | ❌ |
+| Sleep | ✅ | ✅ | ✅ | ❌ |
+| Transfer ownership | ✅ | ❌ | ❌ | ❌ |
+| Mark as persistent, and undo it | ✅ | ❌ | ❌ | ❌ |
+| Start and stop a Development Container | ✅ | ✅ | ✅ | ❌ |
+| Restart a resource | ✅ | ✅ | ✅ | ❌ |
+| Destroy a resource | ✅ | ✅ | ✅ | ❌ |
+| Access private endpoints | ✅ | ✅ | ✅ | ❌ |
+
+<span id="personal-previews"></span>
+
+### Preview Environment Operations
+
+| Action | Admin | Owner | Other Developers |
+| --- | --- | --- | --- |
+| Create | ✅ | ✅ | - |
+| Read | ✅ | ✅ | ✅ |
+| Delete | ✅ | ✅ | ❌ |
+| Deploy an application environment | ✅ | ✅ | ❌ |
+| Redeploy an application environment | ✅ | ✅ | ❌ |
+| Destroy an application environment | ✅ | ✅ | ❌ |
+| Wake | ✅ | ✅ | ✅ |
+| Sleep | ✅ | ✅ | ❌ |
+| Mark as persistent, and undo it | ✅ | ❌ | ❌ |
+| Access private endpoints | ✅ | ✅ | ✅ |
+
+The other Namespace operations, such as sharing or transferring ownership, don't apply to Preview Environments.
+
+## Kubernetes RBAC Model
+
+Besides the Okteto roles, Okteto configures Kubernetes RBAC in each Namespace it manages.
+
+### Namespace-Scoped RoleBindings
+
+Okteto creates a RoleBinding in each Namespace that grants the `cluster-admin` [ClusterRole](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles) to every Admin, and to the owner and the members of that Namespace. Although the ClusterRole is named `cluster-admin`, the RoleBinding is namespace-scoped: it only grants permissions within that Namespace, not across the cluster.
+
+Every Developer is an admin of their own Namespaces, and can't access or modify resources outside the Namespaces they own or are members of.
+
+### Default ServiceAccount Binding
+
+By default, Okteto also binds the `default` ServiceAccount of each Namespace to the same ClusterRole, with another namespace-scoped RoleBinding. Pods that don't set their own ServiceAccount get access to the Kubernetes API of their Namespace.
+
+If your security policy restricts the access of pods to the Kubernetes API, set [`namespace.autoRoleBinding.enabled`](self-hosted/helm-configuration.mdx#namespace) to `false` in your Helm configuration. It defaults to `true`.
+
+### Okteto Control Plane ServiceAccount
+
+The Okteto control plane uses the ServiceAccount of the `okteto` namespace. This account has cluster-wide permissions, because the control plane creates and manages namespaces, service accounts, role bindings, and other cluster-level resources on behalf of the users. It's separate from the namespace-scoped permissions of each Namespace.
+
+### Customizing Namespace Roles
+
+To fine-tune what Developers can do in their Namespaces, change the ClusterRole that Okteto binds in them with the [`serviceAccounts.roleBindings.namespaces`](self-hosted/helm-configuration.mdx#serviceaccounts) Helm setting. For example, to use a more restrictive role:
+
+```yaml
+serviceAccounts:
+  roleBindings:
+    namespaces: my-custom-role
+```
+
+The ClusterRole must already exist in the cluster: Okteto doesn't create it. To combine several ClusterRoles, use [ClusterRole aggregation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles).
+
+In Preview Environments, every Okteto user gets the ClusterRole of [`serviceAccounts.roleBindings.previews`](self-hosted/helm-configuration.mdx#serviceaccounts), which defaults to `view`.

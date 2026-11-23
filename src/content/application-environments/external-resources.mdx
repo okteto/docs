@@ -1,0 +1,84 @@
+---
+title: External Resources
+description: External resources are the parts of your application that run outside Kubernetes, such as a storage bucket or a managed database, which your application environment creates, shows, and deletes.
+sidebar_label: External Resources
+id: external-resources
+---
+
+An application environment runs in Kubernetes, but some applications also need resources outside the cluster: an S3 bucket, a managed SQL database, a serverless function, or a message queue of your cloud provider. With Okteto, each application environment creates its own copy of those resources when it's deployed and deletes them when it's destroyed, so environments don't share them.
+
+Three sections of your Okteto Manifest work together:
+
+- [`deploy`](application-environments/deploy.mdx) creates the resources, with the infrastructure-as-code tool you already use.
+- `external` shows them in the Okteto UI, next to the rest of the application environment.
+- [`destroy`](application-environments/destroy.mdx) deletes them.
+
+## Creating and Deleting External Resources
+
+The `deploy` and `destroy` commands run your infrastructure-as-code tool, such as Terraform, inside the cluster. This Okteto Manifest creates an S3 bucket for each application environment, named after its Namespace, and deletes it when the environment is destroyed:
+
+```yaml title="okteto.yaml"
+deploy:
+  image: hashicorp/terraform:1.17.2
+  commands:
+    - name: Create the S3 bucket
+      command: |
+        terraform init -input=false
+        terraform apply -input=false -auto-approve -var "bucket_name=${OKTETO_NAMESPACE}-movies"
+
+destroy:
+  image: hashicorp/terraform:1.17.2
+  commands:
+    - name: Delete the S3 bucket
+      command: |
+        terraform init -input=false
+        terraform destroy -input=false -auto-approve -var "bucket_name=${OKTETO_NAMESPACE}-movies"
+```
+
+If your commands need access to your cloud provider account, ask your Admin to configure [Cloud Credentials](admin/cloud-credentials/index.mdx). The commands then reach your account without anyone storing static keys in the repository or in a variable. `okteto destroy` runs the `destroy` commands before it deletes the Kubernetes resources of the application environment.
+
+The [Create Cloud Infrastructure with Terraform](/tutorials/cloud-infrastructure/) tutorial builds this setup step by step, including where to store the Terraform state of each environment.
+
+## Showing External Resources in the Okteto UI
+
+The `external` section lists the resources, so the Okteto UI shows them alongside the services of the application environment, each with an icon, its notes, and the links to open it:
+
+```yaml title="okteto.yaml"
+external:
+  bucket:
+    icon: aws
+    notes: docs/bucket.md
+    endpoints:
+      - name: console
+        url: https://s3.console.aws.amazon.com/s3/buckets/movies
+```
+
+- `icon` is the icon of the resource in the Okteto UI.
+- `notes` is the path of a Markdown file in your repository. The Okteto UI shows its content next to the resource.
+- `endpoints` are the links of the resource.
+
+The `external` section only describes the resources. It doesn't create or delete anything.
+
+## Endpoint URLs Set at Deploy Time
+
+When the URL of a resource isn't known until it's created, leave the `url` out, and write it from a deploy command to the file at `$OKTETO_ENV`, in a variable named `OKTETO_EXTERNAL_<RESOURCE>_ENDPOINTS_<ENDPOINT>_URL`:
+
+```yaml title="okteto.yaml"
+deploy:
+  image: hashicorp/terraform:1.17.2
+  commands:
+    - name: Create the S3 bucket
+      command: |
+        terraform init -input=false
+        terraform apply -input=false -auto-approve -var "bucket_name=${OKTETO_NAMESPACE}-movies"
+        echo "OKTETO_EXTERNAL_BUCKET_ENDPOINTS_CONSOLE_URL=https://s3.console.aws.amazon.com/s3/buckets/${OKTETO_NAMESPACE}-movies" >> $OKTETO_ENV
+
+external:
+  bucket:
+    icon: aws
+    notes: docs/bucket.md
+    endpoints:
+      - name: console
+```
+
+If the `url` is set in both places, the value from the deploy command wins. See the [`external` reference](reference/okteto-manifest.mdx#external) for every option, including the list of icons.

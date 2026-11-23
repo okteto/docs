@@ -1,0 +1,78 @@
+---
+title: Personal Access Tokens
+description: Personal Access Tokens authenticate the Okteto CLI and the Okteto API as you, without a browser, in scripts, CI pipelines, and coding agents' sandboxes.
+sidebar_label: Personal Access Tokens
+id: personal-access-tokens
+---
+
+import Image from "@theme/Image";
+
+A Personal Access Token authenticates the Okteto CLI and calls to the [Okteto API](reference/okteto-api.mdx) as you, without a browser. Use one wherever nobody can log in interactively: a script, a CI pipeline, or the sandbox of a coding agent that deploys and tests in its own application environment. You manage your tokens in **Settings > Personal Access Tokens** in the Okteto UI.
+
+For shared automations, such as the CI pipelines that deploy [Preview Environments](previews/index.mdx), an Admin creates an [Admin Access Token](admin/admin-access-tokens.mdx) instead. It works the same way, but it isn't tied to a person.
+
+<Image
+  src={require("@site/static/img/settings-personal-access-tokens.png").default}
+  alt="The Personal Access Tokens section, with the Login Token and three tokens: one that expires on a date, one that never expires, and one that expires in 5 days, under a banner that warns about tokens about to expire"
+  width="790"
+/>
+
+## Creating a Personal Access Token
+
+1. In the Okteto UI, open **Settings > Personal Access Tokens**.
+1. Click **New Token**.
+1. Give the token a name that says what it's for, choose its **Expiration** (180 days by default, or 90, 60, 30, or 7 days, or **Never**), and click **Generate**.
+
+   <Image
+     src={require("@site/static/img/tokens-name.png").default}
+     alt="The New Token dialog, with the Name field and the Expiration options: 180 days, 90 days, 60 days, 30 days, 7 days, and Never"
+     width="605"
+   />
+
+1. Copy the token. Okteto shows it only once: after you close the dialog, you can't see it again.
+
+:::warning
+Treat your tokens like passwords. Pass them to your programs in an environment variable, such as `OKTETO_TOKEN`, instead of writing them in your code or your repository.
+:::
+
+## Token Expiration
+
+An expired token can't authenticate the Okteto CLI or calls to the Okteto API, and you can't renew it: create a new token instead. The list shows when each token expires. When one of your tokens has expired, or expires in the next 7 days, a banner says "Some of your tokens have expired or are about to expire."
+
+The **Login Token** at the top of the list is the token that Okteto creates when you log in. **Renew** replaces it with a new one.
+
+## Using a Token with the Okteto CLI
+
+To create an Okteto CLI context with a token instead of your browser, pass it with the `--token` flag:
+
+```bash
+okteto context use https://okteto.example.com --token ${OKTETO_TOKEN}
+```
+
+The Okteto CLI also reads its context from environment variables, so a script, a CI job, or a coding agent's sandbox doesn't need to run `okteto context` first:
+
+| Variable | Value |
+|----------|-------|
+| `OKTETO_TOKEN` | The Personal Access Token or the [Admin Access Token](admin/admin-access-tokens.mdx) to authenticate with. |
+| `OKTETO_URL` | The URL of your Okteto instance, such as `https://okteto.example.com`. `OKTETO_CONTEXT` works too. |
+| `OKTETO_NAMESPACE` | Optional. The Okteto Namespace that the commands run in. It defaults to the Namespace of the current context. |
+
+For example:
+
+```bash
+export OKTETO_URL=https://okteto.example.com
+export OKTETO_TOKEN=<your-token>
+okteto namespace create agent-fix-login
+```
+
+The `--context` and `--namespace` flags take precedence over these variables, and the variables take precedence over your current context. The Okteto CLI also reads them from a `.env` file in the folder where you run it.
+
+`OKTETO_TOKEN`, `OKTETO_URL`, `OKTETO_CONTEXT`, and `OKTETO_NAMESPACE` are [reserved names](user-settings/variables.mdx#reserved-variables): they only configure the Okteto CLI, and you can't use them for your own Okteto Variables.
+
+## Revoking a Personal Access Token
+
+1. In the Okteto UI, open **Settings > Personal Access Tokens**.
+1. Click **Delete** next to the token.
+1. Click **Delete Token** to confirm.
+
+Okteto revokes the token right away, and you can't recover it.

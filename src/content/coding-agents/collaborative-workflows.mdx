@@ -1,0 +1,33 @@
+---
+title: Collaborative Workflows
+description: You run okteto up, with hot reload and a debugger, and a coding agent edits the code instead of running the build, deploy, and test cycle.
+sidebar_label: Collaborative Workflows
+---
+
+import Image from "@theme/Image";
+
+In a collaborative workflow, you and a coding agent work on the same application environment. You run `okteto up` to turn a service into a [Development Container](application-environments/develop/index.mdx), with hot reload and a debugger, and tell the agent what to change. The agent stops running the build, deploy, and test cycle, and only edits the code. [File Sync](application-environments/develop/index.mdx#file-sync) copies every file the agent edits to the Development Container within seconds, so you see the result of a change without rebuilding or redeploying.
+
+<Image
+  src={require("@site/static/img/coding-agents-collaborative.webp").default}
+  mobileSrc={require("@site/static/img/coding-agents-collaborative-mobile.webp").default}
+  borderless
+  alt="The collaborative loop: you ask the coding agent for a change, the agent edits the code, File Sync copies it to the Development Container that okteto up started, hot reload applies it, and you check the change on the endpoints of the application and ask for the next one"
+/>
+
+## How It Works
+
+1. You open a session with your coding agent, such as Claude Code, in your repository. With the [Okteto skills](coding-agents/okteto-skills.mdx), the agent creates the [Namespace of the session](coding-agents/index.mdx#parallel-tasks) and deploys the application environment in it with `okteto deploy --wait`.
+2. In another terminal, you start the Development Container of the service you're working on, in the Namespace of the session. The agent never runs `okteto up` itself, because it's interactive:
+
+   ```bash
+   okteto up <service> -n <namespace>
+   ```
+
+3. From that moment, the agent stops building, deploying, and testing. It only edits the code on your machine: File Sync copies each change to the Development Container, and hot reload applies it to the running application.
+4. You check each change on the [endpoints](application-environments/endpoints/automatic-ssl.mdx) of the application, with your browser, and ask the agent for the next one. The ports that the Development Container forwards to `localhost` are for your debugger, or for a service such as the database.
+5. When you're done, you stop the Development Container with `okteto down <service> -n <namespace>`, and ask the agent to run the tests with `okteto test` and open the pull request.
+
+## Hot Reload
+
+This workflow depends on hot reload: the `command` of your Development Container must always start the application with a tool that reloads or restarts it when a file changes, such as `node --watch`, `air`, `uvicorn --reload`, or `dotnet watch`. Without it, the changes that the agent makes reach the Development Container, but the application keeps running the old code until someone restarts it. See [Development Containers](application-environments/develop/index.mdx) for how to set the `command`.

@@ -1,0 +1,204 @@
+---
+title: Volume Snapshots
+description: Volume Snapshots initialize the persistent volumes of an application environment from a snapshot, for example a database with staging data.
+sidebar_label: Volume Snapshots
+id: use-volume-snapshots
+---
+
+import Image from "@theme/Image";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Volume Snapshots initialize the persistent volumes of an application environment with the data of a snapshot. Every new environment, whether a developer, a pull request, or a coding agent deploys it, starts with the same realistic data, for example:
+
+- A PostgreSQL or MySQL database with a copy of your staging data.
+- A large dataset, such as machine learning models, logs, or images.
+
+It works in three steps:
+
+1. A persistent volume claim (PVC) of a source environment, such as a database, stores the data.
+2. A `VolumeSnapshot` captures the data of that volume at a point in time.
+3. When an application environment deploys, Okteto creates its persistent volume claims from the snapshot.
+
+<Image
+  src={require("@site/static/img/volume-snapshot.webp").default}
+  mobileSrc={require("@site/static/img/volume-snapshot-mobile.webp").default}
+  borderless
+  alt="In the Staging Namespace, the mysql Deployment stores its data in the mysql-pvc volume, and the mysql-snapshot Volume Snapshot captures that volume. In Cindy's Namespace, a new environment, Okteto creates the pvc-from-snapshot volume from the snapshot, so her mysql Deployment starts with the same data"
+/>
+
+## Requirements
+
+<Tabs
+  defaultValue="self-hosted"
+  values={[
+    { label: 'Self-Hosted', value: 'self-hosted', },
+    { label: 'BYOC', value: 'byoc', },
+  ]}
+>
+<TabItem value="self-hosted">
+
+Volume Snapshots need a StorageClass backed by a [CSI driver that supports volume snapshots](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html), and a `VolumeSnapshotClass` for that driver. The source volume of your snapshots must use that StorageClass. To install a compatible CSI driver and create the `VolumeSnapshotClass`, follow [Volume Snapshots](self-hosted/install/volume-snapshots.mdx).
+
+</TabItem>
+
+<TabItem value="byoc">
+
+On Bring Your Own Cloud (BYOC) instances, Volume Snapshots are enabled by default. The default StorageClass doesn't support them, so the source volume of your snapshots must use the `csi-okteto` StorageClass.
+
+</TabItem>
+</Tabs>
+
+## Using Volume Snapshots in Your Application Environment {#using-volume-snapshots-in-your-application-environment}
+
+The examples on this page use a MySQL database, but the same steps work for any volume, such as files, images, or machine learning models.
+
+### 1. Source Persistent Volume (PVC) {#1-create-the-source-persistent-volume-pvc}
+
+Store the data you want to clone in a persistent volume claim. Set its StorageClass to one that supports volume snapshots, as described in [Requirements](#requirements). The examples use `csi-okteto`:
+
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Compose', value: 'compose', },
+  ]}
+>
+<TabItem value="kubernetes">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  storageClassName: csi-okteto
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+spec:
+  containers:
+    - name: mysql
+      image: mysql
+      volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: mysql-pvc
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+services:
+  mysql:
+    image: mysql
+    volumes:
+      - mysql-pvc:/var/lib/mysql
+
+volumes:
+  mysql-pvc:
+    driver_opts:
+      class: csi-okteto
+```
+
+</TabItem>
+</Tabs>
+
+Before you create the snapshot, make sure that the persistent volume claim is `Bound`, and that the data you want to clone is already in the volume. In these examples, the MySQL pod binds the claim and writes the data.
+
+### 2. Snapshot of the PVC {#2-create-a-snapshot-of-the-pvc}
+
+Create a `VolumeSnapshot` of the source persistent volume claim. The snapshot has the data of the volume at the moment you create it: later changes to the volume don't reach the snapshot. This manifest creates the `mysql-snapshot` snapshot from the `mysql-pvc` claim, for both the Kubernetes and the Compose examples:
+
+```yaml title="snapshot.yaml"
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-snapshot
+spec:
+  volumeSnapshotClassName: okteto-snapshot-class
+  source:
+    persistentVolumeClaimName: mysql-pvc
+```
+
+```bash
+kubectl apply -f snapshot.yaml
+```
+
+### 3. PVC Restored from the Snapshot {#3-restore-a-pvc-from-a-snapshot}
+
+In the application environments that use the data, add the `dev.okteto.com/from-snapshot-name` and `dev.okteto.com/from-snapshot-namespace` annotations to the persistent volume claim. Okteto creates the claim with the data of that snapshot:
+
+<Tabs
+  defaultValue="kubernetes"
+  values={[
+    { label: 'Kubernetes', value: 'kubernetes', },
+    { label: 'Compose', value: 'compose', },
+  ]}
+>
+<TabItem value="kubernetes">
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    dev.okteto.com/from-snapshot-name: mysql-snapshot
+    dev.okteto.com/from-snapshot-namespace: staging
+  name: pvc-from-snapshot
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</TabItem>
+<TabItem value="compose">
+
+```yaml
+services:
+  mysql:
+    image: mysql
+    volumes:
+      - data:/var/lib/mysql
+
+volumes:
+  data:
+    labels:
+      dev.okteto.com/from-snapshot-name: mysql-snapshot
+      dev.okteto.com/from-snapshot-namespace: staging
+```
+
+</TabItem>
+</Tabs>
+
+These annotations control the restore:
+
+- `dev.okteto.com/from-snapshot-name`: the name of the snapshot.
+- `dev.okteto.com/from-snapshot-namespace`: the Namespace of the snapshot. If you leave it out, Okteto looks for the snapshot in the Namespace of the new claim.
+- `dev.okteto.com/skip-snapshot-if-same-namespace: "true"`: skips the restore when the snapshot and the new claim are in the same Namespace, for example in the source environment itself.
+
+## Keeping the Snapshot Up to Date
+
+To refresh the snapshot every time you deploy the source environment, recreate it in the `deploy` commands of its Okteto Manifest, after the commands that deploy the application. These commands delete the previous snapshot, so the environments created afterwards get the new data:
+
+```yaml title="okteto.yaml"
+deploy:
+  commands:
+    - helm upgrade --install movies chart
+    - kubectl delete volumesnapshot mysql-snapshot --ignore-not-found
+    - kubectl apply -f snapshot.yaml
+```

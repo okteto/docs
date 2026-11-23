@@ -6,7 +6,7 @@ sidebar_label: Quickstart
 
 import Image from "@theme/Image";
 
-This quickstart takes a sample application and creates an [application environment](core/application-environments.mdx) for it in your Kubernetes cluster. All you need to build, deploy, and test the application is the Okteto CLI.
+This quickstart takes a sample application and creates an [application environment](application-environments/index.mdx) for it in your Kubernetes cluster. All you need to build, deploy, and test the application is the Okteto CLI.
 
 An application environment is a running copy of an application in its own Namespace, with its services and its dependencies, such as a database. Every environment gets its own HTTPS URL, so you can open it in your browser.
 
@@ -73,7 +73,7 @@ It's short, and it has three sections: `build`, `deploy`, and `test`. Each secti
 
 Kubernetes runs containers, so the first step is to turn the code into container images. The `frontend` and the `api` each have a `Dockerfile` in their folder. MongoDB doesn't need one, because it runs the official `mongo` image.
 
-The [build](reference/okteto-manifest.mdx#build-object-optional) section of the Okteto Manifest lists the two images to build, and the folder of each one:
+The [build](application-environments/build-service.mdx) section of the Okteto Manifest lists the two images to build, and the folder of each one:
 
 ```yaml title="okteto.yaml"
 build:
@@ -100,15 +100,15 @@ okteto build
  ✓  Image 'registry.okteto.example.com/cindy/getting-started-frontend:okteto' successfully pushed
 ```
 
-You ran that command on your machine, but your machine didn't build anything. The Okteto CLI sent each folder to the [Okteto Build Service](core/build-service.mdx), which built the image inside your cluster and pushed it to the [Okteto Registry](core/container-registry.mdx), a container registry that runs in your cluster too. Your application environment pulls the images from there.
+You ran that command on your machine, but your machine didn't build anything. The Okteto CLI sent each folder to the [Okteto Build Service](application-environments/build-service.mdx), which built the image inside your cluster and pushed it to the [Okteto Registry](application-environments/build-service.mdx#okteto-registry), a container registry that runs in your cluster too. Your application environment pulls the images from there.
 
 That's why you don't need Docker, or access to a Docker daemon, to work with Okteto. The Okteto CLI is enough on your laptop, in a CI job, or in the sandbox of a coding agent.
 
 ## Deploy
 
-Okteto keeps the reference of each image it builds in a [variable](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) named `OKTETO_BUILD_<IMAGE>_IMAGE`, such as `OKTETO_BUILD_API_IMAGE`. That's how the next step knows which images to deploy.
+Okteto keeps the reference of each image it builds in a [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) named `OKTETO_BUILD_<IMAGE>_IMAGE`, such as `OKTETO_BUILD_API_IMAGE`. That's how the next step knows which images to deploy.
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest is a list of commands, the same ones you'd run to deploy to any Kubernetes cluster, with Helm, `kubectl`, or the tool you already use. Kube Movies needs only one. It installs the Helm chart of the `chart` folder, and passes it the two images:
+The [deploy](application-environments/deploy.mdx) section of the Okteto Manifest is a list of commands, the same ones you'd run to deploy to any Kubernetes cluster, with Helm, `kubectl`, or the tool you already use. Kube Movies needs only one. It installs the Helm chart of the `chart` folder, and passes it the two images:
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -121,7 +121,7 @@ deploy:
           --set frontend.image=${OKTETO_BUILD_FRONTEND_IMAGE}
 ```
 
-This command doesn't run on your machine either. Okteto runs it with [Remote Execution](core/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm installed. The chart creates everything the application needs: the `frontend` and `api` services, MongoDB and its volume, the `seed` job, and the Ingress that exposes the application.
+This command doesn't run on your machine either. Okteto runs it with [Remote Execution](reference/remote-execution.mdx), in a container inside your cluster that uses the image set in `deploy.image`, so you don't need Helm installed. The chart creates everything the application needs: the `frontend` and `api` services, MongoDB and its volume, the `seed` job, and the Ingress that exposes the application.
 
 Deploy the application with `okteto deploy`. The `--wait` flag keeps the command running until the pods are healthy:
 
@@ -147,7 +147,7 @@ Command 'Helm Install' successfully executed
  ✓  Development environment 'getting-started' successfully deployed
 ```
 
-The last lines of the output are the URLs of your application. Okteto created an [HTTPS endpoint](core/endpoints/automatic-ssl.mdx) for the [Ingress](core/endpoints/ingress.mdx) of the Helm chart, which sends `/` to the `frontend` service and `/api` to the `api` service. If your application uses the Gateway API, Okteto does the same for its [HTTPRoutes](core/endpoints/httproutes.mdx). The Okteto UI shows the same URLs, with the resources of the application:
+The last lines of the output are the URLs of your application. Okteto created an [HTTPS endpoint](application-environments/endpoints/automatic-ssl.mdx) for the [Ingress](application-environments/endpoints/ingress.mdx) of the Helm chart, which sends `/` to the `frontend` service and `/api` to the `api` service. If your application uses the Gateway API, Okteto does the same for its [HTTPRoutes](application-environments/endpoints/httproutes.mdx). The Okteto UI shows the same URLs, with the resources of the application:
 
 <Image
   src={require("@site/static/img/okteto-ui-movies.png").default}
@@ -165,7 +165,7 @@ Open the URL in your browser and Kube Movies is there. Click the star of a movie
 
 ## Test
 
-Your application is running, so you can test it the way your users use it: against the real services, not against mocks. The `test` section of the Okteto Manifest defines the [automated tests](reference/okteto-manifest.mdx#test-object-optional). Kube Movies uses [Playwright](https://playwright.dev/) to open the application in a browser, compare the movies on the page with the ones stored in MongoDB, and move a movie to the favorites:
+Your application is running, so you can test it the way your users use it: against the real services, not against mocks. The `test` section of the Okteto Manifest defines the [automated tests](application-environments/okteto-test.mdx). Kube Movies uses [Playwright](https://playwright.dev/) to open the application in a browser, compare the movies on the page with the ones stored in MongoDB, and move a movie to the favorites:
 
 ```yaml title="okteto.yaml"
 test:
@@ -220,7 +220,7 @@ The Okteto CLI is all you installed to get here. No Docker, no Node.js, no Mongo
 
 ## Destroy
 
-When you're done, clean up. [`okteto destroy`](reference/okteto-cli.mdx#destroy) deletes the application environment: it uninstalls the Helm release of Kube Movies from your Namespace.
+When you're done, clean up. [`okteto destroy`](application-environments/destroy.mdx) deletes the application environment: it uninstalls the Helm release of Kube Movies from your Namespace.
 
 ```bash
 okteto destroy
@@ -238,35 +238,35 @@ release "movies" uninstalled
 
 ### How do I set up my own repository the same way?
 
-Use a coding agent with the [Okteto skills](agentic/index.mdx). Ask it to set up your repository for Okteto: it discovers your services, writes the Okteto Manifest, and validates it with `okteto build` and `okteto deploy`.
+Use a coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx). Ask it to set up your repository for Okteto: it discovers your services, writes the Okteto Manifest, and validates it with `okteto build` and `okteto deploy`.
 
 ### How do I develop with hot reload and a debugger?
 
-Okteto supports hot reload and debuggers: `okteto up` runs a service of your application environment with your local changes as you save them. See the [samples for each language](development/containers/index.mdx): ASP.NET, Go, Java, Node.js, PHP, Python, Ruby, and Rust.
+Okteto supports hot reload and debuggers: `okteto up` runs a service of your application environment with your local changes as you save them. See the [samples for each language](application-environments/develop/index.mdx#guides-by-language): ASP.NET, Go, Java, Node.js, PHP, Python, Ruby, and Rust.
 
 ### How do I make builds, deploys, and `okteto up` faster?
 
-Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](core/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](reference/file-synchronization.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](agentic/index.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
+Upload only the files that each command needs: the context upload is key to performance. Every `okteto build`, `okteto deploy`, `okteto test`, and `okteto up` uploads files from your machine, and three ignore files decide what gets uploaded: `.dockerignore` for the image builds, [`.oktetoignore`](reference/remote-execution.mdx#ignoring-files) for `okteto deploy`, `okteto test`, and `okteto destroy`, and [`.stignore`](application-environments/develop/index.mdx#ignoring-files) for File Sync. A coding agent with the [Okteto skills](coding-agents/okteto-skills.mdx) configures them for your application and measures how much faster your builds, deploys, and `okteto up` get. [Optimize Your Application Environment](/tutorials/optimize-your-application-environment/) covers these and other optimizations.
 
 ### Do I need to deploy the whole application in every Namespace?
 
 No. Okteto supports two models, and you choose one for your application:
 
-- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](reference/okteto-manifest.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
-- **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](development/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them for an application with 20 services or more.
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](application-environments/deploy.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
+- **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](application-environments/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them for an application with 20 services or more.
 
 ### How do I create a Preview Environment of my application for every pull request?
 
-Add a workflow to your CI pipeline that deploys the application in a [Preview Environment](previews/index.mdx) when a pull request opens or changes, runs `okteto test` against it, and destroys it when the pull request closes. The workflow uses the Okteto Manifest, so `okteto build`, `okteto deploy`, and `okteto test` work the same way in your CI pipeline, for coding agents, and on developer machines. Follow the guide for [GitHub Actions](previews/using-github-actions.mdx) or for [GitLab CI/CD](previews/using-gitlab-cicd.mdx).
+Add a workflow to your CI pipeline that deploys the application in a [Preview Environment](previews/index.mdx) when a pull request opens or changes, runs `okteto test` against it, and destroys it when the pull request closes. The workflow uses the Okteto Manifest, so `okteto build`, `okteto deploy`, and `okteto test` work the same way in your CI pipeline, for coding agents, and on developer machines. Follow the guide for [GitHub Actions](previews/using-github-actions.mdx), for [GitLab CI/CD](previews/using-gitlab-cicd.mdx), or for [other CI tools](previews/using-other-ci-tools.mdx).
 
 ### How do I start each environment with realistic data?
 
-Load the data with a script in your `deploy` commands, as the `seed` job of Kube Movies does, or copy the data of another application environment with a [Volume Snapshot](core/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
+Load the data with a script in your `deploy` commands, as the `seed` job of Kube Movies does, or copy the data of another application environment with a [Volume Snapshot](application-environments/use-volume-snapshots.mdx), which creates the volumes of your database from a snapshot of its volumes. [Data from Volume Snapshots](/tutorials/optimize-your-application-environment/#data-from-volume-snapshots) shows how.
 
 ### How do I create resources outside Kubernetes, such as a cloud database?
 
-Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own resources. See the [Create Cloud Infrastructure with Terraform](/tutorials/cloud-infrastructure/) tutorial, which creates an Amazon S3 bucket for each environment.
+Create them in the `deploy` and `destroy` commands with your infrastructure as code tool, so every environment gets its own resources. See [External Resources](application-environments/external-resources.mdx), and the [Create Cloud Infrastructure with Terraform](/tutorials/cloud-infrastructure/) tutorial, which creates an Amazon S3 bucket for each environment.
 
 ### Can I access my application environment with `kubectl`?
 
-Yes. Run `okteto kubeconfig` to add the credentials of your Okteto Namespaces to your kubeconfig file, and use `kubectl` as usual: `kubectl get pods`, `kubectl logs`, or `kubectl describe`. See [Kubernetes Credentials](core/credentials/kubernetes-credentials.mdx) for how Okteto generates those credentials.
+Yes. Run `okteto kubeconfig` to add the credentials of your Okteto Namespaces to your kubeconfig file, and use `kubectl` as usual: `kubectl get pods`, `kubectl logs`, or `kubectl describe`. See [Troubleshooting with kubectl](application-environments/kubeconfig.mdx) for the commands to inspect your application environment.

@@ -1,0 +1,37 @@
+---
+title: Endpoints for Services
+description: Okteto creates an HTTPS endpoint for every Service with the dev.okteto.com/auto-ingress annotation.
+sidebar_label: Services
+id: services
+---
+
+Okteto creates an HTTPS endpoint for any Service with the `dev.okteto.com/auto-ingress: "true"` annotation:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world
+  labels:
+    app: hello-world
+  annotations:
+    dev.okteto.com/auto-ingress: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: hello-world
+```
+
+The endpoint forwards traffic to the first HTTP port of your Service, and its hostname is `<service-name>-<namespace>.<okteto-subdomain>`. The Okteto UI and `okteto endpoints` show its URL.
+
+## Ingress or HTTPRoute
+
+To expose the Service, Okteto creates an [Ingress](application-environments/endpoints/ingress.mdx) or an [HTTPRoute](application-environments/endpoints/httproutes.mdx) for you, depending on the Helm value [`unsupported.defaultGateway.type`](self-hosted/manage/migrate-to-gateway-api.mdx#docker-compose-endpoints) of your Okteto instance: `ingress` (default) or `gateway`. You don't need to change your Service when your Okteto instance moves from one to the other.
+
+## LoadBalancer and NodePort Services
+
+Okteto manages `NodePort` and `LoadBalancer` Services as if they had the `dev.okteto.com/auto-ingress: "true"` annotation: it converts them to `ClusterIP` and creates an endpoint for them. You can disable this behavior by setting [`convertLoadBalancedServices.enabled`](self-hosted/helm-configuration.mdx#convertloadbalancedservices) to `false`.

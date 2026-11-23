@@ -4,7 +4,7 @@ description: Install Okteto in an Amazon Elastic Kubernetes Service (EKS) cluste
 sidebar_label: Amazon EKS
 id: amazon-eks
 pagination_prev: get-started/install/index
-pagination_next: get-started/quickstart
+pagination_next: get-started/install-okteto-cli
 ---
 
 import variables from '../../variables.json';
@@ -28,18 +28,18 @@ You also need:
 - A domain where you can create wildcard DNS records
 - A Kubernetes cluster
 
-## Getting your Okteto License
+## Getting Your Okteto License
 
 You need a license to install Okteto. If you have an Okteto subscription, your license key came with it, and [support](https://okteto.com/support) can send it again if you can't find it. If you don't have a subscription yet, [sign up for the free tier](https://www.okteto.com/free-tier/): you get a one-year license for up to 5 users and 500 environments per month, and you don't need a credit card.
 
-## A Domain and the ability to create wildcard DNS records for it
+## A Domain and the Ability to Create Wildcard DNS Records for It
 
 You need enough access to a [subdomain](self-hosted/helm-configuration.mdx#subdomain), such as `dev.example.com`, to add a wildcard DNS record to it.
 By default, Okteto exposes the endpoints of your application environments on that subdomain.
 
 This guide uses [Amazon Route 53](https://aws.amazon.com/route53/) for the DNS records, but any DNS service works.
 
-## Deploy a Kubernetes cluster
+## Deploy a Kubernetes Cluster
 
 This guide assumes Okteto runs in a new, dedicated cluster.
 
@@ -55,7 +55,7 @@ As of Okteto 1.35, Okteto supports Amazon Linux 2 (AL2) and introduces support f
 
 :::
 
-### Setting up environment variables
+### Setting Up Environment Variables
 
 Set these environment variables to script the cluster creation:
 
@@ -142,7 +142,7 @@ Amazon's [cluster creation guide](https://docs.aws.amazon.com/eks/latest/usergui
 ### Create EBS CSI Addon IAM Role
 
 Okteto needs the EBS CSI Addon to create persistent volumes.
-It uses them for the cache of the [Okteto Build Service](core/build-service.mdx) (BuildKit) and, in the default installation, to store your container images in the [Okteto Registry](core/container-registry.mdx).
+It uses them for the cache of the [Okteto Build Service](application-environments/build-service.mdx) (BuildKit) and, in the default installation, to store your container images in the [Okteto Registry](application-environments/build-service.mdx#okteto-registry).
 
 Before you install the EBS CSI Addon in your Kubernetes cluster, create its IAM Role:
 
@@ -266,7 +266,7 @@ It replaces [Add the Okteto Helm repository](#add-the-okteto-helm-repository) an
 
 You install Okteto with its Helm chart.
 
-### Add the Okteto Helm repository
+### Add the Okteto Helm Repository
 
 Add the Okteto Helm repository:
 
@@ -275,7 +275,7 @@ helm repo add okteto https://charts.okteto.com
 helm repo update
 ```
 
-### Create the Helm configuration file
+### Create the Helm Configuration File
 
 Create a `config.yaml` file with these settings, replacing `license` and `subdomain` with your own values:
 
@@ -303,7 +303,7 @@ This is the minimum configuration. The [Helm configuration](self-hosted/helm-con
 
 The `service.beta.kubernetes.io/aws-load-balancer-type: nlb` annotation tells AWS to expose the ingress controller with a [Network Load Balancer (NLB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) instead of the default [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html). We recommend an NLB because it supports WebSockets and static IPs, and it performs better. AWS publishes a [comparison of the load balancers](https://aws.amazon.com/elasticloadbalancing/features/).
 
-### Installing the Okteto Helm chart
+### Installing the Okteto Helm Chart
 
 Install the Okteto Helm chart:
 
@@ -321,7 +321,7 @@ NAMESPACE: okteto
 STATUS: deployed
 ```
 
-### Retrieve the Ingress Controller IP address
+### Retrieve the Ingress Controller IP Address
 
 Use `kubectl` to get the address that EKS allocated to the NGINX ingress controller that Okteto installs:
 
@@ -338,7 +338,7 @@ okteto-ingress-nginx-controller  LoadBalancer   10.0.7.73    a519c8b3b27f94...el
 
 Add the `EXTERNAL-IP` address (`a519c8b3b27f94...elb.amazonaws.com` in the example) to the DNS of your domain. In Route 53, create an `A` record with the name `*` that points to the alias of the Elastic Load Balancer.
 
-### Sign in to your Okteto instance
+### Sign In to Your Okteto Instance
 
 :::warning
 
@@ -348,10 +348,10 @@ The default installation isn't meant for production. Once you finish your evalua
 
 Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. Okteto creates your account the first time you log in, and the first user to log in gets the Admin role.
 
-## Optional: Configure access to your Amazon ECR
+## Optional: Configure Access to Your Amazon ECR
 
 You can give Okteto [access to your Amazon Elastic Container Registry](admin/registry-credentials/amazon-ecr.mdx). Your Dockerfiles and your deployments can then use its private images without pull secrets.
 
-## Deploy your first app
+## Deploy Your First App
 
-With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the URL of your instance, `https://okteto.SUBDOMAIN`. Then [deploy your first app](get-started/quickstart.mdx).
+With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the URL of your instance, `https://okteto.SUBDOMAIN`. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).

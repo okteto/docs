@@ -1,0 +1,90 @@
+---
+title: Okteto Namespaces
+description: An Okteto Namespace is the Kubernetes namespace where an application environment runs, isolated from the Namespaces of other developers, pull requests, and coding agents.
+sidebar_label: Namespaces
+id: namespaces
+---
+
+import Image from "@theme/Image";
+
+An Okteto Namespace is the Kubernetes namespace where an application environment runs. Okteto creates it with the RBAC roles that give access only to its owner and the members it's shared with, and with the [quotas](self-hosted/helm-configuration.mdx#quotas) and [network policies](self-hosted/helm-configuration.mdx#networkpolicies) that your Admin configures. A developer, a pull request, or a coding agent gets an isolated namespace in the cluster this way, without anyone creating namespaces or permissions by hand.
+
+## Personal and Other Namespaces {#personal-namespaces}
+
+Okteto has two kinds of Namespaces:
+
+- **Personal Namespace:** Okteto creates one for each user the first time they log in, named after their username. You can't delete your personal Namespace, but you can destroy the application environments in it and reuse it.
+- **Other Namespaces:** you, a CI pipeline, or a coding agent create them for a task, such as a feature, a bug fix, or an agent run, and delete them when the task is done. You can share them with your team, and an Admin can transfer them to another user. Each [Preview Environment](previews/index.mdx) also runs in a Namespace of its own.
+
+A Namespace for each task keeps every change isolated: name it after the branch or the ticket, deploy the application in it, and delete it when the change merges.
+
+## Creating and Deleting Namespaces
+
+To create a Namespace in the Okteto UI, open **Namespaces** in the main menu, click **New Namespace**, and type its name.
+
+With the Okteto CLI, create a Namespace and switch your Okteto context to it:
+
+```bash
+okteto namespace create feature-login
+```
+
+These commands work with your Namespaces:
+
+- `okteto namespace list` lists your Namespaces.
+- `okteto namespace use feature-login` switches your Okteto context to the `feature-login` Namespace.
+- `okteto namespace delete feature-login` deletes the `feature-login` Namespace. It runs the `destroy` commands of the application environments deployed in it first.
+
+In the Okteto UI, **Delete** in the Namespace view deletes the Namespace, and **Destroy All** destroys every application environment in it but keeps the Namespace. You can't delete your personal Namespace or a persistent Namespace. See the [`okteto namespace` reference](reference/okteto-cli.mdx#namespace) for every option.
+
+## Sleeping and Waking Namespaces
+
+A sleeping Namespace scales everything in it down to zero, so it stops using CPU and memory until someone wakes it up. The [Garbage Collector](admin/cleanup.mdx) puts idle Namespaces to sleep, and deletes the ones nobody uses, with the periods your Admin configures.
+
+To put a Namespace to sleep or wake it up yourself, use **Sleep** and **Wake** in the Namespace view of the Okteto UI, or the Okteto CLI:
+
+```bash
+okteto namespace sleep feature-login
+okteto namespace wake feature-login
+```
+
+Running `okteto deploy` or `okteto up` in a sleeping Namespace also wakes it up. An Admin can mark a Namespace as [persistent](admin/namespaces.mdx#persistent-namespaces), so it never sleeps and nobody deletes it. See [Activity](admin/cleanup.mdx#what-counts-as-activity) for everything that keeps a Namespace awake, and when a request to an endpoint wakes it up.
+
+### Keeping a Resource Awake
+
+To keep a Deployment or a StatefulSet running while the rest of its Namespace sleeps, such as a database that takes long to start, add the `dev.okteto.com/persistent` label to it:
+
+```yaml
+metadata:
+  name: database
+  labels:
+    dev.okteto.com/persistent: "true"
+```
+
+To add the label to a resource that is already deployed, use `kubectl`:
+
+```bash
+kubectl label deployment database dev.okteto.com/persistent=true
+```
+
+Okteto skips the resources with that label when the Namespace goes to sleep, whether you put it to sleep or the Garbage Collector does. See [Persistent Resources](admin/cleanup.mdx#persistent-resources).
+
+## Sharing a Namespace
+
+By default, only you have access to your Namespaces. To work with your team in the same application environment, share the Namespace: click **Share** in the Namespace view of the Okteto UI, add your teammates in **Invite members**, and save. Okteto gives them access to the Namespace and to everything deployed in it.
+
+To stop using a Namespace that someone shared with you, click **Leave** in the Namespace view.
+
+## Namespace Quotas {#configure-namespace-quotas}
+
+When your Admin configures [quotas](self-hosted/helm-configuration.mdx#quotas), the Namespace view of the Okteto UI shows how much of each quota the Namespace uses:
+
+<Image
+  src={require("@site/static/img/namespace-quotas.png").default}
+  alt="The CPU, Memory, Storage, and Pods quotas of a Namespace in the Okteto UI, with the Storage quota at 40%, 40 Gi of 100 Gi"
+  width="500"
+/>
+
+- **CPU:** the total CPU requests of the Namespace, set with `quotas.requests.cpu`.
+- **Memory:** the total memory requests of the Namespace, set with `quotas.requests.memory`.
+- **Storage:** the total storage of the volumes of the Namespace, set with `quotas.requests.storage`.
+- **Pods:** the number of pods of the Namespace, set with `quotas.resources.maxPods`.

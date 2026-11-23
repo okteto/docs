@@ -1,0 +1,91 @@
+---
+title: Build
+description: The Okteto Build Service builds the images for your services inside the cluster, on BuildKit, and reuses the images that someone already built from the same code.
+sidebar_label: Build
+id: build-service
+---
+
+import Image from "@theme/Image";
+
+The Okteto Build Service builds the images for your services inside the cluster, on [BuildKit](https://github.com/moby/buildkit) servers that Okteto deploys and manages, and pushes them to the [Okteto Registry](#okteto-registry). A developer's laptop, a CI job, and a coding agent's sandbox all build the same way: they need the Okteto CLI, but no Docker daemon, and they reuse the images and the cache layers that others already built.
+
+<Image
+  src={require("@site/static/img/build-service-flow.webp").default}
+  mobileSrc={require("@site/static/img/build-service-flow-mobile.webp").default}
+  borderless
+  alt="Cindy runs okteto build with an Okteto Manifest that builds the api image. Okteto builds it on BuildKit in the cluster and pushes the image cindy/api:okteto to the Okteto Registry"
+/>
+
+## Building Images
+
+The `build` section of your Okteto Manifest defines the images of your services:
+
+```yaml title="okteto.yaml"
+build:
+  api:
+    context: api
+    dockerfile: Dockerfile
+    args:
+      GO_VERSION: 1.20
+```
+
+`okteto build` builds every image of the `build` section and pushes it to the Okteto Registry.
+
+```bash
+okteto build
+```
+
+```console
+ i  Using cindy @ okteto.example.com as context
+ i  Building 'api/Dockerfile' in tcp://buildkit.okteto.example.com:443...
+ ...
+ ✓  Image 'registry.okteto.example.com/cindy/api:okteto' successfully pushed
+```
+
+For more information, see the [`build` section](reference/okteto-manifest.mdx#build) of the Okteto Manifest reference, or the [`okteto build` command](reference/okteto-cli.mdx#build) in the Okteto CLI reference.
+
+## Smart Builds {#smart-builds}
+
+Smart Builds skip the build of an image when someone already built it from the same code. For each image, Okteto computes a hash of its build context and its build parameters. If an image with that hash exists in the Okteto Registry, Okteto reuses it in a few seconds, instead of sending the build context and building it again:
+
+```console
+ i  Using david @ okteto.example.com as context
+ i  Okteto Smart Builds is skipping build of "api" because it's already built from cache.
+```
+
+Smart Builds work across every Namespace of your Okteto instance: developers, pull requests, and coding agents that build the same code share the same images. See the [Smart Builds reference](reference/smart-builds.mdx) for how the hash works, what Smart Builds need, and how to turn them off.
+
+## Okteto Registry {#okteto-registry}
+
+Okteto pushes the images it builds to the Okteto Registry, a container registry that runs inside your Okteto instance, so you don't need an external registry to build and deploy the images of your code. Each Namespace has its own space in the registry, and the application environments of a Namespace pull its images with no extra configuration. Okteto sets the name of each image in an `OKTETO_BUILD_<NAME>_IMAGE` [variable](application-environments/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry), so you never write it by hand.
+
+## Dockerfile Compatibility
+
+The Okteto Build Service supports every feature of BuildKit, so any valid Dockerfile works with it. If your Dockerfile uses base images from a private registry, ask your Admin to configure [Registry Credentials](admin/registry-credentials/index.mdx), so Okteto can pull them.
+
+### Mount Cache IDs {#mount-cache-id-management}
+
+The Okteto Build Service gives [cache mounts](https://docs.docker.com/build/cache/optimize/#use-your-package-manager-wisely) a different default ID than Docker:
+
+- **Docker:** the default ID of a cache mount is its target path. For example, `RUN --mount=type=cache,target=/go/pkg/mod` uses the ID `/go/pkg/mod`.
+- **Okteto:** the default ID is the name of the Git repository and the target path. For example, in the `myapp` repository, the same cache mount uses the ID `myapp-/go/pkg/mod`.
+
+This way, two repositories that use the same target folder don't share a cache by accident. To share a cache between repositories on purpose, set its `id`:
+
+```dockerfile
+# Share the Go modules cache between repositories
+RUN --mount=type=cache,target=/go/pkg/mod,id=shared-go-cache \
+    go mod download
+
+# Share the npm cache between repositories
+RUN --mount=type=cache,target=/root/.npm,id=shared-npm-cache \
+    npm ci
+```
+
+## Build Queue System {#build-queue-system}
+
+The Okteto Build Service sends each build to the BuildKit pod with the lowest load, from its CPU pressure, memory usage, and IOPS. When every BuildKit pod is over its load thresholds, the build waits in a queue until a pod is ready: a build finishes, or the [Horizontal Pod Autoscaler](self-hosted/install/buildkit-high-performance.mdx#4-hpa-for-performance-and-costs) adds a BuildKit pod. This way, builds keep a consistent speed when many people and agents build at the same time.
+
+While a build waits, the Okteto CLI shows its position in the queue. After 10 minutes, the build fails with a message that asks you to contact your Admins, who can add BuildKit pods or change the load thresholds. To wait longer, set the `OKTETO_BUILDKIT_QUEUE_WAIT_TIMEOUT` variable, for example to `15m`.
+
+Admins monitor the BuildKit pods and configure the queue in [**Admin > Build Service**](admin/build-service.mdx).

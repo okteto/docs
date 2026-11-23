@@ -1,0 +1,147 @@
+---
+title: Preview Environments with Other CI Tools
+description: Deploy a Preview Environment and run your automated tests on every pull request from any CI tool, with three Okteto CLI commands.
+sidebar_label: Other CI Tools
+id: using-other-ci-tools
+---
+
+Any CI tool that runs shell commands can create Preview Environments with the Okteto CLI. Your pipeline deploys a Preview Environment when a pull request opens or changes, runs your tests against it, and destroys it when the pull request closes. The commands are the same in Jenkins, CircleCI, Bitbucket Pipelines, Azure Pipelines, or any other tool: only the way you declare the jobs and read the data of the pull request changes.
+
+If you use GitHub or GitLab, follow the guide for [GitHub Actions](previews/using-github-actions.mdx) or for [GitLab CI/CD](previews/using-gitlab-cicd.mdx) instead.
+
+## Prerequisites
+
+- An Okteto instance, and an Admin who can create an [Admin Access Token](admin/admin-access-tokens.mdx) for it.
+- A CI tool that starts a pipeline when a pull request opens, changes, and closes, and that stores secrets.
+- A repository whose Okteto Manifest defines the [`deploy`](application-environments/deploy.mdx) and [`test`](application-environments/okteto-test.mdx) sections.
+
+## Pipeline Overview
+
+Your pipeline runs one Okteto CLI command for each event of the pull request:
+
+| Pull request event | Command | Result |
+|--------------------|---------|--------|
+| Opened or updated | `okteto preview deploy` | Deploys the Preview Environment, or redeploys it with the new commit. |
+| Opened or updated, after the deploy | `okteto test` | Runs your tests against the Preview Environment. |
+| Closed or merged | `okteto preview destroy` | Destroys the Preview Environment. |
+
+The examples on this page read the data of the pull request from four environment variables. Every CI tool exposes these values under its own names, so replace them with the predefined variables of your tool:
+
+| Variable | Value |
+|----------|-------|
+| `PR_NUMBER` | The number of the pull request. |
+| `PR_BRANCH` | The branch of the pull request. |
+| `PR_URL` | The HTTPS URL of the pull request. |
+| `REPOSITORY_URL` | The HTTPS URL of the repository, for example `https://github.com/okteto/getting-started`. |
+
+## Step 1: Install the Okteto CLI in Your Jobs
+
+Each job needs a checkout of your repository and the Okteto CLI. It doesn't need Docker, `kubectl`, or Helm: Okteto builds your images, deploys your application, and runs your tests inside your Kubernetes cluster.
+
+If your CI tool runs jobs in containers, use the Okteto CLI image:
+
+```text
+ghcr.io/okteto/okteto:stable
+```
+
+Otherwise, install the Okteto CLI as the first step of each job:
+
+```bash
+curl https://get.okteto.com -sSfL | sh
+```
+
+See [Install the Okteto CLI](get-started/install-okteto-cli.mdx) to install a specific version.
+
+## Step 2: Configure Your Credentials
+
+The Okteto CLI reads its credentials from two environment variables, so your jobs don't run `okteto context`:
+
+- `OKTETO_TOKEN`: an Okteto [Admin Access Token](admin/admin-access-tokens.mdx).
+- `OKTETO_CONTEXT`: the URL of your Okteto instance, for example `https://okteto.example.com`.
+
+Store both as secrets in your CI tool, mask `OKTETO_TOKEN` in the job logs, and expose them as environment variables to the jobs that run the Okteto CLI. Don't commit them to your repository.
+
+## Step 3: Deploy the Preview Environment
+
+Run this command when a pull request opens, and every time its branch gets a new commit:
+
+```bash
+okteto preview deploy "pr-${PR_NUMBER}" \
+  --branch "${PR_BRANCH}" \
+  --repository "${REPOSITORY_URL}" \
+  --sourceUrl "${PR_URL}" \
+  --wait
+```
+
+- `pr-${PR_NUMBER}` is the name of the Preview Environment, which is also the name of its Okteto Namespace. A name built from the number of the pull request gives every pull request its own Preview Environment, and lets the other jobs find it.
+- `--branch` and `--repository` tell Okteto which code to deploy. Okteto clones that branch and runs the `deploy` section of its Okteto Manifest.
+- `--sourceUrl` is the HTTPS URL of the pull request.
+- `--wait` makes the command finish when the Preview Environment is ready. The command waits up to 5 minutes by default: pass `--timeout 15m` for an application that takes longer to deploy.
+
+Every user of your Okteto instance can access the Preview Environment. To restrict it to its creator, pass `--scope personal`. See the [`okteto preview deploy` reference](reference/okteto-cli.mdx#deploy-2) for every flag.
+
+Don't cancel a deployment in progress: it can leave the Preview Environment half deployed. If your CI tool cancels the running pipeline when a new commit arrives, turn that off for this job.
+
+## Step 4: Share the URL of the Preview Environment
+
+[`okteto preview endpoints`](reference/okteto-cli.mdx#endpoints-1) prints the URLs of the Preview Environment, in JSON or in Markdown:
+
+```bash
+okteto preview endpoints "pr-${PR_NUMBER}" -o md
+```
+
+Post the Markdown output as a comment on the pull request with the API or the CLI of your Git platform, so your team opens the Preview Environment from the pull request. Use `-o json` to pick one URL and build your own message.
+
+## Step 5: Run Your Tests
+
+Run your tests after the deploy, in the same job or in a job that runs after it:
+
+```bash
+okteto test --namespace "pr-${PR_NUMBER}"
+```
+
+`okteto test` runs the tests in the [`test` section](application-environments/okteto-test.mdx) of your Okteto Manifest, in the Namespace of the Preview Environment. To run only some of them, pass their names, for example `okteto test e2e --namespace "pr-${PR_NUMBER}"`.
+
+When a test fails, `okteto test` exits with a non-zero code and the job fails, so you can block merging until the tests pass. The command copies the `artifacts` of each test, such as reports and coverage files, to the workspace of the job: publish them with the artifacts feature of your CI tool, also when the job fails.
+
+Every pull request now runs the same tests that developers and coding agents run with `okteto test` against their own application environments. They iterate on the tests without pushing changes and waiting for CI, and the tests behave the same way when they run in CI.
+
+## Step 6: Destroy the Preview Environment
+
+Run this command when the pull request closes or merges:
+
+```bash
+okteto preview destroy "pr-${PR_NUMBER}"
+```
+
+[`okteto preview destroy`](reference/okteto-cli.mdx#destroy-2) runs the `destroy` section of your Okteto Manifest, if it has one, and deletes the Preview Environment. This job doesn't need a checkout of your repository.
+
+If your CI tool has no event for a closed pull request, the [Garbage Collector](admin/cleanup.mdx) is the safety net: it puts idle Preview Environments to sleep and deletes them after the periods that your Admin sets.
+
+## Complete Script
+
+The same commands as one script. The first argument is the event of the pull request:
+
+```bash title="preview.sh"
+#!/usr/bin/env bash
+set -euo pipefail
+
+# OKTETO_TOKEN and OKTETO_CONTEXT come from the secrets of your CI tool.
+# PR_NUMBER, PR_BRANCH, PR_URL, and REPOSITORY_URL come from its predefined variables.
+name="pr-${PR_NUMBER}"
+
+case "${1}" in
+  opened|updated)
+    okteto preview deploy "${name}" \
+      --branch "${PR_BRANCH}" \
+      --repository "${REPOSITORY_URL}" \
+      --sourceUrl "${PR_URL}" \
+      --wait
+    okteto preview endpoints "${name}" -o md
+    okteto test --namespace "${name}"
+    ;;
+  closed)
+    okteto preview destroy "${name}"
+    ;;
+esac
+```

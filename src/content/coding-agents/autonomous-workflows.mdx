@@ -1,0 +1,85 @@
+---
+title: Autonomous Workflows
+description: Coding agents take a task from a ticket to a pull request, and deploy and test their changes in their own application environment.
+sidebar_label: Autonomous Workflows
+---
+
+import Image from "@theme/Image";
+
+In an autonomous workflow, a coding agent takes a task from a ticket to a pull request without a developer in the loop. It creates a Namespace for its session, deploys the application environment in it, writes the code, verifies the change against the running application, and opens a pull request when everything passes. You review the result in the pull request, with the tests that passed, not the process.
+
+## The Agent Loop
+
+The agent repeats the same loop until the change works:
+
+<Image
+  src={require("@site/static/img/coding-agents-loop.webp").default}
+  mobileSrc={require("@site/static/img/coding-agents-loop-mobile.webp").default}
+  borderless
+  alt="The autonomous agent loop: the coding agent creates the Namespace of its session, edits the code, deploys it with okteto deploy, and verifies it with okteto test. When something fails, it goes back to edit the code. When everything passes, it opens a pull request and destroys the Namespace"
+/>
+
+1. The agent reads the ticket for the requirements and the acceptance criteria.
+2. `okteto namespace create <namespace> --use=false` creates the [Namespace of the session](coding-agents/index.mdx#parallel-tasks). The agent passes `-n <namespace>` to every command that follows.
+3. `okteto deploy --wait` deploys the application environment, and `okteto endpoints` gets its URLs.
+4. The agent reads `okteto.yaml` to discover the services, and changes the code.
+5. If the change touches `okteto.yaml`, `okteto validate` checks it first. Then `okteto build <service>` rebuilds the images that changed, and `okteto deploy --wait` redeploys the application.
+6. The agent verifies the change:
+   - `okteto test <name>` runs the tests of your Okteto Manifest, inside the cluster.
+   - `curl` against the URLs of `okteto endpoints` checks the new behavior.
+   - `kubectl logs`, `kubectl get events`, and `kubectl top pods` show runtime errors, failed pods, and resource usage.
+7. If anything fails, the agent fixes the code and goes back to step 5.
+8. When everything passes, the agent commits the change, opens a pull request, and reports what it changed and the tests that passed.
+9. The agent deletes the Namespace of the session. From then on, the pull request has its own [Preview Environment](previews/index.mdx), which your CI pipeline deploys, to review and test the change.
+
+Nothing syncs in an autonomous workflow, so the agent redeploys after every change, including changes to a Dockerfile, a dependency manifest, or `okteto.yaml`. `okteto up` is never part of it: it's interactive and hangs the agent's shell.
+
+## Example: Ticket to Pull Request
+
+This example follows one task from the ticket to the pull request. The [Ticket to Pull Request with an Autonomous Agent](/tutorials/agent-ticket-to-pr/) tutorial builds the whole pipeline with GitHub Actions.
+
+A CI pipeline or a webhook starts the agent with a ticket:
+
+> Add a `/health` endpoint to the API service that returns the database connectivity status and the uptime.
+
+The agent creates the Namespace of the session, deploys the application environment in it, and gets its URLs:
+
+```bash
+okteto namespace create agent-proj-123 --use=false
+okteto deploy --wait -n agent-proj-123
+okteto endpoints -n agent-proj-123
+```
+
+After it changes the code, the agent rebuilds, redeploys, and verifies the change:
+
+```bash
+# Rebuild the api image and redeploy the application
+okteto build api -n agent-proj-123
+okteto deploy --wait -n agent-proj-123
+
+# Run the integration tests
+okteto test integration -n agent-proj-123
+
+# Call the new endpoint
+curl -s https://api-agent-proj-123.okteto.example.com/health
+
+# Check the logs and the events of the api service
+kubectl logs deployment/api -n agent-proj-123 --since=5m
+kubectl get events -n agent-proj-123 --sort-by=.lastTimestamp
+```
+
+If a test or the endpoint fails, the agent reads the error, fixes the code, and runs the loop again. When everything passes, it opens the pull request:
+
+```bash
+git add src/api/health.ts src/api/routes.ts
+git commit -m "Add /health endpoint with database status"
+gh pr create --title "Add health endpoint" --body "..."
+```
+
+Then it deletes the Namespace of the session. The pull request gets its own Preview Environment:
+
+```bash
+okteto namespace delete agent-proj-123
+```
+
+In Claude Code, the [guardrail hooks](coding-agents/okteto-skills.mdx#guardrail-hooks) of the Okteto plugin ask for confirmation before `okteto namespace delete`. When nobody is there to confirm, such as in a pipeline that starts the agent, set the `OKTETO_ALLOW_AGENT_DESTROY` environment variable to `1`.

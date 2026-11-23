@@ -30,7 +30,7 @@ These patterns are the most common drift in agent-authored docs. Treat each as a
 **Required patterns:**
 
 - Open every page with the subject (feature name or "Okteto") followed by what it does. No preamble.
-- Section headings are noun phrases (`Configuring the Garbage Collector`), not questions or imperatives. The only exception is the `###` questions inside a `## FAQ` section (see [`STYLE_GUIDE.md`](STYLE_GUIDE.md#section-headings)).
+- Page titles, sidebar labels, and section headings are in title case: every word capitalized except articles, conjunctions, and prepositions (`Upgrade Your Okteto Instance`). Section headings are noun phrases (`Configuring the Garbage Collector`), not questions or imperatives. The only exception is the `###` questions inside a `## FAQ` section (see [`STYLE_GUIDE.md`](STYLE_GUIDE.md#section-headings)).
 - Embed links inline. Never use standalone "Learn more" lines or arrow links.
 - Frontmatter `description` is one functional sentence. No marketing language.
 - Address the reader as "you". Use present tense and active voice.
@@ -46,19 +46,21 @@ Use these exact spellings and capitalizations. The full table is in [`STYLE_GUID
 
 | Term | Correct form | Notes |
 |------|--------------|-------|
-| Okteto product names | `Okteto CLI`, `Okteto Manifest`, `Okteto Registry`, `Okteto Build Service`, `Garbage Collector`, `Admin Dashboard`, `Okteto Test`, `Okteto AI`, `Okteto API` | Always capitalized. "the CLI" is OK after first reference. |
+| Okteto product names | `Okteto CLI`, `Okteto Manifest`, `Okteto Registry`, `Okteto Build Service`, `Garbage Collector`, `Admin Dashboard`, `Okteto Test`, `Okteto AI`, `Okteto API` | Always capitalized. Always "Okteto CLI": never "the CLI" on its own, not even after the first reference. |
 | Manifest filename | `okteto.yaml` | Lowercase, code-formatted (backticks). The product name is `Okteto Manifest`. |
-| CLI commands | `okteto up`, `okteto deploy`, `okteto test`, `okteto build` | Lowercase, in backticks. |
+| Okteto CLI commands | `okteto up`, `okteto deploy`, `okteto test`, `okteto build` | Lowercase, in backticks. |
 | Deployment models | `Self-Hosted`, `BYOC`, `SaaS` | All capitalized exactly as shown. `BYOC` is always uppercase. First reference: `Bring Your Own Cloud (BYOC)`. |
-| Environments | `application environment`, `Development Environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the default term for what Okteto deploys: use it instead of `Development Environment`, which is only for the environment a developer works in with `okteto up`. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
+| Environments | `application environment`, `Preview Environment`, `Development Container` | `application environment` is lowercase, and it's the term for what Okteto deploys, for developers, pull requests, and coding agents alike. Don't write `Development Environment`: a developer's environment is the whole application environment, and `okteto up` only replaces one of its services with a Development Container. The others are capitalized when referring to the Okteto feature, lowercase when generic. |
 | Namespaces | `Namespace` (Okteto) vs. `namespace` (generic Kubernetes) | Capitalization signals which one you mean. |
 | Roles | `Admin`, `Developer`, `Personal Access Token` | Capitalized when referring to the Okteto role. |
-| Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot`, `Agentic Workflows` | Capitalized as feature names. |
+| Features | `Divert`, `Remote Execution`, `File Sync`, `Volume Snapshot` | Capitalized as feature names. |
+| Agents | `coding agent`, `Okteto skills` | Lowercase. Not "AI agent" or "Okteto agent skills". The instructions file of an agent is always `AGENTS.md`. |
+| Environment models | `full replica`, `Overlay Namespace`, `Shared Namespace` | An Overlay Namespace runs only the services that change, on top of a Shared Namespace. `Divert` is the feature that routes requests between them. Not "overlay environment". |
 | Third-party | `Kubernetes`, `BuildKit`, `GitHub Actions`, `Docker Compose`, `Helm` | Match upstream casing. Never `k8s` in prose. |
 
 ### Search terms
 
-`ephemeral environment` (lowercase) is a term people search for a lot. Use it in the docs where it's true: for the application environments that live for one pull request or one agent task, Okteto creates them on demand and deletes them when the work ends. It describes how long an environment lives, so it doesn't replace `application environment` (the category, as opposed to the agent sandbox) or the feature names (`Preview Environment`, `Development Environment`).
+`ephemeral environment` (lowercase) is a term people search for a lot. Use it in the docs: application environments are ephemeral, Okteto creates them on demand for a developer, a pull request, or an agent task, and they're deleted when the work ends. It describes how long an environment lives, so it doesn't replace `application environment` (the category, as opposed to the agent sandbox) or the feature name `Preview Environment`.
 
 ## Confidential information
 
@@ -75,6 +77,7 @@ Describe the problem generically instead (e.g. "clusters where the ingress contr
 - `src/content/`: the **current** unreleased version. **All new content goes here.**
 - `versioned_docs/version-X.Y/`: frozen snapshots of released versions. By default, changes go only to `src/content/` (the next version), because most of them document features that ship in it. Copy a change to the official version (`lastVersion` in `docusaurus.config.js`) or older ones only when the user asks.
 - `src/pages/`: top-level pages (archives, etc.).
+- `netlify.toml`: the redirects. When a page moves, add a redirect from its old URL to the new one, without a version number in the path (`/docs/old-page` to `/docs/new-page/`). Don't add redirects for `/docs/X.Y/...` or `/docs/:version/...`.
 - `tutorials/`: the tutorials, served at `/tutorials/` as a site of their own with the look of the blog (`docusaurus.tutorials.config.js`). One folder per tutorial in `tutorials/posts/`, with its images. They aren't versioned. See [`tutorials/README.md`](tutorials/README.md).
 - `blog/`: the blog, served at `/blog/` (`docusaurus.blog.config.js`). See [`blog/README.md`](blog/README.md).
 - `config/shared.js`: what the three sites share (navbar, footer, search, analytics, styles), and the links between them. A page links to a page of another site with a root-relative URL (`/tutorials/helm/` from the docs, `/docs/reference/okteto-cli/` from a tutorial): the build turns it into a plain link and doesn't check it.
@@ -115,6 +118,15 @@ Diagrams in the docs share these shapes. The `deploy-movies-app` and `environmen
 - **An endpoint** (a URL, a path such as `/api`) is a pill: a rounded box whose radius is half its height. Pills that lead into an environment sit on its border, with the same height, and end at the same point inside it. A long URL can go down to 18px so its pill doesn't take the whole width.
 - **Arrows** are short, and the arrows of the same flow have the same length. Draw only the connections the page explains.
 - **Balance:** center the drawing on the canvas, with the same white space on each side.
+- **Symmetry, always:** it's the first thing a reader notices when it's missing. Check each of these before you render:
+  - A box has the same padding above and below its content, and the same on its left and right. Boxes of the same kind (two Namespaces, two dashed groups) use the same paddings in every diagram of a page.
+  - A box inside another keeps the same distance to its container wherever it appears: the gap between a dashed group and the bottom of its Namespace is the same in every Namespace.
+  - An element that feeds two others sits halfway between them, and its two arrows mirror each other. Two elements that feed one enter it at the same distance from its center.
+  - An arrow that enters a box has room: leave about 50px between the border it crosses and the element it points to, so the arrowhead doesn't touch the border.
+  - No line runs over a label or over the name of a Namespace. Route the arrow around it: into the Namespace through its left border, or through its top edge at the right of the name.
+  - In a diagram with several Namespaces, such as the ones of Divert, the Kubernetes mark and the name of each Namespace (`Staging`, `Cindy`) always go at the left of its top edge, in every diagram of the section.
+  - A dashed group keeps the same distance to the border of its Namespace in every diagram of a section: 40px to the right and bottom borders in the wide version, and 20px to the side borders in the stacked version for phones.
+- **Text hierarchy:** in an endpoint with a second line, such as a request header under its URL, the second line is smaller than the URL.
 
 ### Logos and icons
 
@@ -142,7 +154,7 @@ Run through this before declaring any docs change complete:
 
 1. **Read the diff aloud.** Does any sentence start with preamble (`Before you start...`, `In this guide...`)? Cut it.
 2. **Grep your additions for banned words:** `powerful`, `seamless`, `intelligent`, `foundational`, `comprehensive`, `Learn more`, `Useful for`, `—`. None should appear.
-3. **Check every Okteto noun you introduced** against the capitalization canon above. `Self-Hosted` (not `self-hosted`), `BYOC` (not `byoc`), `okteto.yaml` in backticks, `Okteto CLI` (not `Okteto cli` or `okteto CLI`).
+3. **Check every Okteto noun you introduced** against the capitalization canon above. `Self-Hosted` (not `self-hosted`), `BYOC` (not `byoc`), `okteto.yaml` in backticks, `Okteto CLI` (not `Okteto cli`, `okteto CLI`, or `the CLI`).
 4. **Verify links are inline**, not standalone "Learn more →" lines.
 5. **Confirm the frontmatter `description`** is a single functional sentence, with no marketing copy.
 6. **Run `yarn build`** if you touched more than a single page. The build catches broken anchors and version mismatches.

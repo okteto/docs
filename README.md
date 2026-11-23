@@ -273,7 +273,7 @@ The search index will be completed in a few minutes.
 
 Update `src/content/variables.json` to prepare for the next development cycle:
 
-1. Increment `cliVersion` to the expected next CLI version
+1. Increment `cliVersion` to the expected next Okteto CLI version
 2. Increment `chartVersion` to match `{NEXT_VERSION}.0`
 3. Keep other values unless there are known changes
 

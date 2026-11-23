@@ -1,0 +1,60 @@
+---
+title: Coding Agents
+description: Coding agents build, deploy, and test their changes in their own application environment, with the Okteto skills for Claude Code, Codex, Cursor, and other agents.
+pagination_label: Coding Agents
+pagination_next: coding-agents/okteto-skills
+---
+
+import Image from "@theme/Image";
+
+Coding agents such as Claude Code, Codex, Cursor, and GitHub Copilot build, deploy, and test their changes in their own [application environment](application-environments/index.mdx), created from the same Okteto Manifest that developers and pull requests use. The agent calls the endpoints of the running application and runs your tests. It also has access to the Kubernetes API of its Namespace, so it reads the logs and the events of its services to troubleshoot what fails, and fixes it before it opens a pull request.
+
+The agent's sandbox stays light. Builds, deployments, and tests run in the cluster through the Okteto CLI, so the sandbox needs the agent, Git access, and the Okteto CLI, but no Docker daemon and none of your application's dependencies. The [Okteto skills](coding-agents/okteto-skills.mdx) teach the agent this workflow: which commands to run, which to never run, and how to discover your services from `okteto.yaml`.
+
+<Image
+  src={require("@site/static/img/agent-sandbox.webp").default}
+  mobileSrc={require("@site/static/img/agent-sandbox-mobile.webp").default}
+  borderless
+  alt="A light agent sandbox with the agent binary, Git access, and the Okteto CLI deploys and tests the application in an application environment, an Okteto Namespace that runs the frontend, the API, the worker, the database, and the queue, and gets back the results and the logs"
+/>
+
+Keeping the application out of the agent's sandbox has these advantages, wherever the agent runs:
+
+- **Light and fast to start:** the sandbox holds the agent, not your application. Its image is small, and it doesn't need the CPU and memory to run your services.
+- **One sandbox for every application:** compilers, test tools, and dependencies live in the images that your Okteto Manifest builds and uses. The same sandbox image works for every repository, and you don't rebuild it when a toolchain changes.
+- **Safer:** with no Docker daemon, the sandbox needs no privileged access. It holds an Okteto token, not your cloud credentials, and the agent only reaches the Namespaces of the account it runs as. The application runs with the quotas and network policies that your Admin configures.
+- **Verified against the real application:** the agent tests its change against the application running on Kubernetes, deployed from the same definition that developers and pull requests use, not against a simplified copy or mocks.
+- **Parallel tasks:** every session works in its own Namespace, so agents that run at the same time don't overwrite each other's work or compete for the resources of one machine.
+
+These pages explain how to set up your agent and the two ways to work with it:
+
+- [Okteto Skills](coding-agents/okteto-skills.mdx): install the skills in Claude Code, Codex, Cursor, GitHub Copilot, or another agent.
+- [Autonomous Workflows](coding-agents/autonomous-workflows.mdx): the agent takes a task from a ticket to a pull request, and deploys and tests in its own application environment.
+- [Collaborative Workflows](coding-agents/collaborative-workflows.mdx): you run `okteto up`, which gives you hot reload and a debugger, and tell the agent what to change. The agent stops running the build, deploy, and test cycle, and only edits the code.
+- [Recommendations](coding-agents/recommendations.mdx): what to tell your agent, in its `AGENTS.md` file or in your own skills, when you don't use the Okteto skills.
+
+## Authentication
+
+The agent authenticates with Okteto through the Okteto CLI, with a token. Which token you give it depends on where the agent runs:
+
+- **On your machine:** when you work with the agent locally, give it your own [Personal Access Token](user-settings/personal-access-tokens.mdx). The agent has the same access as you.
+- **In a software factory:** when your own system starts the agents, such as a pipeline that takes tickets and opens pull requests, give it an [Admin Access Token](admin/admin-access-tokens.mdx), which isn't tied to a person.
+
+The agent connects the Okteto CLI with the token before any other command:
+
+```bash
+okteto context use https://okteto.example.com --token $OKTETO_TOKEN
+```
+
+## A Namespace for Each Session {#parallel-tasks}
+
+Every agent session works in a Namespace of its own. When the session starts, the agent creates the Namespace, named after the branch, and passes `-n <namespace>` to every `okteto` and `kubectl` command that follows:
+
+```bash
+okteto namespace create <namespace> --use=false
+okteto deploy --wait -n <namespace>
+```
+
+The `--use=false` flag creates the Namespace without making it the active one. The active Namespace belongs to the Okteto context, which every session on the same machine shares, so changing it would send the commands of the other sessions to the wrong Namespace. For the same reason, the agent never runs `okteto namespace use`.
+
+When the work is done, the agent deletes the Namespace that it created. It never deletes a Namespace that it didn't create.

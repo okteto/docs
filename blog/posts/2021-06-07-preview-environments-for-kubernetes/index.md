@@ -1,5 +1,5 @@
 ---
-title: "Run your Pull Request Preview Environments on Kubernetes"
+title: "Run Your Pull Request Preview Environments on Kubernetes"
 description: "Run your Pull Request Preview Environments on Kubernetes"
 slug: preview-environments-for-kubernetes
 date: 2021-06-07

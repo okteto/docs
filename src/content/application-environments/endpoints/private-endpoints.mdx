@@ -1,0 +1,145 @@
+---
+title: Private Endpoints
+description: Private Endpoints only let the Okteto users with access to your Namespace open your application's endpoints.
+sidebar_label: Private Endpoints
+id: private-endpoints
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+Private Endpoints restrict access to the endpoints of your application to the Okteto users who have access to your Namespace. Before they reach the application, users sign in with their Okteto account. The Okteto UI shows a shield icon next to each Private Endpoint.
+
+:::warning Deprecated in Self-Hosted
+Private Endpoints are deprecated in Self-Hosted instances, and they don't work with Gateway API there: when your Okteto instance uses Gateway API, endpoints marked as private are exposed like any other endpoint. To keep your applications off the public internet, see [Private Endpoints](self-hosted/manage/migrate-to-gateway-api.mdx#private-endpoints) in the Gateway API migration guide. Private Endpoints aren't deprecated in Bring Your Own Cloud (BYOC), where they work with Ingress objects and HTTPRoutes.
+:::
+
+## Enabling Private Endpoints
+
+<Tabs
+  defaultValue="compose"
+  values={[
+    { label: 'Docker Compose', value: 'compose', },
+    { label: 'Ingress', value: 'ingress', },
+    { label: 'Service', value: 'service', },
+    { label: 'HTTPRoute', value: 'httproute', },
+  ]}
+>
+
+<TabItem value="httproute">
+
+In BYOC, add the `dev.okteto.com/private: "true"` annotation to your own [HTTPRoutes](application-environments/endpoints/httproutes.mdx):
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hello-world
+  annotations:
+    dev.okteto.com/private: "true"
+spec:
+  rules:
+    - backendRefs:
+        - name: hello-world
+          port: 8080
+```
+
+</TabItem>
+
+<TabItem value="compose">
+
+Add the `dev.okteto.com/private: "true"` label to a service of your [Docker Compose](reference/docker-compose.mdx) file:
+
+```yaml
+name: hello-world
+services:
+  hello-world:
+    labels:
+      dev.okteto.com/private: "true"
+    image: nginx
+    ports:
+      - 8080:8080
+```
+
+Or add the `dev.okteto.com/private: "true"` annotation to an endpoint of the `endpoints` section:
+
+```yaml
+name: hello-world
+endpoints:
+  annotations:
+    dev.okteto.com/private: "true"
+  rules:
+    - path: /
+      service: hello-world
+      port: 8080
+services:
+  hello-world:
+    image: nginx
+    expose:
+      - 8080
+```
+
+</TabItem>
+
+<TabItem value="ingress">
+
+Add the `dev.okteto.com/private: "true"` annotation to your own [Ingress objects](application-environments/endpoints/ingress.mdx):
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-world
+  annotations:
+    dev.okteto.com/private: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-world
+                port:
+                  number: 8080
+```
+
+</TabItem>
+
+<TabItem value="service">
+
+Add the `dev.okteto.com/auto-ingress: "private"` annotation to a [Service](application-environments/endpoints/services.mdx), and Okteto creates a Private Endpoint for it:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world
+  labels:
+    app: hello-world
+  annotations:
+    dev.okteto.com/auto-ingress: "private"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: hello-world
+```
+
+The endpoint gets the same hostname as any other [endpoint of a Service](application-environments/endpoints/services.mdx).
+
+</TabItem>
+
+</Tabs>
+
+To protect only some paths of your application, such as an admin portal or a metrics endpoint, create two Ingress objects: one with the public paths, and another one, with the `dev.okteto.com/private` annotation, for the private paths.
+
+## Restrictions
+
+Private Endpoints authenticate with your Okteto account in the browser. They protect endpoints that your team opens in a browser, and they aren't suited for automations or for endpoints that your end users reach.
+
+Private Endpoints only restrict access from outside the cluster. The services in your Namespace reach the application by its Service name, without authentication.
