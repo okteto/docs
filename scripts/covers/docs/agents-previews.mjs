@@ -76,8 +76,8 @@ const endpoint = (cx, cy, name, label, color) => circle(cx, cy, 52, { color }) +
 // The collaborative loop (Coding Agents > Collaborative Workflows): you ask the
 // agent for a change, the agent edits the code, File Sync copies it to the
 // Development Container that okteto up started, hot reload applies it, and you
-// check it on localhost.
-const COLLAB_ALT = 'The collaborative loop: you ask the coding agent for a change, the agent edits the code, File Sync copies it to the Development Container that okteto up started, hot reload applies it, and you check the change on localhost and ask for the next one';
+// check it on the endpoints of the application.
+const COLLAB_ALT = 'The collaborative loop: you ask the coding agent for a change, the agent edits the code, File Sync copies it to the Development Container that okteto up started, hot reload applies it, and you check the change on the endpoints of the application and ask for the next one';
 
 // ---------------------------------------------------------------------------
 // The review diagram (Preview Environments): everyone reviews the change in
@@ -205,7 +205,7 @@ export default [
       out += text('File Sync', 522, 268, 22, { color: C.teal });
       out += step(582, 160, 330, 260, 'box', 'Development Container', C.teal, ['okteto up', 'hot reload']);
       out += arrow(920, 290, 1040, 290, { color: C.teal });
-      out += endpoint(1100, 290, 'globe', 'localhost', C.teal);
+      out += endpoint(1100, 290, 'globe', 'Endpoints', C.teal);
       out += curve('M1100 400 C1100 530 70 530 70 400', { color: C.purple, dashed: true, strokeWidth: 4 });
       out += arrow(70, 410, 70, 398, { color: C.purple });
       out += text('check the change, ask for the next one', 585, 532, 24, { color: C.purple });
@@ -227,7 +227,7 @@ export default [
       out += text('File Sync', 320, 472, 22, { color: C.teal, anchor: 'start' });
       out += step(135, 510, 330, 230, 'box', 'Development Container', C.teal, ['okteto up', 'hot reload']);
       out += arrow(300, 750, 300, 800, { color: C.teal });
-      out += endpoint(300, 870, 'globe', 'localhost', C.teal);
+      out += endpoint(300, 870, 'globe', 'Endpoints', C.teal);
       out += curve('M352 870 C580 870 580 80 364 80', { color: C.purple, dashed: true, strokeWidth: 4 });
       out += arrow(374, 80, 356, 80, { color: C.purple });
       out += text('ask again', 470, 52, 22, { color: C.purple, anchor: 'start' });
