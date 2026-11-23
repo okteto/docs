@@ -40,10 +40,11 @@ const line = (points, color = C.dim) => path(points, { color, head: false });
 
 // The endpoint of the Shared Namespace, without a divert header (blue) and
 // with Cindy's divert header (teal, two lines).
-const bluePill = (x, cy, w) => box(x, cy - 24, w, 48, { color: C.blue, radius: 24, strokeWidth: 3 })
-  + text(URL, x + w / 2, cy + 6, 18, { color: C.blue });
-const tealPill = (x, cy, w) => box(x, cy - 38, w, 76, { color: C.teal, radius: 26, strokeWidth: 3 })
-  + text(URL, x + w / 2, cy - 6, 18, { color: C.teal }) + text('baggage: okteto-divert=cindy', x + w / 2, cy + 26, 22, { color: C.teal });
+// The baggage line is the detail of the request, so it's smaller than the URL.
+const bluePill = (x, cy, w, size = 18) => box(x, cy - 24, w, 48, { color: C.blue, radius: 24, strokeWidth: 3 })
+  + text(URL, x + w / 2, cy + size / 3, size, { color: C.blue });
+const tealPill = (x, cy, w, size = 18) => box(x, cy - 38, w, 76, { color: C.teal, radius: 26, strokeWidth: 3 })
+  + text(URL, x + w / 2, cy - 7, size, { color: C.teal }) + text('baggage: okteto-divert=cindy', x + w / 2, cy + 22, size - 2, { color: C.teal });
 
 // A Namespace: Staging (the Shared Namespace) or Cindy (her Overlay
 // Namespace), with the Kubernetes mark and its name on its top edge. The mark
@@ -81,30 +82,35 @@ const label = (string, x, y, { color = C.teal, anchor = 'start' } = {}) => text(
 // uses its own database and calls the shared catalog service.
 
 function overviewWide(dbName = 'MongoDB', snapshot = false) {
-  let out = bluePill(30, 200, 340) + tealPill(30, 290, 340)
-    + ns(410, 50, 770, 300, 'shared')
-    + svc(440, 205, 220, 'API Gateway')
-    + svc(730, 100, 180, 'Rent') + db(940, 100, 170, dbName)
-    + svc(730, 250, 180, 'Catalog') + db(940, 250, 170, 'MongoDB')
-    + line([[910, 126], [940, 126]]) + line([[910, 276], [940, 276]])
-    + path([[820, 152], [820, 246]])
-    + path([[660, 222], [726, 136]]) + path([[660, 242], [726, 266]])
-    + path([[370, 200], [436, 222]], { color: C.blue }) + path([[370, 290], [436, 246]], { color: C.teal })
-    + ns(410, 410, 770, 190, 'overlay')
-    + svc(730, 480, 180, 'Rent', { teal: true }) + db(940, 480, 170, dbName, true)
-    + line([[910, 506], [940, 506]], C.teal)
-    + path([[620, 257], [620, 506], [726, 506]], { color: C.teal })
-    + path([[790, 480], [790, 306]], { color: C.teal });
+  // G is the row of the API Gateway: the two endpoints, and the Rent and
+  // Catalog rows, sit at the same distance above and below it.
+  const G = 210;
+  const R = 495; // Cindy's row
+  let out = bluePill(30, G - 50, 380, 20) + tealPill(30, G + 50, 380, 20)
+    + ns(440, 60, 730, 300, 'shared')
+    + svc(470, G - 26, 220, 'API Gateway')
+    + svc(760, G - 101, 180, 'Rent') + db(970, G - 101, 170, dbName)
+    + svc(760, G + 49, 180, 'Catalog') + db(970, G + 49, 170, 'MongoDB')
+    + line([[940, G - 75], [970, G - 75]]) + line([[940, G + 75], [970, G + 75]])
+    + path([[850, G - 49], [850, G + 45]])
+    + path([[690, G - 10], [725, G - 10], [725, G - 75], [756, G - 75]]) + path([[690, G + 10], [725, G + 10], [725, G + 75], [756, G + 75]])
+    + path([[410, G - 50], [466, G - 12]], { color: C.blue }) + path([[410, G + 50], [466, G + 12]], { color: C.teal })
+    + ns(440, 420, 730, 150, 'overlay')
+    + svc(620, R - 26, 180, 'Rent', { teal: true }) + db(830, R - 26, 170, dbName, true)
+    + line([[800, R], [830, R]], C.teal)
+    + path([[640, G + 26], [640, R - 30]], { color: C.teal })
+    + path([[780, R - 26], [780, G + 105]], { color: C.teal });
   if (snapshot) {
-    out += path([[1110, 126], [1150, 126], [1150, 506], [1114, 506]], { color: C.teal, dashed: true })
-      + label('Volume Snapshot', 1136, 386, { anchor: 'end' });
+    out += path([[1140, G - 75], [1155, G - 75], [1155, R], [1004, R]], { color: C.teal, dashed: true })
+      + label('Volume Snapshot', 1141, 398, { anchor: 'end' });
   }
   return out;
 }
 
 function overviewNarrow(dbName = 'MongoDB', snapshot = false) {
+  // The two endpoints overlap in the middle, and their arrows mirror each other.
   let out = bluePill(30, 50, 420) + tealPill(150, 135, 420)
-    + path([[90, 74], [90, 200], [260, 200], [260, 266]], { color: C.blue }) + path([[400, 173], [400, 266]], { color: C.teal })
+    + path([[60, 74], [60, 205], [250, 205], [250, 266]], { color: C.blue }) + path([[540, 173], [540, 205], [350, 205], [350, 266]], { color: C.teal })
     + ns(30, 230, 540, 370, 'shared')
     + svc(170, 270, 260, 'API Gateway')
     + svc(80, 380, 220, 'Rent') + db(320, 380, 200, dbName)
@@ -112,12 +118,12 @@ function overviewNarrow(dbName = 'MongoDB', snapshot = false) {
     + line([[300, 406], [320, 406]]) + line([[300, 546], [320, 546]])
     + path([[200, 322], [200, 376]]) + path([[430, 296], [540, 296], [540, 476], [240, 476], [240, 516]]) + path([[120, 432], [120, 516]])
     + ns(30, 660, 540, 160, 'overlay')
-    + svc(80, 730, 220, 'Rent', { teal: true }) + db(320, 730, 200, dbName, true)
-    + line([[300, 756], [320, 756]], C.teal)
-    + path([[170, 296], [48, 296], [48, 756], [76, 756]], { color: C.teal })
-    + path([[260, 730], [260, 576]], { color: C.teal });
+    + svc(80, 714, 220, 'Rent', { teal: true }) + db(320, 714, 200, dbName, true)
+    + line([[300, 740], [320, 740]], C.teal)
+    + path([[170, 296], [48, 296], [48, 740], [76, 740]], { color: C.teal })
+    + path([[260, 714], [260, 576]], { color: C.teal });
   if (snapshot) {
-    out += path([[520, 406], [558, 406], [558, 756], [524, 756]], { color: C.teal, dashed: true })
+    out += path([[520, 406], [558, 406], [558, 740], [524, 740]], { color: C.teal, dashed: true })
       + label('Volume Snapshot', 536, 640, { anchor: 'end' });
   }
   return out;
@@ -127,15 +133,17 @@ function overviewNarrow(dbName = 'MongoDB', snapshot = false) {
 // Header Propagation: the rent service forwards the baggage header, or not.
 
 function propagationWide(propagates) {
-  let out = tealPill(30, 200, 340) + path([[370, 200], [436, 200]], { color: C.teal })
-    + ns(410, 80, 770, 230, 'shared')
-    + svc(440, 174, 220, 'API Gateway') + svc(740, 174, 170, 'Rent') + svc(980, 174, 170, 'Catalog')
-    + path([[660, 200], [736, 200]], { color: C.teal }) + label('baggage', 698, 160, { anchor: 'middle' })
-    + ns(410, 380, 770, 170, 'overlay') + svc(980, 450, 170, 'Catalog', { teal: true });
+  const G = 195; // the row of the shared services
+  const R = 465; // Cindy's row
+  let out = tealPill(30, G, 380, 20) + path([[410, G], [466, G]], { color: C.teal })
+    + ns(440, 80, 730, 230, 'shared')
+    + svc(470, G - 26, 220, 'API Gateway') + svc(745, G - 26, 170, 'Rent') + svc(970, G - 26, 170, 'Catalog')
+    + path([[690, G], [741, G]], { color: C.teal }) + label('baggage', 717, G - 40, { anchor: 'middle' })
+    + ns(440, 380, 730, 170, 'overlay') + svc(970, R - 26, 170, 'Catalog', { teal: true });
   if (propagates) {
-    out += path([[825, 226], [825, 476], [976, 476]], { color: C.teal }) + label('baggage', 840, 352);
+    out += path([[830, G + 26], [830, R], [966, R]], { color: C.teal }) + label('baggage', 845, 352);
   } else {
-    out += path([[910, 200], [976, 200]]) + label('no baggage', 945, 160, { color: C.dim, anchor: 'middle' });
+    out += path([[915, G], [966, G]]) + label('no baggage', 942, G - 40, { color: C.dim, anchor: 'middle' });
   }
   return out;
 }
