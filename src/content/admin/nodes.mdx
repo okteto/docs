@@ -14,8 +14,6 @@ import Image from "@theme/Image";
   alt="The Nodes section of the Admin Dashboard, with the Warm Nodes setting and a table with the CPU, memory, and pods of each node of the cluster"
 />
 
-The table refreshes every 30 seconds while the page is open in your browser.
-
 ## Warm Nodes
 
 Warm nodes are nodes for your application environments that Okteto keeps ready, with the Okteto images and the extra images you configure already pulled. When a pod in a Namespace doesn't fit on any other node, Kubernetes runs it on a warm node, so it starts without waiting for those images to download. The cluster autoscaler then adds a new node to replace the warm node. Each warm node is an idle node, which adds to your infrastructure costs.
@@ -34,7 +32,37 @@ If the number was set above 20 outside of the Admin Dashboard, for example with 
 
 ### Read-Only Number of Warm Nodes
 
-When the [`warmNodes.countManagedExternally`](self-hosted/helm-configuration.mdx#warmnodes) Helm setting is `true`, you set the number of warm nodes outside of Okteto, for example from your GitOps tool. **Admin > Nodes** shows the number with the **Read-only** tag, and without the **Save** button.
+When the [`warmNodes.countManagedExternally`](self-hosted/helm-configuration.mdx#warmnodes) Helm setting is `true`, you set the number of warm nodes outside of Okteto, for example from your GitOps tool or [on a schedule](#warm-nodes-on-a-schedule). **Admin > Nodes** shows the number with the **Read-only** tag, and without the **Save** button.
+
+### Warm Nodes on a Schedule
+
+The number of warm nodes is the number of replicas of the `okteto-warm-nodes` Deployment, in the `okteto` namespace. To change it on a schedule, for example to keep warm nodes during working hours and none at night or on weekends, set the `warmNodes.countManagedExternally` Helm setting to `true` and scale the Deployment from a tool that runs on a schedule. Okteto upgrades never change the number of replicas of the Deployment, and **Admin > Nodes** doesn't change it while it's read-only, so Okteto doesn't overwrite the scheduled changes. The maximum of 20 warm nodes only applies to **Admin > Nodes**.
+
+Don't scale the Deployment with an autoscaler based on resource usage, such as a HorizontalPodAutoscaler on CPU or memory: the warm pods use almost no CPU or memory, whether your cluster needs their nodes or not.
+
+For example, with [KEDA](https://keda.sh) installed in your cluster, this `ScaledObject` keeps 5 warm nodes from 8:00 to 19:00 on weekdays, and none the rest of the time:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: okteto-warm-nodes
+  namespace: okteto
+spec:
+  scaleTargetRef:
+    name: okteto-warm-nodes
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  triggers:
+    - type: cron
+      metadata:
+        timezone: America/New_York
+        start: 0 8 * * 1-5
+        end: 0 19 * * 1-5
+        desiredReplicas: "5"
+```
+
+Outside the schedule, KEDA scales the Deployment to 0, so Okteto keeps no warm nodes. Without KEDA, a Kubernetes CronJob that runs `kubectl scale deployment okteto-warm-nodes --replicas=<number> --namespace=okteto` at the start and at the end of the working day does the same, with a ServiceAccount allowed to scale Deployments in the `okteto` namespace.
 
 ### Warm Tag
 
