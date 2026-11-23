@@ -97,6 +97,9 @@ const siteConfig = {
   // here reads the legacy `head` prop in postBuild.
   future: {
     faster: true,
+    // DOCUSAURUS_VCS=disabled builds without the Git history (the Docker image
+    // of the Okteto Manifest), with no last update dates on the pages.
+    ...(process.env.DOCUSAURUS_VCS && { experimental_vcs: process.env.DOCUSAURUS_VCS }),
     v4: {
       removeLegacyPostBuildHeadAttribute: true,
     },
@@ -243,6 +246,15 @@ const presetOptions = {
 
 const plugins = [
   'docusaurus-plugin-sass',
+  // Rspack writes the real content hashes into the JavaScript after the
+  // minifier, so a key the minifier left unquoted because its hash started with
+  // a letter can end up starting with a digit (`{7b48ce46:...}`), and the
+  // browser rejects the whole file. Without realContentHash, the file names keep
+  // the hashes of before the minifier, which also change when the content does.
+  () => ({
+    name: 'no-real-content-hash',
+    configureWebpack: () => ({ optimization: { realContentHash: false } }),
+  }),
   [
     'docusaurus-gtm-plugin',
     {
