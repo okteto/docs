@@ -11,8 +11,8 @@ FROM dev AS build
 # The build context has no .git (.dockerignore), so the build can't read the
 # last update dates of the pages from Git (see config/shared.js)
 ENV DOCUSAURUS_VCS=disabled
-# Every image build starts from scratch: the persistent cache of Rspack only
-# adds a cache to restore, and it broke the JavaScript of the docs
+# Every image build starts from an empty cache, so the persistent cache of
+# Rspack doesn't make it faster
 ENV DOCUSAURUS_NO_PERSISTENT_CACHE=true
 # Stable and large — cache early
 COPY static static
