@@ -42,7 +42,7 @@ This guide covers voice, tone, formatting, images, and terminology for everythin
 | runs the commands in a container of the `image` you set, in the cluster | runs the commands inside the cluster, in a container started from the `image` you set |
 | defines how Okteto builds, deploys, tests, and develops your application | defines how to build, deploy, test, and develop your application |
 | Okteto builds an image from the `api` folder, and the deploy commands get it from the `OKTETO_BUILD_API_IMAGE` variable. | Okteto builds an image from the `api` folder. Your deploy commands reference it through the `OKTETO_BUILD_API_IMAGE` variable. |
-| The [`build` reference](reference/okteto-manifest.mdx#build-object-optional) describes every option. | See the [`build` reference](reference/okteto-manifest.mdx#build-object-optional) for every option. |
+| The [`build` reference](reference/okteto-manifest.mdx#build) describes every option. | See the [`build` reference](reference/okteto-manifest.mdx#build) for every option. |
 
 **Second person.** Address the reader as "you". Use "we" only for what Okteto runs as a company, as in the BYOC docs.
 

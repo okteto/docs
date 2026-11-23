@@ -73,7 +73,7 @@ It's short, and it has three sections: `build`, `deploy`, and `test`. Each secti
 
 Kubernetes runs containers, so the first step is to turn the code into container images. The `frontend` and the `api` each have a `Dockerfile` in their folder. MongoDB doesn't need one, because it runs the official `mongo` image.
 
-The [build](reference/okteto-manifest.mdx#build-object-optional) section of the Okteto Manifest lists the two images to build, and the folder of each one:
+The [build](reference/okteto-manifest.mdx#build) section of the Okteto Manifest lists the two images to build, and the folder of each one:
 
 ```yaml title="okteto.yaml"
 build:
@@ -108,7 +108,7 @@ That's why you don't need Docker, or access to a Docker daemon, to work with Okt
 
 Okteto keeps the reference of each image it builds in a [variable](core/okteto-variables.mdx#built-in-environment-variables-for-images-in-okteto-registry) named `OKTETO_BUILD_<IMAGE>_IMAGE`, such as `OKTETO_BUILD_API_IMAGE`. That's how the next step knows which images to deploy.
 
-The [deploy](reference/okteto-manifest.mdx#deploy-string-optional) section of the Okteto Manifest is a list of commands, the same ones you'd run to deploy to any Kubernetes cluster, with Helm, `kubectl`, or the tool you already use. Kube Movies needs only one. It installs the Helm chart of the `chart` folder, and passes it the two images:
+The [deploy](reference/okteto-manifest.mdx#deploy) section of the Okteto Manifest is a list of commands, the same ones you'd run to deploy to any Kubernetes cluster, with Helm, `kubectl`, or the tool you already use. Kube Movies needs only one. It installs the Helm chart of the `chart` folder, and passes it the two images:
 
 ```yaml title="okteto.yaml"
 deploy:
@@ -165,7 +165,7 @@ Open the URL in your browser and Kube Movies is there. Click the star of a movie
 
 ## Test
 
-Your application is running, so you can test it the way your users use it: against the real services, not against mocks. The `test` section of the Okteto Manifest defines the [automated tests](reference/okteto-manifest.mdx#test-object-optional). Kube Movies uses [Playwright](https://playwright.dev/) to open the application in a browser, compare the movies on the page with the ones stored in MongoDB, and move a movie to the favorites:
+Your application is running, so you can test it the way your users use it: against the real services, not against mocks. The `test` section of the Okteto Manifest defines the [automated tests](reference/okteto-manifest.mdx#test). Kube Movies uses [Playwright](https://playwright.dev/) to open the application in a browser, compare the movies on the page with the ones stored in MongoDB, and move a movie to the favorites:
 
 ```yaml title="okteto.yaml"
 test:
@@ -252,7 +252,7 @@ Upload only the files that each command needs: the context upload is key to perf
 
 No. Okteto supports two models, and you choose one for your application:
 
-- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](reference/okteto-manifest.mdx#dependencies-string-optional) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
+- **Full replica:** every service of the application runs in your Namespace. In a monorepo, the `deploy` section of the Okteto Manifest deploys every service, as in this quickstart, where one Helm chart deploys the three services of Kube Movies. In a multirepo, each repository has its own Okteto Manifest and lists the other repositories in its [`dependencies`](reference/okteto-manifest.mdx#dependencies) section, as in [Deploy a Multi-Repo Application with Dependencies](/tutorials/dependencies/). Full replicas are simpler to configure and give you full isolation: nothing one environment does affects the others. Use them for an application with fewer than 20 services.
 - **Overlay Namespace:** your Namespace runs only the services you change, and [Divert](development/divert/index.mdx) routes every other request to a Shared Namespace that runs the rest of the application. Overlay Namespaces are more cost-effective, faster to deploy, and more reliable, because each environment builds, deploys, and runs only the services it changes. Use them for an application with 20 services or more.
 
 ### How do I create a Preview Environment of my application for every pull request?
