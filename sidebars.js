@@ -83,10 +83,10 @@ module.exports = {
           ],
         },
         'application-environments/kubeconfig',
-        'application-environments/destroy',
         'application-environments/external-resources',
         'application-environments/okteto-variables',
         'application-environments/use-volume-snapshots',
+        'application-environments/destroy',
       ],
     },
     {

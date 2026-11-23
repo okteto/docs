@@ -337,6 +337,38 @@ function multitenancyNarrow() {
 }
 
 // ---------------------------------------------------------------------------
+// Volume Snapshots (the Volume Snapshots page of Application Environments). It
+// uses the same Namespaces and rows as the Divert diagrams: a snapshot of the
+// volume of Staging becomes the volume of Cindy's new environment. Every
+// connection that crosses a Namespace runs along the row of the volumes.
+
+const volume = (x, y, w, name, teal = false) => svc(x, y, w, name, { teal, ic: 'hard-drive' });
+
+function snapshotWide() {
+  const A = 166; // the row of the Deployments
+  const V = 276; // the row of the volumes
+  return ns(40, 80, 620, 262, 'shared')
+    + db(80, A - 26, 240, 'mysql') + volume(80, V - 26, 240, 'mysql-pvc') + svc(380, V - 26, 240, 'mysql-snapshot', { ic: 'camera' })
+    + line([[200, A + 26], [200, V - 26]]) + path([[320, V], [376, V]])
+    + ns(780, 80, 380, 262, 'overlay')
+    + db(840, A - 26, 260, 'mysql', true) + volume(840, V - 26, 260, 'pvc-from-snapshot', true)
+    + line([[970, A + 26], [970, V - 26]], C.teal)
+    + path([[620, V], [836, V]], { color: C.teal, dashed: true }) + label('restore', 720, V - 16, { anchor: 'middle' });
+}
+
+function snapshotNarrow() {
+  return ns(40, 60, 520, 352, 'shared')
+    + db(150, 120, 300, 'mysql') + volume(150, 220, 300, 'mysql-pvc') + svc(150, 320, 300, 'mysql-snapshot', { ic: 'camera' })
+    + line([[300, 172], [300, 220]]) + path([[300, 272], [300, 316]])
+    + ns(40, 492, 520, 252, 'overlay')
+    + volume(150, 552, 300, 'pvc-from-snapshot', true) + db(150, 652, 300, 'mysql', true)
+    + line([[300, 604], [300, 652]], C.teal)
+    + path([[300, 372], [300, 548]], { color: C.teal, dashed: true }) + label('restore', 316, 462);
+}
+
+const SNAPSHOT_ALT = 'In the Staging Namespace, the mysql Deployment stores its data in the mysql-pvc volume, and the mysql-snapshot Volume Snapshot captures that volume. In Cindy\'s Namespace, a new environment, Okteto creates the pvc-from-snapshot volume from the snapshot, so her mysql Deployment starts with the same data';
+
+// ---------------------------------------------------------------------------
 
 const OVERVIEW_ALT = 'Requests to the API gateway of staging go to the shared services. Requests with baggage okteto-divert=cindy reach Cindy\'s rent service, which uses its own MongoDB database and calls the shared catalog service';
 const MISSING_ALT = 'The rent service receives the baggage header but calls the catalog service without it, so the request reaches the shared catalog service instead of Cindy\'s';
@@ -368,5 +400,6 @@ export default [
   ...pair('divert-queues-routing', ROUTING_ALT, () => routingWide(), () => routingNarrow(), [610, 640, 970]),
   ...pair('divert-data-shared', SHARED_ALT, () => sharedDataWide(), () => sharedDataNarrow(), [560, 600, 730]),
   ...pair('divert-data-clone', CLONE_ALT, () => overviewWide('PostgreSQL', true), () => overviewNarrow('PostgreSQL', true), [630, 600, 850]),
+  ...pair('volume-snapshot', SNAPSHOT_ALT, () => snapshotWide(), () => snapshotNarrow(), [400, 600, 784]),
   ...pair('divert-data-multitenancy', MULTITENANCY_ALT, () => multitenancyWide(), () => multitenancyNarrow(), [830, 640, 910]),
 ];
