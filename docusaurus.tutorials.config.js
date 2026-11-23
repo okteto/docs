@@ -7,6 +7,7 @@
 // tutorials/README.md for how to write one.
 
 const shared = require('./config/shared');
+const { siteJsonLdHeadTag, pageJsonLdRefs } = require('./config/jsonld');
 
 const BASE_URL = shared.SITES.tutorials;
 const LLMS_TXT_URL = `${shared.SITE_URL}/docs/llms.txt`;
@@ -26,7 +27,14 @@ module.exports = {
       onBrokenMarkdownLinks: 'throw',
     },
   },
-  headTags: shared.headTags(BASE_URL),
+  headTags: [
+    ...shared.headTags(BASE_URL),
+    // Site-level JSON-LD entity graph: the same Organization and product as the
+    // docs (config/jsonld.js), and this site as a WebSite. Each tutorial adds
+    // its own BlogPosting, which references this graph
+    // (src/theme/BlogPostPage/StructuredData).
+    siteJsonLdHeadTag({ baseUrl: BASE_URL, name: 'Okteto Tutorials' }),
+  ],
   customFields: {
     // Read by src/theme/SearchMetadata and src/theme/BlogPostPaginator.
     searchTag: 'tutorials',
@@ -34,6 +42,9 @@ module.exports = {
     // Read by src/components/Newsletter: the tutorials go out in the product
     // updates email, so this site signs readers up to that list.
     newsletter: 'productUpdates',
+    // Read by src/theme/BlogPostPage/StructuredData: the references of each
+    // tutorial to the site-level JSON-LD graph.
+    jsonLd: pageJsonLdRefs({ baseUrl: BASE_URL, aboutProduct: true }),
   },
   themeConfig: {
     ...shared.themeConfig,
