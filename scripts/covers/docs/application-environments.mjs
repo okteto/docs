@@ -117,7 +117,9 @@ const SCENES = {
 };
 
 // Wide: the manifest and the command on the left, the cluster on the right,
-// both centered on the canvas.
+// both centered on the canvas, with 60px of margin on each side. The cluster
+// keeps 50px between its border and its content, at the sides and below, so
+// the connection that enters it has room before its arrowhead.
 function wide(name) {
   const scene = SCENES[name];
   const cardH = manifest(0, 0, 440, scene.yaml).h;
@@ -125,11 +127,11 @@ function wide(name) {
   const leftTop = (630 - leftH) / 2;
   const card = manifest(60, leftTop, 440, scene.yaml);
   const cy = leftTop + cardH + 70;
-  const insideH = INSIDE[name](700, 0, 420).h;
-  const top = (630 - (insideH + 140)) / 2 + 20;
-  const content = INSIDE[name](700, top + 110, 420);
+  const insideH = INSIDE[name](710, 0, 380).h;
+  const top = (630 - (insideH + 160)) / 2 + 20;
+  const content = INSIDE[name](710, top + 110, 380);
   let out = card.svg + command(60, cy, 440, scene.user, scene.cmd);
-  out += cluster(670, top, 480, insideH + 140) + content.svg;
+  out += cluster(660, top, 480, insideH + 160) + content.svg;
   out += link(500, cy, content.target[0], content.target[1], scene.label);
   return out;
 }
@@ -140,11 +142,11 @@ function stacked(name) {
   const card = manifest(50, 40, 500, scene.yaml);
   const cy = 40 + card.h + 60;
   const top = cy + 170;
-  const inside = INSIDE[name](90, top + 110, 420);
+  const inside = INSIDE[name](110, top + 110, 380);
   let out = card.svg + command(50, cy, 500, scene.user, scene.cmd);
-  out += cluster(60, top, 480, inside.h + 140) + inside.svg;
+  out += cluster(60, top, 480, inside.h + 160) + inside.svg;
   out += arrow(300, cy + 34, 300, top - 46, { color: C.teal }) + text(scene.label, 316, cy + 100, 24, { anchor: 'start', color: C.teal });
-  return { svg: out, height: top + inside.h + 160 };
+  return { svg: out, height: top + inside.h + 180 };
 }
 
 const ALT = {
