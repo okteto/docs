@@ -5,8 +5,11 @@
 // what the product does. The site turns it on with `customFields.aboutOkteto`
 // (the blog does, the tutorials don't).
 //
-// The text is the same on every post: keep it in line with the home page of
-// okteto.com and with the product description of config/jsonld.js.
+// The text is the same on every post, and it's about one thing: ephemeral
+// environments on Kubernetes for coding agents, developers, and pull requests.
+// It doesn't say that Okteto runs the agents. Keep it in line with the
+// application environments page of okteto.com
+// (/kubernetes-application-environments/).
 
 import React from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -28,9 +31,9 @@ export default function AboutOkteto() {
         <a href={url} onClick={() => track('Click About Okteto', { url }, { transport: 'sendBeacon' })}>
           Okteto
         </a>{' '}
-        is a Self-Hosted platform that runs coding agents, such as Claude Code and Codex, on your Kubernetes cluster.
-        It gives every developer, pull request, and coding agent an ephemeral application environment, created on
-        demand from the same definition.
+        is a Self-Hosted platform that gives coding agents, developers, and pull requests ephemeral environments on
+        Kubernetes. Each one is an application environment: a realistic version of your application, created on demand
+        in your own cluster from the same definition.
       </p>
     </aside>
   );
