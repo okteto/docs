@@ -126,7 +126,11 @@ Add the `EXTERNAL-IP` address to the DNS of your domain. In Azure DNS, create an
 The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure a [wildcard certificate](self-hosted/install/certificates/index.mdx) and [Okteto Registry storage with Azure Storage Container](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx).
 :::
 
-Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. Okteto creates your account the first time you log in, and the first user to log in gets the Admin role.
+Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. The default installation uses [token-based authentication](self-hosted/install/auth/token.mdx) and a self-signed certificate. The post-installation notes that Helm prints include the URL to log in to the Okteto UI with the token of the Admin user, and the command to configure the Okteto CLI with that token. To show the notes again, run:
+
+```bash
+helm get notes okteto --namespace=okteto
+```
 
 ## Optional: Configure Access to Your Azure Container Registry
 
@@ -134,4 +138,16 @@ You can give Okteto [access to your Azure Container Registry](admin/registry-cre
 
 ## Deploy Your First App
 
-With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the URL of your instance, `https://okteto.SUBDOMAIN`. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
+With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the command of the post-installation notes, replacing `TOKEN` with the token of the Admin user:
+
+```bash
+okteto context use https://okteto.SUBDOMAIN --token TOKEN --insecure-skip-tls-verify
+```
+
+The `--insecure-skip-tls-verify` flag makes the Okteto CLI accept the self-signed certificate. Without it, the command fails with `x509: certificate signed by unknown authority`.
+
+Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
+
+:::note
+The tests of the quickstart open the application in a browser that doesn't trust the self-signed certificate, so `okteto test` fails with `ERR_CERT_AUTHORITY_INVALID`. Configure a [wildcard certificate](self-hosted/install/certificates/index.mdx) before you run `okteto test`.
+:::
