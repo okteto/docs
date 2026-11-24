@@ -1,0 +1,37 @@
+// The last block of every blog post: what Okteto is, in two sentences, with a
+// link to okteto.com. It's rendered inside the <article> of the post
+// (src/theme/BlogPostItem/Footer), so readers, search and answer engines that
+// land on a post about Kubernetes or agents also read who publishes it and
+// what the product does. The site turns it on with `customFields.aboutOkteto`
+// (the blog does, the tutorials don't).
+//
+// The text is the same on every post: keep it in line with the home page of
+// okteto.com and with the product description of config/jsonld.js.
+
+import React from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+
+import { track } from '@site/src/clientModules/mixpanel';
+import styles from './styles.module.scss';
+
+export default function AboutOkteto() {
+  const { siteConfig } = useDocusaurusContext();
+  const url = `${siteConfig.url}/`;
+
+  return (
+    <aside className={styles.about} aria-label="About Okteto">
+      <p className={styles.title}>About Okteto</p>
+      <p>
+        {/* A named event, like the calls to action: the logo of the navbar
+            links to the home page too, so the referrer alone doesn't tell
+            the clicks on this link apart. */}
+        <a href={url} onClick={() => track('Click About Okteto', { url }, { transport: 'sendBeacon' })}>
+          Okteto
+        </a>{' '}
+        is a Self-Hosted platform that runs coding agents, such as Claude Code and Codex, on your Kubernetes cluster.
+        It gives every developer, pull request, and coding agent an ephemeral application environment, created on
+        demand from the same definition.
+      </p>
+    </aside>
+  );
+}
