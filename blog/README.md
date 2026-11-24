@@ -81,7 +81,7 @@ import { YouTube, CallToAction, CustomerQuote } from '@site/src/components/blog'
 
 Collapsible sections use plain HTML: `<details><summary>Title</summary>...</details>`.
 
-Every post ends with an "About Okteto" box: what Okteto is, in two sentences,
+Every post ends with an "About Okteto" box: what Okteto is, in one sentence,
 with a link to okteto.com. The theme adds it
 (`src/components/blog/AboutOkteto`), so don't write one in the post.
 

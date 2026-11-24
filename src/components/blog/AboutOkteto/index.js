@@ -1,4 +1,4 @@
-// The last block of every blog post: what Okteto is, in two sentences, with a
+// The last block of every blog post: what Okteto is, in one sentence, with a
 // link to okteto.com. It's rendered inside the <article> of the post
 // (src/theme/BlogPostItem/Footer), so readers, search and answer engines that
 // land on a post about Kubernetes or agents also read who publishes it and
@@ -32,8 +32,7 @@ export default function AboutOkteto() {
           Okteto
         </a>{' '}
         is a Self-Hosted platform that gives coding agents, developers, and pull requests ephemeral environments on
-        Kubernetes. Each one is an application environment: a realistic version of your application, created on demand
-        in your own cluster from the same definition.
+        Kubernetes.
       </p>
     </aside>
   );
