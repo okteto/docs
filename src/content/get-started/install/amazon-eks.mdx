@@ -26,7 +26,12 @@ You also need:
 
 - An Okteto license
 - A domain where you can create wildcard DNS records
+- A wildcard certificate for that domain
 - A Kubernetes cluster
+
+:::warning
+Configure a wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx) before you install Okteto. Without it, Okteto uses a self-signed certificate that the Okteto CLI and `okteto test` don't accept, so you can't follow the [quickstart](get-started/quickstart.mdx).
+:::
 
 ## Getting Your Okteto License
 
@@ -302,6 +307,8 @@ registry:
 
 This is the minimum configuration. The [Helm configuration](self-hosted/helm-configuration.mdx) lists every setting.
 
+Add the settings for your wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx) to `config.yaml` before you install Okteto.
+
 The `service.beta.kubernetes.io/aws-load-balancer-type: nlb` annotation tells AWS to expose the ingress controller with a [Network Load Balancer (NLB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) instead of the default [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html). We recommend an NLB because it supports WebSockets and static IPs, and it performs better. AWS publishes a [comparison of the load balancers](https://aws.amazon.com/elasticloadbalancing/features/).
 
 ### Installing the Okteto Helm Chart
@@ -343,11 +350,11 @@ Add the `EXTERNAL-IP` address (`a519c8b3b27f94...elb.amazonaws.com` in the examp
 
 :::warning
 
-The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure a wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx) and [Okteto Registry storage with S3](self-hosted/install/okteto-registry-storage/aws-s3-bucket.mdx).
+The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure [Okteto Registry storage with S3](self-hosted/install/okteto-registry-storage/aws-s3-bucket.mdx).
 
 :::
 
-Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. The default installation uses [token-based authentication](self-hosted/install/auth/token.mdx) and a self-signed certificate. The post-installation notes that Helm prints include the URL to log in to the Okteto UI with the token of the Admin user, and the command to configure the Okteto CLI with that token. To show the notes again, run:
+Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. The default installation uses [token-based authentication](self-hosted/install/auth/token.mdx). The post-installation notes that Helm prints include the URL to log in to the Okteto UI with the token of the Admin user, and the command to configure the Okteto CLI with that token. To show the notes again, run:
 
 ```bash
 helm get notes okteto --namespace=okteto
@@ -359,16 +366,4 @@ You can give Okteto [access to your Amazon Elastic Container Registry](admin/reg
 
 ## Deploy Your First App
 
-With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the command of the post-installation notes, replacing `TOKEN` with the token of the Admin user:
-
-```bash
-okteto context use https://okteto.SUBDOMAIN --token TOKEN --insecure-skip-tls-verify
-```
-
-The `--insecure-skip-tls-verify` flag makes the Okteto CLI accept the self-signed certificate. Without it, the command fails with `x509: certificate signed by unknown authority`.
-
-Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
-
-:::note
-The tests of the quickstart open the application in a browser that doesn't trust the self-signed certificate, so `okteto test` fails with `ERR_CERT_AUTHORITY_INVALID`. Configure a wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx) before you run `okteto test`.
-:::
+With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the command of the post-installation notes. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
