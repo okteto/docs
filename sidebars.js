@@ -48,6 +48,7 @@ module.exports = {
             'application-environments/endpoints/docker-compose',
             'application-environments/endpoints/ingress',
             'application-environments/endpoints/services',
+            'application-environments/endpoints/virtual-services',
             'application-environments/endpoints/custom-endpoints',
             'application-environments/endpoints/private-endpoints',
           ],
