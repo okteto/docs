@@ -630,11 +630,11 @@ const covers = [
   {
     out: figure('2026-11-12-how-to-run-ai-coding-agents-on-kubernetes', 'agent-sandbox-and-application-environment'),
     background: 'white',
-    alt: 'The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application and its tests in a Kubernetes namespace',
+    alt: 'The decoupled design: a light agent sandbox with the agent binary, Git access, and RBAC, connected to an application environment that runs the services of the application and its tests in a Kubernetes namespace',
     svg: () => {
       let out = box(40, 150, 400, 370, { color: C.purple }) + circle(240, 150, 40, { color: C.purple }) + icon('bot', 240, 150, 44, C.purple)
         + text('Light agent sandbox', 240, 235, 30, { color: C.purple });
-      ['Agent binary', 'Git access', 'Kubernetes credentials'].forEach((label, i) => {
+      ['Agent binary', 'Git access', 'RBAC'].forEach((label, i) => {
         out += box(70, 268 + i * 80, 340, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text(label, 240, 308 + i * 80, 26);
       });
       out += arrow(470, 330, 640, 330, { color: C.purple }) + text('deploy, test', 555, 308, 24, { color: C.purple });
@@ -654,23 +654,29 @@ const covers = [
     background: 'white',
     alt: 'The agent loop: the agent edits code in the light agent sandbox, builds and deploys the application to its Kubernetes namespace, and verifies its output there with tests, endpoints, and logs and metrics, repeating until it works and then opening a pull request',
     svg: () => {
-      let out = box(30, 170, 300, 240, { color: C.purple }) + circle(180, 170, 38, { color: C.purple }) + icon('bot', 180, 170, 42, C.purple)
-        + text('Light agent sandbox', 180, 245, 26, { color: C.purple })
-        + box(55, 280, 250, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text('Edit code', 180, 320, 26);
-      out += arrow(345, 311, 398, 311, { color: C.purple });
-      out += box(410, 90, 535, 455, { color: C.blue }) + logo('kubernetes', 677, 90, 80)
-        + text('Application environment', 677, 170, 30) + text('Kubernetes namespace', 677, 204, 22, { color: C.dim });
-      out += box(430, 280, 205, 62, { color: C.dim, radius: 12, strokeWidth: 2.5 }) + text('Build and deploy', 532, 320, 24);
-      out += arrow(642, 311, 672, 311, { color: C.blue });
-      out += box(680, 280, 245, 62, { color: C.teal, fill: C.teal, radius: 12, strokeWidth: 2 }) + icon('circle-check', 712, 311, 30, '#ffffff') + text('Verify output', 740, 320, 24, { anchor: 'start', color: '#ffffff' });
+      // Every step sits on one horizontal axis, with three arrows of the same length.
+      const axis = 361;
+      const step = (x, width, label, color = C.dim) => box(x, axis - 31, width, 62, { color, radius: 12, strokeWidth: color === C.text ? 3 : 2.5 }) + text(label, x + width / 2, axis + 9, 24);
+      let out = box(30, 220, 290, 197, { color: C.purple }) + circle(175, 220, 38, { color: C.purple }) + icon('bot', 175, 220, 42, C.purple)
+        + text('Light agent sandbox', 175, 295, 26, { color: C.purple })
+        + step(55, 240, 'Edit code');
+      out += arrow(328, axis, 362, axis, { color: C.purple });
+      out += box(370, 96, 580, 415, { color: C.blue }) + logo('kubernetes', 660, 96, 80)
+        + text('Application environment', 660, 176, 30) + text('Kubernetes namespace', 660, 210, 22, { color: C.dim });
+      out += step(395, 215, 'Build and deploy');
+      out += arrow(618, axis, 652, axis, { color: C.blue });
+      // Verify output and its three checks, as one group centered on the axis.
+      out += box(660, 236, 265, 250, { color: C.teal, radius: 16, strokeWidth: 2.5 });
+      out += box(670, 246, 245, 56, { color: C.teal, fill: C.teal, radius: 10, strokeWidth: 2 }) + icon('circle-check', 702, 274, 30, '#ffffff') + text('Verify output', 730, 283, 24, { anchor: 'start', color: '#ffffff' });
       ['Tests', 'Endpoints', 'Logs and metrics'].forEach((label, i) => {
-        const y = 352 + i * 60;
-        out += box(680, y, 245, 50, { color: C.teal, fill: '#e2f5f3', radius: 10, strokeWidth: 2 }) + icon('circle-check', 708, y + 25, 26, C.teal) + text(label, 732, y + 33, 22, { anchor: 'start' });
+        const y = 310 + i * 58;
+        out += box(670, y, 245, 50, { color: C.teal, fill: '#e2f5f3', radius: 10, strokeWidth: 2 }) + icon('circle-check', 698, y + 25, 26, C.teal) + text(label, 722, y + 33, 22, { anchor: 'start' });
       });
-      out += arrow(952, 311, 978, 311, { color: C.teal });
-      out += box(985, 280, 190, 62, { color: C.text, radius: 12, strokeWidth: 3 }) + text('Pull request', 1080, 320, 24);
-      out += curve('M795 532 V585 H180 V430', { color: C.dim }) + arrow(180, 440, 180, 418, { color: C.dim })
-        + `<rect x="370" y="568" width="300" height="36" fill="#ffffff"/>` + text('repeat until it works', 520, 594, 24, { color: C.dim });
+      out += arrow(958, axis, 992, axis, { color: C.teal });
+      out += step(1000, 170, 'Pull request', C.text);
+      // The way back, from the middle of the environment to the middle of the sandbox.
+      out += curve('M660 513 V566 H175 V432', { color: C.dim }) + arrow(175, 440, 175, 425, { color: C.dim })
+        + `<rect x="272" y="548" width="290" height="36" fill="#ffffff"/>` + text('repeat until it works', 417, 574, 24, { color: C.dim });
       return out;
     },
   },

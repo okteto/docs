@@ -55,16 +55,16 @@ The alternative is to split the two. The application environment lives outside t
 The sandbox keeps only what the agent needs to do its own job:
 
 - The agent process.
-- Git access to the repository.
+- Git access to the repository. The Git token doesn't have to live in the sandbox: a credential proxy outside it can add the token to each request, so the agent never holds it.
 - Kubernetes credentials scoped to the agent's namespace, to deploy and test the application there.
 
 Everything else, the application itself included, moves to the application environment: builds, deployments, and tests run remotely in the cluster, compilation and unit tests included.
 
-![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.webp)
+![The decoupled design: a light agent sandbox with the agent binary, Git access, and RBAC, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.webp)
 
 The split changes six things:
 
-- **Secure.** Without Docker-in-Docker, the sandbox needs no privileges and runs as a standard unprivileged pod. A sandboxed runtime such as gVisor or Kata Containers may still be appropriate for an agent that handles untrusted input, but it is no longer required just to run the application. The application runs under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
+- **Secure.** Without Docker-in-Docker, the sandbox needs no privileges and runs as a standard unprivileged pod. A sandboxed runtime such as gVisor or Kata Containers may still be appropriate for an agent that handles untrusted input, but it is no longer required just to run the application. With a credential proxy for Git, the sandbox holds no token that untrusted input could leak. The application runs under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
 - **Observable.** The application runs as ordinary Kubernetes workloads, so its logs, events, and metrics are collected like those of any other workload. The platform team sees what each agent deploys, and the agent reads the same information to debug its change.
 - **Production parity.** The application runs on Kubernetes, deployed from the same definition as production, with its ingress rules, service accounts, and network policies. The agent validates its change against what ships.
 - **Light and fast.** The sandbox holds a process, not an application, and its image can be pulled in advance on every node.
