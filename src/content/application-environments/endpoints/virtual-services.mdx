@@ -1,0 +1,81 @@
+---
+title: Endpoints for VirtualServices
+description: Okteto shows the hosts of your Istio VirtualServices as endpoints in the Okteto UI.
+sidebar_label: VirtualServices
+id: virtual-services
+---
+
+Okteto shows the hosts of the [Istio VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service/) deployed in your Namespaces as endpoints in the Okteto UI. Use VirtualServices when Istio routes the traffic to your applications.
+
+Okteto doesn't generate the hostname of a VirtualService or attach it to a gateway, as it does for [HTTPRoutes](application-environments/endpoints/httproutes.mdx) and [Ingress](application-environments/endpoints/ingress.mdx) objects. You set `hosts` and `gateways` in your VirtualService, and the Istio gateway you reference serves those hosts.
+
+## Enabling VirtualServices
+
+Okteto doesn't show the endpoints of your VirtualServices by default, and Istio must be installed in the cluster. Ask your Admin to enable [`virtualServices`](self-hosted/helm-configuration.mdx#virtualservices) in the Helm configuration of your Okteto instance:
+
+```yaml
+virtualServices:
+  enabled: true
+```
+
+Once it's enabled, Okteto labels every VirtualService that you create or update in a Namespace, and uses that label to find the endpoints of the Namespace. Deploy again the VirtualServices that existed before your Admin enabled the setting.
+
+## Creating a VirtualService
+
+Create a VirtualService in any Namespace managed by Okteto. Include the Namespace in its hosts, so the same manifest works in every Namespace:
+
+```yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: movies
+spec:
+  hosts:
+    - movies-${OKTETO_NAMESPACE}.${OKTETO_DOMAIN}
+  gateways:
+    - <your-istio-gateway>
+  http:
+    - match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: api
+            port:
+              number: 8080
+    - route:
+        - destination:
+            host: frontend
+            port:
+              number: 80
+```
+
+`kubectl` doesn't expand variables. Okteto sets [`OKTETO_NAMESPACE` and `OKTETO_DOMAIN`](application-environments/okteto-variables.mdx) in the `deploy` commands of your [Okteto Manifest](reference/okteto-manifest.mdx), so expand them there before you apply the manifest, for example with `envsubst`:
+
+```bash
+envsubst < k8s/movies.yaml | kubectl apply -f -
+```
+
+In the `cindy` Namespace of an Okteto instance whose subdomain is `okteto.example.com`, the Okteto UI shows `https://movies-cindy.okteto.example.com/api` next to the `api` service, and `https://movies-cindy.okteto.example.com` next to the `frontend` service.
+
+## Endpoints of a VirtualService
+
+Okteto reads the `hosts` and the `http` routes of each VirtualService. For every host, it shows one endpoint for each `http` route that has a `route` destination. The URL always starts with `https://`, and its path comes from the `match` of the route:
+
+| `match` of the route | Endpoint |
+|----------------------|----------|
+| No `match`, or a `match` without `uri` | `https://<host>` |
+| `uri.prefix: /` | `https://<host>` |
+| `uri.prefix: /api` | `https://<host>/api` |
+| `uri.exact` or `uri.regex` | No endpoint |
+
+- **Services.** The Okteto UI shows an endpoint next to the Service that the route sends the traffic to: the `destination.host` of the route is the name of the Service, or starts with it, as in `api.cindy.svc.cluster.local`.
+- **Hosts inside the mesh.** Okteto shows every host of the VirtualService, also the ones that only work inside the cluster, such as `api.cindy.svc.cluster.local`. To show only the public ones, list them in the `dev.okteto.com/endpoints` annotation.
+- **Other routes.** Okteto doesn't show endpoints for the `tls` and `tcp` routes of a VirtualService.
+
+## Supported Annotations
+
+Okteto supports the [Custom Endpoints](application-environments/endpoints/custom-endpoints.mdx) annotations on VirtualServices:
+
+- **`dev.okteto.com/endpoints`**: a comma-separated list of URLs that replaces the endpoints shown in the Okteto UI. It expands the `${OKTETO_NAMESPACE}` and `${OKTETO_DOMAIN}` variables.
+- **`dev.okteto.com/hide-from-ui`**: when its value is `"true"`, the Okteto UI doesn't show the endpoints of the VirtualService.

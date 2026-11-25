@@ -55,16 +55,16 @@ The alternative is to split the two. The application environment lives outside t
 The sandbox keeps only what the agent needs to do its own job:
 
 - The agent process.
-- Git access to the repository.
+- Git access to the repository. The Git token doesn't have to live in the sandbox: a credential proxy outside it can add the token to each request, so the agent never holds it.
 - Kubernetes credentials scoped to the agent's namespace, to deploy and test the application there.
 
 Everything else, the application itself included, moves to the application environment: builds, deployments, and tests run remotely in the cluster, compilation and unit tests included.
 
-![The decoupled design: a light agent sandbox with the agent binary, Git access, and Kubernetes credentials, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.webp)
+![The decoupled design: a light agent sandbox with the agent binary, Git access, and RBAC, connected to an application environment that runs the services of the application in its own Kubernetes namespace](./img/agent-sandbox-and-application-environment.webp)
 
 The split changes six things:
 
-- **Secure.** Without Docker-in-Docker, the sandbox needs no privileges and runs as a standard unprivileged pod. A sandboxed runtime such as gVisor or Kata Containers may still be appropriate for an agent that handles untrusted input, but it is no longer required just to run the application. The application runs under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
+- **Secure.** Without Docker-in-Docker, the sandbox needs no privileges and runs as a standard unprivileged pod. A sandboxed runtime such as gVisor or Kata Containers may still be appropriate for an agent that handles untrusted input, but it is no longer required just to run the application. With a credential proxy for Git, the sandbox holds no token that untrusted input could leak. The application runs under the controls the cluster already applies: RBAC scoped to the namespace, quotas, network policies, admission policies, and Pod Security Standards.
 - **Observable.** The application runs as ordinary Kubernetes workloads, so its logs, events, and metrics are collected like those of any other workload. The platform team sees what each agent deploys, and the agent reads the same information to debug its change.
 - **Production parity.** The application runs on Kubernetes, deployed from the same definition as production, with its ingress rules, service accounts, and network policies. The agent validates its change against what ships.
 - **Light and fast.** The sandbox holds a process, not an application, and its image can be pulled in advance on every node.
@@ -76,7 +76,7 @@ The split changes six things:
 Remote execution connects the two layers: the agent changes code in the sandbox, and the build, the deployment, and the tests of that change run in the agent's namespace. There are two ways to get it:
 
 - **Push the code and let CI run it.** The agent commits, pushes, and waits for the pipeline. There is nothing new to install, but every iteration costs a commit and a full pipeline run, and the agent only sees what the pipeline reports. The drift also stays if the pipeline doesn't deploy to Kubernetes.
-- **Use a tool that runs the work in the cluster on request.** The agent calls a command from the sandbox, the work runs as pods in its namespace, and the output comes back to the agent. [Dagger](https://docs.dagger.io/self-hosting) runs pipelines written as code on an engine you can host in your own cluster. [Okteto](/docs/core/remote-execution/) runs the deploy and test commands of a repository in the cluster. [Argo Workflows](https://argoproj.github.io/workflows/) runs whole pipelines as Kubernetes resources. For image builds alone, BuildKit has a [Kubernetes driver](https://docs.docker.com/build/builders/drivers/kubernetes/).
+- **Use a tool that runs the work in the cluster on request.** The agent calls a command from the sandbox, the work runs as pods in its namespace, and the output comes back to the agent. [Dagger](https://docs.dagger.io/self-hosting) runs pipelines written as code on an engine you can host in your own cluster. [Okteto](https://www.okteto.com/) [runs the deploy and test commands](/docs/core/remote-execution/) of a repository in the cluster. [Argo Workflows](https://argoproj.github.io/workflows/) runs whole pipelines as Kubernetes resources. For image builds alone, BuildKit has a [Kubernetes driver](https://docs.docker.com/build/builders/drivers/kubernetes/).
 
 Whatever the tool, images are built outside the sandbox, and the application is deployed from the definition that is already in the repository: the Helm chart or the Kubernetes manifests. That makes remote execution, in CI or on request, a checkpoint for the code the agent wrote: before any command runs, a guardrail can check the change for malicious code, like a script that sends credentials out of the cluster, in case untrusted input steered the agent.
 

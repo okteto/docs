@@ -39,6 +39,9 @@ module.exports = {
     // Read by src/theme/BlogPostPage/StructuredData: the references of each
     // post to the site-level JSON-LD graph.
     jsonLd: pageJsonLdRefs({ baseUrl: BASE_URL }),
+    // Read by src/theme/BlogPostItem/Footer: every post ends with what Okteto
+    // is and a link to okteto.com (src/components/blog/AboutOkteto).
+    aboutOkteto: true,
   },
   themeConfig: {
     ...shared.themeConfig,
