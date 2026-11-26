@@ -15,7 +15,7 @@ This guide is a draft. Its content, including the configuration it describes, ma
 
 1. **No bundled controllers.** The chart no longer packages the NGINX Ingress controllers (`ingress-nginx` and `okteto-nginx`). Your applications must be served by a Gateway controller or an Ingress controller that you install and operate outside of the Okteto installation.
 2. **No NGINX annotations.** Okteto doesn't process `nginx.ingress.kubernetes.io/*` annotations. They only work if an NGINX Ingress controller that you operate serves your Ingress objects, and the NGINX Ingress controller is [retired](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/).
-3. **No auto-generated certificate.** Okteto no longer generates an internal wildcard certificate. If you set `wildcardCertificate.create: true`, change it to `false` and manage the certificate yourself, as described in [Certificate Configuration](#certificate-configuration).
+3. **No auto-generated certificate.** Okteto no longer generates an internal wildcard certificate. If you set `wildcardCertificate.create: true`, change it to `false` and manage the certificate yourself, as described in [Certificates](#certificates).
 4. **No Private Endpoints.** [Private Endpoints](application-environments/endpoints/private-endpoints.mdx) are deprecated for Self-Hosted and not supported. The alternative is in [Private Endpoints](#private-endpoints).
 
 Okteto recommends moving all your applications to Gateway API. The [Ingress NGINX project was retired](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) in March 2026 and no longer receives releases or security fixes. Okteto maintains a fork of Ingress NGINX to ship security patches for the Okteto NGINX Ingress controllers, but maintaining it takes significant effort, and we'll stop doing it at some point. The [Ingress API](https://kubernetes.io/docs/concepts/services-networking/ingress/) is frozen: it is still supported, but new features are only added to Gateway API.
@@ -140,7 +140,7 @@ The Okteto installation doesn't create any `Gateway`. Before you install or upgr
 - **The control plane's `Gateway`** serves the Okteto UI, the Okteto API, the Okteto Registry, and the Kubernetes API endpoint used by the Okteto CLI. Set it in `endpoints.okteto.gatewayAPI.gateway`.
 - **Your applications' `Gateway`** serves the endpoints for the application environments deployed in your Namespaces. Set it in `endpoints.dev.gatewayAPI.gateway`.
 
-Your load balancers serve your public certificate, your Gateways serve an internal one, and the Okteto control plane listens on HTTP, as described in [TLS Termination](#tls-termination).
+Both Gateways terminate TLS with a certificate that you provide, as described in [Certificates](#certificates). The Okteto control plane listens on HTTP behind its `Gateway`, as described in [Control Plane over HTTP](#control-plane-over-http).
 
 #### Public URL
 
@@ -160,9 +160,9 @@ Every other hostname under `*.$SUBDOMAIN` belongs to your applications.
 
 #### Control Plane Gateway
 
-Create the control plane's `Gateway` in the namespace of your Okteto installation, with two HTTPS listeners: one for the `publicOverride` hostname, and one for `*.$SUBDOMAIN`, which serves `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`. Okteto creates the control plane's HTTPRoutes in that namespace, so the listeners only accept routes from it. Both listeners terminate TLS with your [internal certificate](#certificate-configuration). For example:
+Create the control plane's `Gateway` in the namespace of your Okteto installation, with two HTTPS listeners: one for the `publicOverride` hostname, and one for `*.$SUBDOMAIN`, which serves `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`. Okteto creates the control plane's HTTPRoutes in that namespace, so the listeners only accept routes from it. Both listeners terminate TLS with the certificate in the secret described in [Certificates](#certificates). For example:
 
-```yaml
+```yaml title="okteto-gateway.yaml"
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -197,9 +197,9 @@ spec:
 
 #### Applications Gateway
 
-Create your applications' `Gateway` with an HTTPS listener for `*.$SUBDOMAIN` that accepts routes from every namespace and terminates TLS with your [internal certificate](#certificate-configuration). If you moved your applications to a Gateway controller during the [application migration](#application-migration), this is the `Gateway` that already serves them. For example:
+Create your applications' `Gateway` with an HTTPS listener for `*.$SUBDOMAIN` that accepts routes from every namespace and terminates TLS with the same certificate. If you moved your applications to a Gateway controller during the [application migration](#application-migration), this is the `Gateway` that already serves them. For example:
 
-```yaml
+```yaml title="okteto-dev-gateway.yaml"
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -221,6 +221,12 @@ spec:
           from: All
 ```
 
+Create both Gateways:
+
+```bash
+kubectl apply -f okteto-gateway.yaml -f okteto-dev-gateway.yaml
+```
+
 Both Gateways have a listener for `*.$SUBDOMAIN`. Your [DNS records](#dns-configuration) decide which `Gateway` receives each hostname.
 
 #### Internal IP
@@ -237,13 +243,53 @@ endpoints:
         ip: <control-plane-gateway-cluster-ip>
 ```
 
-#### TLS Termination
+### Certificates
 
-Your public certificate stays in your load balancers, and TLS ends at the Gateways:
+The HTTPS listeners of both Gateways terminate TLS with the certificate in a TLS secret, `okteto-wildcard-certificate` in the examples of this guide. Create that secret in the `okteto` namespace, with a certificate valid for `*.$SUBDOMAIN` and for the `publicOverride` hostname.
 
-- **Load balancers.** The load balancer of each `Gateway` serves your public certificate to the clients outside the cluster. On AWS, for example, a Network Load Balancer serves a certificate from AWS Certificate Manager (ACM). Configure each load balancer to forward the requests over TLS to the HTTPS listeners of its `Gateway`.
-- **Gateways.** The HTTPS listeners of both Gateways serve an internal certificate, which can be self-signed. They receive the requests that the load balancers forward, and the requests that reach the [internal IP](#internal-ip) from inside the cluster.
-- **Okteto control plane.** The control plane's `Gateway` terminates TLS and sends plain HTTP to the Okteto control plane, so the requests between them travel unencrypted inside the cluster.
+[`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API, and the Helm install fails if both are set, so you create the certificate yourself. Which certificate goes in the secret depends on where you keep your public certificate:
+
+- **In the Gateways.** The Gateways serve your public certificate, as described in [Certificate in the Gateways](#certificate-in-the-gateways).
+- **In your load balancers.** Your load balancers serve your public certificate, and the Gateways serve an internal one, as described in [Certificate in Your Load Balancers](#certificate-in-your-load-balancers).
+
+#### Certificate in the Gateways
+
+The Gateways serve your public certificate, and their load balancers forward the connections to them without terminating TLS.
+
+1. Create the TLS secret with your public certificate. [Bring Your Own Certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) and [cert-manager](self-hosted/install/certificates/cert-manager.mdx) describe ways to create it.
+2. Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret:
+
+```yaml
+wildcardCertificate:
+  create: false
+  name: okteto-wildcard-certificate
+```
+
+#### Certificate in Your Load Balancers
+
+Your load balancers serve your public certificate and terminate TLS for the clients outside the cluster. On AWS, for example, a Network Load Balancer serves a certificate from AWS Certificate Manager (ACM).
+
+The Gateways still need a certificate. The load balancers forward the requests over TLS to their HTTPS listeners, and the requests from inside the cluster reach the [internal IP](#internal-ip) of the control plane's `Gateway` without going through its load balancer. That certificate is internal: it can be self-signed or issued by a private certificate authority, because the clients outside the cluster only see the certificate of your load balancers. Many installations get it today with `wildcardCertificate.create: true`. With Gateway API, you create it yourself:
+
+1. Configure the load balancer of each `Gateway` to serve your public certificate and to forward the requests over TLS to the HTTPS listeners of its `Gateway`.
+2. Create the TLS secret with your internal certificate.
+3. Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret.
+4. Enable `wildcardCertificate.privateCA` with the secret and the key that store the certificate of the authority that signed your internal certificate. For a self-signed certificate, that's the certificate itself. The Okteto components then trust your internal certificate, and the Okteto daemonset installs the authority's certificate in the trust store of every node, so the nodes can pull images from the Okteto Registry.
+
+```yaml
+wildcardCertificate:
+  create: false
+  name: okteto-wildcard-certificate
+  privateCA:
+    enabled: true
+    secret:
+      name: okteto-wildcard-certificate
+      key: tls.crt
+```
+
+### Control Plane over HTTP
+
+The control plane's `Gateway` terminates TLS and sends plain HTTP to the Okteto control plane, so the requests between them travel unencrypted inside the cluster.
 
 The Okteto UI, the Okteto API, and the Okteto Registry always listen on HTTP. The proxy that serves `kubernetes.$SUBDOMAIN` listens on HTTPS by default, and Okteto creates a `BackendTLSPolicy` for it. Disable both, so the proxy listens on HTTP too:
 
@@ -257,29 +303,7 @@ kubeAPIServerProxy:
 
 With this configuration, your Gateway controller doesn't need to support `BackendTLSPolicy`. The proxy always connects to the Kubernetes API server over HTTPS.
 
-To encrypt the requests between the control plane's `Gateway` and the proxy, keep `kubeAPIServerProxy.tls.enabled` and `kubeAPIServerProxy.backendTLSPolicy.enabled` set to `true`, their default value. The proxy then serves the certificate in `wildcardCertificate.name`, or the one in `kubeAPIServerProxy.tls.secretName` if you set it, and your Gateway controller must support `BackendTLSPolicy`. A public certificate authority didn't sign your internal certificate, so also reference a ConfigMap with its CA certificate in `kubeAPIServerProxy.backendTLSPolicy.caCertificateRefs`, or the `Gateway` rejects the connection. The requests to the Okteto UI, the Okteto API, and the Okteto Registry still travel over HTTP.
-
-#### Certificate Configuration
-
-[`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API. The Helm install fails if both are set. Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you keep that setup, but you create the internal certificate yourself:
-
-1. Create a TLS secret in the `okteto` namespace with a certificate valid for both `*.$SUBDOMAIN` and the `publicOverride` hostname. The `publicOverride` hostname is outside `*.$SUBDOMAIN`, so a certificate for `*.$SUBDOMAIN` alone doesn't cover it. The certificate can be self-signed or issued by a private certificate authority, because the clients outside the cluster only see the certificate of your load balancers.
-2. Reference the secret from the `certificateRefs` of the listeners of both Gateways.
-3. Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret.
-4. Enable `wildcardCertificate.privateCA` with the secret and the key that store the certificate of the authority that signed it. For a self-signed certificate, that's the certificate itself. The Okteto components then trust your internal certificate, and the Okteto daemonset installs the authority's certificate in the trust store of every node, so the nodes can pull images from the Okteto Registry.
-
-```yaml
-wildcardCertificate:
-  create: false
-  name: okteto-wildcard-certificate
-  privateCA:
-    enabled: true
-    secret:
-      name: okteto-wildcard-certificate
-      key: tls.crt
-```
-
-If your load balancers pass TLS through to the Gateways instead of terminating it, the Gateways serve your public certificate: store it in the secret and leave `wildcardCertificate.privateCA` disabled. [Bring Your Own Certificate](self-hosted/install/certificates/bring-your-own-certificate.mdx) and [cert-manager](self-hosted/install/certificates/cert-manager.mdx) describe ways to create it.
+To encrypt the requests between the control plane's `Gateway` and the proxy, keep `kubeAPIServerProxy.tls.enabled` and `kubeAPIServerProxy.backendTLSPolicy.enabled` set to `true`, their default value. The proxy then serves the certificate in `wildcardCertificate.name`, or the one in `kubeAPIServerProxy.tls.secretName` if you set it, and your Gateway controller must support `BackendTLSPolicy`. If that certificate is an internal one, as in [Certificate in Your Load Balancers](#certificate-in-your-load-balancers), also reference a ConfigMap with its CA certificate in `kubeAPIServerProxy.backendTLSPolicy.caCertificateRefs`, or the `Gateway` rejects the connection. The requests to the Okteto UI, the Okteto API, and the Okteto Registry still travel over HTTP.
 
 ### Private Endpoints
 
@@ -352,11 +376,6 @@ publicOverride: okteto.example.org
 wildcardCertificate:
   create: false
   name: okteto-wildcard-certificate
-  privateCA:
-    enabled: true
-    secret:
-      name: okteto-wildcard-certificate
-      key: tls.crt
 
 ingress-nginx:
   enabled: false
@@ -398,6 +417,8 @@ unsupported:
   defaultGateway:
     type: gateway
 ```
+
+If you keep your public certificate in your load balancers, also add the `wildcardCertificate.privateCA` values from [Certificate in Your Load Balancers](#certificate-in-your-load-balancers).
 
 If you moved your applications to a Gateway controller, set `endpoints.dev.gatewayAPI.gateway` to the `Gateway` that already serves them. Once `okteto-nginx` is disabled, the wildcard Ingress you created in it isn't used anymore, and you can delete it.
 
