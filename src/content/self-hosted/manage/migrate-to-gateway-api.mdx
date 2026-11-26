@@ -22,7 +22,7 @@ Okteto recommends moving all your applications to Gateway API. The [Ingress NGIN
 
 ## Supported Gateway Controllers
 
-Okteto works with any Gateway controller that implements Gateway API. Today, the Okteto end-to-end tests run against Envoy Gateway, Istio, and Kong. If you use a different Gateway controller, [let us know](https://okteto.com/support) so we can add it to the release tests.
+Okteto works with any Gateway controller that implements Gateway API and supports `BackendTLSPolicy`, which the control plane's `Gateway` needs to reach the Kubernetes API endpoint, as described in [Control Plane Traffic](#control-plane-traffic). Today, the Okteto end-to-end tests run against Envoy Gateway, Istio, and Kong. If you use a different Gateway controller, [let us know](https://okteto.com/support) so we can add it to the release tests.
 
 ## Migration Steps
 
@@ -145,7 +145,7 @@ Create a certificate valid for both the `publicOverride` hostname and `*.$SUBDOM
 
 Always configure the certificate in two places:
 
-- **`wildcardCertificate`.** Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret.
+- **`wildcardCertificate`.** Set `wildcardCertificate.create: false` and `wildcardCertificate.name` to the name of the secret. The Okteto control plane uses it: the proxy that serves `kubernetes.$SUBDOMAIN` serves this certificate to the `Gateway`, as described in [Control Plane Traffic](#control-plane-traffic).
 - **Your Gateways.** Reference the secret from the `certificateRefs` of every listener, as in the examples of [Gateways](#gateways).
 
 ```yaml
@@ -154,7 +154,7 @@ wildcardCertificate:
   name: okteto-certificate
 ```
 
-[`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API, and the Helm install fails if both are set. Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you create the certificate yourself.
+[`wildcardCertificate.create: true`](self-hosted/helm-configuration.mdx#wildcardcertificate) is not compatible with Gateway API, and the Helm install fails if both are set. Many installations set `wildcardCertificate.create: true` to get a self-signed certificate for internal communication, while the load balancer serves a public certificate. With Gateway API, you create the certificate yourself. If a public certificate authority doesn't sign it, configure the `Gateway` to trust it, as described in [Control Plane Traffic](#control-plane-traffic).
 
 ### Gateways
 
@@ -261,11 +261,17 @@ endpoints:
         ip: <control-plane-gateway-cluster-ip>
 ```
 
-### Control Plane over HTTP
+### Control Plane Traffic
 
-The control plane's `Gateway` terminates TLS and sends plain HTTP to the Okteto control plane. The Okteto UI, the Okteto API, the Okteto Registry, and the proxy that serves `kubernetes.$SUBDOMAIN` all listen on HTTP, so you don't need any Helm value for it. The requests between the `Gateway` and the Okteto control plane travel unencrypted inside the cluster.
+The control plane's `Gateway` terminates TLS and forwards the requests to the Okteto control plane:
 
-The proxy that serves `kubernetes.$SUBDOMAIN` always connects to the Kubernetes API server over HTTPS.
+- **The Okteto UI, the Okteto API, and the Okteto Registry** listen on HTTP, so their requests travel unencrypted inside the cluster.
+- **The proxy that serves `kubernetes.$SUBDOMAIN`** listens on HTTPS, with the certificate in `wildcardCertificate.name`. Okteto creates a `BackendTLSPolicy` for it, so the `Gateway` connects to the proxy over TLS and validates its certificate. The proxy connects to the Kubernetes API server over HTTPS too.
+
+For the `Gateway` to reach the proxy:
+
+- Your Gateway controller must support `BackendTLSPolicy`.
+- The `Gateway` must trust your [certificate](#certificate). The `BackendTLSPolicy` validates it against the certificate authorities of the system, so a certificate signed by a public certificate authority works without more configuration. For a certificate signed by a private certificate authority, reference a ConfigMap with the authority's certificate in `kubeAPIServerProxy.backendTLSPolicy.caCertificateRefs`. Otherwise, the `Gateway` rejects the connection, and the commands that use `kubernetes.$SUBDOMAIN`, such as `okteto up`, `okteto build`, and `kubectl`, fail.
 
 ### Private Endpoints
 
