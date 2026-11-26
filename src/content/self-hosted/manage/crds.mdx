@@ -104,10 +104,17 @@ To configure a catalog item, create a resource like this:
 
 - `metadata.name`: the name of the `CatalogItem` resource
 - `spec.branch`: the default branch for the catalog item (optional)
+- `spec.description`: the [description](admin/catalog.mdx#add-a-description) shown to developers when they choose what to deploy, up to 200 characters (optional)
 - `spec.manifestPath`: the path to the manifest file in the repository (optional)
 - `spec.name`: the display name in the Catalog UI list
 - `spec.repositoryUrl`: the repository URL
-- `spec.variables`: the variables suggested to the user at deployment time. Define each variable by name only, or by name and value (optional)
+- `spec.variables`: the variables suggested to the user at deployment time (optional). Each variable has these fields:
+  - `name`: the name of the variable
+  - `value`: its value (optional). For a variable with `options`, it's the default value, and it must be one of them
+  - `options`: the values that developers pick from when they deploy the catalog item, as in a [multi-value variable](admin/catalog.mdx#multi-value-variables) (optional). Set from 2 to 50 values, none of them empty or repeated
+  - `description`: the [description](admin/catalog.mdx#variable-descriptions) shown under the variable when developers deploy the catalog item, up to 120 characters (optional)
+
+Okteto shows each description as a single paragraph, so you can write it in several lines of YAML.
 
 ```yaml title="my-catalog-item.yaml"
 apiVersion: git.okteto.com/v1
@@ -117,14 +124,26 @@ metadata:
   namespace: okteto
 spec:
   branch: ""
+  description: Movies app with a Helm chart, a MongoDB database, and sample data
   manifestPath: ""
   name: my-catalog-item
   repositoryUrl: https://github.com/okteto/movies-with-helm
   variables:
     - name: VARIABLE_WITH_VALUE
       value: my-value
+      description: Shown under the variable when deploying
     - name: VARIABLE_WITHOUT_VALUE
+    - name: LOG_LEVEL
+      value: info
+      options:
+        - debug
+        - info
+        - warn
 ```
+
+:::note
+If you set `crds.install` to `false` in your [Helm configuration](self-hosted/helm-configuration.mdx#crds), apply the `CatalogItem` CRD of your Okteto version every time you upgrade. With an older CRD, Kubernetes drops the fields that the CRD doesn't define, such as `description` or `options`, when Okteto saves a catalog item: the save succeeds, but those fields are lost.
+:::
 
 Run `kubectl apply -f my-catalog-item.yaml` to add the catalog item to the Okteto Catalog in your cluster.
 

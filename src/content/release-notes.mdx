@@ -20,13 +20,32 @@ Okteto Chart release 1.51 is designed to work with [Okteto CLI 3.26.x](https://g
 - **Okteto Autoscaler removed**: The Okteto Autoscaler, deprecated since 1.21, is removed, together with the `nodeReadinessChecker` Helm setting. The Kubernetes cluster autoscaler now adds nodes based on the CPU and memory requests of your pods, not on their real usage. To keep scaling your nodes according to what your workloads use, configure the [Resource Manager](admin/resource-manager.mdx) in **Automatic** mode. `helm upgrade` prints a warning if your values still use these settings. The [upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-151x--okteto-autoscaler-removed) lists what the upgrade removes from your cluster
 - **Okteto images no longer pre-pulled on every node**: The `prepullImages` Helm setting, enabled by default, is removed. The jobs that Okteto runs on a new node, such as the pipelines of your application environments, pull the Okteto images first. Enable [warm nodes](self-hosted/helm-configuration.mdx#warmnodes) to keep nodes with the Okteto images already pulled
 
+### Important Notes {#important-notes-1.51}
+
+- **CatalogItem CRD updated**: The `catalogitems.git.okteto.com` CRD has new fields for the descriptions and the multi-value variables of Catalog items. If you set `crds.install` to `false`, apply the new CRD when you upgrade, as the [upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-151x--catalogitem-crd) shows. Until you do, Kubernetes drops these fields when Okteto saves a Catalog item, without an error <!-- ENG-45, ENG-43, ENG-48, app#10653, app#10648, app#10660 -->
+- **Personal Namespaces in the Garbage Collector on new installations**: On new installations, the [Garbage Collector](admin/cleanup.mdx#applying-garbage-collection-to-personal-namespaces) now cleans up the resources of Personal Namespaces that reach the Delete Period, their volumes included. Existing installations keep their **Include Personal Namespaces** setting, and **Delete Volumes** stays off until an Admin turns it on <!-- PROD-427, app#10590 -->
+
 ### New Features {#new-features-1.51}
 
 - **Warm nodes**: Okteto can keep a number of nodes for your application environments ready, with the Okteto images and the images you list in `warmNodes.extraImages` already pulled. When a pod doesn't fit on any other node, it runs on a warm node and starts without waiting for a new node or for those images, and the cluster autoscaler adds a node to replace the warm one. Enable them with the [`warmNodes.enabled`](self-hosted/helm-configuration.mdx#warmnodes) Helm setting, and set how many to keep, up to 20, in [**Admin > Nodes**](admin/nodes.mdx#warm-nodes), which also marks the warm nodes. Each warm node is an idle node, and warm nodes assume that all the nodes for your application environments have the same size. After a `helm rollback` to Okteto 1.50, delete the `okteto-warm-nodes` Deployment with `kubectl delete deployment okteto-warm-nodes --namespace=okteto`
+- **Catalog item descriptions**: Admins can add a [description](admin/catalog.mdx#add-a-description) to each Catalog item. Developers see it under the item's name when they choose what to deploy, and above the deploy options once they select the item <!-- ENG-45, app#10653 -->
+- **Multi-value Catalog variables**: A Catalog item's variable can have a [list of values](admin/catalog.mdx#multi-value-variables). Developers pick one of them when they deploy the item, and the first one is the default <!-- ENG-43, app#10648 -->
+- **Catalog variable descriptions**: Admins can add a [description](admin/catalog.mdx#variable-descriptions) to each variable of a Catalog item. Developers see it under the variable when they deploy or redeploy the item <!-- ENG-48, app#10660 -->
+- **Volumes of Personal Namespaces in the Garbage Collector**: Admins choose whether the Garbage Collector deletes the volumes (PVCs and volume snapshots) of Personal Namespaces when it cleans them up, with the new **Delete Volumes** switch in [**Admin > Garbage Collector**](admin/cleanup.mdx#applying-garbage-collection-to-personal-namespaces). It only applies to the cleanups after it's on <!-- PROD-427, app#10590 -->
 
 ### Improvements {#improvements-1.51}
 
 - **Admin > Nodes refreshes faster**: The node table in [**Admin > Nodes**](admin/nodes.mdx) refreshes every 30 seconds instead of every 2 minutes, while the page is visible in your browser
+- **Sleep and wake from the lists**: The **Namespaces** and **Previews** lists have **Put To Sleep** and **Wake Up** in the menu of each row, with the same permissions as the [Namespace view](application-environments/namespaces.mdx#sleeping-and-waking-namespaces) <!-- DEV-1508, app#10575 -->
+- The **Variables** section of the **Deploy Dev Environment** and redeploy dialogs is expanded by default <!-- app#10647 -->
+- In the **Deploy Dev Environment** dialog, clicking the selected **Catalog** or **GitHub** tab goes back to the list of Catalog items or repositories <!-- app#10652 -->
+- The **More...** list of endpoints on a resource's page opens on click instead of on hover <!-- app#10651 -->
+
+### Bug Fixes {#bug-fixes-1.51}
+
+- Fixed the logs of an application environment staying empty for a whole deploy, redeploy, or destroy in some cases: when you opened them in the first seconds of the action, before the pod that runs it was created <!-- ENG-40, app#10638 -->
+- Fixed **Admin > Catalog** showing "Loading catalog..." forever when loading the Catalog failed <!-- DEV-1506, app#10562 -->
+- Fixed users of an outdated Microsoft Edge being asked to update Chrome instead of Edge <!-- app#10650 -->
 
 ## 1.50.3
 

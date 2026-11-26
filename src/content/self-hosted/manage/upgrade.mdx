@@ -59,6 +59,20 @@ If you enabled warm nodes and roll back to Okteto 1.50 with `helm rollback`, del
 kubectl delete deployment okteto-warm-nodes --namespace=okteto
 ```
 
+## Upgrading to Okteto 1.51.x – CatalogItem CRD {#upgrading-to-okteto-151x--catalogitem-crd}
+
+Okteto 1.51 adds fields to the `catalogitems.git.okteto.com` CRD: the [description](admin/catalog.mdx#add-a-description) of a Catalog item, and the [options](admin/catalog.mdx#multi-value-variables) and [description](admin/catalog.mdx#variable-descriptions) of its variables. With the default [`crds.install`](self-hosted/helm-configuration.mdx#crds) setting, `helm upgrade` updates the CRD and you don't need to do anything.
+
+If you set `crds.install` to `false`, apply the new CRD yourself when you upgrade:
+
+```bash
+helm template okteto okteto/okteto --namespace=okteto --version <version_number> --set crds.install=true --show-only templates/crds/git-catalog-item-crd.yaml | kubectl apply -f -
+```
+
+Until you apply it, Kubernetes drops these fields when Okteto saves a Catalog item: the save succeeds, but the descriptions and the values of multi-value variables are lost.
+
+During the upgrade, or after a `helm rollback` to Okteto 1.50, an Okteto API that runs 1.50 removes these fields from any Catalog item it saves.
+
 ## Upgrading to Okteto 1.50.x – Okteto Registry Images in Azure Storage
 
 Okteto 1.50 upgrades the Okteto Registry to [distribution](https://github.com/distribution/distribution) 3.1.2, which names the blobs in Azure Storage without the leading `/` that earlier versions used ([distribution#4278](https://github.com/distribution/distribution/issues/4278)). Only [Azure Storage](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx) is affected: Google Cloud Storage, Amazon S3, DigitalOcean Spaces, and filesystem storage keep their images.
