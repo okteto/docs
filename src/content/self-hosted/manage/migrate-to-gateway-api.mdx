@@ -261,24 +261,11 @@ endpoints:
         ip: <control-plane-gateway-cluster-ip>
 ```
 
-### Control Plane Traffic
+### Control Plane over HTTP
 
-The control plane's `Gateway` terminates TLS and forwards the requests to the Okteto control plane. With the default configuration, which doesn't need any Helm value:
+The control plane's `Gateway` terminates TLS and sends plain HTTP to the Okteto control plane. The Okteto UI, the Okteto API, the Okteto Registry, and the proxy that serves `kubernetes.$SUBDOMAIN` all listen on HTTP, so you don't need any Helm value for it. The requests between the `Gateway` and the Okteto control plane travel unencrypted inside the cluster.
 
-- **The Okteto UI, the Okteto API, and the Okteto Registry** listen on HTTP, so their requests travel unencrypted inside the cluster.
-- **The proxy that serves `kubernetes.$SUBDOMAIN`** listens on HTTPS with the certificate in `wildcardCertificate.name`. Okteto creates a `BackendTLSPolicy` for it, so the `Gateway` connects to the proxy over TLS and validates its certificate. The proxy always connects to the Kubernetes API server over HTTPS.
-
-Your Gateway controller must support `BackendTLSPolicy`. The policy validates the proxy's certificate against the certificate authorities of the system. If a public certificate authority didn't sign your certificate, reference a ConfigMap with its CA certificate in `kubeAPIServerProxy.backendTLSPolicy.caCertificateRefs`, or the `Gateway` rejects the connection.
-
-If your Gateway controller doesn't support `BackendTLSPolicy`, disable it and the TLS listener of the proxy. The proxy then listens on HTTP, like the rest of the control plane:
-
-```yaml
-kubeAPIServerProxy:
-  tls:
-    enabled: false
-  backendTLSPolicy:
-    enabled: false
-```
+The proxy that serves `kubernetes.$SUBDOMAIN` always connects to the Kubernetes API server over HTTPS.
 
 ### Private Endpoints
 
