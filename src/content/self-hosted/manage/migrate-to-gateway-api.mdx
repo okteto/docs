@@ -148,7 +148,7 @@ Every other hostname under `*.$SUBDOMAIN` belongs to your applications.
 
 #### Control Plane Gateway
 
-Create the control plane's `Gateway` in the namespace of your Okteto installation, with two HTTPS listeners: one for the `publicOverride` hostname, and one for `*.$SUBDOMAIN`, which serves `registry.$SUBDOMAIN` and `kubernetes.$SUBDOMAIN`. Okteto creates the control plane's HTTPRoutes in that namespace, so the listeners only accept routes from it. Both listeners terminate TLS with the certificate in the secret described in [Certificates](#certificates). For example:
+Create the control plane's `Gateway` in the namespace of your Okteto installation, with an HTTPS listener for each hostname of the control plane: the `publicOverride` hostname, `registry.$SUBDOMAIN`, and `kubernetes.$SUBDOMAIN`. It has no listener for `*.$SUBDOMAIN`, which belongs to your applications. Okteto creates the control plane's HTTPRoutes in that namespace, so the listeners only accept routes from it. The three listeners terminate TLS with the certificate in the secret described in [Certificates](#certificates). For example:
 
 ```yaml title="okteto-gateway.yaml"
 apiVersion: gateway.networking.k8s.io/v1
@@ -159,7 +159,7 @@ metadata:
 spec:
   gatewayClassName: <your-gateway-class>
   listeners:
-    - name: https-public
+    - name: okteto
       protocol: HTTPS
       port: 443
       hostname: "okteto.example.org"
@@ -170,10 +170,21 @@ spec:
       allowedRoutes:
         namespaces:
           from: Same
-    - name: https
+    - name: registry
       protocol: HTTPS
       port: 443
-      hostname: "*.okteto.example.com"
+      hostname: "registry.okteto.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: okteto-wildcard-certificate
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: kubernetes
+      protocol: HTTPS
+      port: 443
+      hostname: "kubernetes.okteto.example.com"
       tls:
         mode: Terminate
         certificateRefs:
@@ -215,7 +226,7 @@ Create both Gateways:
 kubectl apply -f okteto-gateway.yaml -f okteto-dev-gateway.yaml
 ```
 
-Both Gateways have a listener for `*.$SUBDOMAIN`. Your [DNS records](#dns-configuration) decide which `Gateway` receives each hostname.
+Your [DNS records](#dns-configuration) send each hostname to the load balancer of its `Gateway`.
 
 #### Internal IP
 
