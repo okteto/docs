@@ -36,6 +36,7 @@ Go to **Admin > Catalog** and click **Add Item** to open the **Add Catalog Item*
 The form adds a Catalog item: a preconfigured application that developers deploy with one click, from its repository and the settings you provide. It has these fields:
 
 - **Name** (required)
+- [**Description**](#add-a-description)
 - **Repository URL** (required)
 - [**Default Branch**](#define-a-default-branch)
 - [**Manifest Path**](#define-a-manifest-path)
@@ -51,6 +52,10 @@ Fill in the ones you need and click **Save**.
   />
 </p>
 
+#### Description {#add-a-description}
+
+**Description** tells developers what they get when they deploy the Catalog item. Developers see it under the item's name when they choose what to deploy, in place of the repository URL, and above the deploy options once they select the item. It's optional.
+
 #### Default Branch {#define-a-default-branch}
 
 **Default Branch** is the branch selected by default when a developer deploys the Catalog item.
@@ -63,34 +68,89 @@ You can add several Catalog items for the same **Repository URL**, each with a d
 
 #### Environment Variables {#add-environment-variables}
 
-**Environment Variables** sets the variables that Okteto passes to every deployment of the Catalog item, so they're the same for every developer. They're optional. As with **Default Branch**, you can add several Catalog items for the same **Repository URL**, each with different environment variables.
+**Environment Variables** sets the variables that Okteto passes to every deployment of the Catalog item, with the values that developers start from when they deploy it. They're optional. As with **Default Branch**, you can add several Catalog items for the same **Repository URL**, each with different environment variables.
+
+Every variable needs a name. The **See more** menu (**⋯**) at the end of each variable's row has these options:
+
+- [**Multi-value**](#multi-value-variables): gives developers a list of values to pick from.
+- [**Description**](#variable-descriptions): explains the variable to developers.
+- **Remove**: removes the variable.
 
 <p align="center">
   <Image
-    src={require("@site/static/img/admin_catalog_view_add_env_var+1.32.png").default}
-    alt="Add environment variables to a Catalog repo"
+    src={require("@site/static/img/admin_catalog_view_add_env_var+1.51.png").default}
+    alt="The See more menu of a Catalog variable"
     width="800"
   />
 </p>
+
+##### Multi-Value Variables {#multi-value-variables}
+
+A multi-value variable has a list of values, and developers pick one of them when they deploy the Catalog item, instead of typing a value. To create one, check **Multi-value** in the variable's **See more** menu, and add the values with **Add value**. The field of a multi-value variable shows its default value and how many values it has: click it to add, change, or remove values.
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/admin_catalog_multi_value+1.51.png").default}
+    alt="Editing the values of a multi-value variable"
+    width="800"
+  />
+</p>
+
+- The first value is the default: it's selected when a developer deploys the Catalog item.
+- A multi-value variable has from 2 to 50 values. Values can't be empty or repeated, and Okteto trims the spaces around them.
+- A multi-value variable with a single value is saved as a regular variable.
+
+To make it a regular variable again, uncheck **Multi-value**. The variable keeps its default value.
+
+:::note
+The list of values applies to the **Deploy Dev Environment** dialog: developers can still remove the variable and add one with the same name and any value. Don't rely on it to restrict what a deployment receives.
+:::
+
+##### Variable Descriptions {#variable-descriptions}
+
+To explain what a variable is for, check **Description** in the variable's **See more** menu and type it in the field under the variable. Developers see it under the variable when they deploy or redeploy the Catalog item. Unchecking **Description** removes it.
+
+A variable description has up to 120 characters, and it's shown as a single paragraph.
 
 ## Deploying from the Catalog {#deploy-a-dev-environment-from-your-catalog}
 
 To deploy a Catalog item, go to **Namespaces**, click **Deploy Dev Environment**, and select **Catalog**.
 
-The list shows every Catalog item. Select the one you want and click **Deploy**.
+The list shows every Catalog item with its [description](#add-a-description), or with its repository URL when it has none. The search matches names, descriptions, and repository URLs.
 
 <p align="center">
   <Image
-    src={require("@site/static/img/gc_deploy_dev_env+1.17.png").default}
-    alt="Deploy an application environment from the Catalog"
-    width="600"
+    src={require("@site/static/img/gc_deploy_dev_env+1.51.png").default}
+    alt="The Catalog list with each item's description"
+    width="800"
   />
 </p>
 
+Select an item to configure its deployment. The dialog shows the item's name and description, and these fields:
+
+- **Repository**: the item's repository. To pick another item, click the **×** next to it, or click the **Catalog** tab.
+- **Branch**: the branch to deploy, set to the item's [Default Branch](#define-a-default-branch).
+- **Variables**: the item's [environment variables](#add-environment-variables), with their [descriptions](#variable-descriptions). Change their values, pick a value for each [multi-value variable](#multi-value-variables), or add your own variables.
+- **Advanced Options**: the path to the Okteto Manifest, set to the item's [Manifest Path](#define-a-manifest-path).
+
 <p align="center">
   <Image
-    src={require("@site/static/img/gc_deploy_view_env_vars+1.17.png").default}
-    alt="view a Catalog repo's environment variables"
-    width="600"
+    src={require("@site/static/img/gc_deploy_configure+1.51.png").default}
+    alt="Configuring the deployment of a Catalog item"
+    width="800"
   />
 </p>
+
+Click **Deploy** to deploy the application environment.
+
+A multi-value variable shows its values in a dropdown, with the default value selected:
+
+<p align="center">
+  <Image
+    src={require("@site/static/img/gc_deploy_multi_value+1.51.png").default}
+    alt="Picking the value of a multi-value variable"
+    width="800"
+  />
+</p>
+
+When you redeploy an application environment that you deployed from the Catalog, the **Variables** section shows the values you deployed. Multi-value variables offer the values that the Catalog item has when you redeploy, and the value you deployed stays selected even if the item no longer has it.
