@@ -15,9 +15,30 @@ Unreleased
 This version is compatible with Kubernetes versions 1.34 to 1.36 \
 Okteto Chart release 1.51 is designed to work with [Okteto CLI 3.26.x](https://github.com/okteto/okteto/releases)
 
+### Breaking Changes {#breaking-changes-1.51}
+
+- **Okteto Autoscaler removed**: The Okteto Autoscaler, deprecated since 1.21, is removed, together with the `nodeReadinessChecker` Helm setting. The Kubernetes cluster autoscaler now adds nodes based on the CPU and memory requests of your pods, not on their real usage. To keep scaling your nodes according to what your workloads use, configure the [Resource Manager](admin/resource-manager.mdx) in **Automatic** mode. `helm upgrade` prints a warning if your values still use these settings. The [upgrade guide](self-hosted/manage/upgrade.mdx#upgrading-to-okteto-151x--okteto-autoscaler-removed) lists what the upgrade removes from your cluster
+- **Okteto images no longer pre-pulled on every node**: The `prepullImages` Helm setting, enabled by default, is removed. The jobs that Okteto runs on a new node, such as the pipelines of your application environments, pull the Okteto images first. Enable [warm nodes](self-hosted/helm-configuration.mdx#warmnodes) to keep nodes with the Okteto images already pulled
+
 ### New Features {#new-features-1.51}
 
+- **Warm nodes**: Okteto can keep a number of nodes for your application environments ready, with the Okteto images and the images you list in `warmNodes.extraImages` already pulled. When a pod doesn't fit on any other node, it runs on a warm node and starts without waiting for a new node or for those images, and the cluster autoscaler adds a node to replace the warm one. Enable them with the [`warmNodes.enabled`](self-hosted/helm-configuration.mdx#warmnodes) Helm setting, and set how many to keep, up to 20, in [**Admin > Nodes**](admin/nodes.mdx#warm-nodes), which also marks the warm nodes. Each warm node is an idle node, and warm nodes assume that all the nodes for your application environments have the same size. After a `helm rollback` to Okteto 1.50, delete the `okteto-warm-nodes` Deployment with `kubectl delete deployment okteto-warm-nodes --namespace=okteto`
 - **Secret variables in the Catalog**: [Catalog items](admin/catalog.mdx#secret-variables) now support variables whose values come from Kubernetes Secrets. Okteto passes them to the `deploy` and `destroy` commands of the Okteto Manifest, and developers never see them in the Okteto UI or in the logs. Enable them with the [`catalog.secretVariables.enabled`](self-hosted/helm-configuration.mdx#catalog) Helm setting
+
+### Improvements {#improvements-1.51}
+
+- **Admin > Nodes refreshes faster**: The node table in [**Admin > Nodes**](admin/nodes.mdx) refreshes every 30 seconds instead of every 2 minutes, while the page is visible in your browser
+
+## 1.50.3
+
+25 November 2026
+
+This version is compatible with Kubernetes versions 1.34 to 1.36 \
+Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://github.com/okteto/okteto/releases/tag/3.25.0)
+
+### Bug Fixes {#bug-fixes-1.50.3}
+
+- Fixed a regression that appeared with Kubernetes 1.35, where pods that mount a `ReadWriteOnce` volume stayed `Pending` after the node they ran on was drained, for example during a node rotation. The replacement pod was pinned to the drained node and stayed `Pending` until it was deleted by hand <!-- DEV-1510, app#10592, app#10656 -->
 
 ## 1.50.2
 
@@ -55,7 +76,7 @@ Okteto Chart release 1.50 is designed to work with [Okteto CLI 3.25.x](https://g
 ### Important Notes {#important-notes-1.50}
 
 - **Okteto Registry upgraded to distribution 3.1.2**: The Okteto Registry now runs [distribution](https://github.com/distribution/distribution) 3.1.2. Image pushes and pulls can fail for a few seconds during the upgrade. If you override `registry.image`, it must point to a distribution 3.x image <!-- PROD-541, app#10465 -->
-- **Okteto Autoscaler will be removed in Okteto 1.51**: The [Okteto Autoscaler](self-hosted/helm-configuration.mdx#autoscaler-deprecated), deprecated since 1.21, will be removed in Okteto 1.51. It instructs the Kubernetes cluster autoscaler to add nodes when the real CPU and memory usage of the nodes goes beyond its thresholds. Without it, the cluster autoscaler scales your nodes based on the CPU and memory requests of your workloads, so those requests need to reflect what your workloads actually use. If you set `autoscaler.enabled` to `true`, prepare for the change before upgrading to Okteto 1.51:
+- **Okteto Autoscaler will be removed in Okteto 1.51**: The [Okteto Autoscaler](https://www.okteto.com/docs/1.50/self-hosted/helm-configuration/#autoscaler-deprecated), deprecated since 1.21, will be removed in Okteto 1.51. It instructs the Kubernetes cluster autoscaler to add nodes when the real CPU and memory usage of the nodes goes beyond its thresholds. Without it, the cluster autoscaler scales your nodes based on the CPU and memory requests of your workloads, so those requests need to reflect what your workloads actually use. If you set `autoscaler.enabled` to `true`, prepare for the change before upgrading to Okteto 1.51:
   - **Requests that match real usage**: Configure the [Resource Manager](admin/resource-manager.mdx#how-it-works) in **Automatic** mode from **Admin → Resource Manager**. It calculates the average CPU and memory usage of each container in your Development Environments and sets the resource requests of new pods based on it. The cluster autoscaler then adds and removes nodes according to what your workloads use, instead of according to requests that are too high or too low
   - **Warm nodes, coming in Okteto 1.51**: Okteto 1.51 will let you keep a number of nodes ready and warmed up. A warm node has already pulled a set of images that you configure, so when the cluster needs more capacity, new workloads start on it without waiting for those images to download
 - **Helm 4 will become the default in Okteto 1.51**: When Okteto runs the `deploy` and `destroy` commands of your Okteto Manifest [remotely](reference/okteto-manifest.mdx#deploy-remotely), it injects the `helm`, `helm3` and `helm4` binaries into the deploy image. In this release, `helm` runs Helm 3. Starting with Okteto 1.51, it runs Helm 4. Helm 4 uses server-side apply (SSA) by default, which changes how Kubernetes resources are created and tracked. Most charts work without changes, but test your `deploy` and `destroy` commands with Helm 4 before upgrading to Okteto 1.51. You can enable Helm 4 in two ways:

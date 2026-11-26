@@ -1,11 +1,19 @@
-FROM node:22 AS dev
+FROM node:24 AS dev
 
 WORKDIR /app
 
 COPY package.json yarn.lock ./
+# `yarn install` applies these patches (patch-package, in postinstall)
+COPY patches patches
 RUN --mount=type=cache,target=/root/.yarn YARN_CACHE_FOLDER=/root/.yarn yarn install
 
 FROM dev AS build
+# The build context has no .git (.dockerignore), so the build can't read the
+# last update dates of the pages from Git (see config/shared.js)
+ENV DOCUSAURUS_VCS=disabled
+# Every image build starts from an empty cache, so the persistent cache of
+# Rspack doesn't make it faster
+ENV DOCUSAURUS_NO_PERSISTENT_CACHE=true
 # Stable and large — cache early
 COPY static static
 COPY shared shared
@@ -17,6 +25,7 @@ COPY sidebars.js versions.json docusaurus.config.js docusaurus.tutorials.config.
 COPY config config
 COPY scripts scripts
 # Theme/component code — changes less often than content
+COPY src/clientModules src/clientModules
 COPY src/components src/components
 COPY src/icons src/icons
 COPY src/plugins src/plugins
