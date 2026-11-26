@@ -40,6 +40,7 @@ The form adds a Catalog item: a preconfigured application that developers deploy
 - [**Default Branch**](#define-a-default-branch)
 - [**Manifest Path**](#define-a-manifest-path)
 - [**Environment Variables**](#add-environment-variables)
+- [**Secret Variables**](#secret-variables)
 
 Fill in the ones you need and click **Save**.
 
@@ -73,11 +74,46 @@ You can add several Catalog items for the same **Repository URL**, each with a d
   />
 </p>
 
+#### Secret Variables {#secret-variables}
+
+**Secret Variables** sets variables whose values come from Kubernetes Secrets, such as a database password or an API token. The Catalog item only stores the name of the Secret and its key, and Okteto reads the value each time it deploys or destroys the application environment. Developers never see the value: the Okteto UI only shows the Secret and the key, and the Okteto CLI masks the value in the logs.
+
+:::note
+Secret variables are disabled by default. To enable them, set the [`catalog.secretVariables.enabled`](self-hosted/helm-configuration.mdx#catalog) Helm setting to `true`. They also need [Remote Execution](reference/remote-execution.mdx): if the commands run locally, the deploy fails.
+:::
+
+First, create the Secret in the `okteto` namespace with the label `dev.okteto.com/catalog-secret: "true"`. Okteto only reads Secrets with this label, so Catalog items can't access the other Secrets of the namespace:
+
+```yaml title="movies-db-secret.yaml"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: movies-db
+  namespace: okteto
+  labels:
+    dev.okteto.com/catalog-secret: "true"
+type: Opaque
+stringData:
+  password: <password>
+```
+
+Run `kubectl apply -f movies-db-secret.yaml` to create it.
+
+Then click **Add Secret** and fill in:
+
+- **Name**: the name of the variable, for example `DB_PASSWORD`.
+- **Kubernetes Secret**: the name of the Secret, `movies-db`.
+- **Secret Key**: the key of the Secret that stores the value, `password`.
+
+To define secret variables in a `CatalogItem` CRD instead, see [Secret Variables in the CRDs reference](self-hosted/manage/crds.mdx#secret-variables).
+
 ## Deploying from the Catalog {#deploy-a-dev-environment-from-your-catalog}
 
 To deploy a Catalog item, go to **Namespaces**, click **Deploy Dev Environment**, and select **Catalog**.
 
 The list shows every Catalog item. Select the one you want and click **Deploy**.
+
+If the Catalog item has [secret variables](#secret-variables), the dialog shows the Secret and the key of each one, but not their values. Developers can't change them.
 
 <p align="center">
   <Image
@@ -94,3 +130,25 @@ The list shows every Catalog item. Select the one you want and click **Deploy**.
     width="600"
   />
 </p>
+
+### Secret Variables in Deploys
+
+Okteto passes the secret variables to the commands of the `deploy` and `destroy` sections of the Okteto Manifest, as environment variables:
+
+```yaml title="okteto.yaml"
+deploy:
+  commands:
+    - helm upgrade --install movies chart --set db.password="$DB_PASSWORD"
+```
+
+The `build`, `test`, and `dev` sections don't get them. If another variable has the same name as a secret variable, the secret variable wins.
+
+When a developer deploys the Catalog item, the application environment keeps the references to its Secrets. Destroys and `okteto pipeline deploy` keep using them even if you change or delete the Catalog item, and redeploys from the Okteto UI read the Catalog item again if it still exists. Okteto reads the values on every deploy, so when you update a Secret, the next deploy gets the new value.
+
+Only deploys and destroys from the Okteto UI or with `okteto pipeline` get the values. `okteto deploy` and `okteto destroy` run the commands without them.
+
+If a Secret, its label, or its key is missing, the deploy fails before it runs any command, and the logs show which variables couldn't be read. A destroy doesn't fail: it runs the commands without those variables and shows a warning.
+
+:::warning
+Secret variables keep the values out of the Okteto UI and the logs, but not out of the commands. Developers choose the branch they deploy, and the commands of that branch can print a value or send it anywhere. Only use Secrets that every developer who can deploy or redeploy the Catalog item is allowed to see.
+:::
