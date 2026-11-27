@@ -81,6 +81,14 @@ registry:
     filesystem:
       persistence:
         enabled: true
+
+webhook:
+  annotations:
+    admissions.enforcer/disabled: "true"
+
+regcredsManager:
+  annotations:
+    admissions.enforcer/disabled: "true"
 ```
 
 This is the minimum configuration. The [Helm configuration](self-hosted/helm-configuration.mdx) lists every setting.
@@ -123,10 +131,14 @@ Add the `EXTERNAL-IP` address to the DNS of your domain. In Azure DNS, create an
 ### Sign In to Your Okteto Instance
 
 :::warning
-The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure a [wildcard certificate](self-hosted/install/certificates/index.mdx) and [Okteto Registry storage with Azure Storage Container](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx).
+The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure [Okteto Registry storage with Azure Storage Container](self-hosted/install/okteto-registry-storage/azure-storage-container.mdx).
 :::
 
-Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. Okteto creates your account the first time you log in, and the first user to log in gets the Admin role.
+Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. The default installation uses [token-based authentication](self-hosted/install/auth/token.mdx). The post-installation notes that Helm prints include the URL to log in to the Okteto UI with the token of the Admin user, and the command to configure the Okteto CLI with that token. To show the notes again, run:
+
+```bash
+helm get notes okteto --namespace=okteto
+```
 
 ## Optional: Configure Access to Your Azure Container Registry
 
@@ -134,4 +146,6 @@ You can give Okteto [access to your Azure Container Registry](admin/registry-cre
 
 ## Deploy Your First App
 
-With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the URL of your instance, `https://okteto.SUBDOMAIN`. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
+Before you deploy your first app, configure a valid [wildcard certificate](self-hosted/install/certificates/index.mdx). The default installation uses a self-signed certificate, and the Okteto CLI and `okteto test` don't accept it.
+
+With the certificate in place, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the command of the post-installation notes. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).

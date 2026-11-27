@@ -129,11 +129,12 @@ EOF
 
 :::note
 Check that the Kubernetes version you select is supported:
-- By your `eksctl` installation. To list the versions it supports, run:
+- By Amazon EKS in your region. To list the versions, run this command, which needs `eksctl` 0.202 or later and the `eks:DescribeClusterVersions` IAM permission:
   ```
-  eksctl create cluster -h | grep 'Kubernetes version'
+  eksctl utils describe-cluster-versions --region ${AWS_REGION}
   ```
-- By Amazon EKS, in its list of [available versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html).
+  Amazon EKS also publishes its list of [available versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html).
+- By your `eksctl` installation. Update it to its latest release to create clusters with the newest versions.
 - By the Okteto Helm chart version you plan to install, in its [supported Kubernetes versions](release-notes.mdx).
 :::
 
@@ -342,11 +343,15 @@ Add the `EXTERNAL-IP` address (`a519c8b3b27f94...elb.amazonaws.com` in the examp
 
 :::warning
 
-The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure a wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx) and [Okteto Registry storage with S3](self-hosted/install/okteto-registry-storage/aws-s3-bucket.mdx).
+The default installation isn't meant for production. Once you finish your evaluation, and before you give your team access to your Okteto instance, configure [Okteto Registry storage with S3](self-hosted/install/okteto-registry-storage/aws-s3-bucket.mdx).
 
 :::
 
-Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. Okteto creates your account the first time you log in, and the first user to log in gets the Admin role.
+Once the installation finishes, your Okteto instance is available at `https://okteto.SUBDOMAIN`. The default installation uses [token-based authentication](self-hosted/install/auth/token.mdx). The post-installation notes that Helm prints include the URL to log in to the Okteto UI with the token of the Admin user, and the command to configure the Okteto CLI with that token. To show the notes again, run:
+
+```bash
+helm get notes okteto --namespace=okteto
+```
 
 ## Optional: Configure Access to Your Amazon ECR
 
@@ -354,4 +359,6 @@ You can give Okteto [access to your Amazon Elastic Container Registry](admin/reg
 
 ## Deploy Your First App
 
-With your Okteto instance running, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the URL of your instance, `https://okteto.SUBDOMAIN`. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
+Before you deploy your first app, configure a valid wildcard [AWS ACM certificate](self-hosted/install/certificates/aws-acm.mdx). The default installation uses a self-signed certificate, and the Okteto CLI and `okteto test` don't accept it.
+
+With the certificate in place, [install the Okteto CLI](get-started/install-okteto-cli.mdx) and configure it with the command of the post-installation notes. Then deploy your first application with the [quickstart](get-started/quickstart.mdx).
