@@ -38,6 +38,37 @@ Run `helm ls` to find the name of your release.
 
 Review the [release notes](release-notes.mdx) before upgrading: they list new features, known issues, and configuration changes.
 
+### Upgrading with Helm 4
+
+Helm 4 uses server-side apply by default: Kubernetes records which field manager owns each field of a resource. If another controller in your cluster changes a field that the Okteto chart sets, `helm upgrade` fails with a conflict that names the field manager of that controller. Helm 3 doesn't check field ownership, so the same upgrade works with Helm 3.
+
+On AKS, the [Admissions Enforcer](https://learn.microsoft.com/en-us/azure/aks/faq#can-admission-controller-webhooks-affect-kube-system-and-internal-aks-namespaces-) adds `matchExpressions` to the `namespaceSelector` of the Okteto admission webhooks and takes ownership of that field. With Helm 4, every `helm upgrade` then fails with an error like:
+
+```
+Error: UPGRADE FAILED: conflict occurred while applying object /okteto-mutation-webhook admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration: Apply failed with 12 conflicts: conflicts with "admissionsenforcer"
+```
+
+To fix it, starting with Okteto 1.51, add the `admissions.enforcer/disabled` annotation to both webhooks in your `config.yaml`, so the Admissions Enforcer skips them:
+
+```yaml
+webhook:
+  annotations:
+    admissions.enforcer/disabled: "true"
+
+regcredsManager:
+  annotations:
+    admissions.enforcer/disabled: "true"
+```
+
+Then run the upgrade once with `--force-conflicts`, so Helm takes back the ownership of the fields that the Admissions Enforcer changed:
+
+```bash
+helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version <version_number> --force-conflicts
+```
+
+The next upgrades work without `--force-conflicts`.
+
 Okteto Chart 2.0 will make Gateway API the default installation mode. Migrate your instance with [Migrate to Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx) before you upgrade to 2.0.
 
 ## Upgrading to Okteto 1.51.x – Okteto Autoscaler Removed
