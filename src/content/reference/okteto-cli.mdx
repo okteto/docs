@@ -747,6 +747,7 @@ Use the `-v` / `--var` flag to pass individual variables on the command line ins
 | <em className="no-wrap">_-n, --namespace_</em> | string   | Overwrite the current Okteto Namespace                                    | |
 | <em className="no-wrap">_--name_</em>          |  string  | The name of the application environment                                     | The repo/folder name |
 | <em className="no-wrap">_--no-cache_</em>      |  bool    | By default, the `caches` of a test are reused between executions                                                                | `false` |
+| <em className="no-wrap">_--profile_</em>       |  list    | Enable a profile to run its tests along with the tests without profiles (can be set more than once). The `OKTETO_PROFILES` environment variable overrides it when it lists at least one profile | |
 | <em className="no-wrap">_-t, --timeout_</em>   | duration | The duration to wait for each test to run. Any value should contain a corresponding time unit, for example, 1s, 2m, 3h         | 5m0s |
 | <em className="no-wrap">_-v, --var_</em>       |  list    | Set a variable to be injected in the test commands (can be set more than once)                                            | |
 
@@ -770,6 +771,35 @@ The override follows these rules:
 - Each `--command` value runs as is, like a command in your Okteto Manifest.
 - You must name exactly one test. `okteto test` fails before connecting to the cluster if you name no test or several, pass nothing after `--`, pass an empty `--command`, or combine `--` with `--command`.
 - A run with overridden commands isn't published to [Okteto Insights](admin/okteto-insights.mdx#test-metrics), so it doesn't affect the metrics of that test. Runs of its dependencies are still published.
+
+#### Selecting Tests with Profiles {#selecting-tests-with-profiles}
+
+Profiles select a named set of tests to run, as in Docker Compose. Assign profiles to a test with the [`profiles`](reference/okteto-manifest.mdx#profiles-string-optional) field of your Okteto Manifest. When you don't name any test, `okteto test` runs the tests without profiles, and each `--profile` flag adds the tests that have that profile.
+
+```bash
+# Run the tests without profiles
+okteto test
+
+# Run the tests without profiles and the tests with the 'release' profile
+okteto test --profile release
+
+# Enable several profiles
+okteto test --profile long-running --profile release
+
+# Enable profiles with an environment variable, for example in CI
+OKTETO_PROFILES=long-running,release okteto test
+```
+
+When your Okteto Manifest uses profiles, `okteto test` shows the tests it selected before running them, for example `Test containers to run: lint, seed-db, unit, e2e`.
+
+The selection follows these rules:
+
+- `OKTETO_PROFILES` is a comma-separated list of profiles, and it overrides the `--profile` flag when it lists at least one profile. Spaces around each profile are trimmed and empty entries are ignored, so an empty value leaves the `--profile` flags in effect. Unlike `COMPOSE_PROFILES` in Docker Compose, the environment variable takes precedence, so a CI pipeline controls the profiles whatever command it runs. `okteto test` warns you when both are set. You can also set `OKTETO_PROFILES` in the `.env` file next to your Okteto Manifest or as an [Okteto Variable](application-environments/okteto-variables.mdx).
+- Named tests run whatever their profiles, along with their dependencies.
+- You can't enable profiles when you name tests or override their commands with `--` or `--command`. `okteto test` fails before running any test. If `OKTETO_PROFILES` is set in your shell, in the `.env` file, or as an Okteto Variable, set it to an empty value for that run, for example `OKTETO_PROFILES= okteto test unit`.
+- Unless you name the tests to run, each test in `depends_on` of a test that runs must have no profiles or an enabled profile. Otherwise, `okteto test` fails before running any test.
+- An unknown profile is an error, and the error lists the profiles defined in your Okteto Manifest. Docker Compose ignores unknown profiles, but `okteto test` fails, so a typo can't silently run only the tests without profiles.
+- If every test has a profile, `okteto test` without a profile fails, because no test would run.
 
 ### up<TiersList tiers="Platform Open-Source" />
 

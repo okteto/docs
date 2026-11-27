@@ -45,11 +45,13 @@ See the [`test` reference](reference/okteto-manifest.mdx#test) for every option.
 
 ## Running Tests
 
-Deploy your application with `okteto deploy`, and then run every test:
+Deploy your application with `okteto deploy`, and then run your tests:
 
 ```bash
 okteto test
 ```
+
+`okteto test` runs every test that has no [profiles](#selecting-tests-with-profiles). If your tests don't use profiles, it runs all of them.
 
 To run some of your tests, pass their names:
 
@@ -66,6 +68,38 @@ okteto test --deploy
 A test reaches the services of your application by their Kubernetes Service names, and through their [endpoints](application-environments/endpoints/automatic-ssl.mdx). For example, an `api` Service that listens on port 8080 is available at `http://api.${OKTETO_NAMESPACE}:8080`. The [Okteto Variables](application-environments/okteto-variables.mdx) of your Namespace and the variables of a `.env` file next to your Okteto Manifest are available in the test commands, and the `--var` flag sets more.
 
 See the [`okteto test` reference](reference/okteto-cli.mdx#test) for every flag, such as `--timeout` (5 minutes by default).
+
+## Selecting Tests with Profiles
+
+Profiles group your tests into named sets, such as fast checks that run on every change and slow suites that run only before a merge. Assign profiles to a test with the `profiles` field:
+
+```yaml title="okteto.yaml"
+test:
+  lint:
+    commands:
+      - make lint
+  unit:
+    commands:
+      - make unit
+  e2e:
+    profiles: [release]
+    commands:
+      - make e2e
+```
+
+`okteto test` runs `lint` and `unit`. To also run the tests with a profile, enable it with the `--profile` flag:
+
+```bash
+okteto test --profile release
+```
+
+In CI, set the `OKTETO_PROFILES` environment variable instead. It's a comma-separated list of profiles, and it overrides the `--profile` flag:
+
+```bash
+OKTETO_PROFILES=release okteto test
+```
+
+Naming a test still runs it whatever its profiles, for example `okteto test e2e`. See [selecting tests with profiles](reference/okteto-cli.mdx#selecting-tests-with-profiles) in the `okteto test` reference for the rules.
 
 ## Running Part of a Test
 

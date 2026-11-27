@@ -145,10 +145,10 @@ Add the following steps at the end of the `preview` job in your `.github/workflo
 What each step does:
 
 - `actions/checkout` clones the repository so the `okteto/test` action can read your Okteto Manifest and send the test `context` to Okteto.
-- `okteto/test` runs the tests in the [`test` section](application-environments/okteto-test.mdx) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. To run only some tests, use the `tests` input, for example `tests: e2e`.
+- `okteto/test` runs the tests in the [`test` section](application-environments/okteto-test.mdx) of your Okteto Manifest, in the Namespace of the Preview Environment. The `namespace` value must match the `name` of the `okteto/deploy-preview` step. To run only some tests, use the `tests` input, for example `tests: e2e`. Tests with [profiles](application-environments/okteto-test.mdx#selecting-tests-with-profiles) run only when you name them in `tests` or enable one of their profiles with the `profiles` input, for example `profiles: release`.
 - `actions/upload-artifact` attaches the Playwright report exported through the `artifacts` field to the workflow run. The `if: ${{ !cancelled() }}` condition uploads it even when a test fails, so you can inspect the results of a failed run.
 
-The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the `caches` of your tests, and `file` to set the path of your Okteto Manifest. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.
+The `okteto/test` action also accepts the `timeout` input (default `5m`), `variables` to pass variables to your tests, `no-cache` to ignore the `caches` of your tests, and `file` to set the path of your Okteto Manifest. The `profiles` input is a comma-separated list of profiles, and you can't combine it with `tests`. If the `OKTETO_PROFILES` environment variable is set to a non-empty value, it takes precedence over the `profiles` input. See the [`okteto test` reference](reference/okteto-cli.mdx#test) for the behavior of each option.
 
 Every pull request now runs the same tests that developers and coding agents run with `okteto test` against their own application environments. They iterate on the tests without pushing changes and waiting for CI, and the tests behave the same way when they run in CI.
 
