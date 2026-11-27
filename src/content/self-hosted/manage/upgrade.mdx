@@ -40,6 +40,37 @@ Review the [release notes](release-notes.mdx) before upgrading: they list new fe
 
 Okteto Chart 2.0 will make Gateway API the default installation mode. Migrate your instance with [Migrate to Gateway API](self-hosted/manage/migrate-to-gateway-api.mdx) before you upgrade to 2.0.
 
+### Upgrading with Helm 4
+
+Helm 4 installs releases with server-side apply by default: Kubernetes records which field manager owns each field of a resource. If another controller in your cluster changes a field that the Okteto chart sets, `helm upgrade` fails with a conflict that names the field manager of that controller. `helm upgrade` keeps the apply method of the release, so a release that you installed with Helm 3 keeps client-side apply, which doesn't check field ownership, and doesn't hit these conflicts.
+
+On AKS, the [Admissions Enforcer](https://learn.microsoft.com/en-us/azure/aks/faq#can-admission-controller-webhooks-affect-kube-system-and-internal-aks-namespaces-) adds `matchExpressions` to the `namespaceSelector` of the Okteto admission webhooks and takes ownership of that field. If you installed Okteto with Helm 4, every `helm upgrade` then fails with an error like:
+
+```
+Error: UPGRADE FAILED: conflict occurred while applying object /okteto-mutation-webhook admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration: Apply failed with 12 conflicts: conflicts with "admissionsenforcer"
+```
+
+To fix it, starting with Okteto 1.51, add the `admissions.enforcer/disabled` annotation to both webhooks in your `config.yaml`, so the Admissions Enforcer skips them:
+
+```yaml
+webhook:
+  annotations:
+    admissions.enforcer/disabled: "true"
+
+regcredsManager:
+  annotations:
+    admissions.enforcer/disabled: "true"
+```
+
+Then run the upgrade once with `--force-conflicts`, so Helm takes back the ownership of the fields that the Admissions Enforcer changed:
+
+```bash
+helm repo update
+helm upgrade okteto okteto/okteto -f config.yaml --namespace=okteto --version <version_number> --force-conflicts
+```
+
+The next upgrades work without `--force-conflicts`.
+
 ## Upgrading to Okteto 1.51.x – Okteto Autoscaler Removed
 
 Okteto 1.51 removes the Okteto Autoscaler and the Helm settings related to it. `helm upgrade` deletes their resources, and prints a warning if your values still use these settings. Remove them from your `config.yaml`:
